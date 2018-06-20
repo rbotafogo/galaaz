@@ -44,113 +44,46 @@ describe R do
      } 
   R
   
-  context "Accessing R through eval" do
-
-    it "shoud create named objects in R" do
-      # using Ruby heredoc to write R code
-      R.eval(<<-R)
-      x <- c(1, 2, 3);
-      hyp <- function(x, y) { sqrt(x^2 + y^2) };
-      R
+  # All the method calls here will be called through the R scope, i.e., they
+  # will be called with R.<function>(parameters).  This is different from
+  # getting the function definition in Ruby by calling R.eval(<function name>)
+  # and then calling <function name>.call(parameters).  This second case will be
+  # dealt in another context.
+  context "When passing parameters to R functions in the R scope" do
+    
+    it "should be able to pass Numbers" do
+      # note that method hyp was defined in another block, but it persists accross
+      # calls to the R scope.
+      expect(R.hyp(3, 4)).to eq 5.0
     end
     
-    it "should use named objects in R" do
-      R.eval(<<-R)
-      print(x);
-      print(hyp(3, 4));
-      R
-    end
-
-    it "should retrieve and used named R objects in Ruby" do
-      # retrieve x and hyp from R and attribute it to local Ruby variables
-      x = R.eval("x")
-      # hyp is an R function and works like a named function in Ruby
-      hyp = R.eval("hyp")
-
-      # is is a foreign object
-      expect(Truffle::Interop.foreign?(x)).to be true
-      expect(x[0]).to eq 1.0
-
-      # calling a named function or block is done by use of the 'call' method
-      expect(hyp.call(3, 4)).to eq 5.0
-
-    end
-  end
-  
-  context "When passing primitive values" do
-
-    it "should work with numbers" do
-      var = R.eval("4")
-      expect(4.0).to eq var
-      expect(var.class).to eq Float
-    end
-
-    # This has a bug that will be fixed by next version of Truffle
-    it "should work with characters" do
-      # var = R.eval("'Hello'")
-      # p var[0]
-      # expect("'Hello World'").to eq var
-    end
-
-    it "should work with c string" do
-      var1 = R.c("Hello")
-      p "var1 is a vector: #{var1} of size #{var1.size}"
-      p var1[0]
-      var2 = R.c("Hello", "beautiful", "world!")
-      p "var2 is a vector: #{var2} of size #{var2.size}"
-      p var2
-      p var2[0]
-      # var2 = var2.delete(1)
-      # p var2[0]
-      del = R.c(0, 1)
-      # this does not work! Need to check how to call methods on an external
-      # vector
-      # p del
-      # var2[del]
-    end
-
-    # All the method calls here will be called through the R scope, i.e., they
-    # will be called with R.<function>(parameters).  This is different from
-    # getting the function definition in Ruby by calling R.eval(<function name>)
-    # and then calling <function name>.call(parameters).  This second case will be
-    # dealt in another context.
-    context "When passing parameters to R functions in the R scope" do
-
-      it "should be able to pass Numbers" do
-        # note that method hyp was defined in another block, but it persists accross
-        # calls to the R scope.
-        expect(R.hyp(3, 4)).to eq 5.0
-      end
-
 #=begin      
-      it "should be able to pass Strings" do
-        p "passing params"
-        vec = R.c("Hello", "world!")
-        params = R.create(R.list("--- "), R.c("collapse"))
-        str = R.paste0(vec, params)
-        # str = R.paste(vec, sep:  " ")
-        p str.to_s
-        R.str(str)
-        p "done"
-      end
-#=end      
+    it "should be able to pass Strings" do
+      p "passing params"
+      vec = R.c("Hello", "world!")
+      params = R.create(R.list("--- "), R.c("collapse"))
+      str = R.paste0(vec, params)
+      # str = R.paste(vec, sep:  " ")
+      p str.to_s
+      R.str(str)
+      p "done"
     end
-
+#=end      
   end
   
   context "When working with foreign methods" do
-
+    
     # create an R vector. R methods are access through the R namespace
     # R.c creates an R vector.
     before(:context) do
       @val = R.c(1, 2, 3, 4)
     end
-
+    
     # The returned value from calling method 'c' in a foreign value in Ruby
     it "should create a foreign R object" do
       expect(Truffle::Interop.foreign?(@val)).to be true
     end
-
+    
     # Check that we can access the elements of the foreign vector.  Note that
     # indexing starts at 0 and not at 1.
     it "should access data indexing from 0" do
@@ -158,9 +91,9 @@ describe R do
       expect(2.0).not_to eql @val[0]
       expect(4.0).to eq @val[3]
     end
-
+    
     context "When working with lists" do
-
+      
       p "starting working with list"
       
       list = R.list("hello", "there", "... ")

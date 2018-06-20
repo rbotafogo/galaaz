@@ -21,32 +21,8 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-#==========================================================================================
-#
-#==========================================================================================
-
-class Range
-
-  #----------------------------------------------------------------------------------------
-  # Defines unary minus operation for ranges
-  #----------------------------------------------------------------------------------------
-  
-  def -@
-    NegRange.new(self.begin, self.end)
-  end
-
-end
-
-#==========================================================================================
-# Class NegRange exists to represent a negative range, e.g., -(1...10).  Such a range is
-# used to index vectors and means all elements but the ones in the given range.  Class
-# NegRange is parsed to become "-(1:10)" in R.
-#==========================================================================================
-
-class NegRange < Range
-
-end
-
+require_relative 'robject'
+require_relative 'ruby_extensions'
 
 module R
 
@@ -72,7 +48,11 @@ module R
     name.gsub!("rclass", "class")
 
     # params = parse(*args)
-    eval(name).call(*args)
+    # build an RObject from the returned value
+    params = R.parse(*args)
+    # p *args
+    # p *params
+    R::Object.build(eval(name).call(*params))
     
   end  
 
@@ -80,6 +60,40 @@ module R
   #
   #----------------------------------------------------------------------------------------
 
+  def self.parse(*args)
+    
+    params = Array.new
+    
+    args.each do |arg|
+      if (Truffle::Interop.foreign?(arg) == true)
+        params << arg
+      elsif (arg.is_a? R::Object)
+        params << arg.r_interop
+      else
+        params << arg
+      end
+    end
+    
+    return params
+
+  end
+  
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  private
+
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.named_list(list, names)
+
+  end
+
+  
+=begin
   def self.parse(*args)
 
     params = Array.new
@@ -129,6 +143,7 @@ module R
     params
       
   end
+=end
   
 end
 

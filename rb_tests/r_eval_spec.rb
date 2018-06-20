@@ -22,37 +22,41 @@
 ##########################################################################################
 
 require '../config'
-require 'minitest/autorun'
-
 require 'cantata'
 
-class TestR < Minitest::Test
-
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  def setup
-    val = R.c(1, 2, 3, 4)
-  end
-
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  def test_access
-    assert_equal val[0], 1
-  end
+describe R do
   
-end
+  context "Accessing R through eval" do
 
-=begin
-describe R do 
-   context "When testing the RClass class" do 
-     it "should create a vector when calling R.c method" do
-       val = R.c(1, 2, 3, 4)
-       expect(1.0).eq val[0]
-     end
-   end
+    it "shoud create named objects in R" do
+      # using Ruby heredoc to write R code
+      R.eval(<<-R)
+      x <- c(1, 2, 3);
+      hyp <- function(x, y) { sqrt(x^2 + y^2) };
+      R
+    end
+    
+    it "should use named objects in R" do
+      R.eval(<<-R)
+      print(x);
+      print(hyp(3, 4));
+      R
+    end
+
+    it "should retrieve and used named R objects in Ruby" do
+      # retrieve x and hyp from R and attribute it to local Ruby variables
+      x = R.eval("x")
+      # hyp is an R function and works like a named function in Ruby
+      hyp = R.eval("hyp")
+
+      # is is a foreign object
+      expect(Truffle::Interop.foreign?(x)).to be true
+      expect(x[0]).to eq 1.0
+
+      # calling a named function or block is done by use of the 'call' method
+      expect(hyp.call(3, 4)).to eq 5.0
+
+    end
+  end
+
 end
-=end
