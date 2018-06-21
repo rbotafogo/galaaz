@@ -38,8 +38,7 @@ module R
   #
   #----------------------------------------------------------------------------------------
 
-  def self.method_missing(symbol, *args)
-
+  def internal_eval(symbol, *args)
     name = symbol.to_s
     # convert '__' to '.'
     name.gsub!(/__/,".")
@@ -47,15 +46,55 @@ module R
     # a Ruby method on an object
     name.gsub!("rclass", "class")
 
-    # params = parse(*args)
+    params = R.parse(*args)
+    eval(name).call(*args)
+  end
+  
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.method_missing(symbol, *args)
+    name = symbol.to_s
+    # convert '__' to '.'
+    name.gsub!(/__/,".")
+    # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
+    # a Ruby method on an object
+    name.gsub!("rclass", "class")
+
     # build an RObject from the returned value
     params = R.parse(*args)
-    # p *args
-    # p *params
+    # list = R.parse2list(*args)
     R::Object.build(eval(name).call(*params))
     
   end  
 
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.parse2list(*args)
+
+    subsetAssign = Polyglot.eval("R", "`[<-`")
+    
+    params = Polyglot.eval("R", "return(list())")
+    args.each_with_index do |arg, i|
+      if (Truffle::Interop.foreign?(arg) == true)
+        p "foreign #{i}"
+        subsetAssign.call(params, i, arg)
+      elsif (arg.is_a? R::Object)
+        p "object #{i}"
+        subsetAssign.call(params, i, arg.r_interop)
+      else
+        p "other #{i}"
+        subsetAssign.call(params, i, arg)
+      end
+    end
+
+    # Polyglot.eval("R", "print.default").call(params)
+    
+  end
+  
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
@@ -69,6 +108,27 @@ module R
         params << arg
       elsif (arg.is_a? R::Object)
         params << arg.r_interop
+=begin
+      # Needs to consider what should be done with a Ruby Array sent to R as
+      # a parameter.  Should it be converted to an R vector or be a foreign
+      # pointer?        
+      elsif (arg.is_a? Array)
+        if (arg.size == 1)
+          params << arg[0]
+        else
+          # convert the Ruby array to an R vector.  Does not work recursively
+          # i.e., [1, 2, 3, [4, 5, 6]] will only convert the first level
+          # array and [4, 5, 6] will be a foreign pointer in R.  Should be
+          # fixed in future version.
+          params << R.c(*arg).r_interop
+        end
+=end
+      elsif (arg.is_a? Hash)
+        arg.each_pair do |key, value|
+          # k = key.to_s.gsub(/__/,".")
+          # params << "#{key.to_s.gsub(/__/,'.')} = #{parse(value)}"
+          # params << "#{k} = #{parse(value)}"
+        end
       else
         params << arg
       end
@@ -83,67 +143,6 @@ module R
   #----------------------------------------------------------------------------------------
 
   private
-
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  def self.named_list(list, names)
-
-  end
-
-  
-=begin
-  def self.parse(*args)
-
-    params = Array.new
-
-    args.each do |arg|
-      if(Truffle::Interop.foreign?(arg) == true)
-        p "I'm a pointer to an interop"
-        # just add the Interop parameter to the parameter list
-        params << arg
-      else
-        if (arg.is_a? Numeric)
-          params << arg
-        elsif(arg.is_a? String)
-          params << "\"#{arg}\""
-        elsif (arg.is_a? Symbol)
-          var = eval("#{arg.to_s}")
-          params << var.r
-        elsif (arg.is_a? TrueClass)
-          params << "TRUE"
-        elsif (arg.is_a? FalseClass)
-          params << "FALSE"
-        elsif (arg == nil)
-          params << "NULL"
-        elsif (arg.is_a? NegRange)
-          final_value = (arg.exclude_end?)? (arg.end - 1) : arg.end
-          params << "-(#{arg.begin}:#{final_value})"
-        elsif (arg.is_a? Range)
-          final_value = (arg.exclude_end?)? (arg.end - 1) : arg.end
-          params << "(#{arg.begin}:#{final_value})"
-        elsif (arg.is_a? Hash)
-          arg.each_pair do |key, value|
-            # k = key.to_s.gsub(/__/,".")
-            params << "#{key.to_s.gsub(/__/,'.')} = #{parse(value)}"
-            # params << "#{k} = #{parse(value)}"
-          end
-        elsif ((arg.is_a? Renjin::RubySexp) || (arg.is_a? Array) || (arg.is_a? MDArray))
-          params << arg.r
-        # elsif 
-        #  params << arg.inspect
-        else
-          raise "Unknown parameter type for R: #{arg}"
-        end
-      end
-    end
-    
-    # params.join(",")
-    params
-      
-  end
-=end
   
 end
 

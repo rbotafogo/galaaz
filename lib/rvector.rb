@@ -29,9 +29,17 @@ module R
     @@subset = Polyglot.eval("R", <<-R)
       function(object, index) {
         return(object[index])
-        }
+      }
     R
-    @@subsetAssign = Polyglot.eval("R", "`[<-`")
+
+    @@double_subset = Polyglot.eval("R", <<-R)
+      function(object, index) {
+        return(object[[index]])
+      }
+    R
+    
+    @@subset_assign = Polyglot.eval("R", "`[<-`")
+    @@dbk_assign = Polyglot.eval("R", "`[[<-`")
     
     #--------------------------------------------------------------------------------------
     #
@@ -42,13 +50,37 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def parse_index(index)
+
+      if (index.is_a? Array)
+        if (index.size == 1)
+          [true, index[0]]
+        else
+          # convert the Ruby array to an R vector.  Does not work recursively
+          # i.e., [1, 2, 3, [4, 5, 6]] will only convert the first level
+          # array and [4, 5, 6] will be a foreign pointer in R.  At any rate
+          # this is not supported in R either.
+          [true, R.internal_eval(:c, *index)]
+        end
+      else
+        [false, R.parse(index)]
+      end
+      
+    end
+      
+    #--------------------------------------------------------------------------------------
     # subset a vector with an index
     # @index The vector index.
     #--------------------------------------------------------------------------------------
 
     def[](index)
-      params = R.parse(index)
-      R::Object.build(@@subset.call(@r_interop, *params))
+      dbk, r_index = parse_index(index)
+      dbk ?
+        R::Object.build(@@double_subset.call(@r_interop, *r_index)) :
+        R::Object.build(@@subset.call(@r_interop, *r_index))
     end
     
     #--------------------------------------------------------------------------------------
@@ -59,12 +91,44 @@ module R
     #--------------------------------------------------------------------------------------
 
     def[]=(index, values)
-      r_index = R.parse(index)
+
       r_values = R.parse(values)
-      R::Object.build(@@subsetAssign.call(@r_interop, *r_index, *r_values))
+      dbk, r_index = parse_index(index)
+      
+      dbk ?
+        R::Object.build(@@dbk_assign.call(@r_interop, *r_index, *r_values)) :
+        R::Object.build(@@subset_assign.call(@r_interop, *r_index, *r_values))
     end
-    
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def pp
+      R.print__default(@r_interop)
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def to_s
+      R.capture__output(@r_interop)
+    end
+                       
   end
   
+  
+  
+  class List < Vector
+
+    def self.create_named_list(*args, **a2)
+      p args
+      p a2
+      # p args.keys
+      # p args.values
+    end
+
+  end
 
 end

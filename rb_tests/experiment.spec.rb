@@ -3,7 +3,7 @@
 ##########################################################################################
 # @author Rodrigo Botafogo
 #
-# Copyright © 2013 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
+# Copyright © 2018 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
 # and distribute this software and its documentation, without fee and without a signed 
 # licensing agreement, is hereby granted, provided that the above copyright notice, this 
 # paragraph and the following two paragraphs appear in all copies, modifications, and 
@@ -21,6 +21,42 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require_relative 'r_vector.spec'
-require_relative 'r_list.spec'
+require '../config'
+require 'cantata'
 
+describe R do
+
+  context "When assigning attributes to a vector" do
+
+    it "should assign names to vectors" do
+      vect = R.c(1, 2, 3, 4, 5, 6)
+      # R.names(vect) = R.c("a", "b", "c", "d", "e")
+      vect.names = R.c("a", "b", "c", "d", "e")
+      vect.dim = R.c(3, 2)
+      vect.row__names = R.c("A", "B", "C")
+      vect.class = "myClass"
+      vect.pp
+      vect.attributes.pp
+      # vect[:names] = R.c("a", "b", "c", "d", "e")
+    end
+
+    it "sould create a named list" do
+
+      named_list = R::List.create_named_list(a: "a", b: "b", c: "c", d: "d", e: "e")
+=begin      
+      l = R.list("a", "b", "c")
+      p "constructed named list"
+      l.names = R.c("", "", "c")
+      l.pp
+
+      p "r named list"
+      R.eval(<<-R)
+        l = list("a", "b", c = "c");
+        print(l);
+      R
+=end      
+    end
+    
+  end
+
+end

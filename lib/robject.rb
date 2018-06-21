@@ -24,9 +24,15 @@
 module R
   
   class Object
+
+    @@set_attr = Polyglot.eval("R", <<-R)
+      function(object, which, value) {
+        attr(object, which) = value
+      }
+    R
     
     attr_reader :r_interop
-
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -44,8 +50,10 @@ module R
       # object
       if (!Truffle::Interop.foreign?(r_interop))
         return r_interop
-      elsif (R.is__atomic(r_interop) || R.is__list(r_interop))
+      elsif (R.is__atomic(r_interop)) # || R.is__list(r_interop))
         Vector.new(r_interop)
+      elsif (R.is__list(r_interop))
+        List.new(r_interop)
       else
         Generic.new(r_interop)
       end
@@ -57,7 +65,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args)
-      
+
       name = symbol.to_s
       # convert '__' to '.'
       name.gsub!(/__/,".")
@@ -65,8 +73,7 @@ module R
       # R does not support methods on objects.  However, in order to use idiomatic Ruby
       # a call to a method on an RObject will be converted to a method call on the object.
       params = R.parse(*args)
-      
-      R.eval(name).call(@r_interop, *params)
+      R::Object.build(R.eval(name).call(@r_interop, *params))
       
     end
     
@@ -74,15 +81,42 @@ module R
     #
     #--------------------------------------------------------------------------------------
 
-    def to_s2
-      R.print__default(@r_interop)
-      #R.capture__output(@r_interop)
+    def names=(names_vector)
+      @@set_attr.call(@r_interop, "names", names_vector.r_interop)
+    end
+
+    def class=(class_name)
+      @@set_attr.call(@r_interop, "class", class_name)
     end
     
+    def comment=(comment_text)
+      @@set_attr.call(@r_interop, "comment", comment_text)
+    end
+
+    def dim=(numeric_vector)
+      @@set_attr.call(@r_interop, "dim", numeric_vector.r_interop)
+    end
+
+    def dimnames=(names_vector)
+      @@set_attr.call(@r_interop, "dimnames", names_vector.r_interop)
+    end
+
+    def row__names=(names_vector)
+      @@set_attr.call(@r_interop, "row.names", names_vector.r_interop)
+    end
+      
+    def tsp=(numeric_vector)
+      @@set_attr.call(@r_interop, "tsp", numeric_vector.r_interop)
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
     def to_s
       @r_interop.to_s
     end
-
+    
   end
 
 

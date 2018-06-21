@@ -119,6 +119,16 @@ describe R do
 
   end
 
+  context "When subseting with double square brackets" do
+
+    it "should retrieve values the same way as single square brackets" do
+      p "we are here"
+      vect = R.c(2.1, 4.2, 3.3, 5.4)
+      puts vect[[1]]
+    end
+    
+  end
+  
   context "When subset assigning to a vector" do
     
     it "should subset assign with integer" do
@@ -131,7 +141,16 @@ describe R do
     it "should subset assign to the elements given by another vector" do
       vect = R.c(1, 2, 3, 4, 5)
       vect[R.c(2, 3)] = R.c(1000, 2000)
-      puts vect
+      vect.pp
+    end
+
+  end
+
+  context "When assigning attributes to a vector" do
+
+    it "should assign names to vectors" do
+      vect = R.c(1, 2, 3, 4, 5)
+      R.names(vect) = R.c("a", "b", "c", "d", "e")
     end
 
 =begin    
