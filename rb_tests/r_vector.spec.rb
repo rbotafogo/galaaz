@@ -26,6 +26,7 @@ require 'cantata'
 
 describe R do
 
+  #----------------------------------------------------------------------------------------
   context "When passing primitive values" do
 
     # this might change in newer versions of graal. Might not pass future tests
@@ -59,6 +60,7 @@ describe R do
     
   end
 
+  #----------------------------------------------------------------------------------------
   context "When creating vectors" do
     
     it "should return Vector if the vector has more than 2 elements" do
@@ -88,6 +90,7 @@ describe R do
 
   end
 
+  #----------------------------------------------------------------------------------------
   context "When subsetting a vector" do
   
     it "should subset vector with integer or negative integer" do
@@ -119,16 +122,17 @@ describe R do
 
   end
 
+  #----------------------------------------------------------------------------------------
   context "When subseting with double square brackets" do
 
     it "should retrieve values the same way as single square brackets" do
-      p "we are here"
       vect = R.c(2.1, 4.2, 3.3, 5.4)
-      puts vect[[1]]
+      expect(vect[[1]]).to eq 2.1
     end
     
   end
   
+  #----------------------------------------------------------------------------------------
   context "When subset assigning to a vector" do
     
     it "should subset assign with integer" do
@@ -141,16 +145,46 @@ describe R do
     it "should subset assign to the elements given by another vector" do
       vect = R.c(1, 2, 3, 4, 5)
       vect[R.c(2, 3)] = R.c(1000, 2000)
-      vect.pp
+      expect(vect.identical(R.c(1, 1000, 2000, 4, 5))).to eq true
     end
 
   end
 
+  #----------------------------------------------------------------------------------------
   context "When assigning attributes to a vector" do
 
-    it "should assign names to vectors" do
-      vect = R.c(1, 2, 3, 4, 5)
-      R.names(vect) = R.c("a", "b", "c", "d", "e")
+    it "should assign attributes to vectors" do
+      vect = R.c(1, 2, 3, 4, 5, 6)
+
+      # set names
+      vect.names = R.c("a", "b", "c", "d", "e", "f")
+      expect(vect.names.identical(R.c("a", "b", "c", "d", "e", "f"))).to eq true
+
+      # set dim
+      vect.dim = R.c(3, 2)
+      expect(vect.dim[1]).to eq 3
+      expect(vect.dim[2]).to eq 2
+
+      # set row.names
+      vect.row__names = R.c("A", "B", "C")
+      expect(vect.row__names.identical(R.c("A", "B", "C")))
+      # note that when accessing row__names[2] we are getting a native ruby object
+      # and not a vector.  This might change in future versions
+      expect(vect.row__names[2]).to eq "B"
+      
+      # set the R class.  Note that we need to use rclass instead of class, since
+      # class is a Ruby keyword 
+      vect.rclass = "myClass"
+      expect(vect.rclass).to eq "myClass"
+
+      # the other alternative is to use method attr to change the attribute
+      vect.attr = {which: "class", value: "newClass"}
+      expect(vect.rclass).to eq "newClass"
+      
+      #
+      vect.names[2] = "Hello"
+      expect(vect.names[2]).to eq "Hello"
+      
     end
 
 =begin    

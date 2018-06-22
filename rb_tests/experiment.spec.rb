@@ -28,22 +28,15 @@ describe R do
 
   context "When assigning attributes to a vector" do
 
-    it "should assign names to vectors" do
-      vect = R.c(1, 2, 3, 4, 5, 6)
-      # R.names(vect) = R.c("a", "b", "c", "d", "e")
-      vect.names = R.c("a", "b", "c", "d", "e")
-      vect.dim = R.c(3, 2)
-      vect.row__names = R.c("A", "B", "C")
-      vect.class = "myClass"
+    it "should calle methods with named parameters" do
+      vect = R.c(1, 2, a: 3, b: 4, c:5, d: 6)
       vect.pp
-      vect.attributes.pp
-      # vect[:names] = R.c("a", "b", "c", "d", "e")
     end
-
-    it "sould create a named list" do
-
-      named_list = R::List.create_named_list(a: "a", b: "b", c: "c", d: "d", e: "e")
+    
 =begin      
+    it "should create a named list" do
+
+      # named_list = R::List.create_named_list(a: "a", b: "b", c: "c", d: "d", e: "e")
       l = R.list("a", "b", "c")
       p "constructed named list"
       l.names = R.c("", "", "c")
@@ -54,9 +47,9 @@ describe R do
         l = list("a", "b", c = "c");
         print(l);
       R
-=end      
     end
+=end      
     
   end
-
+  
 end

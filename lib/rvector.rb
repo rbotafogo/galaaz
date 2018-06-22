@@ -113,7 +113,8 @@ module R
     #--------------------------------------------------------------------------------------
 
     def to_s
-      R.capture__output(@r_interop)
+      # R.capture__output(@r_interop)
+      @r_interop.to_s
     end
                        
   end

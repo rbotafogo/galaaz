@@ -30,7 +30,9 @@ module R
         attr(object, which) = value
       }
     R
-    
+
+    @@get_attr = Polyglot.eval("R", "attr")
+
     attr_reader :r_interop
     
     #--------------------------------------------------------------------------------------
@@ -45,12 +47,28 @@ module R
     #
     #--------------------------------------------------------------------------------------
 
+    def self.callR(method, *args)
+      build(method.call(*args))
+    end
+    
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def callR(method, *args)
+      R::Object.build(method.call(@r_interop, *args))
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
     def self.build(r_interop)
       # if the value is actually not an r_interop, then just return it: native Ruby
       # object
       if (!Truffle::Interop.foreign?(r_interop))
         return r_interop
-      elsif (R.is__atomic(r_interop)) # || R.is__list(r_interop))
+      elsif (R.is__atomic(r_interop))
         Vector.new(r_interop)
       elsif (R.is__list(r_interop))
         List.new(r_interop)
@@ -76,37 +94,98 @@ module R
       R::Object.build(R.eval(name).call(@r_interop, *params))
       
     end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def names
+      callR(@@get_attr, "names")
+    end
+
+    def names=(names_vector)
+      callR(@@set_attr, "names", names_vector.r_interop)
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def rclass
+      callR(@@get_attr, "class")
+    end
+
+    def rclass=(class_name)
+      callR(@@set_attr, "class", class_name)
+    end
     
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
-    def names=(names_vector)
-      @@set_attr.call(@r_interop, "names", names_vector.r_interop)
-    end
-
-    def class=(class_name)
-      @@set_attr.call(@r_interop, "class", class_name)
+    def comment
+      callR(@@get_attr, "comment")
     end
     
     def comment=(comment_text)
-      @@set_attr.call(@r_interop, "comment", comment_text)
+      callR(@@set_attr, "comment", comment_text)
     end
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def dim
+      callR(@@get_attr, "dim")
+    end
+    
     def dim=(numeric_vector)
-      @@set_attr.call(@r_interop, "dim", numeric_vector.r_interop)
+      callR(@@set_attr, "dim", numeric_vector.r_interop)
     end
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def dimnames
+      callR(@@get_attr, "dimnames")
+    end
+    
     def dimnames=(names_vector)
-      @@set_attr.call(@r_interop, "dimnames", names_vector.r_interop)
+      callR(@@set_attr, "dimnames", names_vector.r_interop)
     end
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def row__names
+      callR(@@get_attr, "row.names")
+    end
+    
     def row__names=(names_vector)
-      @@set_attr.call(@r_interop, "row.names", names_vector.r_interop)
+      callR(@@set_attr, "row.names", names_vector.r_interop)
     end
       
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def tsp
+      callR(@@get_attr, "tsp")
+    end
+    
     def tsp=(numeric_vector)
-      @@set_attr.call(@r_interop, "tsp", numeric_vector.r_interop)
+      callR(@@set_attr, "tsp", numeric_vector.r_interop)
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+    
+    def attr=(which: w, value: v)
+      value = (R.interop(value) ? value.r_interop : value)
+      callR(@@set_attr, which, value)
     end
 
     #--------------------------------------------------------------------------------------
