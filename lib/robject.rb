@@ -83,16 +83,8 @@ module R
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args)
-
-      name = symbol.to_s
-      # convert '__' to '.'
-      name.gsub!(/__/,".")
-
-      # R does not support methods on objects.  However, in order to use idiomatic Ruby
-      # a call to a method on an RObject will be converted to a method call on the object.
-      params = R.parse(*args)
-      R::Object.build(R.eval(name).call(@r_interop, *params))
-      
+      args.unshift(@r_interop)
+      R.process_missing(symbol, false, *args)
     end
 
     #--------------------------------------------------------------------------------------

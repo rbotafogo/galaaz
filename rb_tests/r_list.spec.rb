@@ -27,6 +27,13 @@ require 'cantata'
 describe R do
 
   context "When creating lists" do
+
+    it "should create an empty list" do
+      l = R.list()
+      expect(l.length).to eq 0
+      expect(l.class).to eq R::List
+      expect(l.typeof).to eq "list"
+    end
     
     it "should return a list when R.list is called" do
       l = R.list(1, 2)
@@ -35,37 +42,46 @@ describe R do
       expect(l.typeof).to eq "list"
     end
     
-#=begin
-    it "should allow creationg of list of lists" do
+    it "should allow creating of list of lists" do
       l = R.list(1, 2, 3, R.list(4, 5, 6))
-      l.pp
-      # p l.to_s2
-      l[4].pp
-      l[[4]].pp
-      l[[4]][2].pp
       expect(l.length).to eq 4
-      # expect(l.class).to eq R::List
-      # expect(l[4][1]).to eq 4
     end
-#=end
+
   end
-=begin
-  context "When subsetting a vector" do
+
+  context "When subsetting a list" do
   
-    it "should subset vector with integer or negative integer" do
-      vect = R.c(1, 2, 3, 4, 5)
+    it "should subset a list with integer or negative integer" do
+      l = R.list(1, 2, 3, R.list(4, 5, 6))
+      expect(l.length).to eq 4
+      # the element of a list is also a list
+      expect(l[1].identical(R.list(1))).to eq true
+      # to extract an element of a list we need double square (dbk) indexing
+      expect(l[[1]]).to eq 1
+      
+      # the 4th element of the list is a list of a list
+      expect(l[4].identical(R.list(R.list(4, 5, 6)))).to eq true
+      # dbk indexing to get a list
+      expect(l[[4]].identical(R.list(4, 5, 6))).to eq true
+      # 1rst element of 4th vector is a list
+      expect(l[[4]][1].identical(R.list(4))).to eq true
+      expect(l[[4]][[1]]).to eq 4
 
-      # indexing a vector with a positive interger returns the value at the index
-      expect(vect[1]).to eq 1
-      expect(vect[3]).to eq 3
-      expect(vect[5]).to eq 5
+      # negative indexing removes the given element
+      expect(l[-4].identical(R.list(1, 2, 3))).to eq true
 
-      # a vector when indexed with a negative integer, is a vector without the
-      # given element.  So, we are here removing the second element of the vector
-      # which leave us with the second element being 3
-      expect(vect[-2][2]).to eq 3
+      # Note that for a list or other recursive object, the index can be a vector
+      # and each element of the vector is applied in turn to the list, the
+      # selected component, the selected component of that component, and so on.
+      # The result is still a single element.
+      expect(l[[4, 1]]).to eq 4
+
+      # Need to be consistent with the above notation...
+      puts "this needs to be fixed"
+      l[R.c(4, 1)].pp
+
     end
-
+=begin
     it "should subset a vector with another integer vector" do
       vect = R.c(1, 2, 3, 4, 5)
       expect(vect[R.c(2, 4)][1]).to eq 2
@@ -78,8 +94,9 @@ describe R do
       expect(vect[R.order(vect)][2]).to eq 3.3
       expect(vect[R.order(vect)][3]).to eq 4.2
     end
-
+=end
   end
+=begin  
 =end
 =begin  
   context "When subset assigning to a vector" do

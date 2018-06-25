@@ -28,10 +28,20 @@ describe R do
 
   context "When assigning attributes to a vector" do
 
-    it "should calle methods with named parameters" do
+    it "should create a parameter list" do
+      list = R.list(1, 2, 3, R.c(4, 5), R.list(6, 7))
+      vec = R.c(1, 2, 3, 4)
+      vec.pp
+      
+      expect(vec.class).to eq R::Vector
+    end
+    
+=begin    
+    it "should call methods with named parameters" do
       vect = R.c(1, 2, a: 3, b: 4, c:5, d: 6)
       vect.pp
     end
+=end
     
 =begin      
     it "should create a named list" do

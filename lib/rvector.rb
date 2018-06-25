@@ -50,7 +50,9 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    #
+    # @bug Need to fix this... Should work either for both notations with dbk and single
+    # l[R.c(4, 1)].pp
+    # expect(l[[4, 1]]).to eq 4
     #--------------------------------------------------------------------------------------
 
     def parse_index(index)
@@ -79,7 +81,7 @@ module R
     def[](index)
       dbk, r_index = parse_index(index)
       dbk ?
-        R::Object.build(@@double_subset.call(@r_interop, *r_index)) :
+        R::Object.build(@@double_subset.call(@r_interop, r_index)) :
         R::Object.build(@@subset.call(@r_interop, *r_index))
     end
     
@@ -94,7 +96,7 @@ module R
 
       r_values = R.parse(values)
       dbk, r_index = parse_index(index)
-      
+
       dbk ?
         R::Object.build(@@dbk_assign.call(@r_interop, *r_index, *r_values)) :
         R::Object.build(@@subset_assign.call(@r_interop, *r_index, *r_values))
@@ -122,14 +124,7 @@ module R
   
   
   class List < Vector
-
-    def self.create_named_list(*args, **a2)
-      p args
-      p a2
-      # p args.keys
-      # p args.values
-    end
-
+    
   end
 
 end
