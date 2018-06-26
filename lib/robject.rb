@@ -25,6 +25,13 @@ module R
   
   class Object
 
+
+    @@call_r = Polyglot.eval("R", <<-R)
+      function(func, args) {
+        do.call(func, args)
+      }
+    R
+    
     @@set_attr = Polyglot.eval("R", <<-R)
       function(object, which, value) {
         attr(object, which) = value
@@ -47,18 +54,11 @@ module R
     #
     #--------------------------------------------------------------------------------------
 
-    def self.callR(method, *args)
-      build(method.call(*args))
-    end
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
     def callR(method, *args)
       R::Object.build(method.call(@r_interop, *args))
+      # R::Object.build(@@call_r.call(method, *[@r_interop, args]))
     end
-
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -68,9 +68,9 @@ module R
       # object
       if (!Truffle::Interop.foreign?(r_interop))
         return r_interop
-      elsif (R.is__atomic(r_interop))
+      elsif (R.eval("is.atomic").call(r_interop))
         Vector.new(r_interop)
-      elsif (R.is__list(r_interop))
+      elsif (R.eval("is.list").call(r_interop))
         List.new(r_interop)
       else
         Generic.new(r_interop)

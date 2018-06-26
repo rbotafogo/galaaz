@@ -31,6 +31,12 @@ module R
       names(list) = list_names
     }
   R
+
+  @@call_r = Polyglot.eval("R", <<-R)
+    function(func, args) {
+      do.call(func, args)
+    }
+  R
   
   #----------------------------------------------------------------------------------------
   #
@@ -61,7 +67,6 @@ module R
   #----------------------------------------------------------------------------------------
 
   def self.parse2list(*args)
-    
     subset_assign = Polyglot.eval("R", "`[[<-`")
     merge = Polyglot.eval("R", "c")
     
@@ -70,11 +75,14 @@ module R
     
     args.each_with_index do |arg, i|
       if (Truffle::Interop.foreign?(arg) == true)
-        params = merge.call(params, arg)
+      # params = merge.call(params, arg)
+        params = subset_assign.call(params, i+1, arg)
       elsif (arg.is_a? R::Object)
-        params = merge.call(params, arg.r_interop)
+        params = subset_assign.call(params, i+1, arg.r_interop)
+        # params = merge.call(params, arg.r_interop)
       else
-        params = merge.call(params, arg)
+        params = subset_assign.call(params, i+1, arg)
+        # params = merge.call(params, arg)
       end
     end
 
@@ -132,7 +140,8 @@ module R
   #----------------------------------------------------------------------------------------
 
   def self.process_missing(symbol, internal, *args)
-    pm(symbol, internal, *args)
+    # p "process_missing: symbol #{symbol} internal #{internal} args #{args}"
+    pm2(symbol, internal, *args)
   end
 
   def self.pm(symbol, internal, *args)
@@ -143,12 +152,18 @@ module R
     # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
     # a Ruby method on an object
     name.gsub!("rclass", "class")
-    
+
     # params, keys, values = R.parse(*args)
     params = parse(*args)
+    # pl = parse2list(*args)
+
+    # p name
+    # p pl
+    # Polyglot.eval("R", "print.default").call(pl)
 
     # build an RObject from the returned value
     internal ? eval(name).call(*params) : R::Object.build(eval(name).call(*params))
+    # internal ? eval(name).call(pl) : R::Object.build(eval(name).call(pl))
     
   end
 
@@ -164,14 +179,21 @@ module R
     # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
     # a Ruby method on an object
     name.gsub!("rclass", "class")
-    
-    pl = parse2list(*args)
-    # Polyglot.eval("R", "print.default").call(pl)
 
+    # p name
+    pl = parse2list(*args)
+    # p pl
+    # Polyglot.eval("R", "print.default").call(pl)
     # build an RObject from the returned value
-    p name
-    internal ? eval(name).call(pl) : R::Object.build(eval(name).call(pl))
+    # internal ? eval(name).call(pl) : R::Object.build(eval(name).call(pl))
+    # internal ? @@call_r.call(name, pl) : R::Object.build(@@call_r.call(name, pl))
+    f = eval(name)
+    # val = eval("do.call").call(f, pl)
+    # Polyglot.eval("R", "print.default").call(val)
+    # R::Object.build(val)
     
+    internal ? eval("do.call").call(f, pl) :
+      R::Object.build(eval("do.call").call(f, pl))
   end
 
   #----------------------------------------------------------------------------------------
