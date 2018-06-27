@@ -96,7 +96,16 @@ module R
 
       r_values = R.parse(values)
       dbk, r_index = parse_index(index)
-
+=begin
+      p
+      p "params to []="
+      p r_values.to_s
+      p dbk
+      p r_index
+      val = @@subset_assign.call(@r_interop, *r_index, *r_values)
+      p val.to_s
+      p
+=end      
       dbk ?
         R::Object.build(@@dbk_assign.call(@r_interop, *r_index, *r_values)) :
         R::Object.build(@@subset_assign.call(@r_interop, *r_index, *r_values))

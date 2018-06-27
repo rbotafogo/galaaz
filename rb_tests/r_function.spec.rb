@@ -3,7 +3,7 @@
 ##########################################################################################
 # @author Rodrigo Botafogo
 #
-# Copyright © 2013 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
+# Copyright © 2018 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
 # and distribute this software and its documentation, without fee and without a signed 
 # licensing agreement, is hereby granted, provided that the above copyright notice, this 
 # paragraph and the following two paragraphs appear in all copies, modifications, and 
@@ -21,6 +21,24 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require_relative 'r_vector.spec'
-require_relative 'r_list.spec'
-require_relative 'r_function.spec'
+require '../config'
+require 'cantata'
+
+describe R do
+
+  #----------------------------------------------------------------------------------------
+  context "When calling R functions" do
+
+    # Let's call a function passing named parameters
+    it "should pass named parameters" do
+      # Named parameters are in Ruby are converted to named parameters in R
+      m = R.matrix(R.seq(1, 10), nrow: 2,
+                   dimnames: R.list(R.c("1", "2"),
+                                    R.c("a", "b", "c", "d", "e")))
+      expect(m.dimnames[[1]].identical(R.c("1", "2"))).to eq true
+      expect(m.dimnames[[2]].identical(R.c("a", "b", "c", "d", "e"))).to eq true
+    end
+
+  end
+
+end

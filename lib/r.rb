@@ -26,24 +26,99 @@ require_relative 'ruby_extensions'
 
 module R
 
-  @@make_params = Polyglot.eval("R", <<-R)
-    function(list, list_names) {
-      names(list) = list_names
-    }
-  R
-
-  @@call_r = Polyglot.eval("R", <<-R)
-    function(func, args) {
-      do.call(func, args)
-    }
-  R
-  
+  RCONSTANTS = ["LETTERS", "letters", "month.abb", "month.name", "pi"]
+    
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
 
   def self.eval(string)
     Polyglot.eval("R", string)
+  end
+    
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.parse2list(*args)
+    
+    dbk_assign = Polyglot.eval("R", "`[[<-`")
+    
+    params = Polyglot.eval("R", "list()")
+    
+    args.each_with_index do |arg, i|
+      if (Truffle::Interop.foreign?(arg) == true)
+        params = dbk_assign.call(params, i+1, arg)
+      elsif (arg.is_a? R::Object)
+        params = dbk_assign.call(params, i+1, arg.r_interop)
+      elsif (arg.is_a? Hash)
+        arg.each_pair do |key, value|
+          k = key.to_s.gsub(/__/,".")
+          value = value.r_interop if value.is_a? R::Object
+          params = dbk_assign.call(params, k, value) 
+        end
+      else
+        params = dbk_assign.call(params, i+1, arg)
+      end
+    end
+
+    params
+    
+  end
+    
+  #----------------------------------------------------------------------------------------
+  # @param function_name [String] Name of the R function to execute
+  # @param internal [Boolean] true if returning to an internal object, i.e., does not
+  # wrap the return object in a Ruby object
+  # @args [Array] Array of arguments for the function
+  #----------------------------------------------------------------------------------------
+
+  def self.exec_missing(function_name, internal, *args)
+    pl = parse2list(*args)
+    
+    # p pl
+    # p "list argument is: "
+    # Polyglot.eval("R", "print.default").call(pl)
+    # build an RObject from the returned value
+    
+    internal ? eval("do.call").call(eval(function_name), pl) :
+      R::Object.build(eval("do.call").call(eval(function_name), pl))
+  end
+  
+  #----------------------------------------------------------------------------------------
+  # Process the missing method
+  # @param symbol [Symbol]
+  # @param internal [Boolean] true if the method will return to an internal method, i.e.,
+  # it should not wrap the return value inside an R::Object
+  # @param object [Ruby Object] the ruby object to which the method is applied, false if
+  # it is not applied to an object
+  #----------------------------------------------------------------------------------------
+  
+  def self.process_missing(symbol, internal, *args)
+
+    name = symbol.to_s
+    # convert '__' to '.'
+    name.gsub!(/__/,".")
+    # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
+    # a Ruby method on an object
+    name.gsub!("rclass", "class")
+
+    if name =~ /(.*)=$/
+    else
+      # check to see if the given name is either a constant or a variable in the
+      # global environment
+      return R.eval("name") if (args.length == 0 &&
+                                (RCONSTANTS.include? name || R.eval("#{name} %in% ls()")))
+      exec_missing(name, internal, *args)
+    end
+  end
+
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.method_missing(symbol, *args)
+    process_missing(symbol, false, *args)
   end
 
   #----------------------------------------------------------------------------------------
@@ -53,49 +128,27 @@ module R
   def self.internal_eval(symbol, *args)
     process_missing(symbol, true, *args)
   end
-  
+
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
 
-  def self.method_missing(symbol, *args)
-    process_missing(symbol, false, *args)
+  def self.interop(object)
+    Truffle::Interop.foreign?(object)
   end
-  
+
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
 
-  def self.parse2list(*args)
-    subset_assign = Polyglot.eval("R", "`[[<-`")
-    merge = Polyglot.eval("R", "c")
-    
-    params = Polyglot.eval("R", "list()")
-    # Polyglot.eval("R", "print.default").call(params)
-    
-    args.each_with_index do |arg, i|
-      if (Truffle::Interop.foreign?(arg) == true)
-      # params = merge.call(params, arg)
-        params = subset_assign.call(params, i+1, arg)
-      elsif (arg.is_a? R::Object)
-        params = subset_assign.call(params, i+1, arg.r_interop)
-        # params = merge.call(params, arg.r_interop)
-      else
-        params = subset_assign.call(params, i+1, arg)
-        # params = merge.call(params, arg)
-      end
-    end
-
-    params
-    
-  end
-
+  private
+  
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
   
   def self.parse(*args)
-    
+
     params = Array.new
     keys = []
     values = []
@@ -122,27 +175,10 @@ module R
     return params
 
   end
-  
+
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
-
-  def self.interop(object)
-    Truffle::Interop.foreign?(object)
-  end
-  
-  #----------------------------------------------------------------------------------------
-  # Process the missing method
-  # @param internal [Boolean] true if the method will return to an internal method, i.e.,
-  # it should not wrap the return value inside an R::Object
-  # @param object [Ruby Object] the ruby object to which the method is applied, false if
-  # it is not applied to an object
-  #----------------------------------------------------------------------------------------
-
-  def self.process_missing(symbol, internal, *args)
-    # p "process_missing: symbol #{symbol} internal #{internal} args #{args}"
-    pm2(symbol, internal, *args)
-  end
 
   def self.pm(symbol, internal, *args)
 
@@ -167,42 +203,9 @@ module R
     
   end
 
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-  
-  def self.pm2(symbol, internal, *args)
-
-    name = symbol.to_s
-    # convert '__' to '.'
-    name.gsub!(/__/,".")
-    # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
-    # a Ruby method on an object
-    name.gsub!("rclass", "class")
-
-    # p name
-    pl = parse2list(*args)
-    # p pl
-    # Polyglot.eval("R", "print.default").call(pl)
-    # build an RObject from the returned value
-    # internal ? eval(name).call(pl) : R::Object.build(eval(name).call(pl))
-    # internal ? @@call_r.call(name, pl) : R::Object.build(@@call_r.call(name, pl))
-    f = eval(name)
-    # val = eval("do.call").call(f, pl)
-    # Polyglot.eval("R", "print.default").call(val)
-    # R::Object.build(val)
-    
-    internal ? eval("do.call").call(f, pl) :
-      R::Object.build(eval("do.call").call(f, pl))
-  end
-
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  private
-  
 end
+
+require_relative 'rvector'
 
 =begin   
 process_missing:

@@ -24,13 +24,6 @@
 module R
   
   class Object
-
-
-    @@call_r = Polyglot.eval("R", <<-R)
-      function(func, args) {
-        do.call(func, args)
-      }
-    R
     
     @@set_attr = Polyglot.eval("R", <<-R)
       function(object, which, value) {
@@ -56,7 +49,6 @@ module R
 
     def callR(method, *args)
       R::Object.build(method.call(@r_interop, *args))
-      # R::Object.build(@@call_r.call(method, *[@r_interop, args]))
     end
     
     #--------------------------------------------------------------------------------------
@@ -197,5 +189,4 @@ module R
 
 end
 
-require_relative 'rvector'
 

@@ -81,13 +81,18 @@ describe R do
       expect(str_vect.typeof).to eq "character"
     end
 
-    it "should allow creationg of vectors of vectors" do
+    it "should allow creation of vectors of vectors" do
       vect = R.c(1, 2, 3, R.c(4, 5, 6))
       expect(vect.length).to eq 6
       expect(vect.class).to eq R::Vector
       expect(vect[4]).to eq 4
     end
 
+    it "should allow adding names to vector elements" do
+      vect = R.c(1, 2, 3, a: R.c(1, 2, 3), b: 5, c: 6)
+      expect(vect.names.identical(R.c("", "", "", "a1", "a2", "a3", "b", "c"))).to eq true
+    end
+    
   end
 
   #----------------------------------------------------------------------------------------
