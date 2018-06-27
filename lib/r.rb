@@ -111,6 +111,7 @@ module R
                                 (RCONSTANTS.include? name || R.eval("#{name} %in% ls()")))
       exec_missing(name, internal, *args)
     end
+    
   end
 
   #----------------------------------------------------------------------------------------
