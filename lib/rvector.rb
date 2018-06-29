@@ -25,22 +25,6 @@ module R
 
   class Vector < Object
 
-    # define a function to access the subset '[' method
-    @@subset = Polyglot.eval("R", <<-R)
-      function(object, index) {
-        return(object[index])
-      }
-    R
-
-    @@double_subset = Polyglot.eval("R", <<-R)
-      function(object, index) {
-        return(object[[index]])
-      }
-    R
-    
-    @@subset_assign = Polyglot.eval("R", "`[<-`")
-    @@dbk_assign = Polyglot.eval("R", "`[[<-`")
-    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -50,7 +34,7 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    # @bug Need to fix this... Should work either for both notations with dbk and single
+    # @bug Need to fix this... Should work for both notations with dbk and single
     # l[R.c(4, 1)].pp
     # expect(l[[4, 1]]).to eq 4
     #--------------------------------------------------------------------------------------
@@ -115,14 +99,6 @@ module R
     #
     #--------------------------------------------------------------------------------------
 
-    def pp
-      R.print__default(@r_interop)
-    end
-
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
     def to_s
       # R.capture__output(@r_interop)
       @r_interop.to_s
@@ -136,4 +112,9 @@ module R
     
   end
 
+
+  class DataFrame < List
+
+  end
+  
 end

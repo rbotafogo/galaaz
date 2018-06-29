@@ -26,39 +26,95 @@ require 'cantata'
 
 describe R do
 
-  context "When assigning attributes to a vector" do
+  context "When doing experiment... " do
 
-    it "should create a parameter list" do
-      list = R.list(1, 2, 3, R.c(4, 5), R.list(6, 7))
-      vec = R.c(1, 2, 3, 4)
-      vec.pp
+    it "callback a ruby proc" do
       
-      expect(vec.class).to eq R::Vector
-    end
-    
-=begin    
-    it "should call methods with named parameters" do
-      vect = R.c(1, 2, a: 3, b: 4, c:5, d: 6)
-      vect.pp
-    end
-=end
-    
-=begin      
-    it "should create a named list" do
+      def self.r2ruby(*args)
+        # p "in r2ruby #{args}"
+        args.map { |arg| R::Object.build(arg) }
+      end
 
-      # named_list = R::List.create_named_list(a: "a", b: "b", c: "c", d: "d", e: "e")
-      l = R.list("a", "b", "c")
-      p "constructed named list"
-      l.names = R.c("", "", "c")
-      l.pp
+      rrb = method(:r2ruby)
 
-      p "r named list"
-      R.eval(<<-R)
-        l = list("a", "b", c = "c");
-        print(l);
+      # create a callback function that calls the ruby proc
+      make_callback = R.eval(<<-R)
+        function (r2ruby, proc, ...) {
+          function(...) {
+            print("doing callback");
+            proc(r2ruby(...))
+          }
+        }
       R
+
+      R.eval(<<-R)
+        eval_cost = function(cost, ...) {
+          cost(...)
+        }
+      R
+      
+      # proc = Proc.new { |x| puts x }
+      # rb_callback = make_callback.call(rrb, proc)
+      # rb_callback.call(10)
+
+#=begin
+      R.eval(<<-R)
+        callback2 = function(rb_callback, ...) {
+          rb_callback(c(10, 20))
+        }
+      R
+
+=begin      
+      # Rosenbrock Banana function as a cost function
+      # (as in the R man page for optim())
+      def cost_f(x)
+        p "in cost function #{x}"
+        x1, x2 = x
+        return 100 * (x2 - x1 * x1)**2 + (1 - x1)**2
+      end
+
+      proc = method(:cost_f)
+      rb_callback = make_callback.call(rrb, proc)
+      
+      # p R.eval_cost(rb_callback, 10, 20)
+      # R.callback2(proc)
+
+      vec = R.c(-1.2, 1)
+      # this needs to be fixed... want to return the function
+      # optim = R.optim
+      optim = R.eval("optim")
+      p optim.to_s
+      
+      opt = R.optim(vec, rb_callback)
+      p opt.to_s
+      opt.pp
+      
+=end
+=begin
+      R.eval(<<-R)
+        library(ggplot2)
+        ggplot(data = cars, aes(x = dist, y = speed)) + geom_point() 
+      R
+=end
+      
+      # l = R.list(R.mtcars)
+      # l.pp
+
+      mtcars = R.mtcars
+      mtcars.wt
+     
+      #R.plot(R.mtcars.wt, R.mtcars.mpg, main: "Scatterplot Example",
+      #       xlab: "Car Weight ", ylab: "Miles Per Gallon ", pch: 19)
+      
+      # plot = R.ggplot(data: mtcars)
+      # p plot
+      # cars = R.eval("cars")
+      # p R.cars.to_s
+      # p R.callback2
+      
+      # p cars.to_s
+      
     end
-=end      
     
   end
   

@@ -33,6 +33,24 @@ module R
 
     @@get_attr = Polyglot.eval("R", "attr")
 
+    # define a function to access the subset '[' method
+    @@subset = Polyglot.eval("R", <<-R)
+      function(object, index) {
+        return(object[index])
+      }
+    R
+
+    @@double_subset = Polyglot.eval("R", <<-R)
+      function(object, index) {
+        return(object[[index]])
+      }
+    R
+    
+    @@subset_assign = Polyglot.eval("R", "`[<-`")
+    @@dbk_assign = Polyglot.eval("R", "`[[<-`")
+
+    @@print = Polyglot.eval("R", "function(x) print(x)")
+
     attr_reader :r_interop
     
     #--------------------------------------------------------------------------------------
@@ -56,6 +74,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def self.build(r_interop)
+
       # if the value is actually not an r_interop, then just return it: native Ruby
       # object
       if (!Truffle::Interop.foreign?(r_interop))
@@ -64,8 +83,10 @@ module R
         Vector.new(r_interop)
       elsif (R.eval("is.list").call(r_interop))
         List.new(r_interop)
-      else
-        Generic.new(r_interop)
+      elsif (R.eval("is.data.frame").call(r_interop))
+        DataFramen.new(r_interop)
+      else # Generic type
+        r_interop
       end
       
     end
@@ -75,10 +96,28 @@ module R
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args)
-      args.unshift(@r_interop)
-      R.process_missing(symbol, false, *args)
-    end
 
+      name = R.convert_symbol2r(symbol)
+      
+      if name =~ /(.*)=$/
+        return
+      end
+
+      # no arguments: 2 options: either a named item of the object or apply the function
+      # to the object
+      if (args.length == 0)
+        # if name is a named item of the object, then return the named item
+        if (R.eval("`%in%`").call(name, R.eval("names").call(@r_interop)))
+          return R::Object.build(@@double_subset.call(@r_interop, name))
+        else
+          # No, its not a named item, then apply the function 'name' to the object
+          return R.eval(name).call(@r_interop)
+        end
+      end
+      args.unshift(@r_interop)
+      R.exec_missing(name, false, *args)
+    end
+      
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -86,11 +125,11 @@ module R
     def names
       callR(@@get_attr, "names")
     end
-
+    
     def names=(names_vector)
       callR(@@set_attr, "names", names_vector.r_interop)
     end
-
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -180,10 +219,13 @@ module R
       @r_interop.to_s
     end
     
-  end
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
 
-
-  class Generic < Object
+    def pp
+      @@print.call(@r_interop)
+    end
 
   end
 

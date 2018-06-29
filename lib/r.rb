@@ -65,7 +65,21 @@ module R
     params
     
   end
-    
+
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.convert_symbol2r(symbol)
+    name = symbol.to_s
+    # convert '__' to '.'
+    name.gsub!(/__/,".")
+    # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
+    # a Ruby method on an object
+    name.gsub!("rclass", "class")
+    name
+  end
+  
   #----------------------------------------------------------------------------------------
   # @param function_name [String] Name of the R function to execute
   # @param internal [Boolean] true if returning to an internal object, i.e., does not
@@ -75,12 +89,6 @@ module R
 
   def self.exec_missing(function_name, internal, *args)
     pl = parse2list(*args)
-    
-    # p pl
-    # p "list argument is: "
-    # Polyglot.eval("R", "print.default").call(pl)
-    # build an RObject from the returned value
-    
     internal ? eval("do.call").call(eval(function_name), pl) :
       R::Object.build(eval("do.call").call(eval(function_name), pl))
   end
@@ -96,24 +104,22 @@ module R
   
   def self.process_missing(symbol, internal, *args)
 
-    name = symbol.to_s
-    # convert '__' to '.'
-    name.gsub!(/__/,".")
-    # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
-    # a Ruby method on an object
-    name.gsub!("rclass", "class")
+    name = convert_symbol2r(symbol)
 
     if name =~ /(.*)=$/
-    else
-      # check to see if the given name is either a constant or a variable in the
-      # global environment
-      return R.eval("name") if (args.length == 0 &&
-                                (RCONSTANTS.include? name || R.eval("#{name} %in% ls()")))
-      exec_missing(name, internal, *args)
+      return
     end
+
+    if (args.length == 0)
+      return R::Object.build(R.eval(name))
+    elsif (args.length == 1 &&
+           (nil === args[0] || (!interop(args[0]) && "" === args[0])))
+      return R::Object.build(R.eval("#{name}()"))
+    end
+    exec_missing(name, internal, *args)
     
   end
-
+    
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
@@ -130,6 +136,15 @@ module R
     process_missing(symbol, true, *args)
   end
 
+  #----------------------------------------------------------------------------------------
+  # converts R parameters to ruby wrapped R objects
+  #----------------------------------------------------------------------------------------
+=begin
+  def self.r2ruby(*args)
+    p *args
+    *args
+  end
+=end
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
