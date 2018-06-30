@@ -47,6 +47,32 @@ describe R do
       expect(l.length).to eq 4
     end
 
+    it "should create lists using sequences" do
+      x = R.list(a: (1..10), beta: R.exp(-3..3), logic: R.c(true, false, false, true))
+
+      # compute the list mean for each list element
+      mean = R.lapply(x, "mean")
+      mean.pp
+
+      # median and quartiles for each list element
+      # quant = R.lapply(x, "quantile")
+      # quant.pp
+
+      # p "sapply quantile"
+      # quant = R.sapply(x, "quantile")
+      # quant.pp
+
+      # R.eval("x <- lapply(#{x.r}, quantile, c(0.25, 0.50, 0.75))")
+      # R.eval("print(x)")
+
+      # list of vectors
+      i39 = R.sapply((3..9), "seq")
+      i39.pp
+      # sap = R.sapply(i39, "fivenum")
+      # sap.pp
+
+    end
+
   end
 
   context "When subsetting a list" do

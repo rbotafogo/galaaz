@@ -51,6 +51,14 @@ module R
         params = dbk_assign.call(params, i+1, arg)
       elsif (arg.is_a? R::Object)
         params = dbk_assign.call(params, i+1, arg.r_interop)
+      elsif (arg.is_a? NegRange)
+        final_value = (arg.exclude_end?)? (arg.end - 1) : arg.end
+        params = dbk_assign.call(params, i+1, R.eval("seq").call(arg.begin, final_value))
+      # params << "-(#{arg.begin}:#{final_value})"
+      elsif (arg.is_a? Range)
+        final_value = (arg.exclude_end?)? (arg.end - 1) : arg.end
+        params = dbk_assign.call(params, i+1, R.eval("seq").call(arg.begin, final_value))
+      # params << "(#{arg.begin}:#{final_value})"
       elsif (arg.is_a? Hash)
         arg.each_pair do |key, value|
           k = key.to_s.gsub(/__/,".")

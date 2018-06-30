@@ -117,7 +117,18 @@ module R
       args.unshift(@r_interop)
       R.exec_missing(name, false, *args)
     end
-      
+
+    #----------------------------------------------------------------------------------------
+    # We use the following notation to access binary R functions such as %in%:
+    # R.vec_ "in", list.
+    #----------------------------------------------------------------------------------------
+
+    def _(*args)
+      name = "`%#{args.shift.to_s}%`"
+      args.unshift(@r_interop)
+      R.exec_missing(name, false, *args)
+    end
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------

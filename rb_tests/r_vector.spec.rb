@@ -62,18 +62,29 @@ describe R do
 
   #----------------------------------------------------------------------------------------
   context "When creating vectors" do
+
+    it "should create logical Vectors" do
+      log_vect = R.c(true, false, true, true)
+      expect(log_vect.length).to eq 4
+      expect(log_vect.class).to eq R::Vector
+      expect(log_vect.typeof).to eq "logical"
+    end
     
-    it "should return Vector if the vector has more than 2 elements" do
+    it "should create int Vectors" do
       int_vect = R.c(1, 2)
       expect(int_vect.length).to eq 2
       expect(int_vect.class).to eq R::Vector
       expect(int_vect.typeof).to eq "integer"
+    end
 
+    it "should create double Vectors" do
       float_vect = R.c(3.0, 4, 5)
       expect(float_vect.length).to eq 3
       expect(float_vect.class).to eq R::Vector
       expect(float_vect.typeof).to eq "double"
-      
+    end
+    
+    it "should create character Vectors" do
       # Here the vector has 3 elements
       str_vect = R.c("Hello", "beautiful", "world!")
       expect(str_vect.length).to eq 3
@@ -81,6 +92,12 @@ describe R do
       expect(str_vect.typeof).to eq "character"
     end
 
+    it "should create a complex Vector" do
+      complex_vec = R.complex(real: R.rnorm(100), imag: R.rnorm(100))
+      expect(complex_vec.length).to eq 100
+      expect(complex_vec.typeof).to eq "complex"
+    end
+    
     it "should allow creation of vectors of vectors" do
       vect = R.c(1, 2, 3, R.c(4, 5, 6))
       expect(vect.length).to eq 6
@@ -88,11 +105,45 @@ describe R do
       expect(vect[4]).to eq 4
     end
 
+    
+    it "should create vectors with the use of other R functions" do
+      # R.rep repeats the given vector
+      vec2 = R.rep(R.c("A", "B", "C"), 3)
+      # vec2.pp
+      # expect(vec2.identical(R.c("A", "B", "C", "A", "B", "C", "A", "B", "C"))).to eq true
+
+      # R.table calculates the frequencies of elements
+      vec3 = R.c("A", "B", "C", "A", "A", "A", "A", "B", "B")
+      table = R.table(vec3)
+      # expect(R.c(5, 3, 1).identical table).to eq true
+    end
+    
     it "should allow adding names to vector elements" do
       vect = R.c(1, 2, 3, a: R.c(1, 2, 3), b: 5, c: 6)
       expect(vect.names.identical(R.c("", "", "", "a1", "a2", "a3", "b", "c"))).to eq true
     end
-    
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    it " should match two vectors with %in%" do
+
+      vec1 = R.c(1, 2, 3, 4)
+      vec2 = R.c(1, 2, 3, 4)
+      vec3 = R.c(3, 4, 5)
+      vec4 = R.c(4, 5, 6, 7)
+      
+      # R has functions defined with '%%' notation.  In order to access those functions
+      # from SciCom we use the '._' method with two arguments, the first argument is the
+      # name of the function, for instance, function %in%, the name of the method is ':in'
+      # Ex: vec1 %in% vec2 => vec1._ :in, vec2 
+      expect((vec1._ :in, vec2).identical(R.c(true, true, true, true))).to eq true
+      expect((vec1._ :in, vec3).identical(R.c(false, false, true, true))).to eq true
+      expect((vec2._ :in, vec4).identical(R.c(false, false, false, true))).to eq true
+      
+    end
+
   end
 
   #----------------------------------------------------------------------------------------
