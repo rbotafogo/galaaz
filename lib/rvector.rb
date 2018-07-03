@@ -111,9 +111,7 @@ module R
     
   end
 
-
-  class DataFrame < List
-
-  end
   
 end
+
+require_relative 'rdata_frame'

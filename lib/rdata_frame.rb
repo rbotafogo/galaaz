@@ -21,32 +21,34 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require '../config'
-require 'cantata'
+module R
 
-describe R do
+  class DataFrame < List
 
-  #----------------------------------------------------------------------------------------
-  context "Create DataFrame" do
+    #--------------------------------------------------------------------------------------
+    # Acess a DataFrame by using []
+    #--------------------------------------------------------------------------------------
 
-    it "should create a dataframe from a vector" do
-      vec = R.seq(6)
-      vec.dim = R.c(2, 3)
+    def [](*index)
+
+      subset = Polyglot.eval("R", <<-R)
+        function(df, ...) { 
+          df[...];
+        }
+      R
+
+      empty_symbol = R.eval(<<-R)
+        c <- quote(f(,0))
+        c[[2]]
+      R
+
+      index[0] = empty_symbol if index[0] == :all
+      index[1] = empty_symbol if index[1] == :all
       
-      # create a DataFrame from a vector
-      df = R.as__data__frame(vec)
-      df[1, "V1"]
-      df[:all, "V1"].pp
-      df[1, :all].pp
-      
-      # df["V2"].pp
-      # df["V3"].pp
-      
-      # df["V2"].pp
-      # df["V3"].pp
+      R::Object.build(subset.call(@r_interop, index[0], index[1]))
 
     end
     
   end
-
+  
 end
