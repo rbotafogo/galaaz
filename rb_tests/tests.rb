@@ -23,4 +23,5 @@
 
 require_relative 'r_vector.spec'
 require_relative 'r_list.spec'
+require_relative 'r_dataframe.spec'
 require_relative 'r_function.spec'

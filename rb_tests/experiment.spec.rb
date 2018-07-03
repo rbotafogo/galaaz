@@ -52,6 +52,11 @@ describe R do
           cost(...)
         }
       R
+
+
+      R.eval(<<-R)
+        vec = seq(6)
+      R
       
       # proc = Proc.new { |x| puts x }
       # rb_callback = make_callback.call(rrb, proc)

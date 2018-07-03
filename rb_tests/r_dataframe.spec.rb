@@ -27,8 +27,21 @@ require 'cantata'
 describe R do
 
   #----------------------------------------------------------------------------------------
-  context "When passing primitive values" do
+  context "When creating dataframes" do
 
+    it "" do
+      vec = R.seq(6)
+      vec.dim = R.c(2, 3)
+      vec.pp
+
+      df = R.as__data__frame(vec)
+      df.pp
+      
+      df["V2"].pp
+      df["V3"].pp
+
+    end
+    
   end
 
 end

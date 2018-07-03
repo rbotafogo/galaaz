@@ -21,35 +21,11 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
+require_relative 'r_methods'
+
 module R
   
   class Object
-    
-    @@set_attr = Polyglot.eval("R", <<-R)
-      function(object, which, value) {
-        attr(object, which) = value
-      }
-    R
-
-    @@get_attr = Polyglot.eval("R", "attr")
-
-    # define a function to access the subset '[' method
-    @@subset = Polyglot.eval("R", <<-R)
-      function(object, index) {
-        return(object[index])
-      }
-    R
-
-    @@double_subset = Polyglot.eval("R", <<-R)
-      function(object, index) {
-        return(object[[index]])
-      }
-    R
-    
-    @@subset_assign = Polyglot.eval("R", "`[<-`")
-    @@dbk_assign = Polyglot.eval("R", "`[[<-`")
-
-    @@print = Polyglot.eval("R", "function(x) print(x)")
 
     attr_reader :r_interop
     
@@ -62,13 +38,37 @@ module R
     end
     
     #--------------------------------------------------------------------------------------
-    #
+    # 
     #--------------------------------------------------------------------------------------
 
     def callR(method, *args)
       R::Object.build(method.call(@r_interop, *args))
     end
     
+    #--------------------------------------------------------------------------------------
+    # 
+    #--------------------------------------------------------------------------------------
+
+    def setR(method, *args)
+      R::Object.build(@r_interop = method.call(@r_interop, *args))
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def pp
+      R.print.call(@r_interop)
+    end
+    
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def as__data__frame
+      R.as__data__frame.call(@r_interop)
+    end
+
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -81,10 +81,10 @@ module R
         return r_interop
       elsif (R.eval("is.atomic").call(r_interop))
         Vector.new(r_interop)
+      elsif (R.eval("is.data.frame").call(r_interop))
+        DataFrame.new(r_interop)
       elsif (R.eval("is.list").call(r_interop))
         List.new(r_interop)
-      elsif (R.eval("is.data.frame").call(r_interop))
-        DataFramen.new(r_interop)
       else # Generic type
         r_interop
       end
@@ -134,11 +134,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def names
-      callR(@@get_attr, "names")
+      callR(R.get_attr, "names")
     end
     
     def names=(names_vector)
-      callR(@@set_attr, "names", names_vector.r_interop)
+      setR(R.set_attr, "names", names_vector.r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -146,11 +146,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def rclass
-      callR(@@get_attr, "class")
+      callR(R.get_attr, "class")
     end
 
     def rclass=(class_name)
-      callR(@@set_attr, "class", class_name)
+      setR(R.set_attr, "class", class_name)
     end
     
     #--------------------------------------------------------------------------------------
@@ -158,11 +158,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def comment
-      callR(@@get_attr, "comment")
+      callR(R.get_attr, "comment")
     end
     
     def comment=(comment_text)
-      callR(@@set_attr, "comment", comment_text)
+      setR(R.set_attr, "comment", comment_text)
     end
 
     #--------------------------------------------------------------------------------------
@@ -170,11 +170,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def dim
-      callR(@@get_attr, "dim")
+      callR(R.get_attr, "dim")
     end
     
     def dim=(numeric_vector)
-      callR(@@set_attr, "dim", numeric_vector.r_interop)
+      setR(R.set_attr, "dim", numeric_vector.r_interop)
     end
 
     #--------------------------------------------------------------------------------------
@@ -182,11 +182,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def dimnames
-      callR(@@get_attr, "dimnames")
+      callR(R.get_attr, "dimnames")
     end
     
     def dimnames=(names_vector)
-      callR(@@set_attr, "dimnames", names_vector.r_interop)
+      setR(R.set_attr, "dimnames", names_vector.r_interop)
     end
 
     #--------------------------------------------------------------------------------------
@@ -194,11 +194,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def row__names
-      callR(@@get_attr, "row.names")
+      callR(R.get_attr, "row.names")
     end
     
     def row__names=(names_vector)
-      callR(@@set_attr, "row.names", names_vector.r_interop)
+      setR(R.set_attr, "row.names", names_vector.r_interop)
     end
       
     #--------------------------------------------------------------------------------------
@@ -206,11 +206,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def tsp
-      callR(@@get_attr, "tsp")
+      callR(R.get_attr, "tsp")
     end
     
     def tsp=(numeric_vector)
-      callR(@@set_attr, "tsp", numeric_vector.r_interop)
+      setR(R.set_attr, "tsp", numeric_vector.r_interop)
     end
 
     #--------------------------------------------------------------------------------------
@@ -219,7 +219,7 @@ module R
     
     def attr=(which: w, value: v)
       value = (R.interop(value) ? value.r_interop : value)
-      callR(@@set_attr, which, value)
+      setR(R.set_attr, which, value)
     end
 
     #--------------------------------------------------------------------------------------
@@ -230,14 +230,6 @@ module R
       @r_interop.to_s
     end
     
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def pp
-      @@print.call(@r_interop)
-    end
-
   end
 
 end

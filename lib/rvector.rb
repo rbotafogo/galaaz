@@ -65,8 +65,8 @@ module R
     def[](index)
       dbk, r_index = parse_index(index)
       dbk ?
-        R::Object.build(@@double_subset.call(@r_interop, r_index)) :
-        R::Object.build(@@subset.call(@r_interop, *r_index))
+        R::Object.build(R.double_subset.call(@r_interop, r_index)) :
+        R::Object.build(R.subset.call(@r_interop, *r_index))
     end
     
     #--------------------------------------------------------------------------------------
@@ -91,8 +91,8 @@ module R
       p
 =end      
       dbk ?
-        R::Object.build(@@dbk_assign.call(@r_interop, *r_index, *r_values)) :
-        R::Object.build(@@subset_assign.call(@r_interop, *r_index, *r_values))
+        R::Object.build(R.dbk_assign.call(@r_interop, *r_index, *r_values)) :
+        R::Object.build(R.subset_assign.call(@r_interop, *r_index, *r_values))
     end
 
     #--------------------------------------------------------------------------------------
@@ -105,7 +105,6 @@ module R
     end
                        
   end
-  
   
   
   class List < Vector
