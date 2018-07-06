@@ -38,22 +38,6 @@ module R
     end
     
     #--------------------------------------------------------------------------------------
-    # 
-    #--------------------------------------------------------------------------------------
-
-    def callR(method, *args)
-      R::Object.build(method.call(@r_interop, *args))
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # 
-    #--------------------------------------------------------------------------------------
-
-    def setR(method, *args)
-      R::Object.build(@r_interop = method.call(@r_interop, *args))
-    end
-
-    #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
@@ -107,8 +91,8 @@ module R
       # to the object
       if (args.length == 0)
         # if name is a named item of the object, then return the named item
-        if (R.eval("`%in%`").call(name, R.eval("names").call(@r_interop)))
-          return R::Object.build(@@double_subset.call(@r_interop, name))
+        if (R.eval("`%in%`").call(name, R.eval("names").call(@r_interop))[0])
+          return R::Object.build(R.double_subset.call(@r_interop, name))
         else
           # No, its not a named item, then apply the function 'name' to the object
           return R.eval(name).call(@r_interop)
@@ -121,6 +105,8 @@ module R
     #----------------------------------------------------------------------------------------
     # We use the following notation to access binary R functions such as %in%:
     # R.vec_ "in", list.
+    # @param args [Array] The first element of the array is an R infix function, the other
+    # arguments are the list of arguments for the function.
     #----------------------------------------------------------------------------------------
 
     def _(*args)
@@ -130,89 +116,144 @@ module R
     end
     
     #--------------------------------------------------------------------------------------
-    #
+    # Calls the given r method (actual Interop object) on self (@r_interop) with args
+    # @param method [Interop] R interop object pointing to a function
+    # @param args [String] For now this is only a String argument.  Could be changed in
+    # the future to deal with a list of arguments
     #--------------------------------------------------------------------------------------
+
+    def callR(method, *args)
+      R::Object.build(method.call(@r_interop, *args))
+    end
+    
+    #--------------------------------------------------------------------------------------
+    # Sets the current object self interop pointer to the returned value of the execution
+    # of the given method with arguments. This method should be called when R will copy
+    # the parameter, but in Ruby we want to hide the copying.
+    # @param [Interop] Interop pointer to R function
+    # @param [Array] Array of arguments 
+    #--------------------------------------------------------------------------------------
+
+    def setR(method, *args)
+      @r_interop = method.call(@r_interop, *args)
+      self
+    end
+    
+    #--------------------------------------------------------------------------------------
+    # Sets the names attribute of the object
+    # @param [R::Object] names_vector is an RVector with the list of names.
+    #--------------------------------------------------------------------------------------
+
+    def names=(names_vector)
+      # setR_override(R.set_attr, "names", names_vector.r_interop)
+      # setR(R.eval("`attr<-`"), "names", names_vector.r_interop)
+      R.exec_missing("`attr<-`", true, @r_interop, "names", names_vector)
+    end
 
     def names
-      callR(R.get_attr, "names")
+      # callR(R.get_attr, "names")
+      callR(R.eval("names"))
     end
-    
-    def names=(names_vector)
-      setR(R.set_attr, "names", names_vector.r_interop)
-    end
-    
+        
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
-
-    def rclass
-      callR(R.get_attr, "class")
-    end
 
     def rclass=(class_name)
-      setR(R.set_attr, "class", class_name)
+      # setR(R.set_attr, "class", class_name)
+      setR(R.eval("`attr<-`"), "class", class_name)
+      # R.exec_missing("`attr<-`", true, @r_interop, "class", class_name)
+    end
+
+    def rclass
+      # callR(R.get_attr, "class")
+      callR(R.eval("class"))
     end
     
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
-    def comment
-      callR(R.get_attr, "comment")
-    end
-    
     def comment=(comment_text)
-      setR(R.set_attr, "comment", comment_text)
+      # setR(R.set_attr, "comment", comment_text)
+      R.exec_missing("`attr<-`", true, @r_interop, "comment", comment_text)
     end
-
+    
+    def comment
+      # callR(R.get_attr, "comment")
+      callR(R.eval("comment"))
+    end
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
-    def dim
-      callR(R.get_attr, "dim")
-    end
-    
     def dim=(numeric_vector)
       setR(R.set_attr, "dim", numeric_vector.r_interop)
+      # p "setting dim"
+      # R.exec_missing("`dim<-`", true, @r_interop, numeric_vector)      
     end
 
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def dimnames
-      callR(R.get_attr, "dimnames")
+    def dim
+      # callR(R.get_attr, "dim")
+      callR(R.eval("dim"))
     end
     
-    def dimnames=(names_vector)
-      setR(R.set_attr, "dimnames", names_vector.r_interop)
-    end
-
     #--------------------------------------------------------------------------------------
     #
+    #--------------------------------------------------------------------------------------
+
+    def dimnames=(names_vector)
+      # setR(R.set_attr, "dimnames", names_vector.r_interop)
+      R.exec_missing("`attr<-`", true, @r_interop, "dimnames", names_vector)      
+    end
+
+    def dimnames
+      # callR(R.get_attr, "dimnames")
+      callR(R.eval("dimnames"))
+    end
+    
+    #--------------------------------------------------------------------------------------
+    # @bug Needed to create method R.row__names because dispatch is not working properly
     #--------------------------------------------------------------------------------------
 
     def row__names
-      callR(R.get_attr, "row.names")
+      # callR(R.get_attr, "row.names")
+      # callR(R.eval("row.names"))
+      callR(R.get_row__names)
     end
-    
+
+    def set_row_names
+      R.eval(<<-R)
+      function(object, x) {
+        row.names(object) <- x;
+        object
+        }
+      R
+    end
+
+    # since we need to call a method and the method changes the object, then we need to
+    # change our internal pointer also @r_interop.  Ideally, just setting the row.names
+    # should work.
     def row__names=(names_vector)
-      setR(R.set_attr, "row.names", names_vector.r_interop)
+      @r_interop = set_row_names.call(@r_interop, names_vector.r_interop)
+      self
     end
       
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
-    def tsp
-      callR(R.get_attr, "tsp")
-    end
-    
     def tsp=(numeric_vector)
-      setR(R.set_attr, "tsp", numeric_vector.r_interop)
+      # setR(R.set_attr, "tsp", numeric_vector.r_interop)
+      R.exec_missing("`attr<-`", true, @r_interop, "tsp", numeric_vector)      
     end
 
+    def tsp
+      # callR(R.get_attr, "tsp")
+      callR(R.eval("tsp"))
+    end
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------

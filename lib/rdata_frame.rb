@@ -26,27 +26,12 @@ module R
   class DataFrame < List
 
     #--------------------------------------------------------------------------------------
-    # Acess a DataFrame by using []
+    # Index a DataFrame by using []
     #--------------------------------------------------------------------------------------
 
     def [](*index)
-
-      subset = Polyglot.eval("R", <<-R)
-        function(df, ...) { 
-          df[...];
-        }
-      R
-
-      empty_symbol = R.eval(<<-R)
-        c <- quote(f(,0))
-        c[[2]]
-      R
-
-      index[0] = empty_symbol if index[0] == :all
-      index[1] = empty_symbol if index[1] == :all
-      
-      R::Object.build(subset.call(@r_interop, index[0], index[1]))
-
+      index.map! { |i| i == :all ? R.empty_symbol : i }
+      R::Object.build(R.md_index.call(@r_interop, *index))
     end
     
   end

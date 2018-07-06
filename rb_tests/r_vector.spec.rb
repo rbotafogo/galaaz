@@ -231,14 +231,21 @@ describe R do
       # set the R class.  Note that we need to use rclass instead of class, since
       # class is a Ruby keyword 
       vect.rclass = "myClass"
-      expect(vect.rclass).to eq "myClass"
+      expect(vect.rclass[1]).to eq "myClass"
 
       # the other alternative is to use method attr to change the attribute
       vect.attr = {which: "class", value: "newClass"}
-      expect(vect.rclass).to eq "newClass"
+      expect(vect.rclass[1]).to eq "newClass"
       
-      #
-      vect.names[2] = "Hello"
+      # Names should not be set... there is bug in setting dim 
+      p "testing here"
+      vect.pp
+      vect.names[2] = "hello"
+      p "hello set"
+      vect.pp
+      p "this is the second item"
+      p vect.names[2]
+      
       expect(vect.names[2]).to eq "Hello"
       
     end
