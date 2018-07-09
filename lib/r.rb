@@ -48,7 +48,7 @@ module R
       return arg.r_interop
     elsif (arg.is_a? NegRange)
       final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-      return R.eval("seq").call(arg.first, final_value)
+      return R.eval("c").call(R.eval("seq").call(arg.first, final_value))
     elsif (arg.is_a? Range)
       final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
       return R.eval("c").call(R.eval("seq").call(arg.first, final_value))
