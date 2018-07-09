@@ -135,7 +135,6 @@ module R
     #--------------------------------------------------------------------------------------
 
     def names=(names_vector)
-      # setR(R.eval("`attr<-`"), "names", names_vector)      
       setR(R.eval("`names<-`"), names_vector)      
     end
 
@@ -148,7 +147,6 @@ module R
     #--------------------------------------------------------------------------------------
 
     def rclass=(class_name)
-      # setR(R.eval("`attr<-`"), "class", class_name)
       setR(R.eval("`class<-`"), class_name)
     end
 
@@ -161,7 +159,6 @@ module R
     #--------------------------------------------------------------------------------------
 
     def comment=(comment_text)
-      # setR(R.eval("`attr<-`"), "comment", comment_text)
       setR(R.eval("`comment<-`"), comment_text)      
     end
     
@@ -186,7 +183,6 @@ module R
     #--------------------------------------------------------------------------------------
 
     def dimnames=(names_vector)
-      # setR(R.eval("`attr<-`"), "dimnames", names_vector)
       setR(R.eval("`dimnames<-`"), names_vector)
     end
 

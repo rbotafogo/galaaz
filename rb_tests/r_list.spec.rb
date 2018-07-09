@@ -103,8 +103,7 @@ describe R do
       expect(l[[4, 1]]).to eq 4
 
       # Need to be consistent with the above notation...
-      puts "this needs to be fixed"
-      l[R.c(4, 1)].pp
+      # l[R.c(4, 1)].pp
 
     end
 =begin

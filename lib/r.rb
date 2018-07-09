@@ -40,36 +40,46 @@ module R
   #
   #----------------------------------------------------------------------------------------
 
+  def self.parse_arg(arg)
+    
+    if (Truffle::Interop.foreign?(arg) == true)
+      return arg
+    elsif (arg.is_a? R::Object)
+      return arg.r_interop
+    elsif (arg.is_a? NegRange)
+      final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
+      return R.eval("seq").call(arg.first, final_value)
+    elsif (arg.is_a? Range)
+      final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
+      return R.eval("seq").call(arg.first, final_value)
+    elsif (arg.is_a? Hash)
+      raise "Ilegal parameter #{arg}"
+    else
+      return arg
+    end
+    
+  end
+  
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
   def self.parse2list(*args)
-    
+
     dbk_assign = Polyglot.eval("R", "`[[<-`")
-    
     params = Polyglot.eval("R", "list()")
     
     args.each_with_index do |arg, i|
-      if (Truffle::Interop.foreign?(arg) == true)
-        params = dbk_assign.call(params, i+1, arg)
-      elsif (arg.is_a? R::Object)
-        params = dbk_assign.call(params, i+1, arg.r_interop)
-      elsif (arg.is_a? NegRange)
-        final_value = (arg.exclude_end?)? (arg.end - 1) : arg.end
-        params = dbk_assign.call(params, i+1, R.eval("seq").call(arg.begin, final_value))
-      # params << "-(#{arg.begin}:#{final_value})"
-      elsif (arg.is_a? Range)
-        final_value = (arg.exclude_end?)? (arg.end - 1) : arg.end
-        params = dbk_assign.call(params, i+1, R.eval("seq").call(arg.begin, final_value))
-      # params << "(#{arg.begin}:#{final_value})"
-      elsif (arg.is_a? Hash)
+      if (arg.is_a? Hash)
         arg.each_pair do |key, value|
           k = key.to_s.gsub(/__/,".")
-          value = value.r_interop if value.is_a? R::Object
-          params = dbk_assign.call(params, k, value) 
+          params = dbk_assign.call(params, k, parse_arg(value))
         end
       else
-        params = dbk_assign.call(params, i+1, arg)
+        params = dbk_assign.call(params, i+1, parse_arg(arg))
       end
     end
-
+    
     params
     
   end
@@ -224,6 +234,8 @@ module R
 end
 
 require_relative 'rvector'
+
+NA = R.eval("NA")
 
 =begin   
 process_missing:
