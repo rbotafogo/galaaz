@@ -99,7 +99,8 @@ module R
         end
       end
       args.unshift(@r_interop)
-      R.exec_missing(name, false, *args)
+      R.exec_function_name(name, *args)
+      
     end
 
     #----------------------------------------------------------------------------------------
@@ -112,18 +113,7 @@ module R
     def _(*args)
       name = "`%#{args.shift.to_s}%`"
       args.unshift(@r_interop)
-      R.exec_missing(name, false, *args)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # Calls the given r method (actual Interop object) on self (@r_interop) with args
-    # @param method [Interop] R interop object pointing to a function
-    # @param args [String] For now this is only a String argument.  Could be changed in
-    # the future to deal with a list of arguments
-    #--------------------------------------------------------------------------------------
-
-    def callR(method, *args)
-      R::Object.build(method.call(@r_interop, *args))
+      R.exec_function_name(name, *args)
     end
     
     #--------------------------------------------------------------------------------------
@@ -135,7 +125,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def setR(method, *args)
-      @r_interop = method.call(@r_interop, *args)
+      @r_interop = R.exec_function_i(method, @r_interop, *args)
       self
     end
     
@@ -145,14 +135,12 @@ module R
     #--------------------------------------------------------------------------------------
 
     def names=(names_vector)
-      # setR_override(R.set_attr, "names", names_vector.r_interop)
-      # setR(R.eval("`attr<-`"), "names", names_vector.r_interop)
-      R.exec_missing("`attr<-`", true, @r_interop, "names", names_vector)
+      # setR(R.eval("`attr<-`"), "names", names_vector)      
+      setR(R.eval("`names<-`"), names_vector)      
     end
 
     def names
-      # callR(R.get_attr, "names")
-      callR(R.eval("names"))
+      R.exec_function_name("names", @r_interop)
     end
         
     #--------------------------------------------------------------------------------------
@@ -160,14 +148,12 @@ module R
     #--------------------------------------------------------------------------------------
 
     def rclass=(class_name)
-      # setR(R.set_attr, "class", class_name)
-      setR(R.eval("`attr<-`"), "class", class_name)
-      # R.exec_missing("`attr<-`", true, @r_interop, "class", class_name)
+      # setR(R.eval("`attr<-`"), "class", class_name)
+      setR(R.eval("`class<-`"), class_name)
     end
 
     def rclass
-      # callR(R.get_attr, "class")
-      callR(R.eval("class"))
+      R.exec_function_name("class", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -175,13 +161,12 @@ module R
     #--------------------------------------------------------------------------------------
 
     def comment=(comment_text)
-      # setR(R.set_attr, "comment", comment_text)
-      R.exec_missing("`attr<-`", true, @r_interop, "comment", comment_text)
+      # setR(R.eval("`attr<-`"), "comment", comment_text)
+      setR(R.eval("`comment<-`"), comment_text)      
     end
     
     def comment
-      # callR(R.get_attr, "comment")
-      callR(R.eval("comment"))
+      R.exec_function_name("comment", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -189,14 +174,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def dim=(numeric_vector)
-      setR(R.set_attr, "dim", numeric_vector.r_interop)
-      # p "setting dim"
-      # R.exec_missing("`dim<-`", true, @r_interop, numeric_vector)      
+      setR(R.eval("`dim<-`"), numeric_vector)
     end
 
     def dim
-      # callR(R.get_attr, "dim")
-      callR(R.eval("dim"))
+      R.exec_function_name("dim", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -204,13 +186,12 @@ module R
     #--------------------------------------------------------------------------------------
 
     def dimnames=(names_vector)
-      # setR(R.set_attr, "dimnames", names_vector.r_interop)
-      R.exec_missing("`attr<-`", true, @r_interop, "dimnames", names_vector)      
+      # setR(R.eval("`attr<-`"), "dimnames", names_vector)
+      setR(R.eval("`dimnames<-`"), names_vector)
     end
 
     def dimnames
-      # callR(R.get_attr, "dimnames")
-      callR(R.eval("dimnames"))
+      R.exec_function_name("dimnames", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -218,9 +199,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def row__names
-      # callR(R.get_attr, "row.names")
-      # callR(R.eval("row.names"))
-      callR(R.get_row__names)
+      R.exec_function(R.get_row_names, @r_interop)
     end
 
     def set_row_names
@@ -245,13 +224,12 @@ module R
     #--------------------------------------------------------------------------------------
 
     def tsp=(numeric_vector)
-      # setR(R.set_attr, "tsp", numeric_vector.r_interop)
-      R.exec_missing("`attr<-`", true, @r_interop, "tsp", numeric_vector)      
+      # setR(R.eval("`attr<-`"), "tsp", numeric_vector)
+      setR(R.eval("`tsp<-`"), numeric_vector)
     end
 
     def tsp
-      # callR(R.get_attr, "tsp")
-      callR(R.eval("tsp"))
+      R.exec_function_name("tsp", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------

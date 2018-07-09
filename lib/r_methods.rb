@@ -156,7 +156,7 @@ module R
     Polyglot.eval("R", "function(object, x) row.names(object) <- x")
   end
   
-  def self.get_row__names
+  def self.get_row_names
     Polyglot.eval("R", "function(x) row.names(x)")
   end
   

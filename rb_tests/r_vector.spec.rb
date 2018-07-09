@@ -221,6 +221,8 @@ describe R do
       expect(vect.dim[1]).to eq 3
       expect(vect.dim[2]).to eq 2
 
+      # expect(vect.names).to eq nil
+      
       # set row.names
       vect.row__names = R.c("A", "B", "C")
       expect(vect.row__names.identical(R.c("A", "B", "C")))
@@ -236,20 +238,17 @@ describe R do
       # the other alternative is to use method attr to change the attribute
       vect.attr = {which: "class", value: "newClass"}
       expect(vect.rclass[1]).to eq "newClass"
-      
-      # Names should not be set... there is bug in setting dim 
-      p "testing here"
-      vect.pp
-      vect.names[2] = "hello"
-      p "hello set"
-      vect.pp
-      p "this is the second item"
-      p vect.names[2]
-      
-      expect(vect.names[2]).to eq "Hello"
-      
+            
     end
 
+    it "should allow changing an element of a vector attribute" do
+      vect = R.c(1, 2, 3, 4, 5, 6)
+      # set names
+      vect.names = R.c("a", "b", "c", "d", "e", "f")
+      vect.names[2] = "hello"
+      expect(vect.names[2]).to eq "hello"
+    end
+    
 =begin    
     it "should allow adding elements to the vector" do
       R.eval(<<-R)

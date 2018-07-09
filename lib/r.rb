@@ -87,6 +87,27 @@ module R
     name.gsub!("rclass", "class")
     name
   end
+
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.exec_function_i(function, *args)
+    pl = parse2list(*args)
+    eval("do.call").call(function, pl)
+  end
+
+  #----------------------------------------------------------------------------------------
+  # @param function [R function (Interop)] R function to execute
+  # @param internal [Boolean] true if returning to an internal object, i.e., does not
+  # wrap the return object in a Ruby object
+  # @args [Array] Array of arguments for the function
+  #----------------------------------------------------------------------------------------
+
+  def self.exec_function(function, *args)
+    pl = parse2list(*args)
+    R::Object.build(eval("do.call").call(function, pl))
+  end
   
   #----------------------------------------------------------------------------------------
   # @param function_name [String] Name of the R function to execute
@@ -95,10 +116,8 @@ module R
   # @args [Array] Array of arguments for the function
   #----------------------------------------------------------------------------------------
 
-  def self.exec_missing(function_name, internal, *args)
-    pl = parse2list(*args)
-    internal ? eval("do.call").call(eval(function_name), pl) :
-      R::Object.build(eval("do.call").call(eval(function_name), pl))
+  def self.exec_function_name(function_name, *args)
+    exec_function(eval(function_name), *args)
   end
   
   #----------------------------------------------------------------------------------------
@@ -124,7 +143,9 @@ module R
            (nil === args[0] || (!interop(args[0]) && "" === args[0])))
       return R::Object.build(R.eval("#{name}()"))
     end
-    exec_missing(name, internal, *args)
+
+    function = eval(name)
+    internal ? exec_function_i(function, *args) : exec_function(function, *args)
     
   end
     
@@ -160,37 +181,14 @@ module R
   def self.interop(object)
     Truffle::Interop.foreign?(object)
   end
-
-  #--------------------------------------------------------------------------------------
-  # 
-  #--------------------------------------------------------------------------------------
-  
-  def self.callR(method, object, *args)
-    R::Object.build(method.call(object, *args))
-  end
-  
-  #--------------------------------------------------------------------------------------
-  # 
-  #--------------------------------------------------------------------------------------
-  
-  def self.setR(method, object, *args)
-    R::Object.build(object = method.call(object, *args))
-  end
   
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
   
   def self.as__data__frame(r_object)
-    # R.to_data_frame.call(r_object.r_interop)
-    callR(to_data_frame, r_object.r_interop)
+    exec_function(to_data_frame, r_object)
   end
-  
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  private
   
   #----------------------------------------------------------------------------------------
   #
@@ -207,14 +205,12 @@ module R
         params << arg
       elsif (arg.is_a? R::Object)
         params << arg.r_interop
-#=begin        
       elsif (arg.is_a? Hash)
         arg.each_pair do |key, value|
           keys << key.to_s.gsub(/__/,".")
           pa = parse(value)[0]
           values << pa
         end
-#=end
       else
         params << arg
       end
@@ -223,33 +219,6 @@ module R
     # return [params, keys, values.flatten]
     return params
 
-  end
-
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  def self.pm(symbol, internal, *args)
-
-    name = symbol.to_s
-    # convert '__' to '.'
-    name.gsub!(/__/,".")
-    # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
-    # a Ruby method on an object
-    name.gsub!("rclass", "class")
-
-    # params, keys, values = R.parse(*args)
-    params = parse(*args)
-    # pl = parse2list(*args)
-
-    # p name
-    # p pl
-    # Polyglot.eval("R", "print.default").call(pl)
-
-    # build an RObject from the returned value
-    internal ? eval(name).call(*params) : R::Object.build(eval(name).call(*params))
-    # internal ? eval(name).call(pl) : R::Object.build(eval(name).call(pl))
-    
   end
 
 end
@@ -283,4 +252,34 @@ parse Array:
           # fixed in future version.
           params << R.c(*arg).r_interop
         end
+=end
+
+=begin
+
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.pm(symbol, internal, *args)
+
+    name = symbol.to_s
+    # convert '__' to '.'
+    name.gsub!(/__/,".")
+    # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
+    # a Ruby method on an object
+    name.gsub!("rclass", "class")
+
+    # params, keys, values = R.parse(*args)
+    params = parse(*args)
+    # pl = parse2list(*args)
+
+    # p name
+    # p pl
+    # Polyglot.eval("R", "print.default").call(pl)
+
+    # build an RObject from the returned value
+    internal ? eval(name).call(*params) : R::Object.build(eval(name).call(*params))
+    # internal ? eval(name).call(pl) : R::Object.build(eval(name).call(pl))
+    
+  end
 =end
