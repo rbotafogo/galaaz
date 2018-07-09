@@ -30,3 +30,11 @@ info = R.data__frame(
   desc: R.c("Excellent", "Good", "Poor"),
   fail: R.c(false, false, true)
 )
+
+# We want to duplicate the info table so that we have a row for each value in grades.
+# We can do this in two ways, either using match() and integer subsetting,
+# or rownames() and character subsetting:
+
+# Using match
+id = R.match(grades, info.grade)
+info[id, ].pp

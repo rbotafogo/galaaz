@@ -91,8 +91,9 @@ module R
       # to the object
       if (args.length == 0)
         # if name is a named item of the object, then return the named item
-        if (R.eval("`%in%`").call(name, R.eval("names").call(@r_interop))[0])
-          return R::Object.build(R.double_subset.call(@r_interop, name))
+        named = R.eval("`%in%`").call(name, R.eval("names").call(@r_interop))
+        if (true === named || named[0])
+          return R.exec_function_name("`[[`", @r_interop, name)
         else
           # No, its not a named item, then apply the function 'name' to the object
           return R.eval(name).call(@r_interop)

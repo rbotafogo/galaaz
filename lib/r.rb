@@ -51,7 +51,7 @@ module R
       return R.eval("seq").call(arg.first, final_value)
     elsif (arg.is_a? Range)
       final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-      return R.eval("seq").call(arg.first, final_value)
+      return R.eval("c").call(R.eval("seq").call(arg.first, final_value))
     elsif (arg.is_a? Hash)
       raise "Ilegal parameter #{arg}"
     else
