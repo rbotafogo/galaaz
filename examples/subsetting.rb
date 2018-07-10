@@ -26,7 +26,7 @@ R.unname(lookup[x]).pp
 grades = R.c(1, 2, 2, 3, 1)
 
 info = R.data__frame(
-  grade: 3..1,
+  grade: (3..1),
   desc: R.c("Excellent", "Good", "Poor"),
   fail: R.c(false, false, true)
 )
@@ -37,4 +37,4 @@ info = R.data__frame(
 
 # Using match
 id = R.match(grades, info.grade)
-info[id, ].pp
+info[id, :all].pp

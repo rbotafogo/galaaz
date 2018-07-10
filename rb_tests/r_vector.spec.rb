@@ -70,11 +70,13 @@ describe R do
       expect(log_vect.typeof).to eq "logical"
     end
     
-    it "should create int Vectors" do
+    it "should create double Vectors" do
+      # in R, numbers are converted to double.  To get an int one needs to add L after the
+      # number 1L is an integer
       int_vect = R.c(1, 2)
       expect(int_vect.length).to eq 2
       expect(int_vect.class).to eq R::Vector
-      expect(int_vect.typeof).to eq "integer"
+      expect(int_vect.typeof).to eq "double"
     end
 
     it "should create double Vectors" do

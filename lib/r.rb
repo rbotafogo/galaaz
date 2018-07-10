@@ -41,17 +41,20 @@ module R
   #----------------------------------------------------------------------------------------
 
   def self.parse_arg(arg)
-    
+
+    # if this is an R object, leave it alone
     if (Truffle::Interop.foreign?(arg) == true)
       return arg
+    elsif (arg.is_a? Integer)
+      arg.to_f
     elsif (arg.is_a? R::Object)
       return arg.r_interop
     elsif (arg.is_a? NegRange)
       final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-      return R.eval("c").call(R.eval("seq").call(arg.first, final_value))
+      return R.eval("seq").call(arg.first, final_value)
     elsif (arg.is_a? Range)
       final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-      return R.eval("c").call(R.eval("seq").call(arg.first, final_value))
+      return R.eval("seq").call(arg.first, final_value)
     elsif (arg.is_a? Hash)
       raise "Ilegal parameter #{arg}"
     else
@@ -127,6 +130,7 @@ module R
   #----------------------------------------------------------------------------------------
 
   def self.exec_function_name(function_name, *args)
+    # p "executing #{function_name}"
     exec_function(eval(function_name), *args)
   end
   
@@ -144,6 +148,7 @@ module R
     name = convert_symbol2r(symbol)
 
     if name =~ /(.*)=$/
+      # do something....
       return
     end
 

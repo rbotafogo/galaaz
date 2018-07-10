@@ -84,6 +84,7 @@ module R
       name = R.convert_symbol2r(symbol)
       
       if name =~ /(.*)=$/
+        # do something
         return
       end
 
