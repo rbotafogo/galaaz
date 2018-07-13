@@ -38,3 +38,14 @@ info = R.data__frame(
 # Using match
 id = R.match(grades, info.grade)
 info[id, :all].pp
+
+# Using rownames
+info.rownames = info.grade
+info[grades.as__character, :all].pp
+
+# Random samples/bootstrap (integer subsetting)
+
+# You can use integer indices to perform random sampling or bootstrapping
+# of a vector or data frame. sample() generates a vector of indices, then
+# subsetting to access the values:
+

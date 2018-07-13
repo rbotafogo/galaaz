@@ -45,6 +45,8 @@ module R
     # if this is an R object, leave it alone
     if (Truffle::Interop.foreign?(arg) == true)
       return arg
+    elsif (arg == :all)
+      R.empty_symbol
     elsif (arg.is_a? Integer)
       arg.to_f
     elsif (arg.is_a? R::Object)
@@ -119,6 +121,8 @@ module R
 
   def self.exec_function(function, *args)
     pl = parse2list(*args)
+    # p "Executing function #{function.to_s} with arguments: "
+    # R.print.call(pl)
     R::Object.build(eval("do.call").call(function, pl))
   end
   

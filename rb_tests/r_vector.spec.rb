@@ -235,11 +235,11 @@ describe R do
       # set the R class.  Note that we need to use rclass instead of class, since
       # class is a Ruby keyword 
       vect.rclass = "myClass"
-      expect(vect.rclass[1]).to eq "myClass"
+      expect(vect.rclass).to eq "myClass"
 
       # the other alternative is to use method attr to change the attribute
       vect.attr = {which: "class", value: "newClass"}
-      expect(vect.rclass[1]).to eq "newClass"
+      expect(vect.rclass).to eq "newClass"
             
     end
 

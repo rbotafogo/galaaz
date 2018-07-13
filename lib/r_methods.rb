@@ -84,7 +84,7 @@ module R
     }
   R
 
-  def self.double_subset
+  def self.dbk_subset
     @@double_subset
   end
   

@@ -54,7 +54,9 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    #
+    # @bug
+    # @param r_interop [Interop] pointer to an R object
+    # @return the R object wrapped in a Ruby class
     #--------------------------------------------------------------------------------------
 
     def self.build(r_interop)
@@ -64,7 +66,11 @@ module R
       if (!Truffle::Interop.foreign?(r_interop))
         return r_interop
       elsif (R.eval("is.atomic").call(r_interop))
-        Vector.new(r_interop)
+        # Something is wrong here... sometimes we get a vector and sometimes we
+        # get a scalar.  If the vector has only 1 element, then return the first
+        # element.  This should be fixed.  I think it is a bug in graalvm/Interop
+        (R.eval("length").call(r_interop) == 1) ? r_interop[0] : Vector.new(r_interop)
+        # Vector.new(r_interop)
       elsif (R.eval("is.data.frame").call(r_interop))
         DataFrame.new(r_interop)
       elsif (R.eval("is.list").call(r_interop))
@@ -72,11 +78,11 @@ module R
       else # Generic type
         r_interop
       end
-      
+
     end
     
     #--------------------------------------------------------------------------------------
-    #
+    # @bug
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args)
@@ -91,13 +97,15 @@ module R
       # no arguments: 2 options: either a named item of the object or apply the function
       # to the object
       if (args.length == 0)
-        # if name is a named item of the object, then return the named item
+        # if name is a named item of the object, then return the named item.  Here also
+        # we sometimes get an vector and sometimes a scalar.  Have to check which it is.
         named = R.eval("`%in%`").call(name, R.eval("names").call(@r_interop))
         if (true === named || named[0])
           return R.exec_function_name("`[[`", @r_interop, name)
         else
           # No, its not a named item, then apply the function 'name' to the object
-          return R.eval(name).call(@r_interop)
+          # return R.eval(name).call(@r_interop)
+          return R.exec_function_name(name, @r_interop)
         end
       end
       args.unshift(@r_interop)

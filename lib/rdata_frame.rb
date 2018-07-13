@@ -30,8 +30,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def [](*index)
-      index.map! { |i| i == :all ? R.empty_symbol : R.parse_arg(i) }
-      R::Object.build(R.md_index.call(@r_interop, *index))
+      R.exec_function(R.md_index, @r_interop, *index)
     end
     
   end
