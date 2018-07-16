@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require_relative 'robject'
+require_relative 'rsupport'
 require_relative 'ruby_extensions'
 
 module R
@@ -32,56 +33,20 @@ module R
   #
   #----------------------------------------------------------------------------------------
 
-  def self.eval(string)
-    Polyglot.eval("R", string)
-  end
-    
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  def self.parse_arg(arg)
-
-    # if this is an R object, leave it alone
-    if (Truffle::Interop.foreign?(arg) == true)
-      return arg
-    elsif (arg == :all)
-      R.empty_symbol
-    elsif (arg.is_a? Integer)
-      arg.to_f
-    elsif (arg.is_a? R::Object)
-      return arg.r_interop
-    elsif (arg.is_a? NegRange)
-      final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-      return R.eval("seq").call(arg.first, final_value)
-    elsif (arg.is_a? Range)
-      final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-      return R.eval("seq").call(arg.first, final_value)
-    elsif (arg.is_a? Hash)
-      raise "Ilegal parameter #{arg}"
-    else
-      return arg
-    end
-    
-  end
-  
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
   def self.parse2list(*args)
 
-    dbk_assign = Polyglot.eval("R", "`[[<-`")
     params = Polyglot.eval("R", "list()")
     
     args.each_with_index do |arg, i|
       if (arg.is_a? Hash)
         arg.each_pair do |key, value|
           k = key.to_s.gsub(/__/,".")
-          params = dbk_assign.call(params, k, parse_arg(value))
+          params = R::Support.eval("`[[<-`").
+                     call(params, k, R::Support.parse_arg(value))          
         end
       else
-        params = dbk_assign.call(params, i+1, parse_arg(arg))
+        params = R::Support.eval("`[[<-`").
+                   call(params, i+1, R::Support.parse_arg(arg))        
       end
     end
     
@@ -109,7 +74,7 @@ module R
 
   def self.exec_function_i(function, *args)
     pl = parse2list(*args)
-    eval("do.call").call(function, pl)
+    R::Support.eval("do.call").call(function, pl)
   end
 
   #----------------------------------------------------------------------------------------
@@ -120,10 +85,8 @@ module R
   #----------------------------------------------------------------------------------------
 
   def self.exec_function(function, *args)
-    pl = parse2list(*args)
-    # p "Executing function #{function.to_s} with arguments: "
-    # R.print.call(pl)
-    R::Object.build(eval("do.call").call(function, pl))
+    pl = R.parse2list(*args)
+    R::Object.build(R::Support.eval("do.call").call(function, pl))
   end
   
   #----------------------------------------------------------------------------------------
@@ -135,7 +98,7 @@ module R
 
   def self.exec_function_name(function_name, *args)
     # p "executing #{function_name}"
-    exec_function(eval(function_name), *args)
+    exec_function(R::Support.eval(function_name), *args)
   end
   
   #----------------------------------------------------------------------------------------
@@ -157,13 +120,13 @@ module R
     end
 
     if (args.length == 0)
-      return R::Object.build(R.eval(name))
+      return R::Object.build(R::Support.eval(name))
     elsif (args.length == 1 &&
            (nil === args[0] || (!interop(args[0]) && "" === args[0])))
-      return R::Object.build(R.eval("#{name}()"))
+      return R::Object.build(R::Support.eval("#{name}()"))
     end
 
-    function = eval(name)
+    function = R::Support.eval(name)
     internal ? exec_function_i(function, *args) : exec_function(function, *args)
     
   end
@@ -244,7 +207,7 @@ end
 
 require_relative 'rvector'
 
-NA = R.eval("NA")
+NA = R::Support.eval("NA")
 
 =begin   
 process_missing:

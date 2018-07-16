@@ -65,15 +65,16 @@ module R
       # object
       if (!Truffle::Interop.foreign?(r_interop))
         return r_interop
-      elsif (R.eval("is.atomic").call(r_interop))
+      elsif (R::Support.eval("is.atomic").call(r_interop))
         # Something is wrong here... sometimes we get a vector and sometimes we
         # get a scalar.  If the vector has only 1 element, then return the first
         # element.  This should be fixed.  I think it is a bug in graalvm/Interop
-        (R.eval("length").call(r_interop) == 1) ? r_interop[0] : Vector.new(r_interop)
+        (R::Support.eval("length").call(r_interop) == 1) ?
+          r_interop[0] : Vector.new(r_interop)
         # Vector.new(r_interop)
-      elsif (R.eval("is.data.frame").call(r_interop))
+      elsif (R::Support.eval("is.data.frame").call(r_interop))
         DataFrame.new(r_interop)
-      elsif (R.eval("is.list").call(r_interop))
+      elsif (R::Support.eval("is.list").call(r_interop))
         List.new(r_interop)
       else # Generic type
         r_interop
@@ -99,7 +100,8 @@ module R
       if (args.length == 0)
         # if name is a named item of the object, then return the named item.  Here also
         # we sometimes get an vector and sometimes a scalar.  Have to check which it is.
-        named = R.eval("`%in%`").call(name, R.eval("names").call(@r_interop))
+        named = R::Support.eval("`%in%`").
+                  call(name, R::Support.eval("names").call(@r_interop))
         if (true === named || named[0])
           return R.exec_function_name("`[[`", @r_interop, name)
         else
@@ -145,7 +147,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def names=(names_vector)
-      setR(R.eval("`names<-`"), names_vector)      
+      setR(R::Support.eval("`names<-`"), names_vector)      
     end
 
     def names
@@ -157,7 +159,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def rclass=(class_name)
-      setR(R.eval("`class<-`"), class_name)
+      setR(R::Support.eval("`class<-`"), class_name)
     end
 
     def rclass
@@ -169,7 +171,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def comment=(comment_text)
-      setR(R.eval("`comment<-`"), comment_text)      
+      setR(R::Support.eval("`comment<-`"), comment_text)      
     end
     
     def comment
@@ -181,7 +183,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def dim=(numeric_vector)
-      setR(R.eval("`dim<-`"), numeric_vector)
+      setR(R::Support.eval("`dim<-`"), numeric_vector)
     end
 
     def dim
@@ -193,7 +195,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def dimnames=(names_vector)
-      setR(R.eval("`dimnames<-`"), names_vector)
+      setR(R::Support.eval("`dimnames<-`"), names_vector)
     end
 
     def dimnames
@@ -209,7 +211,7 @@ module R
     end
 
     def set_row_names
-      R.eval(<<-R)
+      R::Support.eval(<<-R)
       function(object, x) {
         row.names(object) <- x;
         object
@@ -231,7 +233,7 @@ module R
 
     def tsp=(numeric_vector)
       # setR(R.eval("`attr<-`"), "tsp", numeric_vector)
-      setR(R.eval("`tsp<-`"), numeric_vector)
+      setR(R::Support.eval("`tsp<-`"), numeric_vector)
     end
 
     def tsp

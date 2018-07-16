@@ -56,7 +56,7 @@ module R
     def parse_index(index)
       return [false, R.parse(index)]
     end
-    
+
     def[]=(index, values)
       r_values = R.parse(values)
       dbk, r_index = parse_index(index)
@@ -64,7 +64,7 @@ module R
         R::Object.build(R.dbk_assign.call(@r_interop, *r_index, *r_values)) :
         R::Object.build(R.subset_assign.call(@r_interop, *r_index, *r_values))
     end
-
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------

@@ -31,13 +31,13 @@ describe R do
 
     # this might change in newer versions of graal. Might not pass future tests
     it "should return an Integer Ruby object if the vector is of length one followed by 'L'" do
-      var = R.eval("5L")
+      var = R::Support.eval("5L")
       expect(5).to eq var
       expect(var.class).to eq Integer
     end
     
     it "should return a Float Ruby object if the vector is numeric of length one" do
-      var = R.eval("4")
+      var = R::Support.eval("4")
       expect(4.0).to eq var
       expect(var.class).to eq Float
     end
