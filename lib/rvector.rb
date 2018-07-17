@@ -40,9 +40,9 @@ module R
 
     def[](index)
       if (index.is_a? Array)
-        R.exec_function_name("`[[`", @r_interop, R.internal_eval(:c, *index))
+        R::Support.exec_function_name("`[[`", @r_interop, R.internal_eval(:c, *index))
       else
-        R.exec_function_name("`[`", @r_interop, index)
+        R::Support.exec_function_name("`[`", @r_interop, index)
       end
     end
     
@@ -53,10 +53,7 @@ module R
     # values, for ex., R.c(2, 3, 5)
     #--------------------------------------------------------------------------------------
 
-    def parse_index(index)
-      return [false, R.parse(index)]
-    end
-
+=begin    
     def[]=(index, values)
       r_values = R.parse(values)
       dbk, r_index = parse_index(index)
@@ -64,7 +61,22 @@ module R
         R::Object.build(R.dbk_assign.call(@r_interop, *r_index, *r_values)) :
         R::Object.build(R.subset_assign.call(@r_interop, *r_index, *r_values))
     end
+=end
     
+    def[]=(index, values)
+      setR_name("`[<-`", index, values)
+
+      # r_values = R.parse(values)
+      # r_index = R.parse(index)
+      # l = R::Support.parse2list(@r_interop, index, values)
+      # R::Object.build(R::Support.eval("`[<-`").call(@r_interop, *r_index, *r_values))
+      
+      #p "assigning"
+      #p index
+      #p values
+      #R::Support.exec_function_name("`[<-`", @r_interop, index, values)
+    end
+
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------

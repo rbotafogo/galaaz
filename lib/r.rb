@@ -28,115 +28,13 @@ require_relative 'ruby_extensions'
 module R
 
   RCONSTANTS = ["LETTERS", "letters", "month.abb", "month.name", "pi"]
-    
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
 
-  def self.parse2list(*args)
-
-    params = Polyglot.eval("R", "list()")
-    
-    args.each_with_index do |arg, i|
-      if (arg.is_a? Hash)
-        arg.each_pair do |key, value|
-          k = key.to_s.gsub(/__/,".")
-          params = R::Support.eval("`[[<-`").
-                     call(params, k, R::Support.parse_arg(value))          
-        end
-      else
-        params = R::Support.eval("`[[<-`").
-                   call(params, i+1, R::Support.parse_arg(arg))        
-      end
-    end
-    
-    params
-    
-  end
-
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  def self.convert_symbol2r(symbol)
-    name = symbol.to_s
-    # convert '__' to '.'
-    name.gsub!(/__/,".")
-    # Method 'rclass' is a substitute for R method 'class'.  Needed, as 'class' is also
-    # a Ruby method on an object
-    name.gsub!("rclass", "class")
-    name
-  end
-
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  def self.exec_function_i(function, *args)
-    pl = parse2list(*args)
-    R::Support.eval("do.call").call(function, pl)
-  end
-
-  #----------------------------------------------------------------------------------------
-  # @param function [R function (Interop)] R function to execute
-  # @param internal [Boolean] true if returning to an internal object, i.e., does not
-  # wrap the return object in a Ruby object
-  # @args [Array] Array of arguments for the function
-  #----------------------------------------------------------------------------------------
-
-  def self.exec_function(function, *args)
-    pl = R.parse2list(*args)
-    R::Object.build(R::Support.eval("do.call").call(function, pl))
-  end
-  
-  #----------------------------------------------------------------------------------------
-  # @param function_name [String] Name of the R function to execute
-  # @param internal [Boolean] true if returning to an internal object, i.e., does not
-  # wrap the return object in a Ruby object
-  # @args [Array] Array of arguments for the function
-  #----------------------------------------------------------------------------------------
-
-  def self.exec_function_name(function_name, *args)
-    # p "executing #{function_name}"
-    exec_function(R::Support.eval(function_name), *args)
-  end
-  
-  #----------------------------------------------------------------------------------------
-  # Process the missing method
-  # @param symbol [Symbol]
-  # @param internal [Boolean] true if the method will return to an internal method, i.e.,
-  # it should not wrap the return value inside an R::Object
-  # @param object [Ruby Object] the ruby object to which the method is applied, false if
-  # it is not applied to an object
-  #----------------------------------------------------------------------------------------
-  
-  def self.process_missing(symbol, internal, *args)
-
-    name = convert_symbol2r(symbol)
-
-    if name =~ /(.*)=$/
-      # do something....
-      return
-    end
-
-    if (args.length == 0)
-      return R::Object.build(R::Support.eval(name))
-    elsif (args.length == 1 &&
-           (nil === args[0] || (!interop(args[0]) && "" === args[0])))
-      return R::Object.build(R::Support.eval("#{name}()"))
-    end
-
-    function = R::Support.eval(name)
-    internal ? exec_function_i(function, *args) : exec_function(function, *args)
-    
-  end
-    
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
 
   def self.method_missing(symbol, *args)
-    process_missing(symbol, false, *args)
+    R::Support.process_missing(symbol, false, *args)
   end
 
   #----------------------------------------------------------------------------------------
@@ -144,32 +42,15 @@ module R
   #----------------------------------------------------------------------------------------
 
   def self.internal_eval(symbol, *args)
-    process_missing(symbol, true, *args)
+    R::Support.process_missing(symbol, true, *args)
   end
 
-  #----------------------------------------------------------------------------------------
-  # converts R parameters to ruby wrapped R objects
-  #----------------------------------------------------------------------------------------
-=begin
-  def self.r2ruby(*args)
-    p *args
-    *args
-  end
-=end
-  #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-
-  def self.interop(object)
-    Truffle::Interop.foreign?(object)
-  end
-  
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
   
   def self.as__data__frame(r_object)
-    exec_function(to_data_frame, r_object)
+    R::Support.exec_function(to_data_frame, r_object)
   end
   
   #----------------------------------------------------------------------------------------
@@ -202,6 +83,16 @@ module R
     return params
 
   end
+
+  #----------------------------------------------------------------------------------------
+  # converts R parameters to ruby wrapped R objects
+  #----------------------------------------------------------------------------------------
+=begin
+  def self.r2ruby(*args)
+    p *args
+    *args
+  end
+=end
 
 end
 

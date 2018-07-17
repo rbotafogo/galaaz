@@ -26,7 +26,7 @@ require_relative 'r_methods'
 module R
   
   class Object
-
+    
     attr_reader :r_interop
     
     #--------------------------------------------------------------------------------------
@@ -36,15 +36,7 @@ module R
     def initialize(r_interop)
       @r_interop = r_interop
     end
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
 
-    def pp
-      R.print.call(@r_interop)
-    end
-    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -88,7 +80,7 @@ module R
 
     def method_missing(symbol, *args)
 
-      name = R.convert_symbol2r(symbol)
+      name = R::Support.convert_symbol2r(symbol)
       
       if name =~ /(.*)=$/
         # do something
@@ -103,15 +95,16 @@ module R
         named = R::Support.eval("`%in%`").
                   call(name, R::Support.eval("names").call(@r_interop))
         if (true === named || named[0])
-          return R.exec_function_name("`[[`", @r_interop, name)
+          return R::Support.exec_function_name("`[[`", @r_interop, name)
         else
           # No, its not a named item, then apply the function 'name' to the object
           # return R.eval(name).call(@r_interop)
-          return R.exec_function_name(name, @r_interop)
+          return R::Support.exec_function_name(name, @r_interop)
         end
       end
+      
       args.unshift(@r_interop)
-      R.exec_function_name(name, *args)
+      R::Support.exec_function_name(name, *args)
       
     end
 
@@ -125,9 +118,9 @@ module R
     def _(*args)
       name = "`%#{args.shift.to_s}%`"
       args.unshift(@r_interop)
-      R.exec_function_name(name, *args)
+      R::Support.exec_function_name(name, *args)
     end
-    
+        
     #--------------------------------------------------------------------------------------
     # Sets the current object self interop pointer to the returned value of the execution
     # of the given method with arguments. This method should be called when R will copy
@@ -137,21 +130,30 @@ module R
     #--------------------------------------------------------------------------------------
 
     def setR(method, *args)
-      @r_interop = R.exec_function_i(method, @r_interop, *args)
-      self
+      # @r_interop = R::Support.exec_function_i(method, @r_interop, *args)
+      @r_interop = R::Support.exec_function_i(method, @r_interop, *args)
     end
-    
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def setR_name(method_name, *args)
+      method = R::Support.eval(method_name)
+      setR(method, *args)
+    end
+
     #--------------------------------------------------------------------------------------
     # Sets the names attribute of the object
     # @param [R::Object] names_vector is an RVector with the list of names.
     #--------------------------------------------------------------------------------------
 
     def names=(names_vector)
-      setR(R::Support.eval("`names<-`"), names_vector)      
+      setR_name("`names<-`", names_vector)
     end
 
     def names
-      R.exec_function_name("names", @r_interop)
+      R::Support.exec_function_name("names", @r_interop)
     end
         
     #--------------------------------------------------------------------------------------
@@ -159,11 +161,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def rclass=(class_name)
-      setR(R::Support.eval("`class<-`"), class_name)
+      setR_name("`class<-`", class_name)
     end
 
     def rclass
-      R.exec_function_name("class", @r_interop)
+      R::Support.exec_function_name("class", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -171,11 +173,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def comment=(comment_text)
-      setR(R::Support.eval("`comment<-`"), comment_text)      
+      setR_name("`comment<-`", comment_text)
     end
     
     def comment
-      R.exec_function_name("comment", @r_interop)
+      R::Support.exec_function_name("comment", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -183,11 +185,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def dim=(numeric_vector)
-      setR(R::Support.eval("`dim<-`"), numeric_vector)
+      setR_name("`dim<-`", numeric_vector)
     end
 
     def dim
-      R.exec_function_name("dim", @r_interop)
+      R::Support.exec_function_name("dim", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -195,11 +197,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def dimnames=(names_vector)
-      setR(R::Support.eval("`dimnames<-`"), names_vector)
+      setR_name("`dimnames<-`", names_vector)
     end
 
     def dimnames
-      R.exec_function_name("dimnames", @r_interop)
+      R::Support.exec_function_name("dimnames", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -207,7 +209,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def row__names
-      R.exec_function(R.get_row_names, @r_interop)
+      R::Support.exec_function(R.get_row_names, @r_interop)
     end
 
     def set_row_names
@@ -232,12 +234,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def tsp=(numeric_vector)
-      # setR(R.eval("`attr<-`"), "tsp", numeric_vector)
-      setR(R::Support.eval("`tsp<-`"), numeric_vector)
+      setR_name("`tsp<-`", numeric_vector)
     end
 
     def tsp
-      R.exec_function_name("tsp", @r_interop)
+      R::Support.exec_function_name("tsp", @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -245,8 +246,16 @@ module R
     #--------------------------------------------------------------------------------------
     
     def attr=(which: w, value: v)
-      value = (R.interop(value) ? value.r_interop : value)
+      value = (R::Support.interop(value) ? value.r_interop : value)
       setR(R.set_attr, which, value)
+    end
+    
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def pp
+      R.print.call(@r_interop)
     end
 
     #--------------------------------------------------------------------------------------
@@ -256,7 +265,7 @@ module R
     def to_s
       @r_interop.to_s
     end
-    
+
   end
 
 end
