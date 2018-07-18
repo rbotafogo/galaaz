@@ -21,6 +21,10 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
+require_relative 'r_vector_creation.spec'
+require_relative 'r_vector_object.spec'
+require_relative 'r_vector_subsetting.spec'
+
 require_relative 'r_vector.spec'
 require_relative 'r_list.spec'
 require_relative 'r_dataframe.spec'

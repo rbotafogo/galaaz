@@ -43,6 +43,33 @@ module R
     end
     
     #----------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------
+    
+    def self.parse_arg(arg)
+      
+      # if this is an R object, leave it alone
+      if (Truffle::Interop.foreign?(arg) == true)
+        return arg
+      elsif (arg == :all)
+        R.empty_symbol
+      elsif (arg.is_a? R::Object)
+        return arg.r_interop
+      elsif (arg.is_a? NegRange)
+        final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
+        return R::Support.eval("seq").call(arg.first, final_value)
+      elsif (arg.is_a? Range)
+        final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
+        return R::Support.eval("seq").call(arg.first, final_value)
+      elsif (arg.is_a? Hash)
+        raise "Ilegal parameter #{arg}"
+      else
+        return arg
+      end
+      
+    end
+    
+    #----------------------------------------------------------------------------------------
     # Parses the Ruby arguments into a R list of R objects
     # @param args [Ruby Parameter list]
     #----------------------------------------------------------------------------------------
@@ -147,36 +174,7 @@ module R
         R::Support.exec_function(function, *args)
       
     end
-    
-    #----------------------------------------------------------------------------------------
-    #
-    #----------------------------------------------------------------------------------------
-    
-    def self.parse_arg(arg)
-      
-      # if this is an R object, leave it alone
-      if (Truffle::Interop.foreign?(arg) == true)
-        return arg
-      elsif (arg == :all)
-        R.empty_symbol
-      elsif (arg.is_a? Integer)
-        arg.to_f
-      elsif (arg.is_a? R::Object)
-        return arg.r_interop
-      elsif (arg.is_a? NegRange)
-        final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-        return R::Support.eval("seq").call(arg.first, final_value)
-      elsif (arg.is_a? Range)
-        final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-        return R::Support.eval("seq").call(arg.first, final_value)
-      elsif (arg.is_a? Hash)
-        raise "Ilegal parameter #{arg}"
-      else
-        return arg
-      end
-      
-    end
-    
+        
   end
 
 end

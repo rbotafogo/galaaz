@@ -65,7 +65,7 @@ module R
     
     def[]=(index, values)
       setR_name("`[<-`", index, values)
-
+      self
       # r_values = R.parse(values)
       # r_index = R.parse(index)
       # l = R::Support.parse2list(@r_interop, index, values)

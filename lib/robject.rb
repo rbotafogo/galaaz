@@ -132,6 +132,7 @@ module R
     def setR(method, *args)
       # @r_interop = R::Support.exec_function_i(method, @r_interop, *args)
       @r_interop = R::Support.exec_function_i(method, @r_interop, *args)
+      self
     end
 
     #--------------------------------------------------------------------------------------
@@ -141,6 +142,7 @@ module R
     def setR_name(method_name, *args)
       method = R::Support.eval(method_name)
       setR(method, *args)
+      self
     end
 
     #--------------------------------------------------------------------------------------
@@ -152,8 +154,16 @@ module R
       setR_name("`names<-`", names_vector)
     end
 
+=begin    
     def names
       R::Support.exec_function_name("names", @r_interop)
+    end
+=end
+    
+    def names(*args)
+      return R::Support.exec_function_name("names", @r_interop) if (args.length == 0)
+      setR_name("`names<-`", *args)
+      self
     end
         
     #--------------------------------------------------------------------------------------
