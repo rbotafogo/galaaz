@@ -62,12 +62,8 @@ module R
       if (!Truffle::Interop.foreign?(r_interop))
         return r_interop
       elsif (R::Support.eval("is.atomic").call(r_interop))
-        # Something is wrong here... sometimes we get a vector and sometimes we
-        # get a scalar.  If the vector has only 1 element, then return the first
-        # element.  This should be fixed.  I think it is a bug in graalvm/Interop
         (R::Support.eval("length").call(r_interop) == 1) ?
           r_interop[0] : Vector.new(r_interop)
-        # Vector.new(r_interop)
       elsif (R::Support.eval("is.data.frame").call(r_interop))
         DataFrame.new(r_interop)
       elsif (R::Support.eval("is.list").call(r_interop))

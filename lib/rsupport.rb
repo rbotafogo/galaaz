@@ -38,13 +38,21 @@ module R
   def self.empty_symbol
     @@empty_symbol
   end
-
+  
   #--------------------------------------------------------------------------------------
   # This is a support module for evaluating R functions
   #--------------------------------------------------------------------------------------
 
   module Support
     
+    @@exec_from_ruby = Polyglot.eval("R", <<-R)
+      function(...) {
+        res =  do.call(...);
+        print(res);
+        res
+      }
+    R
+
     #----------------------------------------------------------------------------------------
     # Evaluates an R code
     # @param string [String] A string of R code that can be correctly parsed by R
@@ -153,6 +161,7 @@ module R
     def self.exec_function(function, *args)
       pl = R::Support.parse2list(*args)
       R::Object.build(R::Support.eval("do.call").call(function, pl))
+      # R::Object.build(@@exec_from_ruby.call(function, pl))
     end
     
     #----------------------------------------------------------------------------------------
