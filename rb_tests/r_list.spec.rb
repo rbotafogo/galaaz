@@ -60,71 +60,48 @@ describe R::List do
 
 
   context "When subsetting a list" do
-  
-    it "should subset a list with integer or negative integer" do
-      l = R.list(1, 2, 3, R.list(4, 5, 6))
-      expect(l.length).to eq 4
-      # the element of a list is also a list
-      expect(l[1].identical(R.list(1))).to eq true
-      # to extract an element of a list we need double square (dbk) indexing
-      expect(l[[1]]).to eq 1
-      
+
+    before(:all) do
+      @l = R.list(1, 2, 3, R.list(4, 5, 6))
+    end
+
+    it "should subset with [] and positve integer.  Returns a list" do
+      expect(@l.length).to eq 4
+      # Subsetting a list with [] returns a list 
+      expect(@l[1].identical(R.list(1))).to eq true
       # the 4th element of the list is a list of a list
-      expect(l[4].identical(R.list(R.list(4, 5, 6)))).to eq true
+      expect(@l[4].identical(R.list(R.list(4, 5, 6)))).to eq true
+    end
+
+    it "should subset with [] and negative integer.  Returns a list" do
+      expect(@l[-4].identical(R.list(1, 2, 3))).to eq true
+    end
+
+    it "should subset with [] and a vector as index" do
+      expect(@l[R.c(4, 1)].identical(R.list(R.list(4, 5, 6), 1))).to eq true
+    end
+
+    it "should subset with [[]] and positive integer. Returns the actual element of the list" do
+      # to extract an element of a list we need double square (dbk) indexing
+      expect(@l[[1]]).to eq 1
       # dbk indexing to get a list
-      expect(l[[4]].identical(R.list(4, 5, 6))).to eq true
+      expect(@l[[4]].identical(R.list(4, 5, 6))).to eq true
+    end
+
+    it "can chain subsetting operations" do
       # 1rst element of 4th vector is a list
-      expect(l[[4]][1].identical(R.list(4))).to eq true
-      expect(l[[4]][[1]]).to eq 4
-
-      # negative indexing removes the given element
-      expect(l[-4].identical(R.list(1, 2, 3))).to eq true
-
+      expect(@l[[4]][1].identical(R.list(4))).to eq true
+      expect(@l[[4]][[1]]).to eq 4
+    end
+    
+    it "should subset with [[]] with multiple indexes" do
       # Note that for a list or other recursive object, the index can be a vector
       # and each element of the vector is applied in turn to the list, the
       # selected component, the selected component of that component, and so on.
       # The result is still a single element.
-      # expect(l[[4, 1]]).to eq 4
-      p "the value of l[[4, 1]] is"
-      p l[[4, 1]]
-
-      # Need to be consistent with the above notation...
-      # l[R.c(4, 1)].pp
-
-    end
-=begin
-    it "should subset a vector with another integer vector" do
-      vect = R.c(1, 2, 3, 4, 5)
-      expect(vect[R.c(2, 4)][1]).to eq 2
-      expect(vect[R.c(2, 4)][2]).to eq 4
-      expect(vect[R.c(3, 3)][2]).to eq 3
-    end
-
-    it "should allow reordering of elements based on function" do
-      vect = R.c(2.1, 4.2, 3.3, 5.4)
-      expect(vect[R.order(vect)][2]).to eq 3.3
-      expect(vect[R.order(vect)][3]).to eq 4.2
-    end
-=end
-  end
-=begin  
-=end
-=begin  
-  context "When subset assigning to a vector" do
-    
-    it "should subset assign with integer" do
-      vect = R.c(1, 2, 3, 4, 5)
-      expect(vect[2]).to eq 2
-      vect[2] = 1000
-      expect(vect[2]).to eq 1000
-    end
-
-    it "should subset assign to the elements given by another vector" do
-      vect = R.c(1, 2, 3, 4, 5)
-      vect[R.c(2, 3)] = R.c(1000, 2000)
-      puts vect
+      expect(@l[[4, 1]]).to eq 4
     end
 
   end
-=end
+
 end

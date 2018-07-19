@@ -66,14 +66,22 @@ describe R::List do
       expect(quant.logic[2]).to eq 0.0
     end
     
-    it "should allow using sapply and quantile" do
-      quant = R.sapply(@x, @q)
-      quant.pp
-    end
-
     it "should allow using method lapply with quantile" do
       x = R.lapply(@x, @q, R.c(0.25, 0.50, 0.75))
-      x.pp
+      expect(x.a[1]).to eq 3.25
+      expect(x.a["50,00000%"]).to eq 5.50
+      expect(R.all__equal(x.beta["75,00000%"],
+                          5.0536690,
+                          tolerance: R.__Machine.double__eps ** 0.5)).to eq true
+      expect(x.logic[2]).to eq 0.5
+    end
+
+    it "should allow using sapply and quantile" do
+      pending "Check the return value and how to access the elements"
+      quant = R.sapply(@x, @q)
+      quant.pp
+      R.str(quant)
+      quant.a.pp
     end
     
     it "should sapply to a sequence" do
