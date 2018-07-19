@@ -24,39 +24,37 @@
 require '../config'
 require 'cantata'
 
-describe R do
+describe R::Vector do
   
-  context "Accessing R through eval" do
-
-    it "shoud create named objects in R" do
-      # using Ruby heredoc to write R code
-      R.eval(<<-R)
-      x <- c(1, 2, 3);
-      hyp <- function(x, y) { sqrt(x^2 + y^2) };
-      R
-    end
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+  
+  it " should match two vectors with %in%" do
+    vec1 = R.c(1, 2, 3, 4)
+    vec2 = R.c(1, 2, 3, 4)
+    vec3 = R.c(3, 4, 5)
+    vec4 = R.c(4, 5, 6, 7)
     
-    it "should use named objects in R" do
-      R.eval(<<-R)
-      print(x);
-      print(hyp(3, 4));
-      R
-    end
-
-    it "should retrieve and used named R objects in Ruby" do
-      # retrieve x and hyp from R and attribute it to local Ruby variables
-      x = R.eval("x")
-      # hyp is an R function and works like a named function in Ruby
-      hyp = R.eval("hyp")
-
-      # is is a foreign object
-      expect(Truffle::Interop.foreign?(x)).to be true
-      expect(x[0]).to eq 1.0
-
-      # calling a named function or block is done by use of the 'call' method
-      expect(hyp.call(3, 4)).to eq 5.0
-
-    end
+    # R has functions defined with '%%' notation.  In order to access those functions
+    # from SciCom we use the '._' method with two arguments, the first argument is the
+    # name of the function, for instance, function %in%, the name of the method is ':in'
+    # Ex: vec1 %in% vec2 => vec1._ :in, vec2 
+    expect((vec1._ :in, vec2).identical(R.c(true, true, true, true))).to eq true
+    expect((vec1._ :in, vec3).identical(R.c(false, false, true, true))).to eq true
+    expect((vec2._ :in, vec4).identical(R.c(false, false, false, true))).to eq true
+    
   end
-
+  
 end
+  
+=begin    
+it "should allow adding elements to the vector" do
+      R.eval(<<-R)
+         vec = c(2.1, 4.2, 3.3, 5.4);
+         print(order(vec));
+      R
+
+    end
+=end    
+

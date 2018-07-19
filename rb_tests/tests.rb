@@ -21,11 +21,15 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
+require_relative 'r_eval.spec'
+# Specification for R::Vector
 require_relative 'r_vector_creation.spec'
 require_relative 'r_vector_object.spec'
 require_relative 'r_vector_subsetting.spec'
-
-require_relative 'r_vector.spec'
-require_relative 'r_list.spec'
+require_relative 'r_vector_functions.spec'
+# Specification for R::Lists
+require_relative 'r_list_apply.spec'
+# Specification for R::Dataframes
 require_relative 'r_dataframe.spec'
+# Specification for R::Functions
 require_relative 'r_function.spec'

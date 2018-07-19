@@ -52,6 +52,11 @@ describe R do
       # df["V3"].pp
 
     end
+
+    it "should accept the use of the apply family of functions" do
+      # unlist(lapply(mtcars, class))
+      # R.mtcars.lapply(R.rclass).unlist.pp
+    end
     
   end
 

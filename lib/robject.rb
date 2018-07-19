@@ -24,7 +24,11 @@
 require_relative 'r_methods'
 
 module R
-  
+
+  #--------------------------------------------------------------------------------------
+  # 
+  #--------------------------------------------------------------------------------------
+
   class Object
     
     attr_reader :r_interop
@@ -257,7 +261,8 @@ module R
     
     def attr=(which: w, value: v)
       value = (R::Support.interop(value) ? value.r_interop : value)
-      setR(R.set_attr, which, value)
+      # setR(@@set_attr, which, value)
+      setR_name("`attr<-`", which, value)
     end
     
     #--------------------------------------------------------------------------------------
@@ -266,7 +271,7 @@ module R
 
     def pp
       R.print.call(@r_interop)
-    end
+      end
 
     #--------------------------------------------------------------------------------------
     #

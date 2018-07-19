@@ -24,10 +24,30 @@
 
 module R
 
+  #--------------------------------------------------------------------------------------
+  # The empty_symbol is necessary to represent indexing with a missing argument such
+  # as [x, ].  What follows the ',' is an empty_symbol.  Whenever we use in Ruby the
+  # :all symbol, it will be converted to an empty_symbol in R.
+  #--------------------------------------------------------------------------------------
+  
+  @@empty_symbol = Polyglot.eval("R", <<-R)
+    __missing_arg = quote(f(,0));
+    __missing_arg[[2]]
+  R
+
+  def self.empty_symbol
+    @@empty_symbol
+  end
+
+  #--------------------------------------------------------------------------------------
+  # This is a support module for evaluating R functions
+  #--------------------------------------------------------------------------------------
+
   module Support
     
     #----------------------------------------------------------------------------------------
-    #
+    # Evaluates an R code
+    # @param string [String] A string of R code that can be correctly parsed by R
     #----------------------------------------------------------------------------------------
     
     def self.eval(string)
@@ -35,7 +55,8 @@ module R
     end
 
     #----------------------------------------------------------------------------------------
-    #
+    # @param object [Object] Any Ruby object
+    # @return boolean if the object is an interop or not
     #----------------------------------------------------------------------------------------
     
     def self.interop(object)
@@ -43,7 +64,9 @@ module R
     end
     
     #----------------------------------------------------------------------------------------
-    #
+    # @param arg [Object] A Ruby object to be converted to R to be used by an R function, or
+    # whatever needs it
+    # @return Object that can be used in R
     #----------------------------------------------------------------------------------------
     
     def self.parse_arg(arg)
@@ -161,7 +184,7 @@ module R
         # do something....
         return
       end
-      
+
       if (args.length == 0)
         return R::Object.build(R::Support.eval(name))
       elsif (args.length == 1 &&
