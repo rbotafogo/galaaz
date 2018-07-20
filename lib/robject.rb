@@ -94,13 +94,9 @@ module R
         # we sometimes get an vector and sometimes a scalar.  Have to check which it is.
         named = R::Support.eval("`%in%`").
                   call(name, R::Support.eval("names").call(@r_interop))
-        if (true === named || named[0])
-          return R::Support.exec_function_name("`[[`", @r_interop, name)
-        else
-          # No, its not a named item, then apply the function 'name' to the object
-          # return R.eval(name).call(@r_interop)
-          return R::Support.exec_function_name(name, @r_interop)
-        end
+        return (false === named || !(true === named || named[0])) ?
+                 R::Support.exec_function_name(name, @r_interop) :
+                 R::Support.exec_function_name("`[[`", @r_interop, name)
       end
       
       args.unshift(@r_interop)
