@@ -28,6 +28,7 @@ require_relative 'r_vector_creation.spec'
 require_relative 'r_vector_object.spec'
 require_relative 'r_vector_subsetting.spec'
 require_relative 'r_vector_functions.spec'
+require_relative 'r_vector_operators.spec'
 
 # Specification for R::Lists
 require_relative 'r_list.spec'
