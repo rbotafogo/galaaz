@@ -58,6 +58,16 @@ describe R::Vector do
       expect(vect[R.order(vect)][2]).to eq 3.3
       expect(vect[R.order(vect)][3]).to eq 4.2
     end
+
+    it "should subset with another character vector" do
+      x = R.c("m", "f", "u", "f", "f", "m", "m")
+      lookup = R.c(m: "Male", f: "Female", u: R::NA)
+
+      res = R.c("Male", "Female", "FALSE", "Female", "Female", "Male", "Male")
+      res.names = R.c("m", "f", "u", "f", "f", "m", "m") 
+
+      expect(lookup[x].all__equal res).to eq true
+    end
     
   end
   

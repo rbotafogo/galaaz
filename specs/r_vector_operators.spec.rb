@@ -64,10 +64,54 @@ describe R::Vector do
        expect(res.all__equal(R.c(3%2.3, 5.7%3, 10%9.0, 12.0%17))).to eq true
      end
 
+     it "should apply unary minus to all elements of a vector" do
+       expect((-@vec1).all__equal(R.c(-3, -5.7, -10, -12))).to eq true
+     end
+     
    end
 
    #----------------------------------------------------------------------------------------
+   context "Comparison operators" do
+
+     it "should check vectors for equality / inequality" do
+       vec1 = R.c(1, 2)
+       vec2 = R.c(1, 2)
+       vec3 = R.c(0, 2)
+
+       expect((vec1 == vec2).all__equal(R.c(true, true))).to eq true
+       expect((vec1 != vec2).all__equal(R.c(false, false))).to eq true
+       expect((vec1 == vec3).all__equal(R.c(false, true))).to eq true
+     end
+
+     it "should check vectors for <, <=, >, >=" do
+       vec1 = R.c(1, 2, 3)
+       vec2 = R.c(0, 4, 3)
+
+       expect((vec1 < vec2).all__equal(R.c(false, true, false))).to eq true
+       expect((vec1 <= vec2).all__equal(R.c(false, true, true))).to eq true
+       expect((vec1 > vec2).all__equal(R.c(true, false, false))).to eq true
+       expect((vec1 >= vec2).all__equal(R.c(true, false, true))).to eq true
+     end
+
+   end
+
+   
+   #----------------------------------------------------------------------------------------
    context "Logical operators" do
+
+     before(:each) do
+       @vec1 = R.c(true, true, false, true)
+       @vec2 = R.c(true, false, false, false)
+     end
+     
+     it "should negate a vector" do
+       expect((!@vec1).all__equal(R.c(false, false, true, false))).to eq true
+     end
+
+     it "should 'and' and 'or' two vectors" do
+       expect((@vec1.and @vec2).all__equal R.c(true, false, false, false)).to eq true
+       expect((@vec1.or @vec2).all__equal R.c(true, true, false, true)).to eq true
+     end
      
    end
 

@@ -64,6 +64,7 @@ module R
       elsif (R::Support.eval("is.atomic").call(r_interop))
         (R::Support.eval("length").call(r_interop) == 1) ?
           r_interop[0] : Vector.new(r_interop)
+      # Vector.new(r_interop)
       elsif (R::Support.eval("is.data.frame").call(r_interop))
         DataFrame.new(r_interop)
       elsif (R::Support.eval("is.list").call(r_interop))
@@ -282,7 +283,7 @@ module R
     end
 
   end
-
+  
 end
 
 

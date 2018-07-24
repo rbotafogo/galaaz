@@ -38,7 +38,20 @@ module R
   def self.empty_symbol
     @@empty_symbol
   end
-  
+
+=begin  
+  @@na = Polyglot.eval("R", <<-R)
+    function(build_method) {
+      print(NA);
+      build_method(c(NA))
+    }
+  R
+
+  NA = @@na.call(R::Object.method(:build))
+=end    
+
+  NA = Polyglot.eval("R", "NA")
+
   #--------------------------------------------------------------------------------------
   # This is a support module for evaluating R functions
   #--------------------------------------------------------------------------------------
@@ -46,13 +59,14 @@ module R
   module Support
     
     @@exec_from_ruby = Polyglot.eval("R", <<-R)
-      function(...) {
-        res =  do.call(...);
-        print(res);
-        res
+      function(build_method, ...) {
+        res = do.call(...);
+        res2 = build_method(res);
+        # print(res);
+        res2
       }
     R
-
+    
     #----------------------------------------------------------------------------------------
     # Evaluates an R code
     # @param string [String] A string of R code that can be correctly parsed by R
@@ -82,8 +96,6 @@ module R
       # if this is an R object, leave it alone
       if (Truffle::Interop.foreign?(arg) == true)
         return arg
-      elsif (arg == :all)
-        R.empty_symbol
       elsif (arg.is_a? R::Object)
         return arg.r_interop
       elsif (arg.is_a? NegRange)
@@ -92,6 +104,10 @@ module R
       elsif (arg.is_a? Range)
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
         return R::Support.eval("seq").call(arg.first, final_value)
+      # checking if arg is '==' needs to come after checking if arg is an R::Object,
+      # because '==' was overloaded for R::Objects
+      elsif (arg == :all)
+        R.empty_symbol
       elsif (arg.is_a? Hash)
         raise "Ilegal parameter #{arg}"
       else
@@ -160,8 +176,9 @@ module R
     
     def self.exec_function(function, *args)
       pl = R::Support.parse2list(*args)
-      R::Object.build(R::Support.eval("do.call").call(function, pl))
-      # R::Object.build(@@exec_from_ruby.call(function, pl))
+      # R::Object.build(R::Support.eval("do.call").call(function, pl))
+      # R::Object.build(@@exec_from_ruby.call(R::Object.method(:build), function, pl))
+      @@exec_from_ruby.call(R::Object.method(:build), function, pl)
     end
     
     #----------------------------------------------------------------------------------------
@@ -172,7 +189,6 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.exec_function_name(function_name, *args)
-      # p "executing #{function_name}"
       R::Support.exec_function(R::Support.eval(function_name), *args)
     end
     

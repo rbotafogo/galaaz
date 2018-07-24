@@ -106,8 +106,6 @@ end
 
 require_relative 'rvector'
 
-NA = R::Support.eval("NA")
-
 =begin   
 process_missing:
     if (keys.size > 0)

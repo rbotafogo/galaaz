@@ -72,7 +72,7 @@ describe R do
       # to create a double vector through the Ruby interface, we need that at least
       # one element of the vector is a 'float'
       double = R.c(1.0, 2, 3)
-      expect(R.x.identical(double)).to eq true
+      expect(R.x.identical double).to eq true
       expect(R.hyp(3, 4)).to eq 5
     end
 
@@ -105,6 +105,11 @@ describe R do
 
       # calling a named function or block is done by use of the 'call' method
       expect(hyp.call(3, 4)).to eq 5.0
+    end
+
+    it "should have NA" do
+      pending "Getting false when should get NA"
+      # expect(R.is__na R::NA).to eq true
     end
     
   end
