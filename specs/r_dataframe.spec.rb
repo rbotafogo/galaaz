@@ -24,7 +24,7 @@
 require '../config'
 require 'cantata'
 
-describe R do
+describe R::DataFrame do
 
   #----------------------------------------------------------------------------------------
   context "Create DataFrame" do

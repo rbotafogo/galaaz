@@ -262,32 +262,111 @@ print("\n")
 
 # [1]  3  7 10
 
+#===
 x1 = R.c((1..10)) % 2 == 0
 x1.pp
 print("\n")
 
 # [1] FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE
 
+#===
 x2 = x1.which
 x2.pp
 print("\n")
 
 # [1]  2  4  6  8 10
 
+#===
 y1 = R.c((1..10)) % 5 == 0
 y1.pp
 print("\n")
 
 # [1] FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE  TRUE
 
+#===
 y2 = y1.which
 y2.pp
 print("\n")
 
 # [1]  5 10
 
+#===
+# X & Y <-> intersect(x, y)
 (x1 & y1).pp
+print("\n")
 
 # [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
 
+#===
+# This example shows the problem with having R objects returning either
+# vector or scalar.  We don't know the type of the result of applying
+# intersect.  If this is a vector, then we need to print it with pp
+# but if this is a scalar, we need to print it with regular Ruby 'p' or
+# 'print'
+p R.intersect(x2, y2)
+print("\n")
 
+# 10
+
+p x2.intersect y2
+
+# 10
+
+#===
+# X | Y <-> union(x, y)
+(x1 | y1).pp
+print("\n")
+
+# [1] FALSE  TRUE FALSE  TRUE  TRUE  TRUE FALSE  TRUE FALSE  TRUE
+
+#===
+R.union(x2, y2).pp
+print("\n")
+
+# [1]  2  4  6  8 10  5
+
+(x2.union y2).pp
+
+# [1]  2  4  6  8 10  5
+
+#===
+# X & !Y <-> setdiff(x, y)
+(x1 & !y1).pp
+print("\n")
+
+# [1] FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE FALSE
+
+#===
+R.setdiff(x2, y2).pp
+print("\n")
+
+# [1] 2 4 6 8
+
+(x2.setdiff y2).pp
+
+# [1] 2 4 6 8
+
+
+#===
+# xor(X, Y) <-> setdiff(union(x, y), intersect(x, y))
+R.xor(x1, y1).pp
+print("\n")
+
+#  [1] FALSE  TRUE FALSE  TRUE  TRUE  TRUE FALSE  TRUE FALSE FALSE
+
+# Writing the same as the last example in a Ruby style
+(x1.xor y1).pp
+
+#  [1] FALSE  TRUE FALSE  TRUE  TRUE  TRUE FALSE  TRUE FALSE FALSE
+
+#===
+R.setdiff(R.union(x2, y2), R.intersect(x2, y2)).pp
+print("\n")
+
+# [1] 2 4 6 8 5
+
+# Writing the same as the last example in a Ruby style
+((x2.union y2).setdiff (x2.intersect y2)).pp
+print("\n")
+
+# [1] 2 4 6 8 5

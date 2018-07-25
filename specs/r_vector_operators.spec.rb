@@ -109,8 +109,8 @@ describe R::Vector do
      end
 
      it "should 'and' and 'or' two vectors" do
-       expect((@vec1.and @vec2).all__equal R.c(true, false, false, false)).to eq true
-       expect((@vec1.or @vec2).all__equal R.c(true, true, false, true)).to eq true
+       expect((@vec1 & @vec2).all__equal R.c(true, false, false, false)).to eq true
+       expect((@vec1 | @vec2).all__equal R.c(true, true, false, true)).to eq true
      end
      
    end
