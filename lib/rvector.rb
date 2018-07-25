@@ -80,13 +80,18 @@ module R
   #--------------------------------------------------------------------------------------
   
   module BinaryOperators
+
+    def exec_oper(operation, other_object)
+      second_op = (other_object.is_a? R::Object) ? other_object.r_interop : other_object
+      R::Support.exec_function_name(operation, @r_interop, second_op)
+    end
     
     #--------------------------------------------------------------------------------------
     # @param other_object
     #--------------------------------------------------------------------------------------
 
     def +(other_object)
-      R::Support.exec_function_name("`+`", @r_interop, other_object.r_interop)
+      exec_oper("`+`", other_object)
     end
     
     #--------------------------------------------------------------------------------------
@@ -94,7 +99,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def -(other_object)
-      R::Support.exec_function_name("`-`", @r_interop, other_object.r_interop)
+      exec_oper("`-`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -102,7 +107,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def *(other_object)
-      R::Support.exec_function_name("`*`", @r_interop, other_object.r_interop)
+      exec_oper("`*`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -110,7 +115,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def /(other_object)
-      R::Support.exec_function_name("`/`", @r_interop, other_object.r_interop)
+      exec_oper("`/`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -118,7 +123,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def **(other_object)
-      R::Support.exec_function_name("`**`", @r_interop, other_object.r_interop)
+      exec_oper("`**`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -126,7 +131,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def %(other_object)
-      R::Support.exec_function_name("`%%`", @r_interop, other_object.r_interop)
+      exec_oper("`%%`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -134,7 +139,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def ==(other_object)
-      R::Support.exec_function_name("`==`", @r_interop, other_object.r_interop)
+      exec_oper("`==`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -142,7 +147,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def <(other_object)
-      R::Support.exec_function_name("`<`", @r_interop, other_object.r_interop)
+      exec_oper("`<`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -150,7 +155,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def <=(other_object)
-      R::Support.exec_function_name("`<=`", @r_interop, other_object.r_interop)
+      exec_oper("`<=`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -158,7 +163,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def >(other_object)
-      R::Support.exec_function_name("`>`", @r_interop, other_object.r_interop)
+      exec_oper("`>`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -166,7 +171,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def >=(other_object)
-      R::Support.exec_function_name("`>=`", @r_interop, other_object.r_interop)
+      exec_oper("`>=`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -174,14 +179,14 @@ module R
     #--------------------------------------------------------------------------------------
 
     def !=(other_object)
-      R::Support.exec_function_name("`!=`", @r_interop, other_object.r_interop)
+      exec_oper("`!=`", other_object)
     end
     
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
-    def and(other_object)
+    def &(other_object)
       R::Support.exec_function_name("`&`", @r_interop, other_object.r_interop)
     end
     
@@ -189,7 +194,7 @@ module R
     #
     #--------------------------------------------------------------------------------------
 
-    def or(other_object)
+    def |(other_object)
       R::Support.exec_function_name("`|`", @r_interop, other_object.r_interop)
     end
 

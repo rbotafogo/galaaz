@@ -39,25 +39,26 @@ module R
     @@empty_symbol
   end
 
-=begin  
-  @@na = Polyglot.eval("R", <<-R)
-    function(build_method) {
-      print(NA);
-      build_method(c(NA))
-    }
+  # When evaluating to NA, Interop treats it as FALSE.  This breaks all expectations
+  # about NA.  We need to protect NA from Interop unboxing.  Class NotAvailable
+  # puts a list around NA, so that no unboxing occurs.
+  @na = Polyglot.eval("R", <<-R)
+    list(NA)
   R
+  
+  class NotAvailable < R::Object
+  end
 
-  NA = @@na.call(R::Object.method(:build))
-=end    
-
-  NA = Polyglot.eval("R", "NA")
+  NA = NotAvailable.new(@na)
 
   #--------------------------------------------------------------------------------------
   # This is a support module for evaluating R functions
   #--------------------------------------------------------------------------------------
 
   module Support
-    
+
+    # Using this method gives us more control over what happens when calling do.call
+    # and allows for debugging.  Use it in exec_function when debugging is needed.
     @@exec_from_ruby = Polyglot.eval("R", <<-R)
       function(build_method, ...) {
         res = do.call(...);
@@ -129,12 +130,24 @@ module R
         if (arg.is_a? Hash)
           arg.each_pair do |key, value|
             k = key.to_s.gsub(/__/,".")
-            params = R::Support.eval("`[[<-`").
-                       call(params, k, R::Support.parse_arg(value))          
+            # When evaluating to NA, Interop treats it as FALSE.  This breaks all expectations
+            # about NA.  We need to protect NA from Interop unboxing.  Class NotAvailable
+            # puts a list around NA, so that no unboxing occurs.  We need to treat this
+            # list here
+            if (value.is_a? NotAvailable)
+              # add the key as the name of the NA
+              na_named = R::Support.eval("`names<-`").call(value.r_interop, k)
+              params = R::Support.eval("c").call(params, na_named)
+            else
+              params = R::Support.eval("`[[<-`").
+                         call(params, k, R::Support.parse_arg(value))
+            end
           end
+        elsif (arg.is_a? NotAvailable)
+          params = R::Support.eval("c").call(params, arg.r_interop)
         else
           params = R::Support.eval("`[[<-`").
-                     call(params, i+1, R::Support.parse_arg(arg))        
+                     call(params, i+1, R::Support.parse_arg(arg))
         end
       end
       
@@ -176,9 +189,8 @@ module R
     
     def self.exec_function(function, *args)
       pl = R::Support.parse2list(*args)
-      # R::Object.build(R::Support.eval("do.call").call(function, pl))
-      # R::Object.build(@@exec_from_ruby.call(R::Object.method(:build), function, pl))
-      @@exec_from_ruby.call(R::Object.method(:build), function, pl)
+      R::Object.build(R::Support.eval("do.call").call(function, pl))
+      # @@exec_from_ruby.call(R::Object.method(:build), function, pl)
     end
     
     #----------------------------------------------------------------------------------------

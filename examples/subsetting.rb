@@ -1,7 +1,8 @@
+# coding: utf-8
 require '../config'
 require 'cantata'
 
-# This examples are extracted from "Advanced R", by Hadley Wickham, available on the
+# This examples were extracted from "Advanced R", by Hadley Wickham, available on the
 # web at: http://adv-r.had.co.nz/Subsetting.html#applications
 
 #------------------------------------------------------------------------------------------
@@ -11,15 +12,17 @@ require 'cantata'
 #------------------------------------------------------------------------------------------
 
 x = R.c("m", "f", "u", "f", "f", "m", "m")
-lookup = R.c(m: "Male", f: "Female", u: NA)
+lookup = R.c(m: "Male", f: "Female", u: R::NA)
 lookup[x].pp
+print("\n")
 
 #       m        f        u        f        f        m        m 
-#  "Male" "Female"  "FALSE" "Female" "Female"   "Male"   "Male" 
+#  "Male" "Female"       NA "Female" "Female"   "Male"   "Male" 
 
 R.unname(lookup[x]).pp
+print("\n")
 
-# [1] "Male"   "Female" "FALSE"  "Female" "Female" "Male"   "Male"  
+# [1] "Male"   "Female" NA  "Female" "Female" "Male"   "Male"  
 
 
 #------------------------------------------------------------------------------------------
@@ -46,6 +49,7 @@ info = R.data__frame(
 # Using match
 id = R.match(grades, info.grade)
 info[id, :all].pp
+print("\n")
 
 #    grade      desc  fail
 # 3       1      Poor  TRUE
@@ -57,6 +61,7 @@ info[id, :all].pp
 # Using rownames
 info.rownames = info.grade
 info[grades.as__character, :all].pp
+print("\n")
 
 #     grade      desc  fail
 # 1       3 Excellent FALSE
@@ -79,6 +84,7 @@ R.set__seed(10)
 
 # Randomly reorder
 df[R.sample(df.nrow), :all].pp
+print("\n")
 
 #   x y z
 # 4 2 3 d
@@ -90,6 +96,7 @@ df[R.sample(df.nrow), :all].pp
 
 # Select 3 random rows
 df[R.sample(df.nrow, 3), :all].pp
+print("\n")
 
 #   x y z
 # 2 1 5 b
@@ -98,6 +105,7 @@ df[R.sample(df.nrow, 3), :all].pp
 
 # Select 6 bootstrap replicates
 df[R.sample(df.nrow, 6, rep: true), :all].pp
+print("\n")
 
 #     x y z
 # 3   2 4 c
@@ -113,16 +121,19 @@ df[R.sample(df.nrow, 6, rep: true), :all].pp
 
 x = R.c("b", "c", "a")
 x.order.pp
+print("\n")
 
 # [1] 3 1 2
 
 x[x.order].pp
+print("\n")
 
 # [1] "a" "b" "c"
 
 # Randomly reorder df
 df2 = df[R.sample(df.nrow), (3..1)]
 df2.pp
+print("\n")
 
 #   z y x
 # 3 c 4 2
@@ -133,6 +144,7 @@ df2.pp
 # 5 e 2 3
 
 df2[df2.x.order, :all].pp
+print("\n")
 
 #   z y x
 # 1 a 6 1
@@ -143,6 +155,7 @@ df2[df2.x.order, :all].pp
 # 5 e 2 3
 
 df2[:all, df2.names.order].pp
+print("\n")
 
 #   x y z
 # 3 2 4 c
@@ -162,10 +175,12 @@ df2[:all, df2.names.order].pp
 
 df = R.data__frame(x: R.c(2, 4, 1), y: R.c(9, 11, 6), n: R.c(3, 5, 1))
 R.rep((1..df.nrow), df.n).pp
+print("\n")
 
 # [1] 1 1 1 2 2 2 2 2 3
 
 df[R.rep((1..df.nrow), df.n), :all].pp
+print("\n")
 
 #     x  y n
 # 1   2  9 3
@@ -189,10 +204,11 @@ df = R.data__frame(x: (1..3), y: (3..1), z: R.letters[(1..3)])
 # Not implemented yet
 # df.z = nil
 df.pp
-
+print("\n")
 
 df = R.data__frame(x: (1..3), y: (3..1), z: R.letters[(1..3)])
 df[R.c("x", "y")].pp
+print("\n")
 
 #   x y
 # 1 1 3
@@ -200,8 +216,78 @@ df[R.c("x", "y")].pp
 # 3 3 1
 
 df[df.names.setdiff("z")].pp
+print("\n")
 
 #   x y
 # 1 1 3
 # 2 2 2
 # 3 3 1
+
+#------------------------------------------------------------------------------------------
+# Selecting rows based on a condition (logical subsetting)
+#
+# Because it allows you to easily combine conditions from multiple columns, logical
+# subsetting is probably the most commonly used technique for extracting rows out of
+# a data frame.
+#------------------------------------------------------------------------------------------
+
+R.mtcars[R.mtcars.gear == 5, :all].pp
+print("\n")
+
+#                 mpg cyl  disp  hp drat    wt qsec vs am gear carb
+# Porsche 914-2  26.0   4 120.3  91 4.43 2.140 16.7  0  1    5    2
+# Lotus Europa   30.4   4  95.1 113 3.77 1.513 16.9  1  1    5    2
+# Ford Pantera L 15.8   8 351.0 264 4.22 3.170 14.5  0  1    5    4
+# Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.5  0  1    5    6
+# Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.6  0  1    5    8
+
+R.mtcars[(R.mtcars.gear == 5) & (R.mtcars.cyl == 4), :all].pp
+print("\n")
+
+#                mpg cyl  disp  hp drat    wt qsec vs am gear carb
+# Porsche 914-2 26.0   4 120.3  91 4.43 2.140 16.7  0  1    5    2
+# Lotus Europa  30.4   4  95.1 113 3.77 1.513 16.9  1  1    5    2
+
+
+#------------------------------------------------------------------------------------------
+# Boolean algebra vs. sets (logical & integer subsetting)
+# 
+# It’s useful to be aware of the natural equivalence between set operations (integer
+# subsetting) and boolean algebra (logical subsetting)
+#------------------------------------------------------------------------------------------
+
+x = R.sample(10) < 4
+x.which.pp
+print("\n")
+
+# [1]  3  7 10
+
+x1 = R.c((1..10)) % 2 == 0
+x1.pp
+print("\n")
+
+# [1] FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE
+
+x2 = x1.which
+x2.pp
+print("\n")
+
+# [1]  2  4  6  8 10
+
+y1 = R.c((1..10)) % 5 == 0
+y1.pp
+print("\n")
+
+# [1] FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE  TRUE
+
+y2 = y1.which
+y2.pp
+print("\n")
+
+# [1]  5 10
+
+(x1 & y1).pp
+
+# [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+
+

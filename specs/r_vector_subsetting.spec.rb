@@ -63,7 +63,7 @@ describe R::Vector do
       x = R.c("m", "f", "u", "f", "f", "m", "m")
       lookup = R.c(m: "Male", f: "Female", u: R::NA)
 
-      res = R.c("Male", "Female", "FALSE", "Female", "Female", "Male", "Male")
+      res = R.c("Male", "Female", R::NA, "Female", "Female", "Male", "Male")
       res.names = R.c("m", "f", "u", "f", "f", "m", "m") 
 
       expect(lookup[x].all__equal res).to eq true

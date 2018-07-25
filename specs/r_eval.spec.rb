@@ -108,8 +108,7 @@ describe R do
     end
 
     it "should have NA" do
-      pending "Getting false when should get NA"
-      # expect(R.is__na R::NA).to eq true
+      expect(R.is__na R::NA).to eq true
     end
     
   end
