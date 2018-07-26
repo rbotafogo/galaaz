@@ -33,7 +33,11 @@ module R
   #
   #----------------------------------------------------------------------------------------
 
-  def self.method_missing(symbol, *args)
+  def self.method_missing(symbol, *args, &block)
+    if (block_given?)
+      return R::Support.new_scope(symbol, *args, &block)
+    end
+    
     R::Support.process_missing(symbol, false, *args)
   end
 
@@ -73,4 +77,7 @@ module R
 
 end
 
+require_relative 'rindexed_object'
+require_relative 'rbinary_operators'
+require_relative 'runary_operators'
 require_relative 'rvector'

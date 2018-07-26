@@ -238,3 +238,5 @@ module R
   end
 
 end
+
+require_relative 'rsupport_scope'

@@ -23,52 +23,56 @@
 
 module R
 
-  class Vector < Object
-    include IndexedObject
-    include BinaryOperators
-    include UnaryOperators
-    include Enumerable
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def initialize(r_interop)
-      super(r_interop)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # Each cannot return a Enumerator because R is single threaded.  When this restriction
-    # is removed, make each return self.to_enum
-    #--------------------------------------------------------------------------------------
-
-    def each
-      
-      (1..self.length).each do |i|
-        yield self[i]
-      end
-      
-    end
-
-    #--------------------------------------------------------------------------------------
-    # SHOULD DEFINE COMPARISON BETWEEN TWO VECTORS
-    #--------------------------------------------------------------------------------------
-
-    def <=>(other_vector)
-      
-    end
-    
-  end
-  
-  
   #--------------------------------------------------------------------------------------
   #
   #--------------------------------------------------------------------------------------
+  
+  module IndexedObject
+    
+    #--------------------------------------------------------------------------------------
+    # subset a vector with an index
+    # @index The vector index.
+    #--------------------------------------------------------------------------------------
 
-  class List < Object
-    include IndexedObject
+    def[](index)
+      if (index.is_a? Array)
+        R::Support.exec_function_name("`[[`", @r_interop, R.internal_eval(:c, *index))
+      else
+        R::Support.exec_function_name("`[`", @r_interop, index)
+      end
+    end
+    
+    #--------------------------------------------------------------------------------------
+    # subset assign a vector with an index to a value
+    # @index The vector index
+    # @values The values to assign to the index.  Note that index can span multiple
+    # values, for ex., R.c(2, 3, 5)
+    #--------------------------------------------------------------------------------------
+
+=begin    
+    def[]=(index, values)
+      r_values = R.parse(values)
+      dbk, r_index = parse_index(index)
+      dbk ?
+        R::Object.build(R.dbk_assign.call(@r_interop, *r_index, *r_values)) :
+        R::Object.build(R.subset_assign.call(@r_interop, *r_index, *r_values))
+    end
+=end
+    
+    def[]=(index, values)
+      setR_name("`[<-`", index, values)
+      self
+      # r_values = R.parse(values)
+      # r_index = R.parse(index)
+      # l = R::Support.parse2list(@r_interop, index, values)
+      # R::Object.build(R::Support.eval("`[<-`").call(@r_interop, *r_index, *r_values))
+      
+      #p "assigning"
+      #p index
+      #p values
+      #R::Support.exec_function_name("`[<-`", @r_interop, index, values)
+    end
+
   end
 
 end
-
-require_relative 'rdata_frame'

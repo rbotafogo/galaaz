@@ -79,8 +79,12 @@ module R
     # @bug
     #--------------------------------------------------------------------------------------
 
-    def method_missing(symbol, *args)
+    def method_missing(symbol, *args, &block)
 
+      if (block_given?)
+        return R::Support.new_scope(symbol, self, *args, &block)
+      end
+      
       name = R::Support.convert_symbol2r(symbol)
       
       if name =~ /(.*)=$/
@@ -274,6 +278,14 @@ module R
       R.print.call(@r_interop)
       end
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def levels
+      R::Support.exec_function(R.levels, @r_interop)
+    end
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------

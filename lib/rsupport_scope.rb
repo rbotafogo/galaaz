@@ -23,52 +23,42 @@
 
 module R
 
-  class Vector < Object
-    include IndexedObject
-    include BinaryOperators
-    include UnaryOperators
-    include Enumerable
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
+  module Scope
 
-    def initialize(r_interop)
-      super(r_interop)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # Each cannot return a Enumerator because R is single threaded.  When this restriction
-    # is removed, make each return self.to_enum
-    #--------------------------------------------------------------------------------------
-
-    def each
+    def self.with(symbol, *args)
+      attrs = []
       
-      (1..self.length).each do |i|
-        yield self[i]
+      args.each_with_index do |arg, index|
+        arg.names.each { |n| attrs << n.to_sym }
+      end
+
+      Class.new do
+        # create accessor functions for every variable name
+        attrs.each do |name|
+          define_method (name) do
+            args[0].method_missing(name)
+          end
+        end
+
+        def method_missing
+
+        end
+        
       end
       
     end
+    
+  end
 
-    #--------------------------------------------------------------------------------------
-    # SHOULD DEFINE COMPARISON BETWEEN TWO VECTORS
-    #--------------------------------------------------------------------------------------
+  module Support
 
-    def <=>(other_vector)
-      
+    def self.new_scope(symbol, *args, &block)
+      executionScope = Scope.with(symbol, *args)
+      scope = executionScope.new
+      scope.instance_eval(&block)
+      scope
     end
     
   end
-  
-  
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
-
-  class List < Object
-    include IndexedObject
-  end
 
 end
-
-require_relative 'rdata_frame'

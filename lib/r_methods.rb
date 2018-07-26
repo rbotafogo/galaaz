@@ -58,6 +58,11 @@ module R
   def self.print
     Polyglot.eval("R", "function(x) print(x)")    
   end
+
+  
+  def self.levels
+    Polyglot.eval("R", "function(x) levels(x)")    
+  end
   
   #--------------------------------------------------------------------------------------
   # @bug Needed to create method to_data_frame because dispatch is not working properly
