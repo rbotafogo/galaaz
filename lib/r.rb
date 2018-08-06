@@ -34,11 +34,14 @@ module R
   #----------------------------------------------------------------------------------------
 
   def self.method_missing(symbol, *args, &block)
-    if (block_given?)
-      return R::Support.new_scope(symbol, *args, &block)
-    end
     
+    if (block_given?)
+      val = R::Support.process_missing(symbol, false, *args)
+      return R::Support.new_scope(symbol, val, *args, &block)
+    end
+
     R::Support.process_missing(symbol, false, *args)
+
   end
 
   #----------------------------------------------------------------------------------------
@@ -66,6 +69,14 @@ module R
   end
 
   #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.subset(*args)
+    R::Support.exec_function(R.subset_method, *args)
+  end
+
+  #----------------------------------------------------------------------------------------
   # converts R parameters to ruby wrapped R objects
   #----------------------------------------------------------------------------------------
 =begin
@@ -81,3 +92,7 @@ require_relative 'rindexed_object'
 require_relative 'rbinary_operators'
 require_relative 'runary_operators'
 require_relative 'rvector'
+require_relative 'rclosure'
+require_relative 'rlist'
+require_relative 'rdata_frame'
+require_relative 'rexpression'

@@ -61,13 +61,15 @@ module R
       # object
       if (!Truffle::Interop.foreign?(r_interop))
         return r_interop
-      elsif (R::Support.eval("is.atomic").call(r_interop))
-        (R::Support.eval("length").call(r_interop) == 1) ?
-          r_interop[0] : Vector.new(r_interop)
-      # Vector.new(r_interop)
-      elsif (R::Support.eval("is.data.frame").call(r_interop))
+      elsif (R::Support.eval("is.atomic").call(r_interop) == true)
+        #(R::Support.eval("length").call(r_interop) == 1) ?
+        #  r_interop[0] : Vector.new(r_interop)
+        Vector.new(r_interop)
+      elsif (R::Support.eval("is.function").call(r_interop) == true)
+        Closure.new(r_interop)
+      elsif (R::Support.eval("is.data.frame").call(r_interop) == true)
         DataFrame.new(r_interop)
-      elsif (R::Support.eval("is.list").call(r_interop))
+      elsif (R::Support.eval("is.list").call(r_interop) == true)
         List.new(r_interop)
       else # Generic type
         r_interop
@@ -275,9 +277,9 @@ module R
     #--------------------------------------------------------------------------------------
 
     def pp
-      R.print.call(@r_interop)
-      end
-
+      print "#{to_s}\n"
+    end
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -291,7 +293,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def to_s
-      @r_interop.to_s
+      R.capture.call(@r_interop)[0]
     end
 
   end

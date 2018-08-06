@@ -85,7 +85,7 @@ module R
     def self.interop(object)
       Truffle::Interop.foreign?(object)
     end
-    
+
     #----------------------------------------------------------------------------------------
     # @param arg [Object] A Ruby object to be converted to R to be used by an R function, or
     # whatever needs it
@@ -93,7 +93,7 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.parse_arg(arg)
-      
+
       # if this is an R object, leave it alone
       if (Truffle::Interop.foreign?(arg) == true)
         return arg
@@ -109,6 +109,8 @@ module R
       # because '==' was overloaded for R::Objects
       elsif (arg == :all)
         R.empty_symbol
+      elsif (arg.is_a? Symbol)
+        return R::Symbol.new(self).r_interop
       elsif (arg.is_a? Hash)
         raise "Ilegal parameter #{arg}"
       else
@@ -150,7 +152,7 @@ module R
                      call(params, i+1, R::Support.parse_arg(arg))
         end
       end
-      
+
       params
       
     end

@@ -58,10 +58,25 @@ module R
   def self.print
     Polyglot.eval("R", "function(x) print(x)")    
   end
-
   
   def self.levels
     Polyglot.eval("R", "function(x) levels(x)")    
+  end
+
+  def self.subset_method
+    Polyglot.eval("R", "function(...) subset(...)")    
+  end
+
+  def self.capture
+    Polyglot.eval("R", <<-R)
+      function(...) {
+        sink(tt <- textConnection("results","w"),split=FALSE);
+        print(...);
+        sink();
+        close(tt);
+        results
+      }
+    R
   end
   
   #--------------------------------------------------------------------------------------

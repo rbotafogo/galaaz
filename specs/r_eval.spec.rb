@@ -26,9 +26,9 @@ require 'cantata'
 
 describe R do
 
-  context "Accessing R through eval" do
+  context "Accessing R through R::Support.eval" do
 
-    before(:all) do
+    before(:each) do
       R::Support.eval(<<-R)
         # x is a "double" vector
         x <- c(1, 2, 3)
@@ -36,44 +36,30 @@ describe R do
       R
     end
 
-    it "should return an Integer Ruby object if the vector is of length one followed by 'L'" do
-      # var is an Interop pointer.  In principle, one should not need to use
-      # R::Support.eval.  This is used only when one really needs to escape to R
-      # directly.
+    it "Integer values in R are automatically unboxed as float" do
       var = R::Support.eval("5L")
+      # although var is an Interop, it is automatically unboxed, when it is a vector of length
+      # one, and can thus be compared with a number.
       expect(5).to eq var
-      # use method class to get the class of an Interop object
-      expect(var.class).to eq Integer
+      expect(5.0).to eq var
     end
 
-    it "should return a Float Ruby object if the vector is numeric of length one" do
-      var = R::Support.eval("4")
-      expect(4.0).to eq var
-      expect(var.class).to eq Float
-    end
-
-    # This has a bug that will be fixed by next version of Truffle
-    it "should work with characters" do
-      var = R::Support.eval("'Hello'")
-      expect { var[0] }.to raise_error { NoMethodError }
-      # expect("H").to eq var
-    end
-
-    it "should return a string if the vector is a string of length one" do
-      # Interop will take a one dimensional array and return the value of the first
-      # element.  This might change on a future release. At the present moment, var1
-      # becomes a character array with 5 elements
-      var1 = R.c("Hello")
-      expect(var1.size).to eq 5
-      expect(var1[0]).to eq "H"
+    it "Interop pointers can be operated through eval" do
+      var = R::Support.eval("5L")
+      # calling method 'class' on var returns a vector of size one with a string that
+      # contains the class of the object
+      expect("[integer]").to eq R::Support.eval("class").call(var).to_s
     end
     
-    it "shoud access named objects in R" do
-      # to create a double vector through the Ruby interface, we need that at least
-      # one element of the vector is a 'float'
-      double = R.c(1.0, 2, 3)
-      expect(R.x.identical double).to eq true
-      expect(R.hyp(3, 4)).to eq 5
+    it "A number evaluated in R is automatically unboxed as float in Ruby" do
+      var = R::Support.eval("4")
+      expect(4.0).to eq var
+      expect("[numeric]").to eq R::Support.eval("class").call(var).to_s
+    end
+
+    it "R vectors can be indexed by the indexing method of the host language" do
+      var = R::Support.eval("'Hello'")
+      expect(var[0]).to eq "Hello"
     end
 
     it "should retrieve named R objects to Ruby variables using eval. Returned value should be an Interop" do
@@ -92,21 +78,68 @@ describe R do
       expect(hyp.call(3, 4)).to eq 5.0
     end
 
-    it "should retrieve named R objects to Ruby variables by using 'R.'. Returned value should be a Ruby object" do
+  end
+
+  context "Basic access to R without R::Support" do
+    
+    it "should retrieve named R objects to Ruby variables by using 'R.'. " do
       # retrieve x and hyp from R and attribute it to local Ruby variables
       x = R.x
-      # hyp is an R function and works like a named function in Ruby
-      hyp = R.hyp
 
-      # it is not a foreign object
+      expect(x.is_a? R::Vector).to eq true
+      expect(x.length).to eq 3
+      # it is not a foreign object. It's an R::Vectors
       expect(Truffle::Interop.foreign?(x)).to be false
       # Values are indexed starting with 1, the same as R notation
       expect(x[1]).to eq 1.0
-
-      # calling a named function or block is done by use of the 'call' method
-      expect(hyp.call(3, 4)).to eq 5.0
     end
 
+    it "should return a String Vector" do
+      # Interop will take a one dimensional array and return the value of the first
+      # element.  This might change on a future release. At the present moment, var
+      # becomes a character array with 5 elements
+      var = R.c("Hello")
+      
+      expect(var.length).to eq 1
+      expect(var.typeof).to eq "character"
+      expect(var.is_a? R::Vector).to eq true
+      expect(var[1]).to eq "Hello"
+    end
+    
+    it "shoud access named objects in R" do
+      # to create a double vector through the Ruby interface, we need that at least
+      # one element of the vector is a 'float'
+      double = R.c(1.0, 2, 3)
+      expect(R.x.identical double).to eq true
+      expect(R.hyp(3, 4)).to eq 5
+    end
+
+    it "should box R functions in R::Closure Ruby class" do
+      # hyp is an R function and works like a named function in Ruby
+      hyp = R.hyp
+      # calling a named function or block is done by use of the 'call' method
+      expect(hyp.call(3, 4)).to eq 5.0
+      expect(hyp.typeof).to eq "closure"
+      expect(hyp.is_a? R::Closure).to eq true
+    end
+    
+    it "should print values the same way as R" do
+      # retrieve x and hyp from R and attribute it to local Ruby variables
+      x = R.x
+      
+      # Converting to string (to_s) will print as an R vector would
+      expect(x[1].to_s).to eq ("[1] 1")
+      expect(x.to_s).to eq ("[1] 1 2 3")
+    end
+
+    it "should allow logical comparison using R::Objects" do
+      # retrieve x and hyp from R and attribute it to local Ruby variables
+      x = R.x
+
+      expect(x[1] == 1).to eq true
+      expect(x[2] == 1).to eq false
+    end
+    
     it "should have NA" do
       expect(R.is__na R::NA).to eq true
     end

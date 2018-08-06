@@ -27,6 +27,7 @@ module R
 
     def self.with(symbol, *args)
       attrs = []
+      dataframe = args[0]
       
       args.each_with_index do |arg, index|
         arg.names.each { |n| attrs << n.to_sym }
@@ -36,12 +37,24 @@ module R
         # create accessor functions for every variable name
         attrs.each do |name|
           define_method (name) do
-            args[0].method_missing(name)
+            dataframe.method_missing(name)
           end
         end
 
-        def method_missing
+        #----------------------------------------------------------------------------------------
+        #
+        #----------------------------------------------------------------------------------------
+        
+        define_method (:subset) do |*missing_args|
+          R::Support.exec_function(R.subset_method, dataframe, *missing_args)
+        end
+        
+        #----------------------------------------------------------------------------------------
+        #
+        #----------------------------------------------------------------------------------------
 
+        define_method (:method_missing) do |missing_symbol, *missing_args|
+          R::Support.process_missing(missing_symbol, false, dataframe, *missing_args)
         end
         
       end
@@ -56,7 +69,7 @@ module R
       executionScope = Scope.with(symbol, *args)
       scope = executionScope.new
       scope.instance_eval(&block)
-      scope
+      # scope
     end
     
   end

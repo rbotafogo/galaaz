@@ -23,42 +23,12 @@
 
 module R
 
-  class Vector < Object
-    include IndexedObject
-    include BinaryOperators
-    include UnaryOperators
-    include Enumerable
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
+  class Closure < Object
 
-    def initialize(r_interop)
-      super(r_interop)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # Each cannot return a Enumerator because R is single threaded.  When this restriction
-    # is removed, make each return self.to_enum
-    #--------------------------------------------------------------------------------------
-
-    def each
-      
-      (1..self.length).each do |i|
-        yield self[i]
-      end
-      
-    end
-
-    #--------------------------------------------------------------------------------------
-    # SHOULD DEFINE COMPARISON BETWEEN TWO VECTORS
-    #--------------------------------------------------------------------------------------
-
-    def <=>(other_vector)
-      
+    def call(*args)
+      R::Support.exec_function(@r_interop, *args)
     end
     
   end
-  
-end
 
+end

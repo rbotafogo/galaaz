@@ -28,7 +28,7 @@ describe R::Vector do
 
   context "When assigning attributes to a Vector" do
 
-    before(:all) do
+    before(:each) do
       @vect = R.c(1, 2, 3, 4, 5, 6)
     end
     
@@ -69,7 +69,7 @@ describe R::Vector do
     end
       
     it "should allow changing an element of a vector attribute" do
-      pending "Need to implement new function for this"
+      # pending "Need to implement new function for this"
       # set names
       @vect.names = R.c("a", "b", "c", "d", "e", "f")
       @vect.names[2] = "hello"
