@@ -57,15 +57,15 @@ module R
   #----------------------------------------------------------------------------------------
   
   def self.as__data__frame(r_object)
-    R::Support.exec_function(to_data_frame, r_object)
+    R::Support.exec_function(R::Support.as_data_frame, r_object)
   end
 
   #----------------------------------------------------------------------------------------
-  #
+  # @bug Method all__equal is necessary because Interop dispatch is not working properly
   #----------------------------------------------------------------------------------------
 
   def self.all__equal(*args)
-    R::Support.exec_function(near_equal, *args)
+    R::Support.exec_function(R::Support.all_equal, *args)
   end
 
   #----------------------------------------------------------------------------------------

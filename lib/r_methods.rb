@@ -23,84 +23,70 @@
 
 module R
 
-  #--------------------------------------------------------------------------------------
-  # multi-dimensional indexing
-  #--------------------------------------------------------------------------------------
+  module Support
+    
+    #--------------------------------------------------------------------------------------
+    # Captures the R output to a variable and returns it. 
+    #--------------------------------------------------------------------------------------
+    
+    def self.capture
+      
+      Polyglot.eval("R", <<-R)
+        function(...) {
+          sink(tt <- textConnection("results","w"),split=FALSE);
+          print(...);
+          sink();
+          close(tt);
+          results
+        }
+      R
+      
+    end 
+    
+    #--------------------------------------------------------------------------------------
+    # multi-dimensional indexing
+    #--------------------------------------------------------------------------------------
+    
+    def self.md_index
+      Polyglot.eval("R", <<-R)
+        function(mdobject, ...) { 
+          mdobject[...];
+        }
+      R
+    end
 
-  @@md_index = Polyglot.eval("R", <<-R)
-    function(mdobject, ...) { 
-      mdobject[...];
-    }
-  R
+    #--------------------------------------------------------------------------------------
+    # @bug Needed to create method row__names because dispatch is not working properly
+    #--------------------------------------------------------------------------------------
+    
+    def self.set_row_names
+      Polyglot.eval("R", "function(object, x) row.names(object) <- x")
+    end
+    
+    def self.get_row_names
+      Polyglot.eval("R", "function(x) row.names(x)")
+    end
+    
+    def self.all_equal
+      Polyglot.eval("R", "function(...) all.equal(...)")
+    end
 
-  def self.md_index
-    @@md_index
-  end
+    def self.as_data_frame
+      Polyglot.eval("R", "function(x) as.data.frame(x)")
+    end
 
-  #--------------------------------------------------------------------------------------
-  # 
-  #--------------------------------------------------------------------------------------
+    def self.print
+      Polyglot.eval("R", "function(x) print(x)")    
+    end
+    
+    def self.subset
+      Polyglot.eval("R", "function(...) subset(...)")    
+    end
 
-  @@md_dbk_index = Polyglot.eval("R", <<-R)
-    function(mdobject, ...) {
-      mdobject[[...]]
-    }
-  R
-
-  def self.md_dbk_index
-    @@md_dbk_index
-  end
-  
-  #--------------------------------------------------------------------------------------
-  # @bug Needed to create method print because dispatch is not working properly
-  #--------------------------------------------------------------------------------------
-  
-  def self.print
-    Polyglot.eval("R", "function(x) print(x)")    
-  end
-  
-  def self.levels
-    Polyglot.eval("R", "function(x) levels(x)")    
-  end
-
-  def self.subset_method
-    Polyglot.eval("R", "function(...) subset(...)")    
-  end
-
-  def self.capture
-    Polyglot.eval("R", <<-R)
-      function(...) {
-        sink(tt <- textConnection("results","w"),split=FALSE);
-        print(...);
-        sink();
-        close(tt);
-        results
-      }
-    R
-  end
-  
-  #--------------------------------------------------------------------------------------
-  # @bug Needed to create method to_data_frame because dispatch is not working properly
-  #--------------------------------------------------------------------------------------
-
-  def self.to_data_frame
-    Polyglot.eval("R", "function(x) as.data.frame(x)")
-  end
-
-  def self.near_equal
-    Polyglot.eval("R", "function(...) all.equal(...)")
-  end
-  
-  #--------------------------------------------------------------------------------------
-  # @bug Needed to create method row__names because dispatch is not working properly
-  #--------------------------------------------------------------------------------------
-
-  def self.set_row_names
-    Polyglot.eval("R", "function(object, x) row.names(object) <- x")
-  end
-  
-  def self.get_row_names
-    Polyglot.eval("R", "function(x) row.names(x)")
+    def self.levels
+      Polyglot.eval("R", "function(x) levels(x)")    
+    end
+    
   end
   
 end

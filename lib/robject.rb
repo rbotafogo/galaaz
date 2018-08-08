@@ -222,23 +222,14 @@ module R
     #--------------------------------------------------------------------------------------
 
     def row__names
-      R::Support.exec_function(R.get_row_names, @r_interop)
-    end
-
-    def set_row_names
-      R::Support.eval(<<-R)
-      function(object, x) {
-        row.names(object) <- x;
-        object
-        }
-      R
+      R::Support.exec_function(R::Support.get_row_names, @r_interop)
     end
 
     # since we need to call a method and the method changes the object, then we need to
     # change our internal pointer also @r_interop.  Ideally, just setting the row.names
     # should work.
     def row__names=(names_vector)
-      @r_interop = set_row_names.call(@r_interop, names_vector.r_interop)
+      @r_interop = R::Support.set_row_names.call(@r_interop, names_vector.r_interop)
       self
     end
       
@@ -259,7 +250,7 @@ module R
     #----------------------------------------------------------------------------------------
     
     def subset(*args)
-      R::Support.exec_function(R.subset_method, r_interop, *args)
+      R::Support.exec_function(R::Support.subset, r_interop, *args)
     end
     
     #--------------------------------------------------------------------------------------
@@ -273,11 +264,12 @@ module R
     end
     
     #--------------------------------------------------------------------------------------
-    #
+    # @bug Method all__equal is necessary because Interop dispatch is not working properly
     #--------------------------------------------------------------------------------------
 
     def all__equal(other_object, *args)
-      R::Support.exec_function(R.near_equal, @r_interop, other_object.r_interop, *args)
+      R::Support.exec_function(R::Support.all_equal,
+                               @r_interop, other_object.r_interop, *args)
     end
 
     #--------------------------------------------------------------------------------------
@@ -286,7 +278,7 @@ module R
 
     def pp
       # print "#{to_s}\n"
-      R.print.call(r_interop)
+      R::Support.print.call(r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -294,7 +286,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def levels
-      R::Support.exec_function(R.levels, @r_interop)
+      R::Support.exec_function(R::Support.levels, @r_interop)
     end
     
     #--------------------------------------------------------------------------------------
@@ -302,7 +294,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def to_s
-      cap = R.capture.call(r_interop)
+      cap = R::Support.capture.call(r_interop)
       str = String.new
       (0...(cap.size - 1)).each do |i|
         str << cap[i] << "\n"
