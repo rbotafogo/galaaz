@@ -97,6 +97,8 @@ module R
       # if this is an R object, leave it alone
       if (Truffle::Interop.foreign?(arg) == true)
         return arg
+      elsif (arg.is_a? R::Expression)
+        return R::Support.eval("call").call("eval", arg.r_interop)
       elsif (arg.is_a? R::Object)
         return arg.r_interop
       elsif (arg.is_a? NegRange)
@@ -109,8 +111,8 @@ module R
       # because '==' was overloaded for R::Objects
       elsif (arg == :all)
         R.empty_symbol
-      elsif (arg.is_a? Symbol)
-        return R::Symbol.new(self).r_interop
+      # elsif (arg.is_a? R::Expression)
+      #  return arg.r_interop
       elsif (arg.is_a? Hash)
         raise "Ilegal parameter #{arg}"
       else

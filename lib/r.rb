@@ -69,7 +69,7 @@ module R
   end
 
   #----------------------------------------------------------------------------------------
-  #
+  # @bug Bug in Interop/FastR that does not call the function subset correctlry
   #----------------------------------------------------------------------------------------
 
   def self.subset(*args)

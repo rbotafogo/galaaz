@@ -145,5 +145,20 @@ describe R do
     end
     
   end
+
+  context "Call Non-standard Evaluation methods" do
+
+    it "should pass delayed evaluation parameters to methods" do
+      # call the subset method filtering by 'cyl == 8 & carb > 3'
+      # In order to convert a Ruby symbol to an R symbol we use the '.r' method on the
+      # Ruby symbol.  Ruby bitwise operators '&' and '|' are overloaded and used as 
+      # the equivalent R operators and not as bitwise operators.
+      mt_subset = R.mtcars.subset((:cyl.r == 8) & (:carb.r > 3))
+      expect(mt_subset.mpg == R.c(14.3, 10.4, 10.4, 14.7, 13.3, 15.8, 15.0)).to eq true
+      expect((mt_subset.cyl == 8).all).to eq true
+      expect((mt_subset.carb > 3).all).to eq true
+    end
+    
+  end
   
 end

@@ -30,12 +30,9 @@ module R
   module BinaryExpression
 
     def exec_oper(operator, other_object)
-      p other_object
-      p other_object.respond_to? :expression
       other = (other_object.respond_to? :expression) ? other_object.expression :
                 other_object.to_s
-      p "#{@expression} #{operator} #{other}"
-      R::Expression.new("#{@expression} #{operator} #{other}")
+      R::Expression.new("(#{@expression}) #{operator} (#{other})")
     end
     
     #--------------------------------------------------------------------------------------
@@ -139,7 +136,6 @@ module R
     #--------------------------------------------------------------------------------------
 
     def &(other_object)
-      p "in &"
       exec_oper("&", other_object)
     end
     
@@ -157,11 +153,36 @@ module R
   #
   #--------------------------------------------------------------------------------------
 
-  class Symbol < Object
+  class Expression < Object
     include BinaryExpression
-    
+
     attr_reader :expression
 
+    #----------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------
+
+    def initialize(expression_string)
+      @expression = expression_string
+    end
+    
+    #----------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------
+
+    def r_interop
+      @r_interop ||= R.parse(text: @expression)
+    end
+    
+  end
+
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+
+  class Symbol < Expression
+    include BinaryExpression
+    
     #----------------------------------------------------------------------------------------
     # Creates an R symbol from a Ruby Symbol
     # @param symbol [Symbol] Ruby Symbol to be converted to R symbol
@@ -169,23 +190,8 @@ module R
     
     def initialize(symbol)
       @expression = symbol.to_s
-      @r_interop = Polyglot.eval("R", "quote(quote(#{@symbol}))")
     end
 
-  end
-
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
-
-  class Expression < Object
-    include BinaryExpression
-
-    def initialize(expression_string)
-      @expression = expression_string
-      @r_interop = R.parse(text: expression_string)
-    end
-    
   end
   
 end
