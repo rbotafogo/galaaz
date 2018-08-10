@@ -73,9 +73,17 @@ module R
   #----------------------------------------------------------------------------------------
 
   def self.subset(*args)
-    R::Support.exec_function(R.subset_method, *args)
+    R::Support.exec_function(R::Support.subset, *args)
   end
 
+  #----------------------------------------------------------------------------------------
+  # @bug Bug in Interop/FastR that does not call the function awt correctlry
+  #----------------------------------------------------------------------------------------
+
+  def self.awt
+    R::Support.exec_function(R::Support.awt)
+  end
+  
   #----------------------------------------------------------------------------------------
   # converts R parameters to ruby wrapped R objects
   #----------------------------------------------------------------------------------------
@@ -96,3 +104,4 @@ require_relative 'rclosure'
 require_relative 'rlist'
 require_relative 'rdata_frame'
 require_relative 'rexpression'
+require_relative 'rmath_expression'

@@ -87,6 +87,10 @@ module R
       Polyglot.eval("R", "function(x) levels(x)")    
     end
     
+    def self.awt
+      Polyglot.eval("R", "function() awt()")
+    end
+
   end
   
 end

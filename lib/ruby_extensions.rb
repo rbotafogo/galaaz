@@ -54,7 +54,7 @@ end
 class Symbol
 
   def r
-    R::Symbol.new(self)
+    E::Symbol.new(self)
   end
   
 end

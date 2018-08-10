@@ -97,7 +97,7 @@ module R
       # if this is an R object, leave it alone
       if (Truffle::Interop.foreign?(arg) == true)
         return arg
-      elsif (arg.is_a? R::Expression)
+      elsif (arg.is_a? E::Math)
         return R::Support.eval("call").call("eval", arg.r_interop)
       elsif (arg.is_a? R::Object)
         return arg.r_interop
@@ -111,8 +111,9 @@ module R
       # because '==' was overloaded for R::Objects
       elsif (arg == :all)
         R.empty_symbol
-      # elsif (arg.is_a? R::Expression)
-      #  return arg.r_interop
+      elsif (arg.is_a? Symbol)
+        # Check why is_a? Symbol is not working
+        return arg = R::Support.eval("as.name").call(arg.to_s)
       elsif (arg.is_a? Hash)
         raise "Ilegal parameter #{arg}"
       else
@@ -192,6 +193,8 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.exec_function(function, *args)
+      return R::Object.build(function.call) if args.length == 0
+
       pl = R::Support.parse2list(*args)
       R::Object.build(R::Support.eval("do.call").call(function, pl))
       # @@exec_from_ruby.call(R::Object.method(:build), function, pl)
