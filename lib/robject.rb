@@ -71,6 +71,8 @@ module R
         DataFrame.new(r_interop)
       elsif (R::Support.eval("is.list").call(r_interop) == true)
         List.new(r_interop)
+      elsif (R::Support.eval("typeof").call(r_interop) == "environment")
+        Environment.new(r_interop)
       else # Generic type
         r_interop
       end
