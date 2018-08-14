@@ -63,7 +63,6 @@ module R
       function(build_method, ...) {
         res = do.call(...);
         res2 = build_method(res);
-        # print(res);
         res2
       }
     R
@@ -194,10 +193,10 @@ module R
     
     def self.exec_function(function, *args)
       return R::Object.build(function.call) if args.length == 0
-
+      
       pl = R::Support.parse2list(*args)
-      R::Object.build(R::Support.eval("do.call").call(function, pl))
-      # @@exec_from_ruby.call(R::Object.method(:build), function, pl)
+      # R::Object.build(R::Support.eval("do.call").call(function, pl))
+      @@exec_from_ruby.call(R::Object.method(:build), function, pl)
     end
     
     #----------------------------------------------------------------------------------------
@@ -221,7 +220,7 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.process_missing(symbol, internal, *args)
-      
+
       name = R::Support.convert_symbol2r(symbol)
       
       if name =~ /(.*)=$/
