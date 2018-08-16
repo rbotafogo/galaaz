@@ -21,54 +21,17 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-#==========================================================================================
-#
-#==========================================================================================
-
-class Range
+module E
 
   #----------------------------------------------------------------------------------------
-  # Defines unary minus operation for ranges
+  # @param symbol [Symbol]
+  # @param args [Array] arguments to the missing method
   #----------------------------------------------------------------------------------------
   
-  def -@
-    NegRange.new(self.begin, self.end)
+  def self.method_missing(symbol, *args)
+    name = R::Support.convert_symbol2r(symbol)
+    R::Language.new(name, *args)
   end
 
 end
 
-#==========================================================================================
-# Class NegRange exists to represent a negative range, e.g., -(1...10).  Such a range is
-# used to index vectors and means all elements but the ones in the given range.  Class
-# NegRange is parsed to become "-(1:10)" in R.
-#==========================================================================================
-
-class NegRange < Range
-
-end
-
-#==========================================================================================
-#
-#==========================================================================================
-
-class Symbol
-  include E::BinaryOperators
-
-  attr_reader :expression
-
-  def r
-    # E::Symbol.new(self)
-    R::Name.new(self)
-  end
-
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
-  
-  def =~(other_object)
-    other = (other_object.respond_to? :expression) ? other_object.expression :
-              other_object.to_s
-    E::Formula.new("(#{@expression}) ~ (#{other})")
-  end
-  
-end

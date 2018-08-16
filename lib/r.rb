@@ -23,7 +23,6 @@
 
 require_relative 'robject'
 require_relative 'rsupport'
-require_relative 'ruby_extensions'
 
 module R
 
@@ -96,13 +95,33 @@ module R
 
 end
 
+# define methods for accessing indexed object: Vector, Lists, DataFrames
 require_relative 'rindexed_object'
+# Binary operators: '+', '-', etc
 require_relative 'rbinary_operators'
+# Unary operators: '!', '@-', etc
 require_relative 'runary_operators'
+# Definition of R Vector
 require_relative 'rvector'
+# Definition of R Closure (functions)
 require_relative 'rclosure'
+# Definition of R Lists
 require_relative 'rlist'
+# Definition of R DataFrame
 require_relative 'rdata_frame'
+# Definition of R Expression
 require_relative 'rexpression'
-require_relative 'rmath_expression'
+# Definition of R Environment
 require_relative 'renvironment'
+
+# Defines the E module for creating R expressions
+require_relative 'expression'
+# Defines binary operators for expressions
+require_relative 'expressions_bin_ops'
+# Defines mathematical expressions
+require_relative 'math_expression'
+# Defines formulas
+require_relative 'formula_expression'
+# Ruby class extensions.  Extends Symbol to allow the creation of
+# expressions using Symbol: (:x > 10)
+require_relative 'ruby_extensions'

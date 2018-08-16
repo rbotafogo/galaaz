@@ -21,38 +21,35 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-module E
-
-  #--------------------------------------------------------------------------------------
-  # This class represents a language expression
-  #--------------------------------------------------------------------------------------
+module R
   
-  class Language
-    
-    #----------------------------------------------------------------------------------------
-    # @param function_name [String] R function name from which to build an expression
-    # @param args [Array] Array of arguments for the function
-    #----------------------------------------------------------------------------------------
-    
-    def self.build_function(function_name, *args)
-      # func = R::Support.eval(function_name)
-      # pl = R::Support.parse2list(R::Support.eval(function_name),
-      # *args)
-      R::Support.eval("as.call").
-        call(R::Support.parse2list(R::Support.eval(function_name), *args))
+  class Language < Object
+
+    def initialize(function_name, *args)
+      super(R::Support.eval("as.call").
+              call(R::Support.parse2list(R::Support.eval(function_name), *args)))
     end
     
   end
-  
-  #----------------------------------------------------------------------------------------
-  # @param symbol [Symbol]
-  # @param object [Ruby Object] the ruby object to which the method is applied, false if
-  # it is not applied to an object
-  #----------------------------------------------------------------------------------------
-  
-  def self.method_missing(symbol, *args)
-    name = R::Support.convert_symbol2r(symbol)
-    E::Language.build_function(name, *args)
+=begin
+  class Name < Object
+
+    def initialize(name)
+      super(R.parse(text: name))
+    end
+    
+  end
+
+  class Symbol < Object
+
   end
   
+  class MathExpression < Object
+
+    def initialize(expression)
+      super(R.parse(text: expression))
+    end
+
+  end
+=end
 end

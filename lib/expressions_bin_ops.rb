@@ -32,7 +32,7 @@ module E
     def exec_oper(operator, other_object)
       other = (other_object.respond_to? :expression) ? other_object.expression :
                 other_object.to_s
-      E::Math.new("(#{@expression}) #{operator} (#{other})")
+      E::Math.new("(#{expression}) #{operator} (#{other})")
     end
     
     #--------------------------------------------------------------------------------------
@@ -148,50 +148,5 @@ module E
     end
     
   end
-  
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
 
-  class Math
-    include BinaryOperators
-
-    attr_reader :expression
-
-    #----------------------------------------------------------------------------------------
-    #
-    #----------------------------------------------------------------------------------------
-
-    def initialize(expression_string)
-      @expression = expression_string
-    end
-    
-    #----------------------------------------------------------------------------------------
-    #
-    #----------------------------------------------------------------------------------------
-
-    def r_interop
-      @r_interop ||= R.parse(text: @expression)
-    end
-    
-  end
-
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
-
-  class Symbol < Math
-    include BinaryOperators
-    
-    #----------------------------------------------------------------------------------------
-    # Creates an R symbol from a Ruby Symbol
-    # @param symbol [Symbol] Ruby Symbol to be converted to R symbol
-    #----------------------------------------------------------------------------------------
-    
-    def initialize(symbol)
-      @expression = symbol.to_s
-    end
-
-  end
-  
 end

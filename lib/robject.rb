@@ -62,8 +62,6 @@ module R
       if (!Truffle::Interop.foreign?(r_interop))
         return r_interop
       elsif (R::Support.eval("is.atomic").call(r_interop) == true)
-        #(R::Support.eval("length").call(r_interop) == 1) ?
-        #  r_interop[0] : Vector.new(r_interop)
         Vector.new(r_interop)
       elsif (R::Support.eval("is.function").call(r_interop) == true)
         Closure.new(r_interop)
@@ -71,9 +69,19 @@ module R
         DataFrame.new(r_interop)
       elsif (R::Support.eval("is.list").call(r_interop) == true)
         List.new(r_interop)
+      elsif (R::Support.eval("typeof").call(r_interop) == "language")
+        p "i'm of type language"
+        Language.new(r_interop)
+      elsif (R::Support.eval("typeof").call(r_interop) == "name")
+        p "i'm of type name"
+        Name.new(r_interop)
+      # elsif (R::Support.eval("typeof").call(r_interop) == "symbol")
+        # p r_interop.to_s
+        # Symbol.new(r_interop)
       elsif (R::Support.eval("typeof").call(r_interop) == "environment")
         Environment.new(r_interop)
       else # Generic type
+        p "Generic type: #{R::Support.eval("typeof").call(r_interop).to_s}"
         r_interop
       end
 
@@ -308,5 +316,3 @@ module R
   end
   
 end
-
-

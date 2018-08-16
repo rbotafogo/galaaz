@@ -111,7 +111,6 @@ module R
       elsif (arg == :all)
         R.empty_symbol
       elsif (arg.is_a? Symbol)
-        # Check why is_a? Symbol is not working
         return arg = R::Support.eval("as.name").call(arg.to_s)
       elsif (arg.is_a? Hash)
         raise "Ilegal parameter #{arg}"
@@ -195,8 +194,8 @@ module R
       return R::Object.build(function.call) if args.length == 0
       
       pl = R::Support.parse2list(*args)
-      # R::Object.build(R::Support.eval("do.call").call(function, pl))
       @@exec_from_ruby.call(R::Object.method(:build), function, pl)
+      # R::Object.build(R::Support.eval("do.call").call(function, pl))
     end
     
     #----------------------------------------------------------------------------------------
