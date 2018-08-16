@@ -70,14 +70,12 @@ module R
       elsif (R::Support.eval("is.list").call(r_interop) == true)
         List.new(r_interop)
       elsif (R::Support.eval("typeof").call(r_interop) == "language")
-        p "i'm of type language"
         Language.new(r_interop)
       elsif (R::Support.eval("typeof").call(r_interop) == "name")
         p "i'm of type name"
         Name.new(r_interop)
-      # elsif (R::Support.eval("typeof").call(r_interop) == "symbol")
-        # p r_interop.to_s
-        # Symbol.new(r_interop)
+      elsif (R::Support.eval("typeof").call(r_interop) == "symbol")
+        RSymbol.new(r_interop)
       elsif (R::Support.eval("typeof").call(r_interop) == "environment")
         Environment.new(r_interop)
       else # Generic type

@@ -32,7 +32,7 @@ module E
     def exec_oper(operator, other_object)
       other = (other_object.respond_to? :expression) ? other_object.expression :
                 other_object.to_s
-      E::Math.new("(#{expression}) #{operator} (#{other})")
+      E::Math.new("(#{to_s}) #{operator} (#{other})")
     end
     
     #--------------------------------------------------------------------------------------

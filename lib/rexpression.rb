@@ -31,6 +31,11 @@ module R
     end
     
   end
+
+  class RSymbol < Object
+
+  end
+  
 =begin
   class Name < Object
 
@@ -40,9 +45,6 @@ module R
     
   end
 
-  class Symbol < Object
-
-  end
   
   class MathExpression < Object
 

@@ -56,19 +56,12 @@ class Symbol
 
   attr_reader :expression
 
-  def r
-    # E::Symbol.new(self)
-    R::Name.new(self)
-  end
-
   #--------------------------------------------------------------------------------------
   #
   #--------------------------------------------------------------------------------------
   
   def =~(other_object)
-    other = (other_object.respond_to? :expression) ? other_object.expression :
-              other_object.to_s
-    E::Formula.new("(#{@expression}) ~ (#{other})")
+    E::Formula.new("(#{to_s}) ~ (#{other_object.to_s})")
   end
   
 end
