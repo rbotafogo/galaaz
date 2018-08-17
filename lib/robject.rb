@@ -111,7 +111,6 @@ module R
       name = R::Support.convert_symbol2r(symbol)
       
       if name =~ /(.*)=$/
-        # return setR_name("`[<-`", R.empty_symbol, $1, args[0])
         return method_missing_assign($1, args[0])
       end
 
