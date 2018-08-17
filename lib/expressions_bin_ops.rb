@@ -30,9 +30,7 @@ module E
   module BinaryOperators
 
     def exec_oper(operator, other_object)
-      other = (other_object.respond_to? :expression) ? other_object.expression :
-                other_object.to_s
-      E::Math.new("(#{to_s}) #{operator} (#{other})")
+      E::Expression.new("(#{to_s}) #{operator} (#{other_object.to_s})")
     end
     
     #--------------------------------------------------------------------------------------

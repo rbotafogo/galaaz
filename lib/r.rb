@@ -114,14 +114,10 @@ require_relative 'rexpression'
 # Definition of R Environment
 require_relative 'renvironment'
 
-# Defines the E module for creating R expressions
-require_relative 'expression'
 # Defines binary operators for expressions
 require_relative 'expressions_bin_ops'
-# Defines mathematical expressions
-require_relative 'math_expression'
-# Defines formulas
-require_relative 'formula_expression'
+# Defines the E module for creating R expressions
+require_relative 'expression'
 # Ruby class extensions.  Extends Symbol to allow the creation of
 # expressions using Symbol: (:x > 10)
 require_relative 'ruby_extensions'

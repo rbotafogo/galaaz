@@ -35,6 +35,10 @@ module R
   class RSymbol < Object
 
   end
+
+  class RExpression < Object
+    
+  end
   
 =begin
   class Name < Object

@@ -29,11 +29,17 @@ module R
 
   class List < Object
     include IndexedObject
-
+    
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+    
     def +(other_object)
       R::Support.exec_function_name("`+`", @r_interop, other_object.r_interop)
     end
     
   end
-
+  
+  
 end
+

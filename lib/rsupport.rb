@@ -61,8 +61,10 @@ module R
     # and allows for debugging.  Use it in exec_function when debugging is needed.
     @@exec_from_ruby = Polyglot.eval("R", <<-R)
       function(build_method, ...) {
+        # print(build_method);
         res = do.call(...);
         res2 = build_method(res);
+        # print(res2);
         res2
       }
     R
@@ -96,8 +98,9 @@ module R
       # if this is an R object, leave it alone
       if (Truffle::Interop.foreign?(arg) == true)
         return arg
-      elsif (arg.is_a? E::Math)
-        return R::Support.eval("call").call("eval", arg.r_interop)
+      elsif (arg.is_a? E::Expression)
+        # return R::Support.eval("call").call("eval", arg.parse)
+        return arg.qeval
       elsif (arg.is_a? R::Object)
         return arg.r_interop
       elsif (arg.is_a? NegRange)
@@ -233,7 +236,7 @@ module R
              (nil === args[0] || (!R::Support.interop(args[0]) && "" === args[0])))
         return R::Object.build(R::Support.eval("#{name}()"))
       end
-      
+
       function = R::Support.eval(name)
       internal ? R::Support.exec_function_i(function, *args) :
         R::Support.exec_function(function, *args)

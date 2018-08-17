@@ -71,6 +71,8 @@ module R
         List.new(r_interop)
       elsif (R::Support.eval("typeof").call(r_interop) == "language")
         Language.new(r_interop)
+      elsif (R::Support.eval("typeof").call(r_interop) == "expression")
+        RExpression.new(r_interop)
       elsif (R::Support.eval("typeof").call(r_interop) == "name")
         p "i'm of type name"
         Name.new(r_interop)
