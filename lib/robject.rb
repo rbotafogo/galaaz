@@ -86,6 +86,17 @@ module R
       end
 
     end
+
+    #--------------------------------------------------------------------------------------
+    # This method needs to be implemented by every R:Object class for each assignment is
+    # possible for a method missing.
+    # For instance, if 'df' is a dataframe, then df.a = R.c(1, 2, 3), will create
+    # column a on the dataframe.  df.a will evaluate to method_missing.
+    #--------------------------------------------------------------------------------------
+
+    def method_missing_assign(column_name, arg)
+      # p "method_missing_assign not implemented yet for class #{class}"
+    end
     
     #--------------------------------------------------------------------------------------
     # @bug
@@ -100,8 +111,8 @@ module R
       name = R::Support.convert_symbol2r(symbol)
       
       if name =~ /(.*)=$/
-        # do something
-        return
+        # return setR_name("`[<-`", R.empty_symbol, $1, args[0])
+        return method_missing_assign($1, args[0])
       end
 
       # no arguments: 2 options: either a named item of the object or apply the function

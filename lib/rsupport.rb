@@ -226,6 +226,9 @@ module R
       name = R::Support.convert_symbol2r(symbol)
       
       if name =~ /(.*)=$/
+        p name
+        p "first arg is #{$1}"
+        p *args
         # do something....
         return
       end

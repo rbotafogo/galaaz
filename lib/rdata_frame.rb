@@ -32,7 +32,7 @@ module R
     def [](*index)
       R::Support.exec_function(R::Support.md_index, @r_interop, *index)
     end
-    
+        
   end
   
 end
