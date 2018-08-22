@@ -3,7 +3,7 @@
 ##########################################################################################
 # @author Rodrigo Botafogo
 #
-# Copyright © 2013 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
+# Copyright © 2018 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
 # and distribute this software and its documentation, without fee and without a signed 
 # licensing agreement, is hereby granted, provided that the above copyright notice, this 
 # paragraph and the following two paragraphs appear in all copies, modifications, and 
@@ -21,27 +21,17 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require_relative 'r_eval.spec'
+module R
 
-# Specification for R::Vector
-require_relative 'r_vector_creation.spec'
-require_relative 'r_vector_object.spec'
-require_relative 'r_vector_subsetting.spec'
-require_relative 'r_vector_functions.spec'
-require_relative 'r_vector_operators.spec'
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
 
-# Specification for R::Lists
-require_relative 'r_list.spec'
-require_relative 'r_list_apply.spec'
+  class Matrix < Object
+    include MDIndexedObject
+    include BinaryOperators
+    include UnaryOperators
+  end
+  
+end
 
-# Specification for R::Matrix
-require_relative 'r_matrix.spec'
-
-# Specification for R::Dataframes
-require_relative 'r_dataframe.spec'
-
-# Specification for R::Functions
-require_relative 'r_function.spec'
-
-# Tests ggplot
-require_relative '../examples/ggplot'

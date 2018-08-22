@@ -24,15 +24,8 @@
 module R
 
   class DataFrame < List
+    include MDIndexedObject
 
-    #--------------------------------------------------------------------------------------
-    # Index a DataFrame by using []
-    #--------------------------------------------------------------------------------------
-
-    def [](*index)
-      R::Support.exec_function(R::Support.md_index, @r_interop, *index)
-    end
-        
   end
   
 end

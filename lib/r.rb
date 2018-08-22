@@ -95,20 +95,24 @@ module R
 
 end
 
-# define methods for accessing indexed object: Vector, Lists, DataFrames
+# define methods for accessing indexed object: Vector, Lists
 require_relative 'rindexed_object'
+# define methods for accessing multi dimensional indexed objects: Matrix, DataFrames
+require_relative 'rmd_indexed_object'
 # Binary operators: '+', '-', etc
 require_relative 'rbinary_operators'
 # Unary operators: '!', '@-', etc
 require_relative 'runary_operators'
 # Definition of R Vector
 require_relative 'rvector'
-# Definition of R Closure (functions)
-require_relative 'rclosure'
 # Definition of R Lists
 require_relative 'rlist'
+# Definition of R Matrix
+require_relative 'rmatrix'
 # Definition of R DataFrame
 require_relative 'rdata_frame'
+# Definition of R Closure (functions)
+require_relative 'rclosure'
 # Definition of R Expression
 require_relative 'rexpression'
 # Definition of R Environment

@@ -61,6 +61,9 @@ module R
       # object
       if (!Truffle::Interop.foreign?(r_interop))
         return r_interop
+      # a matrix is also a vector... test should come before
+      elsif (R::Support.eval("is.matrix").call(r_interop) == true)
+        Matrix.new(r_interop)
       elsif (R::Support.eval("is.atomic").call(r_interop) == true)
         Vector.new(r_interop)
       elsif (R::Support.eval("is.function").call(r_interop) == true)

@@ -105,8 +105,8 @@ describe R do
       # l = R.list(R.mtcars)
       # l.pp
 
-      mtcars = R.mtcars
-      mtcars.wt
+      # mtcars = R.mtcars
+      # mtcars.wt
      
       #R.plot(R.mtcars.wt, R.mtcars.mpg, main: "Scatterplot Example",
       #       xlab: "Car Weight ", ylab: "Miles Per Gallon ", pch: 19)

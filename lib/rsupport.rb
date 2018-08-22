@@ -62,6 +62,9 @@ module R
     @@exec_from_ruby = Polyglot.eval("R", <<-R)
       function(build_method, ...) {
         # print(build_method);
+        # args = list(...);
+        # function = args[[1]];
+        # print(function);
         res = do.call(...);
         res2 = build_method(res);
         # print(res2);
