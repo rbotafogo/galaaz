@@ -95,7 +95,6 @@ describe R::Vector do
 
    end
 
-   
    #----------------------------------------------------------------------------------------
    context "Logical operators" do
 
@@ -115,4 +114,36 @@ describe R::Vector do
      
    end
 
+   #----------------------------------------------------------------------------------------
+   context "Access from Ruby" do
+     
+     before(:each) do
+       @vec1 = R.c(3, 5.7, 10, 12)
+       @vec2 = R.c(2.3, 3, 9, 17)
+     end
+
+     it "Should retrieve Ruby values from a vector with '<<'" do
+       # subsetting a vector with '[' and '[[' returns an R::Vector, not a Ruby object
+       # Use the '<<' operator to retrieve an element of the R::Vector as a Ruby
+       # object
+       expect(@vec1[1].is_a? R::Vector).to eq true
+       expect((@vec1 << 1).is_a? Numeric).to eq true
+       # Note, however, that indexing still follows R indexing, i.e., starts at 1
+       expect((@vec1 << 1)).to eq 3
+       expect((@vec1 << 3)).to eq 10
+     end
+
+     it "should treat R::Vector as an Enumerable" do
+       # each 'value' is an R::Vector, with only 1 element.  In order to use Ruby 'sum'
+       # we need to extract the value as a Ruby Numeric with << 1
+       expect(@vec1.sum { |value| value << 1 }).to eq 30.7
+     end
+
+     it "should implement 'pop' to extract the first element of an R::Vector" do
+       # pop is equivalent to '<< 1'
+       expect(@vec1.pop).to eq 3
+     end
+
+   end
+   
 end

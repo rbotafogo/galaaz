@@ -38,13 +38,31 @@ module R
     end
     
     #--------------------------------------------------------------------------------------
+    # When indexing with '[' or '[[' an R object is returned.  Sometimes we need to have
+    # access to an umboxed Ruby element, for instance, in an numeric array, we might want
+    # to receive the actual number that can be used in a Ruby method.  In this case, we
+    # use the '<<' operator.
+    # @return the Ruby element at the given index in the vector
+    #--------------------------------------------------------------------------------------
+
+    def <<(index)
+      R::Support.eval("`[`").call(@r_interop, index)[0]
+    end
+
+    def pop
+      self << 1
+    end
+    
+    #--------------------------------------------------------------------------------------
     # Each cannot return a Enumerator because R is single threaded.  When this restriction
     # is removed, make each return self.to_enum
     #--------------------------------------------------------------------------------------
 
     def each
-      
-      (1..self.length).each do |i|
+
+      # length is a R::Vector, in order to extract its size as a Ruby number we need to
+      # use the << operator
+      (1..length << 1).each do |i|
         yield self[i]
       end
       
