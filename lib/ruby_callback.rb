@@ -23,64 +23,52 @@
 
 module R
 
-  class Vector < Object
-    include IndexedObject
-    include BinaryOperators
-    include UnaryOperators
-    include Enumerable
+  class RubyCallback
+
+    # The Ruby Proc, Method (or Object?) to be called back
+    attr_reader :object
+    # The R function that will call back on the object
+    attr_reader :r_function
+    
+    #--------------------------------------------------------------------------------------
+    # Initializes a callback object and constructs the R function that calls back the
+    # object.  RubyCallback class will act as proxy to the actual Ruby Object since it
+    # needs to deal with R parameters and Return values boxing and unboxing when needed
+    # @param object [Object] Ruby Object
+    #--------------------------------------------------------------------------------------
+
+    def initialize(object)
+      @object = object
+      # ruby_callback_method is a method that returns an R function that returns an R
+      # function that calls back this object callback method (look at callback bellow)
+      @r_function = R::Support.ruby_callback_method.call(method(:callback))
+    end
     
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
-    def initialize(r_interop)
-      super(r_interop)
+    def method_missing(symbol, *args)
+      p "im method missing with #{symbol} #{args}"
     end
     
-    #--------------------------------------------------------------------------------------
-    # When indexing with '[' or '[[' an R object is returned.  Sometimes we need to have
-    # access to an umboxed Ruby element, for instance, in an numeric array, we might want
-    # to receive the actual number that can be used in a Ruby method.  In this case, we
-    # use the '<<' operator.
-    # @return the Ruby element at the given index in the vector
-    #--------------------------------------------------------------------------------------
-
-    def <<(index)
-      R::Support.eval("`[`").call(@r_interop, index)[0]
-    end
-
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
-    def pop
-      self << 1
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # Each cannot return a Enumerator because R is single threaded.  When this restriction
-    # is removed, make each return self.to_enum
-    #--------------------------------------------------------------------------------------
+    def callback(*args)
 
-    def each
-
-      # length is a R::Vector, in order to extract its size as a Ruby number we need to
-      # use the << operator
-      (1..length << 1).each do |i|
-        yield self[i]
-      end
+      # converts every arg into a R::Object (Ruby object that wraps an R Interop)
+      args.map! { |arg| R::Object.build(arg) }
       
-    end
-
-    #--------------------------------------------------------------------------------------
-    # SHOULD DEFINE COMPARISON BETWEEN TWO VECTORS
-    #--------------------------------------------------------------------------------------
-
-    def <=>(other_vector)
+      # calls the callback method and convert the result back to an R object
+      # method parse_arg was developed to parse the arguments to an R function
+      # but in a callback the return value needs to be converted.  In this case
+      # the name parse_arg is misleading
+      R::Support.parse_arg(@object.call(*args))
       
     end
     
   end
   
 end
-

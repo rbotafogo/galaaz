@@ -63,6 +63,23 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
+    # R function that returns another R function that calls back a Ruby Method or Proc
+    # Some R functions that receive a function as argument will test to see if their
+    # parameters is a function or a symbol, so the Ruby method needs to be wrapped inside
+    # an R function in order for it to pass this test.
+    #--------------------------------------------------------------------------------------
+
+    def self.ruby_callback_method
+      Polyglot.eval("R", <<-R)
+        function(rb_method) {
+          function(...) {
+          rb_method(...)
+          }
+        }
+      R
+    end
+
+    #--------------------------------------------------------------------------------------
     # @bug Needed to create method row__names because dispatch is not working properly
     #--------------------------------------------------------------------------------------
     

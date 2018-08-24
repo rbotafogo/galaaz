@@ -144,6 +144,19 @@ describe R::Vector do
        expect(@vec1.pop).to eq 3
      end
 
+     it "should allow storage and retrieval of Ruby Objects in R data structure" do
+       pending "Add classes to R::Vector"
+       class RData
+         def val
+           5
+         end
+       end
+       
+       vec3 = R.c(RData.new, RData.new)
+       p vec3 << 1
+       # expect(vec3.pop.is_a? Array).to eq true
+       # expect(vec3.pop[0] == 1).to eq true
+     end
    end
    
 end

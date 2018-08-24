@@ -82,16 +82,6 @@ module R
   def self.awt
     R::Support.exec_function(R::Support.awt)
   end
-  
-  #----------------------------------------------------------------------------------------
-  # converts R parameters to ruby wrapped R objects
-  #----------------------------------------------------------------------------------------
-=begin
-  def self.r2ruby(*args)
-    p *args
-    *args
-  end
-=end
 
 end
 
@@ -125,3 +115,5 @@ require_relative 'expression'
 # Ruby class extensions.  Extends Symbol to allow the creation of
 # expressions using Symbol: (:x > 10)
 require_relative 'ruby_extensions'
+# Class to allow R calling back into Ruby
+require_relative 'ruby_callback'
