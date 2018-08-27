@@ -95,33 +95,31 @@ module R
     # whatever needs it
     # @return Object that can be used in R
     #----------------------------------------------------------------------------------------
-    
+
     def self.parse_arg(arg)
 
-      # if this is an R object, leave it alone
-      if (Truffle::Interop.foreign?(arg) == true)
-        return arg
-      elsif (arg.is_a? E::Expression)
-        # return R::Support.eval("call").call("eval", arg.parse)
-        return arg.qeval
-      elsif (arg.is_a? R::Object)
-        return arg.r_interop
-      elsif (arg.is_a? NegRange)
+      case(arg)
+
+      when Truffle::Interop
+        arg
+      when R::Object
+        arg.r_interop
+      when NegRange
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-        return R::Support.eval("seq").call(arg.first, final_value)
-      elsif (arg.is_a? Range)
+        R::Support.eval("seq").call(arg.first, final_value)
+      when Range
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-        return R::Support.eval("seq").call(arg.first, final_value)
-      # checking if arg is '==' needs to come after checking if arg is an R::Object,
-      # because '==' was overloaded for R::Objects
-      elsif (arg == :all)
+        R::Support.eval("seq").call(arg.first, final_value)
+      when E::Expression
+        arg.qeval
+      when :all
         R.empty_symbol
-      elsif (arg.is_a? Symbol)
-        return arg = R::Support.eval("as.name").call(arg.to_s)
-      elsif (arg.is_a? Hash)
-        raise "Ilegal parameter #{arg}"
+      when Symbol
+        arg = R::Support.eval("as.name").call(arg.to_s)
+      when Proc, Method
+        R::RubyCallback.build(arg)
       else
-        return arg
+        arg
       end
       
     end

@@ -146,6 +146,14 @@ module R
       R::Support.exec_function_name("`|`", @r_interop, other_object.r_interop)
     end
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def coerce(numeric)
+      [R.c(numeric), self]
+    end
+    
   end
 
 end

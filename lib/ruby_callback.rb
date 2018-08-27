@@ -29,6 +29,14 @@ module R
     attr_reader :object
     # The R function that will call back on the object
     attr_reader :r_function
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def self.build(object)
+      RubyCallback.new(object).r_function
+    end
     
     #--------------------------------------------------------------------------------------
     # Initializes a callback object and constructs the R function that calls back the

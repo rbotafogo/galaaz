@@ -41,4 +41,41 @@ describe R do
 
   end
 
+  #----------------------------------------------------------------------------------------
+  context "Using Ruby Procs as parameters to R functions" do
+
+    it "should accept a Proc as parameter" do
+      x = y = R.seq(-R.pi, R.pi, length: 7)
+      # call R outer function passing in a Proc
+      # note that x and y are Ruby objects that were received from an
+      # R function, so they are R::Vectors or another type of R::Object. We
+      # can operate on them with R functions: for instance, R.cos(y)
+      f = R.outer(x, y,
+                  lambda { |x, y|
+                    R.cos(y) / (x**2 + 1)})
+      expect(f[1, 1] == -0.09199967).to eq true
+      expect(f[7, 6] == -0.04599983).to eq true
+    end
+
+    it "should accept a Method as parameter" do
+      x = y = R.seq(-R.pi, R.pi, length: 7)
+
+      module Calculation
+        # note that x and y are Ruby objects that were received from an
+        # R function, so they are R::Vectors or another type of R::Object.  We
+        # can operate on them with R functions: for instance, R.cos(y)
+        def self.func(x, y)
+          R.cos(y) / (x**2 + 1)
+        end
+      end
+
+      f = R.outer(x, y, Calculation.method(:func))
+      expect(f[1, 1] == -0.09199967).to eq true
+      expect(f[7, 6] == -0.04599983).to eq true
+      
+    end
+    
+  end
+  
+  
 end

@@ -67,6 +67,15 @@ describe R::Vector do
      it "should apply unary minus to all elements of a vector" do
        expect((-@vec1).all__equal(R.c(-3, -5.7, -10, -12))).to eq true
      end
+
+     it "should operate with Numeric first" do
+       res = 10 + @vec1
+       expect(res == R.c(13, 15.7, 20, 22)).to eq true
+       res = 10 - @vec1
+       expect(res == R.c(7, 4.3, 0, -1)).to eq true
+       res = 10 / @vec1
+       expect(res == R.c(3.3333333, 1.7543860, 1, 0.8333333)).to eq true
+     end
      
    end
 

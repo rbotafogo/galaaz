@@ -322,7 +322,7 @@ module R
       (0...(cap.size - 1)).each do |i|
         str << cap[i] << "\n"
       end
-      str << cap[cap.size - 1]
+      str << cap[cap.size - 1] if cap.size >= 1
       str
     end
 

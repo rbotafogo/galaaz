@@ -67,9 +67,9 @@ describe R do
     end
 
     it "should divide a scalar by a matrix" do
-      pending
       y = R.matrix(data: R.c(2, 4, 6, 8), nrow: 2, ncol: 2)
       z = 10/y
+      expect(z == R.c(10/2, 10/4, 10/6, 10/8)).to eq true
     end
 
     it "should apply a function to all elements of the matrix: ex: sqrt" do
