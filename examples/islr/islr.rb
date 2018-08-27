@@ -24,4 +24,5 @@
 require '../../config'
 require 'cantata'
 
-require_relative 'ch3.rb'
+require_relative 'ch2.spec'
+require_relative 'ch3.spec'

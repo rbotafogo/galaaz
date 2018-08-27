@@ -26,6 +26,10 @@ module R
   class DataFrame < List
     include MDIndexedObject
 
+    def qplot(*args)
+      print R.qplot(*args, data: self)
+    end
+
   end
   
 end
