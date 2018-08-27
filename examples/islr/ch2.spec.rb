@@ -139,7 +139,7 @@ context "ISLR" do
       f = R.outer(x, y, lambda { |x, y| R.cos(y) / (1 + x**2) })
       
       R.awt
-      R.ggplot(df, E.aes(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) }))      
+      plot R.ggplot(df, E.aes(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) }))      
     end
     
   end

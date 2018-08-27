@@ -1,6 +1,8 @@
 # coding: utf-8
-require '../../config'
-require 'cantata'
+if (!$CONFIG)
+  require '../../config' 
+  require 'cantata'
+end
 
 R.awt
 

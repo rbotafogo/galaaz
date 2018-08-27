@@ -1,6 +1,8 @@
 # coding: utf-8
-require '../../config'
-require 'cantata'
+if (!$CONFIG)
+  require '../../config' 
+  require 'cantata'
+end
 
 R.set__seed(1234)
 wdata = R.data__frame(
