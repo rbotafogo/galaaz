@@ -4,6 +4,8 @@ if (!$CONFIG)
   require 'cantata'
 end
 
+Polyglot.eval("R", "library('quantreg')")
+
 R.awt
 
 # geom_quantile(): Add quantile lines from a quantile regression
@@ -14,9 +16,6 @@ print R.ggplot(R.mpg, E.aes(:cty, :hwy)) +
 
 sleep(2)
 R.grid__newpage
-
-# 
-Polyglot.eval("R", "library('quantreg')")
 
 print R.ggplot(R.mpg, E.aes(:cty, :hwy)) +
       R.geom_point('') + R.stat_quantile(quantiles: R.c(0.25, 0.5, 0.75))
