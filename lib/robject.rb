@@ -115,8 +115,16 @@ module R
       
       if name =~ /(.*)=$/
         return method_missing_assign($1, args[0])
+      # R function 'eval' needs to be called in a special way, since it expects
+      # the second argument to be an environment.  If the arguments are packed
+      # into a list, then there is no second argument and the function fails to
+      # use the second argument as environment
+      elsif (name == "eval")
+        return R::Object.build(
+                 R::Support.eval("eval")
+                   .call(r_interop, R::Support.parse_arg(args[0])))
       end
-
+      
       # no arguments: 2 options: either a named item of the object or apply the function
       # to the object
       if (args.length == 0)

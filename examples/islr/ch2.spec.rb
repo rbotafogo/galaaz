@@ -136,10 +136,10 @@ context "ISLR" do
     it "creates contour plots with ggplot" do
       x = y = R.seq(-R.pi, R.pi, length: 50)
       df = R.data__frame(x: x, y: y)
-      f = R.outer(x, y, lambda { |x, y| R.cos(y) / (1 + x**2) })
+      f = E.outer(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })
       
       R.awt
-      plot R.ggplot(df, E.aes(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) }))      
+      print R.ggplot(df, E.aes(:x, :y, z: f))      
     end
     
   end

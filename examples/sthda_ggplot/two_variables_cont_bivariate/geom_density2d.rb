@@ -10,6 +10,14 @@ sp = faithful.ggplot(E.aes(x: :eruptions, y: :waiting))
 
 R.awt
 
+# example from ggplot contour using the z dimension
+faithfuld = R.faithfuld
+print faithfuld.ggplot(E.aes(:waiting, :eruptions, z: :density)) +
+      R.geom_contour('')
+
+sleep(2)
+R.grid__newpage
+
 # Default plot
 print sp + R.geom_density_2d('')
 

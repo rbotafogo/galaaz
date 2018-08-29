@@ -38,5 +38,7 @@ require_relative 'two_variables_cont_function/geom_area'
 require_relative 'two_variables_disc_cont/geom_boxplot'
 require_relative 'two_variables_disc_cont/geom_violin'
 require_relative 'two_variables_disc_cont/geom_dotplot'
-
-
+require_relative 'two_variables_disc_cont/geom_jitter'
+require_relative 'two_variables_disc_cont/geom_line'
+require_relative 'two_variables_disc_cont/geom_bar'
+require_relative 'two_variables_disc_disc/geom_jitter'

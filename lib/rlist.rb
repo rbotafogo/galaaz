@@ -46,6 +46,21 @@ module R
       R::Support.exec_function_name("`+`", @r_interop, other_object.r_interop)
     end
     
+    #--------------------------------------------------------------------------------------
+    # Each cannot return a Enumerator because R is single threaded.  When this restriction
+    # is removed, make each return self.to_enum
+    #--------------------------------------------------------------------------------------
+
+    def each
+
+      # length is a R::Vector, in order to extract its size as a Ruby number we need to
+      # use the << operator
+      (1..length << 1).each do |i|
+        yield self[[i]]
+      end
+      
+    end
+
   end
   
   

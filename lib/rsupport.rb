@@ -232,7 +232,17 @@ module R
         p *args
         # do something....
         return
+      # R function 'eval' needs to be called in a special way, since it expects
+      # the second argument to be an environment.  If the arguments are packed
+      # into a list, then there is no second argument and the function fails to
+      # use the second argument as environment
+      elsif (name == "eval")
+        return R::Object.build(
+                 eval("eval")
+                   .call(R::Support.parse_arg(args[0]),
+                         R::Support.parse_arg(args[1])))
       end
+      
 
       if (args.length == 0)
         return R::Object.build(R::Support.eval(name))
@@ -244,6 +254,7 @@ module R
       function = R::Support.eval(name)
       internal ? R::Support.exec_function_i(function, *args) :
         R::Support.exec_function(function, *args)
+
       
     end
         

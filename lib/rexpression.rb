@@ -25,6 +25,10 @@ module R
   
   class Language < Object
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
     def initialize(function_name, *args)
       super(R::Support.eval("as.call").
               call(R::Support.parse2list(R::Support.eval(function_name), *args)))
@@ -32,30 +36,20 @@ module R
     
   end
 
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+
   class RSymbol < Object
 
   end
+
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
 
   class RExpression < Object
     
   end
   
-=begin
-  class Name < Object
-
-    def initialize(name)
-      super(R.parse(text: name))
-    end
-    
-  end
-
-  
-  class MathExpression < Object
-
-    def initialize(expression)
-      super(R.parse(text: expression))
-    end
-
-  end
-=end
 end
