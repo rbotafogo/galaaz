@@ -42,6 +42,3 @@ require_relative 'r_dataframe.spec'
 
 # Specification for R::Functions
 require_relative 'r_function.spec'
-
-# Tests ggplot
-require_relative '../examples/ggplot'

@@ -33,6 +33,10 @@ module E
     R::Language.new(name, *args)
   end
 
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+
   def self.[](executable)
     R::RubyCallback.build(executable)
   end
@@ -71,7 +75,14 @@ module E
     #--------------------------------------------------------------------------------------
 
     def qeval
-      R::Support.eval("call").call("eval", parse)
+      R::Support.eval("quote(#{@expression})")
+=begin      
+      if !@expression.include? "~"
+        R::Support.eval("quote(#{@expression})")
+      else
+        R::Support.eval("call").call("eval", parse)
+      end
+=end      
     end
 
     #--------------------------------------------------------------------------------------

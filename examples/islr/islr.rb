@@ -21,8 +21,15 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require '../../config'
-require 'cantata'
+if (!$CONFIG)
+  require '../../config' 
+  require 'cantata'
+end
+
+# load ISLR Library
+# Polyglot.eval("R", "library('ISLR')")
+R.library('ISLR')
+R.library('MASS')
 
 require_relative 'ch2.spec'
 require_relative 'ch3.spec'

@@ -188,12 +188,6 @@ module R
       setR_name("`names<-`", names_vector)
     end
 
-=begin    
-    def names
-      R::Support.exec_function_name("names", @r_interop)
-    end
-=end
-    
     def names(*args)
       return R::Support.exec_function_name("names", @r_interop) if (args.length == 0)
       setR_name("`names<-`", *args)

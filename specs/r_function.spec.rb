@@ -42,7 +42,7 @@ describe R do
   end
 
   #----------------------------------------------------------------------------------------
-  context "Using Ruby Procs as parameters to R functions" do
+  context "Using Ruby Procs as parameters to R functions and expressions" do
 
     it "should accept a Proc as parameter" do
       x = y = R.seq(-R.pi, R.pi, length: 7)
@@ -75,27 +75,31 @@ describe R do
       
     end
     
-    #----------------------------------------------------------------------------------------
-    context "Quoting Ruby Procs" do
-
-      it "should quote a Ruby Proc with E[]" do
-        
-        x = y = R.seq(-R.pi, R.pi, length: 10)
-        df = R.data__frame(x: x, y: y)
-        # create a quoted function f that takes 3 parameters :x, :y and a Proc
-        # we want to evaluate f in the scope of the dataframe 'df'
-        f = E.outer(:x, :y, E[lambda { |x, y| R.cos(y) / (1 + x**2) }])
-
-        # now lets evaluate f in the scope of df, where :x and :y are defined
-        res = f.eval(df)
-        expect(res[1, 1] == -0.09199967).to eq true
-        expect(res[10, 10] == -0.09199967).to eq true
-      end
+    it "should accept Procs in Expressions" do
       
+      x = y = R.seq(-R.pi, R.pi, length: 10)
+      df = R.data__frame(x: x, y: y)
+      # create a quoted function f that takes 3 parameters :x, :y and a Proc
+      # we want to evaluate f in the scope of the dataframe 'df'
+      f = E.outer(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })
+      
+      # now lets evaluate f in the scope of df, where :x and :y are defined
+      res = f.eval(df)
+      expect(res[1, 1] == -0.09199967).to eq true
+      expect(res[10, 10] == -0.09199967).to eq true
     end
-    
 
+    it "Should be able to 'eval' a Proc in expression" do
+      
+      df = R.data__frame(x: R.c(1, 2, 3), y: R.c(4, 5, 6))
+      f = E.outer(:x, :y, Proc.new { |x, y| x + y })
+      
+      res = f.eval(df)
+      expect(res[1, :all] == R.c(5, 6, 7)).to eq true
+      expect(res[3, :all] == R.c(7, 8, 9)).to eq true
+
+    end
+      
   end
-  
   
 end

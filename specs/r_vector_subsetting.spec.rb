@@ -68,6 +68,39 @@ describe R::Vector do
 
       expect(lookup[x].all__equal res).to eq true
     end
+
+    it "should subset with 'each'" do
+      i = 1
+      @vect.each do |elmt|
+        expect(elmt.typeof == 'integer').to eq true
+        expect(elmt == i).to eq true
+        i += 1
+      end
+    end
+
+    it "should subset with 'each_with_index'" do
+      # note that the index starts at 1, since we are getting back an R::Vector
+      # element
+      @vect.each_with_index do |elmt, i|
+        expect(elmt.typeof == 'integer').to eq true
+        expect elmt == i
+      end
+    end
+
+    it "should subset with 'each' getting back a native Ruby element (not R::Vector)" do
+      # in order to access the internal Ruby element from the R::Vector, use 'each' with
+      # the :native keyword
+      @vect.each(:native) do |elmt|
+        expect(elmt.is_a? Numeric).to eq true
+      end
+    end
+
+    it "should subset with 'each_with_index' getting a Ruby element" do
+      # when using the :native keyword, indexing starts at 0
+      @vect.each_with_index(:native) do |elmt, i|
+        expect elmt == i + 1
+      end
+    end
     
   end
   
@@ -76,7 +109,7 @@ describe R::Vector do
     
     it "should retrieve values the same way as single square brackets" do
       vect = R.c(2.1, 4.2, 3.3, 5.4)
-      expect(vect[[1]]).to eq 2.1
+      expect vect[[1]] == 2.1
     end
     
   end
@@ -91,7 +124,7 @@ describe R::Vector do
     it "should subset assign with integer" do
       expect(@vect[2]).to eq 2
       @vect[2] = 1000
-      expect(@vect[2]).to eq 1000
+      expect @vect[2] == 1000
     end
     
     it "should subset assign to the elements given by another vector" do

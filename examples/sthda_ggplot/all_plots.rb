@@ -10,14 +10,19 @@ require 'cantata'
 # problems with package data.table
 # install.packages('Hmisc')
 
+# Load plotting libraries
+R.library('ggplot2')
+R.library('grid')
+R.library('gridExtra')
+R.library('ggplotify')
 # Library 'quantreg' is needed in misc
-Polyglot.eval("R", "library('quantreg')")
-Polyglot.eval("R", "library('hexbin')")
-# Polyglot.eval("R", "library('Hmisc')")
+R.library('quantreg')
+R.library('hexbin')
+# Hmisc is not working on rc6
+# R.library('Hmisc')
 
-
-require_relative 'scatter_plots'
-require_relative 'box_violin_dot'
+require_relative 'qplots/scatter_plots'
+require_relative 'qplots/box_violin_dot'
 require_relative 'one_variable_continuous/histogram_density'
 require_relative 'scatter_gg'
 require_relative 'one_variable_continuous/density_gg'
@@ -42,3 +47,4 @@ require_relative 'two_variables_disc_cont/geom_jitter'
 require_relative 'two_variables_disc_cont/geom_line'
 require_relative 'two_variables_disc_cont/geom_bar'
 require_relative 'two_variables_disc_disc/geom_jitter'
+require_relative 'two_variables_error/geom_crossbar'

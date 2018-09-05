@@ -46,7 +46,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def <<(index)
-      R::Support.eval("`[`").call(@r_interop, index)[0]
+      @r_interop[index]
     end
 
     #--------------------------------------------------------------------------------------
@@ -54,24 +54,54 @@ module R
     #--------------------------------------------------------------------------------------
 
     def pop
-      self << 1
+      self << 0
     end
     
     #--------------------------------------------------------------------------------------
+    # @bug
     # Each cannot return a Enumerator because R is single threaded.  When this restriction
     # is removed, make each return self.to_enum
     #--------------------------------------------------------------------------------------
 
-    def each
+    def each(result = :vec)
 
-      # length is a R::Vector, in order to extract its size as a Ruby number we need to
-      # use the << operator
-      (1..length << 1).each do |i|
-        yield self[i]
+      case result
+      when :vec
+        # length is a R::Vector, in order to extract its size as a Numeric we need to
+        # use the << operator
+        (1..length << 0).each do |i|
+          yield self[i]
+        end
+      when :native
+        (0...length << 0).each do |i|
+          yield self << i
+        end
+      else
+        raise "Type #{result} is unknown for method :each"
       end
       
     end
 
+    #--------------------------------------------------------------------------------------
+    # Need to override each_with_index, as R indexing starts at 1
+    #--------------------------------------------------------------------------------------
+
+    def each_with_index(result = :vec)
+      case result
+      when :vec
+        (1..length << 0).each do |i|
+          yield self[i], i
+        end
+      when :native
+        (0...length << 0).each do |i|
+          yield self << i, i
+        end
+      else
+        raise "Type #{result} is unknown for method :each"
+      end
+      
+    end
+    
     #--------------------------------------------------------------------------------------
     # SHOULD DEFINE COMPARISON BETWEEN TWO VECTORS
     #--------------------------------------------------------------------------------------

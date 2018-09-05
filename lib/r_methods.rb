@@ -23,13 +23,6 @@
 
 module R
 
-  # Load plotting libraries
-  
-  Polyglot.eval("R", "library('ggplot2')")
-  Polyglot.eval("R", "library('grid')")
-  Polyglot.eval("R", "library('gridExtra')")
-  Polyglot.eval("R", "library('ggplotify')")
-      
   module Support
     
     #--------------------------------------------------------------------------------------

@@ -132,7 +132,7 @@ context "ISLR" do
       expect(y[7] == -2.37222302).to eq true
       expect(y[26] == 0.06411414).to eq true
     end
-
+=begin
     it "creates contour plots with ggplot" do
       x = y = R.seq(-R.pi, R.pi, length: 50)
       df = R.data__frame(x: x, y: y)
@@ -141,7 +141,7 @@ context "ISLR" do
       R.awt
       print R.ggplot(df, E.aes(:x, :y, z: f))      
     end
-    
+=end    
   end
 
 

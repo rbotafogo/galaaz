@@ -26,6 +26,7 @@ require 'cantata'
 
 describe R::List do
 
+  #----------------------------------------------------------------------------------------
   context "When creating lists" do
 
     it "should create an empty list" do
@@ -58,9 +59,9 @@ describe R::List do
 
   end
 
-
+  #----------------------------------------------------------------------------------------
   context "When subsetting a list" do
-
+    
     before(:all) do
       @l = R.list(1, 2, 3, R.list(4, 5, 6))
     end
@@ -100,6 +101,28 @@ describe R::List do
       # selected component, the selected component of that component, and so on.
       # The result is still a single element.
       expect(@l[[4, 1]]).to eq 4
+    end
+
+    it "should subset with 'each' returning every element as if subsetting with '[['" do
+      i = 1
+      @l.each do |elmt|
+        if (i < 4)
+          expect elmt == i
+        else
+          expect elmt.identical(R.list(4, 5, 6)) == true
+        end
+        i = i + 1
+      end
+    end
+
+    it "should subset with 'each_with_index'" do
+      @l.each_with_index do |elmt, i|
+        if (i < 4)
+          expect elmt == i
+        else
+          expect elmt.identical(R.list(4, 5, 6)) == true
+        end
+      end
     end
 
   end

@@ -3,8 +3,7 @@ if (!$CONFIG)
   require '../../../config' 
   require 'cantata'
 end
-
-# Scatter plot 
+ 
 faithful = R.faithful
 sp = faithful.ggplot(E.aes(x: :eruptions, y: :waiting)) 
 

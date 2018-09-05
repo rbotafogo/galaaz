@@ -26,9 +26,6 @@ require 'cantata'
 
 context "ISLR" do
 
-  # load ISLR Library
-  Polyglot.eval("R", "library('ISLR')")
-
   context "Chapter 3 - Subset Selection Methods" do
 
     before(:each) do

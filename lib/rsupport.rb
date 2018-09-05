@@ -242,7 +242,6 @@ module R
                    .call(R::Support.parse_arg(args[0]),
                          R::Support.parse_arg(args[1])))
       end
-      
 
       if (args.length == 0)
         return R::Object.build(R::Support.eval(name))
@@ -254,8 +253,6 @@ module R
       function = R::Support.eval(name)
       internal ? R::Support.exec_function_i(function, *args) :
         R::Support.exec_function(function, *args)
-
-      
     end
         
   end

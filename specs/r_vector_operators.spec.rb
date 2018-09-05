@@ -131,21 +131,22 @@ describe R::Vector do
        @vec2 = R.c(2.3, 3, 9, 17)
      end
 
-     it "Should retrieve Ruby values from a vector with '<<'" do
-       # subsetting a vector with '[' and '[[' returns an R::Vector, not a Ruby object
-       # Use the '<<' operator to retrieve an element of the R::Vector as a Ruby
+     it "Should retrieve Numeric values from a vector with '<<'" do
+       # subsetting a vector with '[' and '[[' returns an R::Vector, not a Numeric object
+       # Use the '<<' operator to retrieve an element of the R::Vector as a Numeric
        # object
        expect(@vec1[1].is_a? R::Vector).to eq true
-       expect((@vec1 << 1).is_a? Numeric).to eq true
-       # Note, however, that indexing still follows R indexing, i.e., starts at 1
-       expect((@vec1 << 1)).to eq 3
-       expect((@vec1 << 3)).to eq 10
+       expect((@vec1 << 0).is_a? Numeric).to eq true
+
+       # Note, however, that indexing starts at 0
+       expect((@vec1 << 0)).to eq 3
+       expect((@vec1 << 2)).to eq 10
      end
 
      it "should treat R::Vector as an Enumerable" do
        # each 'value' is an R::Vector, with only 1 element.  In order to use Ruby 'sum'
        # we need to extract the value as a Ruby Numeric with << 1
-       expect(@vec1.sum { |value| value << 1 }).to eq 30.7
+       expect(@vec1.sum { |value| value << 0 }).to eq 30.7
      end
 
      it "should implement 'pop' to extract the first element of an R::Vector" do
@@ -154,18 +155,21 @@ describe R::Vector do
      end
 
      it "should allow storage and retrieval of Ruby Objects in R data structure" do
-       pending "Add classes to R::Vector"
+
        class RData
          def val
            5
          end
        end
-       
+
+       # Using 'c' to add an external element, transforms the vector into a list
        vec3 = R.c(RData.new, RData.new)
-       p vec3 << 1
-       # expect(vec3.pop.is_a? Array).to eq true
-       # expect(vec3.pop[0] == 1).to eq true
+       
+       expect(vec3[[1]].is_a? RData).to eq true
+       expect(vec3[[1]].val == 5).to eq true
+       expect(vec3[[2]].val == 5).to eq true
      end
+     
    end
    
 end

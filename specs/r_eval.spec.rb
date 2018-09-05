@@ -48,13 +48,13 @@ describe R do
       var = R::Support.eval("5L")
       # calling method 'class' on var returns a vector of size one with a string that
       # contains the class of the object
-      expect("[integer]").to eq R::Support.eval("class").call(var).to_s
+      expect("integer").to eq R::Support.eval("class").call(var).to_s
     end
     
     it "A number evaluated in R is automatically unboxed as float in Ruby" do
       var = R::Support.eval("4")
       expect(4.0).to eq var
-      expect("[numeric]").to eq R::Support.eval("class").call(var).to_s
+      expect("numeric").to eq R::Support.eval("class").call(var).to_s
     end
 
     it "R vectors can be indexed by the indexing method of the host language" do

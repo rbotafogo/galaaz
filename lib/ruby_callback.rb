@@ -47,6 +47,7 @@ module R
 
     def initialize(object)
       @object = object
+      
       # ruby_callback_method is a method that returns an R function that returns an R
       # function that calls back this object callback method (look at callback bellow)
       @r_function = R::Support.ruby_callback_method.call(method(:callback))
@@ -57,7 +58,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args)
-      p "im method missing with #{symbol} #{args}"
+      p "in ruby_callback.rb method missing with #{symbol} #{args}"
     end
     
     #--------------------------------------------------------------------------------------
