@@ -61,3 +61,5 @@ context "ISLR" do
   end
 
 end
+
+require_relative 'ch3_boston'

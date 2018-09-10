@@ -21,8 +21,10 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require '../config'
-require 'cantata'
+if (!$CONFIG)
+  require '../config'
+  require 'cantata'
+end
 
 describe R::Vector do
   

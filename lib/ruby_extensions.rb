@@ -52,16 +52,23 @@ end
 #==========================================================================================
 
 class Symbol
-  include E::BinaryOperators
-
-  attr_reader :expression
+  include R::BinaryOperators
+  include R::FormulaBinOp
 
   #--------------------------------------------------------------------------------------
-  #
+  # 
   #--------------------------------------------------------------------------------------
 
   def =~(other_object)
-    exec_oper("~", other_object)
+    exec_oper("`~`", other_object)
   end
   
+  #--------------------------------------------------------------------------------------
+  # Unary '~' converts a Ruby Symbol into an R Symbol
+  #--------------------------------------------------------------------------------------
+
+  def ~@
+    R::Object.build(R::Support.eval("as.name").call(to_s))
+  end
+
 end

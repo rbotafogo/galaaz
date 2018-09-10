@@ -27,12 +27,19 @@ module R
   #
   #--------------------------------------------------------------------------------------
 
-  class Matrix < Object
-    include MDIndexedObject
+  class RSymbol < R::Object
     include BinaryOperators
-    include ExecBinOp
-    include UnaryOperators
+    include FormulaBinOp
+    
+    #--------------------------------------------------------------------------------------
+    # 
+    #--------------------------------------------------------------------------------------
+    
+    def =~(other_object)
+      exec_oper("`~`", other_object)
+    end
+
   end
   
-end
 
+end

@@ -110,8 +110,6 @@ module R
       when Range
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
         R::Support.eval("seq").call(arg.first, final_value)
-      when E::Expression
-        arg.qeval
       when :all
         R.empty_symbol
       when Symbol

@@ -26,6 +26,7 @@ module R
   class Vector < Object
     include IndexedObject
     include BinaryOperators
+    include ExecBinOp
     include UnaryOperators
     include Enumerable
     

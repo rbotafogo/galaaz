@@ -107,9 +107,11 @@ require_relative 'rclosure'
 require_relative 'rexpression'
 # Definition of R Environment
 require_relative 'renvironment'
+# Definition of R Language
+require_relative 'rlanguage'
+# Definition of R Symbol
+require_relative 'rsymbol'
 
-# Defines binary operators for expressions
-require_relative 'expressions_bin_ops'
 # Defines the E module for creating R expressions
 require_relative 'expression'
 # Ruby class extensions.  Extends Symbol to allow the creation of

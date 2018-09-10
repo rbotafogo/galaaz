@@ -41,59 +41,5 @@ module E
     R::RubyCallback.build(executable)
   end
 
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
-
-  class Expression
-    attr_reader :expression
-
-    #----------------------------------------------------------------------------------------
-    #
-    #----------------------------------------------------------------------------------------
-
-    def initialize(expression_string)
-      @expression = expression_string
-    end
-
-    #--------------------------------------------------------------------------------------
-    # Parses the expression and returns an Interop with the parsed expression.  This
-    # method should not, in principle, be called by the final user.
-    # @return [Interop] pointer
-    #--------------------------------------------------------------------------------------
-
-    def parse
-      R.parse(text: @expression).r_interop
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # Prepares the expression for evaluation by the receiving function.  This has to be
-    # a quoted, eval expression.  If, for instance, the expression is (cyl ~ disp), then
-    # qeval will return eval(cyl ~ disp).  This method should not, in principle, be
-    # called by the final user.
-    # @return [Interop] pointer
-    #--------------------------------------------------------------------------------------
-
-    def qeval
-      R::Support.eval("quote(#{@expression})")
-=begin      
-      if !@expression.include? "~"
-        R::Support.eval("quote(#{@expression})")
-      else
-        R::Support.eval("call").call("eval", parse)
-      end
-=end      
-    end
-
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def to_s
-      @expression.to_s
-    end
-    
-  end
-
 end
 

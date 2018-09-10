@@ -26,8 +26,7 @@ if (!$CONFIG)
   require 'cantata'
 end
 
-# load ISLR Library
-# Polyglot.eval("R", "library('ISLR')")
+# load ISLR and MASS Libraries
 R.library('ISLR')
 R.library('MASS')
 
