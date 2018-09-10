@@ -26,7 +26,7 @@ if (!$CONFIG)
   require 'cantata'
 end
 
-describe R::Vector do
+describe R::Language do
   
   context "When creating formulas" do
     
@@ -40,6 +40,15 @@ describe R::Vector do
       # this behaviour is a bit different from R's.  In R this would raise an error
       # with cyl not found
       expect (:cyl + 5).to_s == '.Primitive("+")(cyl, 5L)'
+    end
+
+    it "should properly coerce to language" do
+      expect (5 + 5).to_s == '.Primitive("+")(5L, cyl)'
+    end
+
+    it "should assign to an R symbol" do
+      R.cyl = 10
+      expect R.cyl == 10
     end
 
     # Formula objects are special and are very similar to quoted expressions, but

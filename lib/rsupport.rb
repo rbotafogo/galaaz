@@ -63,9 +63,11 @@ module R
       function(build_method, ...) {
         # print(build_method);
         # args = list(...);
-        # function = args[[1]];
+        # function = args[1];
         # print(function);
+        # print(args);
         res = do.call(...);
+        # print(res);
         res2 = build_method(res);
         # print(res2);
         res2
@@ -194,7 +196,7 @@ module R
     
     def self.exec_function(function, *args)
       return R::Object.build(function.call) if args.length == 0
-      
+
       pl = R::Support.parse2list(*args)
       @@exec_from_ruby.call(R::Object.method(:build), function, pl)
       # R::Object.build(R::Support.eval("do.call").call(function, pl))
@@ -225,10 +227,8 @@ module R
       name = R::Support.convert_symbol2r(symbol)
       
       if name =~ /(.*)=$/
-        p name
-        p "first arg is #{$1}"
-        p *args
-        # do something....
+        args << R::Support.eval("globalenv").call()
+        R::Support.exec_function_name("assign", $1, *args)
         return
       # R function 'eval' needs to be called in a special way, since it expects
       # the second argument to be an environment.  If the arguments are packed
@@ -240,21 +240,21 @@ module R
                    .call(R::Support.parse_arg(args[0]),
                          R::Support.parse_arg(args[1])))
       end
-
+      
       if (args.length == 0)
         return R::Object.build(R::Support.eval(name))
       elsif (args.length == 1 &&
              (nil === args[0] || (!R::Support.interop(args[0]) && "" === args[0])))
         return R::Object.build(R::Support.eval("#{name}()"))
       end
-
+      
       function = R::Support.eval(name)
       internal ? R::Support.exec_function_i(function, *args) :
         R::Support.exec_function(function, *args)
     end
-        
+    
   end
-
+  
 end
 
 require_relative 'rsupport_scope'
