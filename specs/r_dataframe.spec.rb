@@ -161,7 +161,9 @@ describe R::DataFrame do
       expect(df2.names.all__equal R.c("x", "y", "z")).to eq true
     end
     
-  end    
+  end
+
+  # df = R.tibble::tibble(x = 1:3, y = 3:1, z = letters[1:3])
   
 end
 

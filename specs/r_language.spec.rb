@@ -27,14 +27,25 @@ if (!$CONFIG)
 end
 
 describe R::Language do
-  
-  context "When creating formulas" do
-    
-    it "should convert a Ruby Symbol to an R Symbol with '~'" do
-      a = ~:cyl
+
+  #========================================================================================
+  context "Working with symbols"  do
+
+    it "should convert a Ruby Symbol to an R Symbol with '+'" do
+      a = +:cyl
       expect(a.is_a? R::RSymbol).to eq true
       expect a.to_s == "cyl"
     end
+    
+    it "should assign to an R symbol" do
+      R.cyl = 10
+      expect R.cyl == 10
+    end
+
+  end
+  
+  #========================================================================================
+  context "When creating Calls" do
 
     it "binary operators should apply to symbols" do
       # this behaviour is a bit different from R's.  In R this would raise an error
@@ -46,22 +57,17 @@ describe R::Language do
       expect (5 + 5).to_s == '.Primitive("+")(5L, cyl)'
     end
 
-    it "should assign to an R symbol" do
-      R.cyl = 10
-      expect R.cyl == 10
-    end
-
     # Formula objects are special and are very similar to quoted expressions, but
     # they are not really quoted since trying to call R.typeof(<formula>) will
     # evaluate the formula.  We add methods .typeof and .rclass in the Ruby class
     it "formula have typeof and rclass" do
-      formula = :cyl + 5
-      expect formula.typeof == "language"
-      expect formula.rclass == "call"
+      call = :cyl + 5
+      expect call.typeof == "language"
+      expect call.rclass == "call"
     end
 
-    it "in formula, only symbols are quoted" do
-      # 5 * 10 evaluate to 50 in the formula
+    it "during calls creation, only symbols are unevaluated" do
+      # 5 * 10 evaluate to 50 in the call
       expect(:cyl + 5 * 10).to_s == '.Primitive("+")(cyl, 50L)'
       # define a variable x
       x = 20
@@ -69,15 +75,30 @@ describe R::Language do
       expect(:cyl + 5 * x).to_s == '.Primitive("+")(cyl, 100L)'
     end
 
+  end
+
+  #========================================================================================
+  context "When working with Formulas" do
+
     it "should create a formula without the lhs" do
-      puts (~:cyl) + :exp
+      formula = ~(:cyl + :exp)
+      expect formula.to_s == '~.Primitive("+")(cyl, exp)'
+      expect formula.typeof == 'language'
+      expect formula.rclass == 'formula'
     end
     
     it "should create formulas with the '=~' operator" do
-      expect(:cyl =~ :exp).to_s == '.Primitive("~")(cyl, exp)'
-      expect(~:cyl =~ :exp).to_s == '.Primitive("~")(cyl, exp)'
+      formula = (:cyl =~ :exp)
+      expect(formula.to_s) == '.Primitive("~")(cyl, exp)'
+      expect formula.typeof == 'language'
+      expect formula.rclass == 'formula'
+      
+      formula2 = (:cyl =~ :exp + :exp2 - :exp3)
+      expect formula2.to_s == 'cyl ~ .Primitive("-")(.Primitive("+")(exp, exp2), exp3)'
+      expect formula.typeof == 'language'
+      expect formula.rclass == 'formula'
     end
-
+    
   end
-
+  
 end

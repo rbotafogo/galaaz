@@ -82,7 +82,7 @@ module R
   def self.awt
     R::Support.exec_function(R::Support.awt)
   end
-
+  
 end
 
 # define methods for accessing indexed object: Vector, Lists
@@ -111,6 +111,8 @@ require_relative 'renvironment'
 require_relative 'rlanguage'
 # Definition of R Symbol
 require_relative 'rsymbol'
+# Access to package symbols
+require_relative 'rpkg'
 
 # Defines the E module for creating R expressions
 require_relative 'expression'
