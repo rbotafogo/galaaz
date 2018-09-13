@@ -21,14 +21,43 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-if (!$CONFIG)
-  require '../../config' 
-  require 'cantata'
+require '../../config'
+require 'cantata'
+
+context "ISLR" do
+
+  context "Chapter 6 - Subset Selection Methods - page 244" do
+
+    before(:each) do
+      @hitters = R.Hitters
+    end
+    
+    it "Should access the names of the dataset" do
+      expect(@hitters.names[1] == "AtBat").to eq true
+      expect(@hitters.names[5] == "RBI").to eq true
+      expect(@hitters.names[11] == "CRuns").to eq true
+      expect(@hitters.dim == R.c(322, 20)).to eq true
+    end
+
+    it "Should count na's using 'R.sum'" do
+      expect(R.sum(@hitters.Salary.is__na) == 59).to eq true
+      expect(R.sum(@hitters.Salary.is__na)).to eq 59
+    end
+
+    it "Should count na's using Ruby Enumerable 'sum'" do
+      # method 'sum' is a Ruby Enumerable method.  To count na's we can loop through
+      # every element and check if they are na or not.  Note that the return os
+      # is__na is an R::Vector, so we need to 'pop' the value to a Ruby value in
+      # ordet to apply the '?' method
+      expect(@hitters.Salary.sum { |e| ((e.is__na == true).pop) ? 1 : 0 }).to eq 59
+    end
+
+    it "should remove missing values with na__omit" do
+      @hitters = @hitters.na__omit
+      expect(@hitters.dim == R.c(263, 20)).to eq true
+      expect(R.sum(@hitters.is__na)).to eq 0
+    end
+    
+  end
+
 end
-
-# load ISLR and MASS Libraries
-R.library('ISLR')
-R.library('MASS')
-
-require_relative 'ch2.spec'
-require_relative 'ch6.spec'

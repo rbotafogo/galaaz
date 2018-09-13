@@ -10,6 +10,9 @@ R.library('grid')
 R.library('MASS')
 R.library('ISLR')
 
+# Simple linear regression from ISLR book.  Chapter 3 Lab
+
+# load boston data frame on variable boston
 boston = R.Boston
 
 puts boston.names
@@ -24,54 +27,36 @@ conf = R.predict(boston_lm, R.data__frame(lstat: (R.c(5, 10, 15))), interval: "c
 puts conf
 pred = R.predict(boston_lm, R.data__frame(lstat: (R.c(5, 10, 15))), interval: "prediction")
 puts pred
-                 
-# b = boston.ggplot(E.aes(x: :lstat, y: :medv))
-   
+
 R.awt
-# R.jpeg("ScatterPlot_lstat_medv.jpg")
+
 puts R.qplot(boston.lstat, boston.medv, col: "red") +
      R.geom_abline(intercept: boston_lm.coef[1],
                    slope: boston_lm.coef[2],
                    color: "blue",
                    linetype: "dashed",
                    size: 1.5)
-a = gets.chomp
 
+# uncomment if needed to pause while analysing graph. reads input from user 
+# a = gets.chomp
+
+# sleep two seconds so that the graph shows up
 sleep(2)
 R.grid__newpage('')
 
-# R.jpeg("ScatterPlot_pred_residuals.jpg")
 puts R.qplot(R.predict(boston_lm), R.residuals(boston_lm))
 
 sleep(2)
 R.grid__newpage('')
 
+puts R.qplot(R.predict(boston_lm), R.rstudent(boston_lm))
 
-# change the color and the point 
-# by the levels of cyl variable
-# print b + R.geom_point(E.aes(color: "red", shape: :cyl)) 
-          
-=begin
-fix(Boston)
-names(Boston)
-lm.fit=lm(medv~lstat)
-lm.fit=lm(medv~lstat,data=Boston)
-attach(Boston)
-lm.fit=lm(medv~lstat)
-lm.fit
+sleep(2)
+R.grid__newpage('')
 
-plot(lstat,medv)
-abline(lm.fit)
-abline(lm.fit,lwd=3)
-abline(lm.fit,lwd=3,col="red")
-plot(lstat,medv,col="red")
-plot(lstat,medv,pch=20)
-plot(lstat,medv,pch="+")
-plot(1:20,1:20,pch=1:20)
-par(mfrow=c(2,2))
-plot(lm.fit)
-plot(predict(lm.fit), residuals(lm.fit))
-plot(predict(lm.fit), rstudent(lm.fit))
-plot(hatvalues(lm.fit))
-which.max(hatvalues(lm.fit))
-=end
+vals = R.hatvalues(boston_lm)
+# method size returns a Numeric... size is equivalent to 'length << 0'
+puts R.qplot((1..vals.size), vals)
+
+sleep(2)
+R.grid__newpage('')
