@@ -81,6 +81,7 @@ describe R::Language do
   context "When working with Formulas" do
 
     it "should create a formula without the lhs" do
+      pending "formulas need to be reimplemented"
       formula = ~(:cyl + :exp)
       expect formula.to_s == '~.Primitive("+")(cyl, exp)'
       expect formula.typeof == 'language'

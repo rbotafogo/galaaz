@@ -30,7 +30,7 @@ module E
   
   def self.method_missing(symbol, *args)
     name = R::Support.convert_symbol2r(symbol)
-    R::Language.new(name, *args)
+    R::Language.build(name, *args)
   end
 
   #--------------------------------------------------------------------------------------

@@ -59,7 +59,7 @@ module R
 
     def self.exec_oper(operator, o1, o2)
       o2 = '.' if o2 == :all
-      R::Language.new(operator, o1, o2)
+      R::Language.build(operator, o1, o2)
     end
     
     #--------------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ module R
     
     def exec_oper(operator, other_object)
       other_object = '.' if other_object == :all
-      R::Language.new(operator, self, other_object)
+      R::Language.build(operator, self, other_object)
     end
 
   end
