@@ -4,6 +4,10 @@ if (!$CONFIG)
   require 'cantata'
 end
 
+R.library('ggplot2')
+R.library('grid')
+R.library('gridExtra')
+
 df = R.ToothGrowth
 df.dose = df.dose.as__factor
 puts df.head
@@ -58,14 +62,14 @@ print f + R.geom_crossbar(E.aes(fill: :dose)) +
 sleep(2)
 R.grid__newpage
 
+f = df3.ggplot(E.aes(x: :dose, y: :len, 
+                     ymin: :len - :sd, ymax: :len + :sd))
+
 # Default plot
 print f + R.geom_crossbar(E.aes(color: :supp))
 
 sleep(2)
 R.grid__newpage
-
-f = df3.ggplot(E.aes(x: :dose, y: :len, 
-                     ymin: :len - :sd, ymax: :len + :sd))
 
 # Use position_dodge() to avoid overlap
 print f + R.geom_crossbar(E.aes(color: :supp), 
@@ -73,15 +77,16 @@ print f + R.geom_crossbar(E.aes(color: :supp),
 
 sleep(2)
 R.grid__newpage
-=begin
+
 f = df.ggplot(E.aes(x: :dose, y: :len, color: :supp)) 
 
 # Use geom_crossbar()
 print f + R.stat_summary(fun__data: "mean_sdl", fun__args: R.list(mult: 1), 
                          geom: "crossbar", width: 0.6, 
                          position: R.position_dodge(0.8))
-=end
+
 # a = gets.chomp
 
 # removes the window
+sleep(2)
 R.dev__off('')
