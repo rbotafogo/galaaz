@@ -53,15 +53,7 @@ end
 
 class Symbol
   include R::BinaryOperators
-  include R::FormulaBinOp
-
-  #--------------------------------------------------------------------------------------
-  # 
-  #--------------------------------------------------------------------------------------
-
-  def =~(other_object)
-    exec_oper("`~`", other_object)
-  end
+  include R::CallBinOp
 
   #--------------------------------------------------------------------------------------
   # Unary '~' converts a Ruby Symbol into an R Symbol

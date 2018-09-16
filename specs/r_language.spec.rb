@@ -76,10 +76,19 @@ describe R::Language do
     end
 
   end
-
+  
   #========================================================================================
   context "When working with Formulas" do
-
+    
+    it "should create a RSymbol from a Ruby Symbol using +" do
+      sym = +:sym
+      # puts sym.typeof
+      # puts sym.rclass
+      expect sym.to_s == "sym"
+    end
+    
+=begin
+    
     it "should create a formula without the lhs" do
       pending "formulas need to be reimplemented"
       formula = ~(:cyl + :exp)
@@ -99,7 +108,8 @@ describe R::Language do
       expect formula.typeof == 'language'
       expect formula.rclass == 'formula'
     end
+=end
     
   end
-  
+
 end

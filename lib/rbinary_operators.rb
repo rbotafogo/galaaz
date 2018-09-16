@@ -33,16 +33,24 @@ module R
     #
     #--------------------------------------------------------------------------------------
 
-    def exec_oper(operation, other_object)
-      # second_op = (other_object.is_a? R::Object) ? other_object.r_interop : other_object
-      second_op = other_object
-      case other_object
-      when Symbol, R::RSymbol, R::Language
-        FormulaBinOp.exec_oper(operation, self, other_object)
-      else
-        R::Support.exec_function_name(operation, @r_interop, second_op)
-      end
-      
+    def exec_oper(operator, other_object)
+      R::Support.exec_function_name(operator, @r_interop, other_object)
+    end
+
+  end
+
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+
+  module CallBinOp
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+    
+    def exec_oper(operator, other_object)
+      R::Language.build(operator, self, other_object)
     end
 
   end
