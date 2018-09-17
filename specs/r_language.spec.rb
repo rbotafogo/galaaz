@@ -37,9 +37,14 @@ describe R::Language do
       expect a.to_s == "cyl"
     end
     
-    it "should assign to an R symbol" do
+    it "should assign to an R symbol and retrieve from it" do
       R.cyl = 10
       expect ~:cyl == 10
+    end
+
+    it "should allow calling evaluate on the symbol" do
+      R.cyl = 10
+      expect R.eval(~:cyl) == 10
     end
 
   end

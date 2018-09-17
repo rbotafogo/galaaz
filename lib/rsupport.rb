@@ -194,10 +194,8 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.exec_function(function, *args)
+      # function has no arguments, call it directly
       if (args.length == 0)
-        p "rsupport exec_function"
-        pf function
-        p args
         return R::Object.build(function.call) # if args.length == 0
       end
 
@@ -216,7 +214,33 @@ module R
     def self.exec_function_name(function_name, *args)
       R::Support.exec_function(R::Support.eval(function_name), *args)
     end
+
+    #----------------------------------------------------------------------------------------
+    # sets the R symbol <name> to the given value
+    # @param name [String] String representation of the R symbol that needs to be assigned
+    # @param args [Array] Array with one object to be set to the symbol
+    #----------------------------------------------------------------------------------------
+
+    def self.set_symbol(name, *args)
+      args << R::Support.eval("globalenv").call()
+      R::Support.exec_function_name("assign", name, *args)
+    end
     
+    #----------------------------------------------------------------------------------------
+    # Calls the R 'eval' function.  This requires some special semantics
+    # R function 'eval' needs to be called in a special way, since it expects
+    # the second argument to be an environment.  If the arguments are packed
+    # into a list, then there is no second argument and the function fails to
+    # use the second argument as environment
+    #----------------------------------------------------------------------------------------
+    
+    def self.r_evaluate(*args)
+      R::Object.build(
+        eval("eval")
+          .call(R::Support.parse_arg(args[0]),
+                R::Support.parse_arg(args[1])))
+    end
+
     #----------------------------------------------------------------------------------------
     # Process the missing method
     # @param symbol [Symbol]
@@ -225,35 +249,26 @@ module R
     # @param object [Ruby Object] the ruby object to which the method is applied, false if
     # it is not applied to an object
     #----------------------------------------------------------------------------------------
-    
+
     def self.process_missing(symbol, internal, *args)
 
       name = R::Support.convert_symbol2r(symbol)
       
-      if name =~ /(.*)=$/
-        args << R::Support.eval("globalenv").call()
-        R::Support.exec_function_name("assign", $1, *args)
-        return
-      # R function 'eval' needs to be called in a special way, since it expects
-      # the second argument to be an environment.  If the arguments are packed
-      # into a list, then there is no second argument and the function fails to
-      # use the second argument as environment
-      elsif (name == "eval")
-        return R::Object.build(
-                 eval("eval")
-                   .call(R::Support.parse_arg(args[0]),
-                         R::Support.parse_arg(args[1])))
+      case name
+      # missing method has an '=' sign in it...
+      when ->(x) { x =~ /(.*)=$/ }
+        R::Support.set_symbol($1, *args)
+      # missing method is 'eval'... needs special treatment
+      when "eval"
+        R::Support.r_evaluate(*args)
+      else
+        function = R::Support.eval(name)
+        internal ? R::Support.exec_function_i(function, *args) :
+          R::Support.exec_function(function, *args)
       end
-
-      if (args.length == 0)
-        return R::Object.build(R::Support.eval("#{name}()"))
-      end
-
-      function = R::Support.eval(name)
-      internal ? R::Support.exec_function_i(function, *args) :
-        R::Support.exec_function(function, *args)
+      
     end
-     
+    
     #----------------------------------------------------------------------------------------
     # Prints a foreign R interop pointer. Used for debug.
     #----------------------------------------------------------------------------------------
