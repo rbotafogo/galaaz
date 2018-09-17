@@ -44,13 +44,16 @@ describe R do
   #----------------------------------------------------------------------------------------
   context "Using Ruby Procs as parameters to R functions and expressions" do
 
+    before(:each) do
+      @x = @y = R.seq(-~:pi, ~:pi, length: 10)
+    end
+    
     it "should accept a Proc as parameter" do
-      x = y = R.seq(-R.pi, R.pi, length: 7)
       # call R outer function passing in a Proc
       # note that x and y are Ruby objects that were received from an
       # R function, so they are R::Vectors or another type of R::Object. We
       # can operate on them with R functions: for instance, R.cos(y)
-      f = R.outer(x, y,
+      f = R.outer(@x, @y,
                   lambda { |x, y|
                     R.cos(y) / (x**2 + 1)})
       expect(f[1, 1] == -0.09199967).to eq true
@@ -58,7 +61,6 @@ describe R do
     end
 
     it "should accept a Method as parameter" do
-      x = y = R.seq(-R.pi, R.pi, length: 7)
 
       module Calculation
         # note that x and y are Ruby objects that were received from an
@@ -69,7 +71,7 @@ describe R do
         end
       end
 
-      f = R.outer(x, y, Calculation.method(:func))
+      f = R.outer(@x, @y, Calculation.method(:func))
       expect(f[1, 1] == -0.09199967).to eq true
       expect(f[7, 6] == -0.04599983).to eq true
       
@@ -77,8 +79,7 @@ describe R do
     
     it "should accept Procs in Expressions" do
       
-      x = y = R.seq(-R.pi, R.pi, length: 10)
-      df = R.data__frame(x: x, y: y)
+      df = R.data__frame(x: @x, y: @y)
       # create a quoted function f that takes 3 parameters :x, :y and a Proc
       # we want to evaluate f in the scope of the dataframe 'df'
       f = E.outer(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })

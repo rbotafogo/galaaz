@@ -13,7 +13,7 @@ R.library('ISLR')
 # Simple linear regression from ISLR book.  Chapter 3 Lab
 
 # load boston data frame on variable boston
-boston = R.Boston
+boston = ~:Boston
 
 puts boston.names
 
@@ -42,21 +42,21 @@ puts R.qplot(boston.lstat, boston.medv, col: "red") +
 
 # sleep two seconds so that the graph shows up
 sleep(2)
-R.grid__newpage('')
+R.grid__newpage
 
 puts R.qplot(R.predict(boston_lm), R.residuals(boston_lm))
 
 sleep(2)
-R.grid__newpage('')
+R.grid__newpage
 
 puts R.qplot(R.predict(boston_lm), R.rstudent(boston_lm))
 
 sleep(2)
-R.grid__newpage('')
+R.grid__newpage
 
 vals = R.hatvalues(boston_lm)
 # method size returns a Numeric... size is equivalent to 'length << 0'
 puts R.qplot((1..vals.size), vals)
 
 sleep(2)
-R.grid__newpage('')
+R.grid__newpage

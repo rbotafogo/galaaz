@@ -13,13 +13,13 @@ puts wdata.head
 R.awt
 
 # Use geometry function
-print wdata.ggplot(E.aes(x: :weight)) + R.geom_density('')
+print wdata.ggplot(E.aes(x: :weight)) + R.geom_density
 
 sleep(2)
 R.grid__newpage
 
 # OR use stat function
-print wdata.ggplot(E.aes(x: :weight)) + R.stat_density('')
+print wdata.ggplot(E.aes(x: :weight)) + R.stat_density
 
 
 sleep(2)
@@ -29,4 +29,4 @@ R.grid__newpage
 
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off

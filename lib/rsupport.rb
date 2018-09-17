@@ -63,8 +63,6 @@ module R
       function(build_method, ...) {
         # print(build_method);
         # args = list(...);
-        # function = args[1];
-        # print(function);
         # print(args);
         res = do.call(...);
         # print(res);
@@ -136,8 +134,10 @@ module R
         if (arg.is_a? Hash)
           arg.each_pair do |key, value|
             k = key.to_s.gsub(/__/,".")
-            # When evaluating to NA, Interop treats it as FALSE.  This breaks all expectations
-            # about NA.  We need to protect NA from Interop unboxing.  Class NotAvailable
+            # HAS CHANGED IN RC6... FIX THIS TO THE NEW API
+            # When evaluating to NA, Interop treats it as FALSE.  This breaks
+            # all expectations about NA.  We need to protect NA from Interop
+            # unboxing.  Class NotAvailable
             # puts a list around NA, so that no unboxing occurs.  We need to treat this
             # list here
             if (value.is_a? NotAvailable)
@@ -194,7 +194,12 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.exec_function(function, *args)
-      return R::Object.build(function.call) if args.length == 0
+      if (args.length == 0)
+        p "rsupport exec_function"
+        pf function
+        p args
+        return R::Object.build(function.call) # if args.length == 0
+      end
 
       pl = R::Support.parse2list(*args)
       @@exec_from_ruby.call(R::Object.method(:build), function, pl)
@@ -239,19 +244,34 @@ module R
                    .call(R::Support.parse_arg(args[0]),
                          R::Support.parse_arg(args[1])))
       end
-      
+
       if (args.length == 0)
-        return R::Object.build(R::Support.eval(name))
-      elsif (args.length == 1 &&
-             (nil === args[0] || (!R::Support.interop(args[0]) && "" === args[0])))
         return R::Object.build(R::Support.eval("#{name}()"))
       end
-      
+
       function = R::Support.eval(name)
       internal ? R::Support.exec_function_i(function, *args) :
         R::Support.exec_function(function, *args)
     end
+     
+    #----------------------------------------------------------------------------------------
+    # Prints a foreign R interop pointer. Used for debug.
+    #----------------------------------------------------------------------------------------
+
+    def self.print_foreign(interop)
+      puts "===External value==="
+      R::Support.eval("print").call(interop)
+      puts "===end external value==="
+    end
+
+    class << self
+      alias :pf :print_foreign
+    end
     
+    #----------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------
+
   end
   
 end

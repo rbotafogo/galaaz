@@ -90,7 +90,7 @@ describe R::DataFrame do
     
     it "should do 'each_column'" do
       
-      mtcars = R.mtcars
+      mtcars = ~:mtcars
       mtcars.each_column do |col, col_name|
         case col_name
         when "mpg"
@@ -114,7 +114,7 @@ describe R::DataFrame do
   context "Boostraping" do
     
     before(:each) do
-      @df = R.data__frame(x: R.rep((1..3), each: 2), y: (6..1), z: R.letters[(1..6)])
+      @df = R.data__frame(x: R.rep((1..3), each: 2), y: (6..1), z: (~:letters)[(1..6)])
       R.set__seed(10)
     end
     

@@ -6,13 +6,13 @@ end
 
 R.awt
 
-mtcars = R.mtcars
+mtcars = ~:mtcars
 
 # Basic scatter plot
 # Rementer that with ggplot, print is necessary to output
 # the plot.
 print mtcars.ggplot(E.aes(x: :wt, y: :mpg)) + 
-      R.geom_point('')
+      R.geom_point
 
 sleep(2)
 R.grid__newpage
@@ -35,4 +35,4 @@ R.grid__newpage
 
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off

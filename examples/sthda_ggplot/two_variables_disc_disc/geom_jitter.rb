@@ -4,7 +4,7 @@ if (!$CONFIG)
   require 'cantata'
 end
 
-diamonds = R.diamonds
+diamonds = ~:diamonds
 
 R.awt
 
@@ -17,4 +17,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window
-R.dev__off('')
+R.dev__off

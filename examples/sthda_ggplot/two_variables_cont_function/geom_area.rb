@@ -4,19 +4,19 @@ if (!$CONFIG)
   require 'cantata'
 end
 
-economics = R.economics
+economics = ~:economics
 d = economics.ggplot(E.aes(x: :date, y: :unemploy))
 
 R.awt
 
 # Area plot
-print d + R.geom_area('')
+print d + R.geom_area
 
 sleep(2)
 R.grid__newpage
 
 # Line plot: connecting observations, ordered by x
-print d + R.geom_line('')
+print d + R.geom_line
 
 sleep(2)
 R.grid__newpage
@@ -30,7 +30,7 @@ R.set__seed(1234)
 ss = economics[R.sample((1..economics.nrow.pop), 20), :all]
 
 print ss.ggplot(E.aes(x: :date, y: :unemploy)) + 
-      R.geom_step('')
+      R.geom_step
 
 
 sleep(2)
@@ -39,4 +39,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window
-R.dev__off('')
+R.dev__off

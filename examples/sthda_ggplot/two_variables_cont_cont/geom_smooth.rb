@@ -4,7 +4,7 @@ if (!$CONFIG)
   require 'cantata'
 end
 
-mtcars = R.mtcars
+mtcars = ~:mtcars
 mtcars.cyl = R.as__factor(mtcars.cyl)
 
 b = mtcars.ggplot(E.aes(x: :wt, y: :mpg))
@@ -19,14 +19,14 @@ R.grid__newpage
 
 # Point + regression line
 # Remove the confidence interval 
-print b + R.geom_point('') + 
+print b + R.geom_point + 
       R.geom_smooth(method: :lm, se: false)
 
 sleep(2)
 R.grid__newpage
 
 # loess method: local regression fitting
-print b + R.geom_point('') + R.geom_smooth('')
+print b + R.geom_point + R.geom_smooth
 
 sleep(2)
 R.grid__newpage
@@ -43,4 +43,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off

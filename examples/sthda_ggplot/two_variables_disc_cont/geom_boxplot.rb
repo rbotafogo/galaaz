@@ -4,14 +4,14 @@ if (!$CONFIG)
   require 'cantata'
 end
 
-tooth_growth = R.ToothGrowth
+tooth_growth = ~:ToothGrowth
 tooth_growth.dose = tooth_growth.dose.as__factor
 e = tooth_growth.ggplot(E.aes(x: :dose, y: :len))
 
 R.awt
 
 # Default plot
-print e + R.geom_boxplot('')
+print e + R.geom_boxplot
 
 sleep(2)
 R.grid__newpage
@@ -37,4 +37,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window
-R.dev__off('')
+R.dev__off

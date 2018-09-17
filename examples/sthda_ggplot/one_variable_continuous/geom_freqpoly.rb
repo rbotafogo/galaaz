@@ -21,7 +21,7 @@ puts mu
 R.awt
 
 # Basic plot
-print a + R.geom_freqpoly('') 
+print a + R.geom_freqpoly
 
 sleep(2)
 R.grid__newpage
@@ -29,14 +29,14 @@ R.grid__newpage
 # change y axis to density value
 # and change theme
 print a + R.geom_freqpoly(E.aes_string(y: "..density..")) +
-      R.theme_minimal('')
+      R.theme_minimal
 
 sleep(2)
 R.grid__newpage
 
 # change color and linetype by sex
 print a + R.geom_freqpoly(E.aes(color: :sex, linetype: :sex)) +
-      R.theme_minimal('')
+      R.theme_minimal
 
 sleep(2)
 R.grid__newpage
@@ -44,4 +44,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off

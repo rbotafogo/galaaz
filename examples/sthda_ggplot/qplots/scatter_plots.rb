@@ -5,7 +5,7 @@ if (!$CONFIG)
 end
 
 # Load the data
-mtcars = R.mtcars
+mtcars = ~:mtcars
 df = mtcars[:all, R.c("mpg", "cyl", "wt")]
 
 # Convert cyl to a factor variable
@@ -44,4 +44,4 @@ sleep(2)
 R.grid__newpage
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off

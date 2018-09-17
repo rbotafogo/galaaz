@@ -27,7 +27,7 @@ R.grid__newpage
 # Change fill color and add labels
 print f + R.geom_bar(stat: "identity", fill: "steelblue") +
       R.geom_text(E.aes(label: :len), vjust: -0.3, size: 3.5) +
-      R.theme_minimal('')
+      R.theme_minimal
 
 sleep(2)
 R.grid__newpage
@@ -54,7 +54,7 @@ sleep(2)
 R.grid__newpage
 
 # Use position=position_dodge()
-print g + R.geom_bar(stat: "identity", position: R.position_dodge(''))
+print g + R.geom_bar(stat: "identity", position: R.position_dodge)
 
 sleep(2)
 R.grid__newpage
@@ -62,4 +62,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window
-R.dev__off('')
+R.dev__off

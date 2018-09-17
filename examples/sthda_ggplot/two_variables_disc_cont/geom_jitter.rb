@@ -5,7 +5,7 @@ if (!$CONFIG)
 end
 
 
-tooth_growth = R.ToothGrowth
+tooth_growth = ~:ToothGrowth
 tooth_growth.dose = tooth_growth.dose.as__factor
 e = tooth_growth.ggplot(E.aes(x: :dose, y: :len))
 
@@ -50,4 +50,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window
-R.dev__off('')
+R.dev__off

@@ -39,7 +39,7 @@ describe R::Language do
     
     it "should assign to an R symbol" do
       R.cyl = 10
-      expect R.cyl == 10
+      expect ~:cyl == 10
     end
 
   end

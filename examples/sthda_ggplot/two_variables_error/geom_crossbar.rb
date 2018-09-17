@@ -8,7 +8,7 @@ R.library('ggplot2')
 R.library('grid')
 R.library('gridExtra')
 
-df = R.ToothGrowth
+df = ~:ToothGrowth
 df.dose = df.dose.as__factor
 puts df.head
 
@@ -35,7 +35,7 @@ puts df3.head
 R.awt
 
 # Default plot
-print f + R.geom_crossbar('')
+print f + R.geom_crossbar
 
 sleep(2)
 R.grid__newpage
@@ -49,7 +49,7 @@ R.grid__newpage
 # Change color manually
 print f + R.geom_crossbar(E.aes(color: :dose)) + 
       R.scale_color_manual(values: R.c("#999999", "#E69F00", "#56B4E9")) +
-      R.theme_minimal('')
+      R.theme_minimal
 
 sleep(2)
 R.grid__newpage
@@ -57,7 +57,7 @@ R.grid__newpage
 # fill by groups and change color manually
 print f + R.geom_crossbar(E.aes(fill: :dose)) + 
       R.scale_fill_manual(values: R.c("#999999", "#E69F00", "#56B4E9")) +
-      R.theme_minimal('')
+      R.theme_minimal
 
 sleep(2)
 R.grid__newpage
@@ -89,4 +89,4 @@ print f + R.stat_summary(fun__data: "mean_sdl", fun__args: R.list(mult: 1),
 
 # removes the window
 sleep(2)
-R.dev__off('')
+R.dev__off

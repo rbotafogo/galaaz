@@ -4,33 +4,33 @@ if (!$CONFIG)
   require 'cantata'
 end
  
-faithful = R.faithful
+faithful = ~:faithful
 sp = faithful.ggplot(E.aes(x: :eruptions, y: :waiting)) 
 
 R.awt
 
 # example from ggplot contour using the z dimension
-faithfuld = R.faithfuld
+faithfuld = ~:faithfuld
 print faithfuld.ggplot(E.aes(:waiting, :eruptions, z: :density)) +
-      R.geom_contour('')
+      R.geom_contour
 
 sleep(2)
 R.grid__newpage
 
 # Default plot
-print sp + R.geom_density_2d('')
+print sp + R.geom_density_2d
 
 sleep(2)
 R.grid__newpage
 
 # Add points
-print sp + R.geom_point('') + R.geom_density_2d('')
+print sp + R.geom_point + R.geom_density_2d
 
 sleep(2)
 R.grid__newpage
 
 # Use stat_density_2d with geom = "polygon"
-print sp + R.geom_point('') + 
+print sp + R.geom_point + 
       R.stat_density_2d(E.aes_string(fill: '..level..'), geom: "polygon")
 
 sleep(2)
@@ -39,4 +39,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window
-R.dev__off('')
+R.dev__off

@@ -32,7 +32,7 @@ describe R::List do
       @x = R.list(a: (1..10), beta: R.exp(-3..3), logic: R.c(true, false, false, true))
       R.library("stats")
       # Make @q the function R quantile
-      @q = R.quantile
+      @q = ~:quantile
     end
     
     it "should work with lapply and mean" do
@@ -49,7 +49,7 @@ describe R::List do
       # and method all__equal is not defined on floats.
       expect(R.all__equal(mean.beta,
                           4.5351252347,
-                          tolerance: R.__Machine.double__eps ** 0.5)).to eq true
+                          tolerance: (~:".Machine").double__eps ** 0.5)).to eq true
 
       expect(mean.logic).to eq 0.5
     end
@@ -62,7 +62,7 @@ describe R::List do
       expect(quant.a["50,00000%"]).to eq 5.50
       expect(R.all__equal(quant.beta["100,0000%"],
                           20.08553692,
-                          tolerance: R.__Machine.double__eps ** 0.5)).to eq true
+                          tolerance: (~:".Machine").double__eps ** 0.5)).to eq true
       expect(quant.logic[2]).to eq 0.0
     end
     
@@ -72,7 +72,7 @@ describe R::List do
       expect(x.a["50,00000%"]).to eq 5.50
       expect(R.all__equal(x.beta["75,00000%"],
                           5.0536690,
-                          tolerance: R.__Machine.double__eps ** 0.5)).to eq true
+                          tolerance: (~:".Machine").double__eps ** 0.5)).to eq true
       expect(x.logic[2]).to eq 0.5
     end
 
@@ -91,7 +91,7 @@ describe R::List do
       
       i39 = R.sapply((3..9), "seq")
       i39.pp
-      sap = R.sapply(i39, R.fivenum)
+      sap = R.sapply(i39, ~:fivenum)
       sap.pp
     end
   

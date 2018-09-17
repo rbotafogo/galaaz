@@ -56,11 +56,19 @@ class Symbol
   include R::CallBinOp
 
   #--------------------------------------------------------------------------------------
-  # Unary '~' converts a Ruby Symbol into an R Symbol
+  # Unary '+' converts a Ruby Symbol into an R Symbol
   #--------------------------------------------------------------------------------------
 
   def +@
     R::Object.build(R::Support.eval("as.name").call(to_s))
   end
 
+  #--------------------------------------------------------------------------------------
+  # Unary '~' retrieves the values of the R symbol
+  #--------------------------------------------------------------------------------------
+
+  def ~@
+    R::Object.build(R::Support.eval(to_s))
+  end
+ 
 end

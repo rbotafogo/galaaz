@@ -32,4 +32,4 @@ sleep(2)
 R.grid__newpage
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off

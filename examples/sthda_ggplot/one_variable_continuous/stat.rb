@@ -21,13 +21,13 @@ puts mu
 R.awt
 
 # Empirical Cumulative Density Function
-print a + R.stat_ecdf('')
+print a + R.stat_ecdf
 
 sleep(2)
 R.grid__newpage
 
 # quantile plot
-print R.mtcars.ggplot(E.aes(sample: :mpg)) + R.stat_qq('')
+print (~:mtcars).ggplot(E.aes(sample: :mpg)) + R.stat_qq
 
 sleep(2)
 R.grid__newpage
@@ -36,4 +36,5 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off
+

@@ -75,8 +75,10 @@ module R
     #--------------------------------------------------------------------------------------
     
     def exec_oper(operator, other_object)
-      other_object = '.' if other_object == :all
-      R::Language.build(operator, self, other_object)
+      # other_object = '.' if other_object == :all
+      res = R.reformulate("#{self.to_s} #{operator[1]} #{other_object.to_s}")
+      res.statement = "#{self.to_s} #{operator[1]} #{other_object.to_s}"
+      res
     end
 
   end

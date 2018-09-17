@@ -21,7 +21,7 @@ puts mu
 R.awt
 
 # Basic plot
-print a + R.geom_histogram('')
+print a + R.geom_histogram
 
 sleep(2)
 R.grid__newpage
@@ -37,4 +37,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off

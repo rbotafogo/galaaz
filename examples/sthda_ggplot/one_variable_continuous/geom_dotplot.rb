@@ -21,7 +21,7 @@ puts mu
 R.awt
 
 # Basic plot
-print a + R.geom_dotplot('')
+print a + R.geom_dotplot
 
 # Basic plot
 
@@ -44,4 +44,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off

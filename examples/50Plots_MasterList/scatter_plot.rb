@@ -6,9 +6,9 @@ end
 # load package and data
 R.options(scipen: 999)  # turn-off scientific notation like 1e+48
 R.library('ggplot2')
-R.theme_set(R.theme_bw(''))  # pre-set the bw theme.
+R.theme_set(R.theme_bw)  # pre-set the bw theme.
 
-midwest = R.midwest
+midwest = ~:midwest
 # midwest <- read.csv("http://goo.gl/G1K41K")  # bkup data source
 
 R.awt

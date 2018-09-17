@@ -32,6 +32,7 @@ module R
   class Object
     
     attr_reader :r_interop
+    attr_accessor :statement
     
     #--------------------------------------------------------------------------------------
     #
@@ -50,7 +51,6 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    # @bug
     # @param r_interop [Interop] pointer to an R object
     # @return the R object wrapped in a Ruby class
     #--------------------------------------------------------------------------------------

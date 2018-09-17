@@ -30,7 +30,7 @@ describe R::List do
   context "When creating lists" do
 
     it "should create an empty list" do
-      l = R.list('')
+      l = R.list
       expect(l.length).to eq 0
       expect(l.class).to eq R::List
       expect(l.typeof).to eq "list"

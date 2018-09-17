@@ -24,7 +24,7 @@ R.grid__newpage
 # change fill colors by sex
 print a + R.geom_area(E.aes(fill: :sex),
                       stat: "bin", alpha: 0.6) +
-      R.theme_classic('')
+      R.theme_classic
 
 
 sleep(2)
@@ -35,4 +35,4 @@ print a + R.geom_area(E.aes_string(y: "..density.."), stat: "bin")
 
 
 # removes the window and creates a new one
-R.dev__off('')
+R.dev__off

@@ -82,9 +82,9 @@ describe R do
 
   context "Basic access to R without R::Support" do
     
-    it "should retrieve named R objects to Ruby variables by using 'R.'. " do
+    it "should retrieve named R objects to Ruby variables by using '~' " do
       # retrieve x and hyp from R and attribute it to local Ruby variables
-      x = R.x
+      x = ~:x
 
       expect(x.is_a? R::Vector).to eq true
       expect(x.length).to eq 3
@@ -110,13 +110,14 @@ describe R do
       # to create a double vector through the Ruby interface, we need that at least
       # one element of the vector is a 'float'
       double = R.c(1.0, 2, 3)
-      expect(R.x.identical double).to eq true
+      expect((~:x).identical double).to eq true
       expect(R.hyp(3, 4)).to eq 5
     end
 
     it "should box R functions in R::Closure Ruby class" do
       # hyp is an R function and works like a named function in Ruby
-      hyp = R.hyp
+      hyp = ~:hyp
+      
       # calling a named function or block is done by use of the 'call' method
       expect(hyp.call(3, 4)).to eq 5.0
       expect(hyp.typeof).to eq "closure"
@@ -125,7 +126,7 @@ describe R do
     
     it "should print values the same way as R" do
       # retrieve x and hyp from R and attribute it to local Ruby variables
-      x = R.x
+      x = ~:x
       
       # Converting to string (to_s) will print as an R vector would
       expect(x[1].to_s).to eq ("[1] 1")
@@ -134,7 +135,7 @@ describe R do
 
     it "should allow logical comparison using R::Objects" do
       # retrieve x and hyp from R and attribute it to local Ruby variables
-      x = R.x
+      x = ~:x
 
       expect(x[1] == 1).to eq true
       expect(x[2] == 1).to eq false
@@ -153,7 +154,7 @@ describe R do
       # In order to convert a Ruby symbol to an R symbol we use the '.r' method on the
       # Ruby symbol.  Ruby bitwise operators '&' and '|' are overloaded and used as 
       # the equivalent R operators and not as bitwise operators.
-      mt_subset = R.mtcars.subset((:cyl == 8) & (:carb > 3))
+      mt_subset = (~:mtcars).subset((:cyl == 8) & (:carb > 3))
       expect(mt_subset.mpg == R.c(14.3, 10.4, 10.4, 14.7, 13.3, 15.8, 15.0)).to eq true
       expect((mt_subset.cyl == 8).all).to eq true
       expect((mt_subset.carb > 3).all).to eq true

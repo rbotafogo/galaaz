@@ -8,7 +8,7 @@ end
 # problems with package data.table
 # Polyglot.eval("R", "library('Hmisc')")
 
-tooth_growth = R.ToothGrowth
+tooth_growth = ~:ToothGrowth
 tooth_growth.dose = tooth_growth.dose.as__factor
 e = tooth_growth.ggplot(E.aes(x: :dose, y: :len))
 
@@ -22,9 +22,9 @@ R.grid__newpage
 
 # violin plot with mean points (+/- SD)
 # R.stat_summary requires Hmisc
-# print e + R.geom_violin(trim: false) + 
-#       R.stat_summary(fun__data: "mean_sdl",  fun__args: E.list(mult: 1), 
-#                      geom: "pointrange", color: "red")
+print e + R.geom_violin(trim: false) + 
+      R.stat_summary(fun__data: "mean_sdl",  fun__args: E.list(mult: 1), 
+                     geom: "pointrange", color: "red")
 
 # sleep(2)
 # R.grid__newpage
@@ -45,4 +45,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window
-R.dev__off('')
+R.dev__off

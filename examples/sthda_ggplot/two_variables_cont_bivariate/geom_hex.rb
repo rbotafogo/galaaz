@@ -6,13 +6,13 @@ end
 
 Polyglot.eval("R", "library('hexbin')")
 
-diamonds = R.diamonds
+diamonds = ~:diamonds
 c = diamonds.ggplot(E.aes(:carat, :price))
 
 R.awt
 
 # Default plot 
-print c + R.geom_hex('')
+print c + R.geom_hex
 
 sleep(2)
 R.grid__newpage
@@ -28,4 +28,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window
-R.dev__off('')
+R.dev__off

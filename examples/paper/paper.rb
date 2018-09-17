@@ -7,7 +7,7 @@ end
 R.library('ggplot2')
 R.library('grid')
 
-faithful = R.faithful
+faithful = ~:faithful
 
 # sp is the basic plot having in the x axis the eruption data and in y the waiting
 
@@ -31,7 +31,7 @@ R.awt
 
 # parenthesis returns the actual function and not a call to it.
 
-print sp + R.geom_point('') + 
+print sp + R.geom_point + 
       R.stat_density_2d(E.aes_string(fill: '..level..'),
                         geom: "polygon")
 

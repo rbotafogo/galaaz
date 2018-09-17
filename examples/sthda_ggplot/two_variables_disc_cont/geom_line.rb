@@ -15,7 +15,7 @@ R.awt
 # Change line types by groups (supp)
 print df.ggplot(E.aes(x: :dose, y: :len, group: :supp)) +
       R.geom_line(E.aes(linetype: :supp)) +
-      R.geom_point('')
+      R.geom_point
 
 sleep(2)
 R.grid__newpage
@@ -32,4 +32,4 @@ R.grid__newpage
 # a = gets.chomp
 
 # removes the window
-R.dev__off('')
+R.dev__off
