@@ -52,30 +52,6 @@ module R
   end
 
   #----------------------------------------------------------------------------------------
-  #
-  #----------------------------------------------------------------------------------------
-  
-  def self.as__data__frame(r_object)
-    R::Support.exec_function(R::Support.as_data_frame, r_object)
-  end
-
-  #----------------------------------------------------------------------------------------
-  # @bug Method all__equal is necessary because Interop dispatch is not working properly
-  #----------------------------------------------------------------------------------------
-
-  def self.all__equal(*args)
-    R::Support.exec_function(R::Support.all_equal, *args)
-  end
-
-  #----------------------------------------------------------------------------------------
-  # @bug Bug in Interop/FastR that does not call the function subset correctlry
-  #----------------------------------------------------------------------------------------
-
-  def self.subset(*args)
-    R::Support.exec_function(R::Support.subset, *args)
-  end
-
-  #----------------------------------------------------------------------------------------
   # @bug Bug in Interop/FastR that does not call the function awt correctlry
   #----------------------------------------------------------------------------------------
 

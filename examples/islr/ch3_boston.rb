@@ -17,7 +17,7 @@ boston = ~:Boston
 
 puts boston.names
 
-boston_lm = R.lm(:medv =~ :lstat, data: boston)
+boston_lm = R.lm(+:medv =~ +:lstat, data: boston)
 # puts boston_lm.str
 # puts boston_lm.summary
 puts boston_lm.names

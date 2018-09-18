@@ -164,7 +164,6 @@ module R
     #--------------------------------------------------------------------------------------
 
     def setR(method, *args)
-      # @r_interop = R::Support.exec_function_i(method, @r_interop, *args)
       @r_interop = R::Support.exec_function_i(method, @r_interop, *args)
       self
     end
@@ -270,14 +269,6 @@ module R
       R::Support.exec_function_name("tsp", @r_interop)
     end
     
-    #----------------------------------------------------------------------------------------
-    # @bug Bug in Interop/FastR that does not call the function subset correctlry
-    #----------------------------------------------------------------------------------------
-    
-    def subset(*args)
-      R::Support.exec_function(R::Support.subset, r_interop, *args)
-    end
-    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -289,31 +280,13 @@ module R
     end
     
     #--------------------------------------------------------------------------------------
-    # @bug Method all__equal is necessary because Interop dispatch is not working properly
-    #--------------------------------------------------------------------------------------
-
-    def all__equal(other_object, *args)
-      R::Support.exec_function(R::Support.all_equal,
-                               @r_interop, other_object.r_interop, *args)
-    end
-
-    #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
     def pp
-      # print "#{to_s}\n"
-      R::Support.print.call(r_interop)
+      R.print(r_interop)
     end
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
 
-    def levels
-      R::Support.exec_function(R::Support.levels, @r_interop)
-    end
-    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
