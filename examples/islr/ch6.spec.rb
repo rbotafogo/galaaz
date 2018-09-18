@@ -29,7 +29,7 @@ context "ISLR" do
   context "Chapter 6 - Subset Selection Methods - page 244" do
 
     before(:each) do
-      @hitters = R.Hitters
+      @hitters = ~:Hitters
     end
     
     it "Should access the names of the dataset" do

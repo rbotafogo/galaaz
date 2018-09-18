@@ -11,6 +11,6 @@ moneyball = baseball.subset(baseball.Year < 2002)
 # We are making a linear model for predicting wins (W) based on RD
 
 moneyball.RD = moneyball.RS - moneyball.RA
-wins_reg = R.lm(:W =~ :RD, data: moneyball)
+wins_reg = R.lm(+:W =~ +:RD, data: moneyball)
 wins_reg.summary.pp
 

@@ -129,7 +129,7 @@ context "ISLR" do
     it "creates sequences with 'seq'" do
       x = R.seq(1, 10)
       expect(x[5] == 5).to eq true
-      y = R.seq(-R.pi, R.pi, length: 50)
+      y = R.seq(-~:pi, ~:pi, length: 50)
       expect(y[1] == -3.14159265).to eq true
       expect(y[7] == -2.37222302).to eq true
       expect(y[26] == 0.06411414).to eq true

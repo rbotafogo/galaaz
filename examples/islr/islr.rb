@@ -29,6 +29,10 @@ end
 # load ISLR and MASS Libraries
 R.library('ISLR')
 R.library('MASS')
+R.library('ggplot2')
+R.library('grid')
+R.library('gridExtra')
+
 
 require_relative 'ch2.spec'
 require_relative 'ch6.spec'

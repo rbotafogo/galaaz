@@ -24,9 +24,9 @@
 require '../config'
 require 'cantata'
 
-# Polyglot.eval("R", "library('ggplot2')")
-# Polyglot.eval("R", "library('grid')")
-# Polyglot.eval("R", "library('gridExtra')")
+R.library('ggplot2')
+R.library('grid')
+R.library('gridExtra')
 
 module LightBlueTheme
 
@@ -134,7 +134,7 @@ R.awt
 plot = R.grid__arrange(
   LightBlueTheme.graph_title("Cars: wt x mpg"),
   LightBlueTheme.graph_subtitle("1974 Motor Trend US magazine"),
-  R.ggplot(R.mtcars, E.aes(x: :wt, y: :mpg)) +
+  R.ggplot(~:mtcars, E.aes(x: :wt, y: :mpg)) +
   LightBlueTheme.global_theme + # LightBlueTheme.bar_theme +
   R.geom_bar(stat: "identity", fill: "lightblue"),
   ncol: 1,

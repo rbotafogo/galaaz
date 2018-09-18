@@ -70,5 +70,5 @@ class Symbol
   def ~@
     R::Object.build(R::Support.eval(to_s))
   end
- 
+  
 end

@@ -24,13 +24,13 @@
 module R
 
   #--------------------------------------------------------------------------------------
-  #
+  # Module for binary operators with normal elements: matrix, vector, etc.
   #--------------------------------------------------------------------------------------
 
   module ExecBinOp
     
     #--------------------------------------------------------------------------------------
-    #
+    # 
     #--------------------------------------------------------------------------------------
 
     def exec_oper(operator, other_object)
@@ -40,7 +40,7 @@ module R
   end
 
   #--------------------------------------------------------------------------------------
-  #
+  # Module for binary operators when creating an expression (call)
   #--------------------------------------------------------------------------------------
 
   module CallBinOp
@@ -56,29 +56,41 @@ module R
   end
 
   #--------------------------------------------------------------------------------------
-  #
+  # Module for binary operators when creating formulas
   #--------------------------------------------------------------------------------------
 
   module FormulaBinOp
-
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
-    def self.exec_oper(operator, o1, o2)
-      o2 = '.' if o2 == :all
-      R::Language.build(operator, o1, o2)
+    def prep_object(object)
+      
+      case object
+      when :all
+        '.'
+      when R::RSymbol, Symbol
+        object.to_s
+      when R::Language
+        R.deparse(object).substring(2)
+      when String
+        object
+      end
+      
     end
-    
+
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
     
-    def exec_oper(operator, other_object)
-      # other_object = '.' if other_object == :all
-      res = R.reformulate("#{self.to_s} #{operator[1]} #{other_object.to_s}")
-      res.statement = "#{self.to_s} #{operator[1]} #{other_object.to_s}"
-      res
+    def exec_oper(operator, other_object, response = false)
+
+      o1 = prep_object(self)
+      o2 = prep_object(other_object)
+
+      response ? R.reformulate(o2, response: o1) :
+         R.reformulate(R.paste0(o1, operator.delete("`"), o2))
+      
     end
 
   end
@@ -126,7 +138,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def **(other_object)
-      exec_oper("`**`", other_object)
+      exec_oper("`^`", other_object)
     end
 
     #--------------------------------------------------------------------------------------

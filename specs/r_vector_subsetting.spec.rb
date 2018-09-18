@@ -87,7 +87,7 @@ describe R::Vector do
       end
     end
 
-    it "should subset with 'each' getting back a native Ruby element (not R::Vector)" do
+    it "should subset with 'each(:native)' getting back a native Ruby element (not R::Vector)" do
       # in order to access the internal Ruby element from the R::Vector, use 'each' with
       # the :native keyword
       @vect.each(:native) do |elmt|
@@ -95,7 +95,7 @@ describe R::Vector do
       end
     end
 
-    it "should subset with 'each_with_index' getting a Ruby element" do
+    it "should subset with 'each_with_index(:native)' getting a Ruby element" do
       # when using the :native keyword, indexing starts at 0
       @vect.each_with_index(:native) do |elmt, i|
         expect elmt == i + 1

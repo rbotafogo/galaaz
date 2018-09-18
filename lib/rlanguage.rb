@@ -26,19 +26,41 @@ module R
   class Language < Object
     include BinaryOperators
     include FormulaBinOp
+
+    attr_accessor :expression
+    
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def self.to_expression(obj)
+      obj.respond_to?(:expression) ? obj.expression : obj.to_s
+    end
     
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
     def self.build(function_name, *args)
-      R::Language.new(
+      res = R::Language.new(
         R::Support.eval("as.call").
           call(R::Support.parse2list(
                  R::Support.eval(function_name), *args)
               ))
+      res.expression =
+        "#{Language.to_expression(args[0])} #{function_name.delete("`")} #{Language.to_expression(args[1])}"
+      res
     end
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def i
+      "I(#{@expression})"
+    end
+    
+=begin
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -47,7 +69,7 @@ module R
       R::Language.new("`~`", self).
         tap { |x| x.rclass = "formula" }
     end
-    
+=end    
   end
   
 end
