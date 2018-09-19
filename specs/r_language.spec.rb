@@ -83,12 +83,30 @@ describe R::Language do
   end
   
   #========================================================================================
+
+  context "Executing R expressions" do
+
+    it "should eval an R expression in the context of a list" do
+      ct = R.list(a: 10, b: 20, c: 30)
+      exp = :a + :b * :c
+      expect R.eval(exp, ct) == 610
+    end
+
+    it "should eval an R function in the context of a list" do
+      R.x = 5
+      expect R.eval(:x + 10) == 15
+      ct = R.list(x: 20)
+      expect R.eval(:x + 10, ct) == 30
+    end
+    
+  end
+
+
+  #========================================================================================
   context "When working with Formulas" do
     
     it "should create a RSymbol from a Ruby Symbol using +" do
       sym = +:sym
-      # puts sym.typeof
-      # puts sym.rclass
       expect sym.to_s == "sym"
     end
     

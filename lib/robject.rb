@@ -91,57 +91,48 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    # This method needs to be implemented by every R:Object class for each assignment is
-    # possible for a method missing.
-    # For instance, if 'df' is a dataframe, then df.a = R.c(1, 2, 3), will create
-    # column a on the dataframe.  df.a will evaluate to method_missing.
+    #
     #--------------------------------------------------------------------------------------
 
     def method_missing_assign(column_name, arg)
-      # p "method_missing_assign not implemented yet for class #{class}"
+      return setR_name("`[<-`", R.empty_symbol, column_name, arg)
     end
-    
+
     #--------------------------------------------------------------------------------------
-    # @bug
+    #
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args, &block)
 
-      if (block_given?)
-        return R::Support.new_scope(symbol, self, *args, &block)
-      end
-      
       name = R::Support.convert_symbol2r(symbol)
-      
-      if name =~ /(.*)=$/
-        return method_missing_assign($1, args[0])
-      # R function 'eval' needs to be called in a special way, since it expects
-      # the second argument to be an environment.  If the arguments are packed
-      # into a list, then there is no second argument and the function fails to
-      # use the second argument as environment
-      elsif (name == "eval")
-        return R::Object.build(
-                 R::Support.eval("eval")
-                   .call(r_interop, R::Support.parse_arg(args[0])))
-      end
-      
-      # no arguments: 2 options: either a named item of the object or apply the function
-      # to the object
-      if (args.length == 0)
-        # if name is a named item of the object, then return the named item.  Here also
-        # we sometimes get an vector and sometimes a scalar.  Have to check which it is.
+
+      case
+      when block_given?
+        R::Support.new_scope(symbol, self, *args, &block)
+      when name =~ /(.*)=$/
+        method_missing_assign($1, args[0])
+      when name == "eval"
+        # R function 'eval' needs to be called in a special way, since it expects
+        # the second argument to be an environment.  If the arguments are packed
+        # into a list, then there is no second argument and the function fails to
+        # use the second argument as environment
+        R::Support.r_evaluate(r_interop, *args)
+      when args.length == 0
+        # no arguments: 2 options: either a named item of the object or apply the function
+        # to the object
+        # if name is a named item of the object, then return the named item
         named = R::Support.eval("`%in%`").
                   call(name, R::Support.eval("names").call(@r_interop))
-        return (false === named || !(true === named || named[0])) ?
-                 R::Support.exec_function_name(name, @r_interop) :
-                 R::Support.exec_function_name("`[[`", @r_interop, name)
+        (false === named || !(true === named || named[0])) ?
+          R::Support.exec_function_name(name, @r_interop) :
+          R::Support.exec_function_name("`[[`", @r_interop, name)
+      else
+        args.unshift(@r_interop)
+        R::Support.exec_function_name(name, *args)
       end
-      
-      args.unshift(@r_interop)
-      R::Support.exec_function_name(name, *args)
-      
+        
     end
-
+    
     #----------------------------------------------------------------------------------------
     # We use the following notation to access binary R functions such as %in%:
     # R.vec_ "in", list.

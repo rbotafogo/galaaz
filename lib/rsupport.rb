@@ -233,12 +233,10 @@ module R
     # into a list, then there is no second argument and the function fails to
     # use the second argument as environment
     #----------------------------------------------------------------------------------------
-    
+
     def self.r_evaluate(*args)
-      R::Object.build(
-        eval("eval")
-          .call(R::Support.parse_arg(args[0]),
-                R::Support.parse_arg(args[1])))
+      r_args = args.map { |arg| R::Support.parse_arg(arg) }
+      R::Object.build(eval("eval").call(*r_args))
     end
 
     #----------------------------------------------------------------------------------------
