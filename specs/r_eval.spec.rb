@@ -21,7 +21,7 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require '../config'
+# require '../config'
 require 'cantata'
 
 describe R do

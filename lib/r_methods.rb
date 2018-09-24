@@ -32,9 +32,9 @@ module R
     def self.capture
       
       Polyglot.eval("R", <<-R)
-        function(...) {
-          sink(tt <- textConnection("results","w"),split=FALSE);
-          print(...);
+        function(obj, ...) {
+          sink(tt <- textConnection("results","w"), split=FALSE);
+          print(obj, ...);
           sink();
           close(tt);
           results
