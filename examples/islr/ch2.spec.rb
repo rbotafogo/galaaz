@@ -21,10 +21,7 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-if (!$CONFIG)
-  require '../../config' 
-  require 'cantata'
-end
+require 'cantata'
 
 context "ISLR" do
 

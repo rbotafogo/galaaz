@@ -21,18 +21,13 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-if (!$CONFIG)
-  require '../../config' 
-  require 'cantata'
-end
+require 'cantata'
+require 'ggplot'
 
 # load ISLR and MASS Libraries
 R.library('ISLR')
 R.library('MASS')
-R.library('ggplot2')
-R.library('grid')
-R.library('gridExtra')
-
 
 require_relative 'ch2.spec'
+require_relative 'ch3.spec'
 require_relative 'ch6.spec'

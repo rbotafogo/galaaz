@@ -25,11 +25,58 @@ require 'rake/tasklib'
 require 'rake/testtask'
 # require_relative 'version'
 
+#----------------------------------------------------------------------------------------
+#
+#----------------------------------------------------------------------------------------
+
+class MakeTask < Rake::TaskLib
+
+  # Create class variables for the polyglot options and libs
+  @@polyglot_options = "--polyglot --jvm -Xsingle_threaded"
+  @@libs = "-Ilib/ -Ir_requires/"
+
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+  
+  def initialize(group, dir_name, task_name, rspec,
+                 description = "#{group}:#{task_name}")
+    @name = "#{group}:#{task_name}"
+    @filepath = "#{dir_name}/#{task_name}"
+    @group = group
+    @description = description
+    @rspec = rspec
+    
+    yield self if block_given?
+    define
+  end
+
+  #----------------------------------------------------------------------------------------
+  # Actual TruffleRuby command (with options) to run the example
+  #----------------------------------------------------------------------------------------
+
+  def make_task
+    @rspec ?
+      (sh %{ ruby #{@@polyglot_options} #{@@libs} -S rspec #{@filepath}.rb -f documentation }) :
+      (sh %{ ruby #{@@polyglot_options} #{@@libs} -S #{@filepath}.rb })
+  end
+
+  #----------------------------------------------------------------------------------------
+  # Creates the tasks.  It the task is already defined, then append to it (enhance)
+  #----------------------------------------------------------------------------------------
+
+  def define
+    desc @description
+    Rake::Task.task_defined?(@name) ? Rake::Task[@name].enhance { make_task } :
+      (task(@name) { make_task } )
+  end
+  
+end
+
 geoms = FileList['examples/sthda_ggplot/**/*.rb']
 specs = FileList['specs/**/*.rb']
-
-polyglot_options = "--polyglot --jvm -Xsingle_threaded"
-libs = "-Ilib/ -Ir_requires/"
+master_list = FileList['examples/50Plots_MasterList/**/*.rb']
+islr = FileList['examples/islr/**/*.rb']
 
 # task :default => "tests:specs"
 
@@ -41,12 +88,11 @@ libs = "-Ilib/ -Ir_requires/"
 specs.each do |f|
   task_name = File.basename(f, ".rb")
   dir_name = File.dirname(f)
-  desc "Running spec #{task_name}"
-  task "specs:#{task_name}" do
-    sh %{ ruby #{polyglot_options} #{libs} -S rspec #{dir_name}/#{task_name}.rb -f documentation }  
-  end
+  MakeTask.new("specs", dir_name, task_name, true, <<-Desc)
+    Executes spec #{task_name}
+  Desc
 end
-
+  
 #===========================================================================================
 # Creates tasks for ggplot graphics from sthda website
 # Running 'rake sthda:all' will run a slide show of all plots available 
@@ -55,31 +101,36 @@ end
 geoms.each do |f|
   task_name = File.basename(f, ".rb")
   dir_name = File.dirname(f)
-  desc "Running geom #{task_name}"
-  task "sthda:#{task_name}" do
-    sh %{ ruby #{polyglot_options} #{libs} -S #{dir_name}/#{task_name}.rb }  
-  end
+  MakeTask.new("sthda", dir_name, task_name, false, <<-Desc)
+    ggplot for #{task_name}
+  Desc
 end
 
 #===========================================================================================
-namespace 'examples' do
+# Creates tasks for ggplot graphics from r-statistics.co website
+# Running 'rake master_list:all' will run a slide show of all plots available 
+#===========================================================================================
 
-  #-------------------------------------------------------------------------------------------
-  desc "Master list of nice ggplot graphics extracted from http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html"
-  task :master_list do
-    Dir.chdir "examples/50Plots_MasterList"
-    sh %{ ruby #{polyglot_options} #{libs} -S master_list.rb }  
-  end
-
-  #-------------------------------------------------------------------------------------------
-  desc "Examples from the book 'Introduction to Statistical Learning'"
-  task :islr do
-    Dir.chdir "examples/islr"
-    sh %{ ruby #{polyglot_options} #{libs} -S rspec islr.rb -f documentation }  
-  end
-
+master_list.each do |f|
+  task_name = File.basename(f, ".rb")
+  dir_name = File.dirname(f)
+  MakeTask.new("master_list", dir_name, task_name, false, <<-Desc)
+     #{task_name} from: http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html
+  Desc
 end
 
+#===========================================================================================
+# Creates tasks for the Intruduction to Statistical Learning book labs
+# Running 'rake islr:all' will run all specs
+#===========================================================================================
+
+islr.each do |f|
+  task_name = File.basename(f, ".rb")
+  dir_name = File.dirname(f)
+  MakeTask.new("islr", dir_name, task_name, true, <<-Desc)
+    Executes islr #{task_name}
+  Desc
+end
 
 =begin
 name = "#{$gem_name}-#{$version}.gem"

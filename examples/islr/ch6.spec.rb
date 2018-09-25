@@ -21,7 +21,6 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require '../../config'
 require 'cantata'
 
 context "ISLR" do

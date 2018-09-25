@@ -21,9 +21,8 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-if (!$CONFIG)
-  require '../../config' 
-  require 'cantata'
-end
+require 'cantata'
+require 'ggplot'
 
 require_relative 'ch3_boston'
+require_relative 'ch3_multiple_regression'
