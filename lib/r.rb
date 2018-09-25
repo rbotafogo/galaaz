@@ -52,11 +52,30 @@ module R
   end
 
   #----------------------------------------------------------------------------------------
-  # @bug Bug in Interop/FastR that does not call the function awt correctlry
+  # Checks to see if the given libs are installed in R and if not, install them
+  # @param libs [Array] Array of strings with the names of the libraries to check and
+  # install
   #----------------------------------------------------------------------------------------
 
-  def self.awt
-    R::Support.exec_function(R::Support.awt)
+  def self.install_rlibs(*libs)
+
+    packages = R.c(libs)
+
+    new_packages = packages[!(packages._ :in, R.installed__packages[:all, "Package"])]
+    if(new_packages.size > 0)
+      puts "The following packages are missing and will be installed:\n #{new_packages}"
+      R.install__packages(new_packages)
+    end
+    
+  end
+
+  #----------------------------------------------------------------------------------------
+  #
+  #----------------------------------------------------------------------------------------
+
+  def self.install_and_loads(*libs)
+    R.install_rlibs(*libs)
+    R.library(*libs)
   end
   
 end

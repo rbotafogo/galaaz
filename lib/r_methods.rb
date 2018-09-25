@@ -84,10 +84,6 @@ module R
       Polyglot.eval("R", "function(x) row.names(x)")
     end
 
-    def self.awt
-      Polyglot.eval("R", "function() awt()")
-    end
-
   end
   
 end

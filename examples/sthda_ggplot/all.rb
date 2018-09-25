@@ -4,8 +4,6 @@
 # @author Rodrigo Botafogo
 #
 # Copyright © 2018 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
-# and distribute this software and its documentation, without fee and without a signed 
-# licensing agreement, is hereby granted, provided that the above copyright notice, this 
 # paragraph and the following two paragraphs appear in all copies, modifications, and 
 # distributions.
 #
@@ -24,23 +22,15 @@
 require 'cantata'
 require 'ggplot'
 
-# packages that need to be installed:
-# install.packages('ggplot2')
-# install.packages('grid')
-# install.packages('gridExtra')
-
 # install.packages('quantreg')
 # install.packages('hexbin')
+# Library 'quantreg' is needed in misc
+R.install_and_loads('quantreg', 'hexbin')
 
 # Package Hmisc does not yet install on graalvm because of
 # problems with package data.table
 # install.packages('Hmisc')
-
-# Library 'quantreg' is needed in misc
-R.library('quantreg')
-R.library('hexbin')
-# Hmisc is not working on rc6
-# R.library('Hmisc')
+# R.install_and_loads('Hmisc')
 
 require_relative 'qplots/scatter_plots'
 require_relative 'qplots/box_violin_dot'
