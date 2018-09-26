@@ -53,6 +53,8 @@ sleep(2)
 R.grid__newpage
 
 print a + R.geom_area(E.aes_string(y: "..density.."), stat: "bin")
+sleep(2)
+
 # a = gets.chomp
 
 # removes the window and creates a new one
