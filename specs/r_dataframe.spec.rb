@@ -36,26 +36,9 @@ describe R::DataFrame do
       # create a DataFrame from a vector
       df = R.as__data__frame(vec)
       expect(df[1, "V1"]).to eq 1
-      # expect(df[:all, "V1"].identical(R.c(1, 2))).to eq true
-      # expect(df[1, :all].identical(R.c(V1: 1, V2: 3, V3: 5))).to eq true
+      expect df[1, 'V2'] == 3
+      expect df[1, :all] == R.c(V1: 1, V2: 3, V3: 5)
       
-      # df[:all, "V1"].pp
-      df[1, :all].pp
-      vec = R.c(V1: 1, V2: 3, V3: 5)
-      vec.dim = R.c(1, 3)
-      vec.pp
-      
-      # df["V2"].pp
-      # df["V3"].pp
-      
-      # df["V2"].pp
-      # df["V3"].pp
-
-    end
-
-    it "should accept the use of the apply family of functions" do
-      # unlist(lapply(mtcars, class))
-      # R.mtcars.lapply(R.rclass).unlist.pp
     end
 
   end
@@ -91,18 +74,48 @@ describe R::DataFrame do
     it "should do 'each_column'" do
       
       mtcars = ~:mtcars
+      
       mtcars.each_column do |col, col_name|
-        case col_name
+        # col_name is an R::Vector with one string element.
+        # Extract the 'native' value by indexing with '<< 0'
+        case col_name << 0
         when "mpg"
-          
+          expect col[1] == 21
+          expect col[9] == 22.8
+          expect col[32] == 21.4
         when "cyl"
-          
+          expect col[1] == 6
+          expect col[10] == 6
+          expect col[32] == 4
         when "disp"
-          
-        when "hp"
-          
+          expect col[1] == 160
+          expect col[32] == 121
         end
         
+      end
+      
+    end
+
+    it "should do 'each_row'" do
+
+      mtcars = ~:mtcars
+      
+      mtcars.each_row do |row, row_name|
+        case row_name << 0
+        when "Mazda RX4"
+          expect row['mpg'] == 21
+          expect row.qsec == 16.46
+        when "Hornet Sportabout"
+          expect row['cyl'] == 8
+          expect row['wt'] == 3.44
+        when "Merc 240D"
+          expect row['hp'] == 62
+          expect row.drat == 3.69
+        when "Volvo 142E"
+          expect row.hp == 109
+          expect row.am == 1
+          expect row.carb == 2
+        end
         
       end
       

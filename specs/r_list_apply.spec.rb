@@ -23,6 +23,7 @@
 
 # require '../config'
 require 'cantata'
+R.require 'stats'
 
 describe R::List do
 
@@ -77,22 +78,21 @@ describe R::List do
     end
 
     it "should allow using sapply and quantile" do
-      pending "Check the return value and how to access the elements"
       quant = R.sapply(@x, @q)
-      quant.pp
-      R.str(quant)
-      quant.a.pp
+      expect quant.rclass == 'matrix'
+      expect quant[:all, 'a'] == R.c(1, 3.25, 5.50, 7.75, 10)
+      expect quant[3, 'beta'] == 1
     end
     
     it "should sapply to a sequence" do
       # sapply isn’t content to always return a list: it attempts to simplify
       # the results into a non-list vector if possible.
-      R.library("stats")
-      
       i39 = R.sapply((3..9), "seq")
-      i39.pp
+      expect i39[[1]] == R.c(1, 2, 3)
+      expect i39[[7]] == R.c(1, 2, 3, 4, 5, 6, 7, 8, 9)
       sap = R.sapply(i39, ~:fivenum)
-      sap.pp
+      expect sap[1, 1] == 1
+      expect sap[5, 7] == 9
     end
   
   end
