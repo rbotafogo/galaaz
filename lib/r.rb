@@ -75,7 +75,7 @@ module R
 
   def self.install_and_loads(*libs)
     R.install_rlibs(*libs)
-    R.library(*libs)
+    libs.each { |lib| R.require lib }
   end
   
 end

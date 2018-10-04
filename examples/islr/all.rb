@@ -25,8 +25,7 @@ require 'cantata'
 require 'ggplot'
 
 # load ISLR and MASS Libraries
-R.library('ISLR')
-R.library('MASS')
+R.install_and_loads('ISLR', 'MASS')
 
 require_relative 'ch2.spec'
 require_relative 'ch3.spec'

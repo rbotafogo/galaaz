@@ -120,7 +120,7 @@ master_list.each do |f|
 end
 
 #===========================================================================================
-# Creates tasks for the Intruduction to Statistical Learning book labs
+# Creates tasks for the Introduction to Statistical Learning book labs
 # Running 'rake islr:all' will run all specs
 #===========================================================================================
 

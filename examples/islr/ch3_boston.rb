@@ -23,8 +23,7 @@
 require 'cantata'
 require 'ggplot'
 
-R.library('MASS')
-R.library('ISLR')
+R.install_and_loads('ISLR', 'MASS')
 
 # Simple linear regression from ISLR book.  Chapter 3 Lab
 
@@ -33,7 +32,7 @@ boston = ~:Boston
 
 puts boston.names
 
-boston_lm = R.lm(+:medv =~ +:lstat, data: boston)
+boston_lm = R.lm(+:medv =~ +:lstat, data: :Boston)
 # puts boston_lm.str
 # puts boston_lm.summary
 puts boston_lm.names

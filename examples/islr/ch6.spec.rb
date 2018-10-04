@@ -23,6 +23,8 @@
 
 require 'cantata'
 
+R.install_and_loads('ISLR', 'MASS')
+
 context "ISLR" do
 
   context "Chapter 6 - Subset Selection Methods - page 244" do

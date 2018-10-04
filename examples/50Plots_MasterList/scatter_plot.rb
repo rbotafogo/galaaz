@@ -26,7 +26,6 @@ require 'ggplot'
 
 # load package and data
 R.options(scipen: 999)  # turn-off scientific notation like 1e+48
-R.library('ggplot2')
 R.theme_set(R.theme_bw)  # pre-set the bw theme.
 
 midwest = ~:midwest
