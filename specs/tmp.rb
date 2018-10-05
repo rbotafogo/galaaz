@@ -1,16 +1,84 @@
 # coding: utf-8
-require '../config'
-require 'cantata'
 
-R.library('MASS')
-R.library('ISLR')
+##########################################################################################
+# @author Rodrigo Botafogo
+#
+# Copyright © 2018 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
+# and distribute this software and its documentation, without fee and without a signed 
+# licensing agreement, is hereby granted, provided that the above copyright notice, this 
+# paragraph and the following two paragraphs appear in all copies, modifications, and 
+# distributions.
+#
+# IN NO EVENT SHALL RODRIGO BOTAFOGO BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, 
+# INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING OUT OF THE USE OF 
+# THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF RODRIGO BOTAFOGO HAS BEEN ADVISED OF THE 
+# POSSIBILITY OF SUCH DAMAGE.
+#
+# RODRIGO BOTAFOGO SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE 
+# SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED "AS IS". 
+# RODRIGO BOTAFOGO HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, 
+# OR MODIFICATIONS.
+##########################################################################################
 
-lst = R.list("Hello", "world", R.c(1, 2, 3), true, 2.45, ~:c)
-puts lst
+require 'galaaz'
 
+class ArrayEmul
+  attr_reader :array
 
-lm_fit5 = R.lm(R.formula("medv ~ poly(lstat, 5)"), data: :Boston)
-#puts lm_fit5.summary
+  def initialize
+    @array = []
+  end
+
+  def method_missing(symbol, *args)
+    @array.send(symbol, *args)
+  end
+
+  def to_s
+    @array.to_s
+  end
+
+  def pp
+    puts @array.to_s
+  end
+
+  def fetch(index)
+    @array[index[0]]
+  end
+  
+end
+
+make_obj = Polyglot.eval("R", <<-R)
+  function(ruby_obj) {
+    x = list(ruby_obj);
+    attr(x, "class") = "ruby_obj";
+    x;
+   }
+R
+
+rf = Polyglot.eval("R", <<-R)
+  function(ruby_obj) {
+    # print(ruby_obj);
+    attr(ruby_obj, "class") = "ruby_obj"
+    print(ruby_obj@to_s());
+    print(class(ruby_obj));
+    # df = data.frame(ruby_obj);
+  }
+
+  print.ruby_obj = function(x, index, ...) {
+    print(index);
+    x[[1]]@fetch(index);
+  }
+
+R
+
+h = ArrayEmul.new
+h << 1 << 2 << 3
+puts h
+
+r_obj = make_obj.call(h)
+p Polyglot.eval("R", "print").call(r_obj, 0)[0]
+
 
 
 

@@ -21,10 +21,11 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
 diamonds = ~:diamonds
+
 c = diamonds.ggplot(E.aes(:carat, :price))
 
 R.awt

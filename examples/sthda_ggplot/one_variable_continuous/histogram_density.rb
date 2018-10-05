@@ -21,7 +21,7 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
 R.set__seed(1234)

@@ -21,11 +21,10 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
-R.library('MASS')
-R.library('ISLR')
+R.install_and_loads('ISLR', 'MASS')
 
 # Multiple linear regression from ISLR book.  Chapter 3 Lab, pg 113
 lm_fit = R.lm(+:medv =~ +:lstat + +:age, data: :Boston)

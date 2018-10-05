@@ -21,10 +21,12 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
 faithful = ~:faithful
+puts faithful
+
 sp = faithful.ggplot(E.aes(x: :eruptions, y: :waiting)) 
 
 R.awt

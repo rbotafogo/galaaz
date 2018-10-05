@@ -1,6 +1,6 @@
 # coding: utf-8
-require '../config'
-require 'cantata'
+
+require 'galaaz'
 
 # This dataset comes from Baseball-Reference.com.
 baseball = R.read__csv("baseball.csv")

@@ -21,8 +21,8 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
-R.install_and_loads('ggplot2')
+require 'galaaz'
+require 'ggplot'
 
 context "ISLR" do
 
@@ -117,7 +117,7 @@ context "ISLR" do
 
     # does not print anything... open issue!
     it "should create a jpeg file" do
-      R.jpeg("/home/rbotafogo/desenv/cantata/examples/islr/Figure.jpg")
+      R.jpeg("/home/rbotafogo/desenv/galaaz/examples/islr/Figure.jpg")
       x = R.rnorm(100)
       y = R.rnorm(100)
       plot = R.qplot(x, y, col: "green")

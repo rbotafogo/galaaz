@@ -21,7 +21,7 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 
 R.install_and_loads('ISLR', 'MASS')
 

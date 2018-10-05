@@ -31,7 +31,7 @@ module R
     
     #--------------------------------------------------------------------------------------
     # subset a vector with an index
-    # @index The vector index.
+    # @param index [Array] The vector index.
     #--------------------------------------------------------------------------------------
 
     def[](index)
@@ -44,8 +44,9 @@ module R
     
     #--------------------------------------------------------------------------------------
     # subset assign a vector with an index to a value
-    # @index The vector index
-    # @values The values to assign to the index.  Note that index can span multiple
+    # @param index [Array] The vector index
+    # @param values [R::Object] The values to assign to the index.  Note that
+    # index can span multiple
     # values, for ex., R.c(2, 3, 5)
     #--------------------------------------------------------------------------------------
 
@@ -62,15 +63,6 @@ module R
     def[]=(index, values)
       setR_name("`[<-`", index, values)
       self
-      # r_values = R.parse(values)
-      # r_index = R.parse(index)
-      # l = R::Support.parse2list(@r_interop, index, values)
-      # R::Object.build(R::Support.eval("`[<-`").call(@r_interop, *r_index, *r_values))
-      
-      #p "assigning"
-      #p index
-      #p values
-      #R::Support.exec_function_name("`[<-`", @r_interop, index, values)
     end
 
     #--------------------------------------------------------------------------------------

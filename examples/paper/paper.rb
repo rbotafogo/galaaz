@@ -1,11 +1,7 @@
 # coding: utf-8
-if (!$CONFIG)
-  require '../../config' 
-  require 'cantata'
-end
 
-R.library('ggplot2')
-R.library('grid')
+require 'galaaz'
+require 'ggplot'
 
 faithful = ~:faithful
 

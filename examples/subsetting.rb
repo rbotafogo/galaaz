@@ -1,6 +1,6 @@
 # coding: utf-8
-require '../config'
-require 'cantata'
+
+require 'galaaz'
 
 # This examples were extracted from "Advanced R", by Hadley Wickham, available on the
 # web at: http://adv-r.had.co.nz/Subsetting.html#applications

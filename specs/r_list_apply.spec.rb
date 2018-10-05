@@ -21,8 +21,7 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-# require '../config'
-require 'cantata'
+require 'galaaz'
 R.require 'stats'
 
 describe R::List do

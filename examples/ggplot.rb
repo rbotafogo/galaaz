@@ -21,12 +21,8 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require '../config'
-require 'cantata'
-
-R.library('ggplot2')
-R.library('grid')
-R.library('gridExtra')
+require 'galaaz'
+require 'ggplot'
 
 module LightBlueTheme
 

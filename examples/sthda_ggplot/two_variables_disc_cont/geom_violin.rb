@@ -21,7 +21,7 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
 # Package Hmisc does not yet install on graalvm because of
@@ -30,6 +30,8 @@ require 'ggplot'
 
 tooth_growth = ~:ToothGrowth
 tooth_growth.dose = tooth_growth.dose.as__factor
+puts tooth_growth
+
 e = tooth_growth.ggplot(E.aes(x: :dose, y: :len))
 
 R.awt

@@ -20,7 +20,7 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
 R.install_and_loads('ISLR', 'MASS')

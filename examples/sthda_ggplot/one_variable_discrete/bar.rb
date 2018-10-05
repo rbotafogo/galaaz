@@ -21,8 +21,10 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
+
+# puts ~:mpg
 
 b = R.ggplot(:mpg, E.aes(:fl))
 

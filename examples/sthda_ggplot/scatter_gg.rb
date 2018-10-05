@@ -21,12 +21,14 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
 R.awt
 
 mtcars = ~:mtcars
+
+puts mtcars
 
 # Basic scatter plot
 # Rementer that with ggplot, print is necessary to output

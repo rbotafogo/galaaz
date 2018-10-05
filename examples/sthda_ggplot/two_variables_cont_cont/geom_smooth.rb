@@ -21,11 +21,12 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
 mtcars = ~:mtcars
 mtcars.cyl = R.as__factor(mtcars.cyl)
+puts mtcars
 
 b = mtcars.ggplot(E.aes(x: :wt, y: :mpg))
    
@@ -58,7 +59,6 @@ print b + R.geom_point(E.aes(color: :cyl, shape: :cyl)) +
 
 sleep(2)
 R.grid__newpage
-
 
 # a = gets.chomp
 

@@ -21,12 +21,13 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
 Polyglot.eval("R", "library('hexbin')")
 
 diamonds = ~:diamonds
+
 c = diamonds.ggplot(E.aes(:carat, :price))
 
 R.awt

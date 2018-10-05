@@ -21,10 +21,11 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'cantata'
+require 'galaaz'
 require 'ggplot'
 
 economics = ~:economics
+
 d = economics.ggplot(E.aes(x: :date, y: :unemploy))
 
 R.awt
