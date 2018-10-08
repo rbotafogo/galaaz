@@ -7,12 +7,12 @@ Gem::Specification.new do |gem|
   gem.name    = $gem_name
   gem.version = $version
   gem.date    = Date.today.to_s
-
+  gem.executables << 'galaaz'
   gem.summary     = "Tightly coupling Ruby and R"
   gem.description = <<-EOF
 Galaaz brings the power of R to the Ruby community. Galaaz 
 is based on TruffleRuby and FastR, GraalVM-based interpreters for Ruby and the R language 
-for statistical computing.
+for statistical computing respectively.
 
 Over the past two decades, the R language for statistical computing has emerged as the de 
 facto standard for analysts, statisticians, and scientists. Today, a wide range of 
@@ -33,22 +33,22 @@ EOF
   gem.authors  = ['Rodrigo Botafogo']
   gem.email    = 'rodrigo.a.botafogo@gmail.com'
   gem.homepage = 'http://github.com/rbotafogo/galaaz/wiki'
-  gem.license = 'GPL'
+  gem.license = 'BSD-2-Clause'
 
   # This gem targets TruffleRuby only
-  gem.platform='java'
+  # gem.platform='java'
 
-  gem.add_development_dependency('CodeWriter', "~> 0.1")
-  gem.add_development_dependency('rspec', "~> 3.5")
-  gem.add_development_dependency('simplecov', "~> 0.11")
-  gem.add_development_dependency('yard', "~> 0.8")
-  gem.add_development_dependency('rake', '~> 10.3')
+  gem.add_development_dependency('rspec', "~> 3.8")
+  gem.add_development_dependency('simplecov', "~> 0.16")
+  gem.add_development_dependency('rdoc', "~> 5.0")
+  gem.add_development_dependency('rake', '~> 12.0')
 
   # ensure the gem is built out of versioned files
-  gem.files = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
-                  '{lib, specs, examples, r_requires, R}/**/*',
-                  '{bin, doc}/**/*']
+  fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
+            'lib/**/*', 'specs/**/*', 'examples/**/*', 'r_requires/**/*',
+            'bin/**/*']
+  gem.files = fls
 
-  spec.metadata["yard.run"] = "yri" # use "yard" to build full HTML docs
+  gem.metadata["yard.run"] = "yri" # use "yard" to build full HTML docs
   
 end

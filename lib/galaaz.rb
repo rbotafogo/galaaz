@@ -23,4 +23,5 @@
 
 require_relative 'r'
 
+$LOAD_PATH << File.dirname(File.expand_path('..', __FILE__)) + "/r_requires"
 

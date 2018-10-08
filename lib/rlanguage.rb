@@ -47,8 +47,7 @@ module R
           call(R::Support.parse2list(
                  R::Support.eval(function_name), *args)
               ))
-      res.expression =
-        "#{Language.to_expression(args[0])} #{function_name.delete("`")} #{Language.to_expression(args[1])}"
+      res.expression = "#{Language.to_expression(args[0])} #{function_name.delete("`")} #{Language.to_expression(args[1])}"
       res
     end
 
@@ -60,17 +59,6 @@ module R
       "I(#{@expression})"
     end
     
-
-=begin
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-    
-    def ~@
-      R::Language.new("`~`", self).
-        tap { |x| x.rclass = "formula" }
-    end
-=end    
   end
   
 end

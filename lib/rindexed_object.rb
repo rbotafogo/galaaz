@@ -34,7 +34,7 @@ module R
     # @param index [Array] The vector index.
     #--------------------------------------------------------------------------------------
 
-    def[](index)
+    def [](index)
       if (index.is_a? Array)
         R::Support.exec_function_name("`[[`", @r_interop, R.internal_eval(:c, *index))
       else
@@ -50,17 +50,7 @@ module R
     # values, for ex., R.c(2, 3, 5)
     #--------------------------------------------------------------------------------------
 
-=begin    
-    def[]=(index, values)
-      r_values = R.parse(values)
-      dbk, r_index = parse_index(index)
-      dbk ?
-        R::Object.build(R.dbk_assign.call(@r_interop, *r_index, *r_values)) :
-        R::Object.build(R.subset_assign.call(@r_interop, *r_index, *r_values))
-    end
-=end
-    
-    def[]=(index, values)
+    def []=(index, values)
       setR_name("`[<-`", index, values)
       self
     end

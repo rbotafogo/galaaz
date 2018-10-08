@@ -23,7 +23,8 @@
 
 require 'rake/tasklib'
 require 'rake/testtask'
-# require_relative 'version'
+
+require_relative 'version'
 
 #----------------------------------------------------------------------------------------
 #
@@ -33,7 +34,7 @@ class MakeTask < Rake::TaskLib
 
   # Create class variables for the polyglot options and libs
   @@polyglot_options = "--polyglot --jvm -Xsingle_threaded"
-  @@libs = "-Ilib/ -Ir_requires/"
+  @@libs = "-Ilib/" # -Ir_requires/"
 
   #----------------------------------------------------------------------------------------
   #
@@ -77,8 +78,6 @@ geoms = FileList['examples/sthda_ggplot/**/*.rb']
 specs = FileList['specs/**/*.rb']
 master_list = FileList['examples/50Plots_MasterList/**/*.rb']
 islr = FileList['examples/islr/**/*.rb']
-
-# task :default => "tests:specs"
 
 #===========================================================================================
 # Creates tasks for all specs.
@@ -131,6 +130,9 @@ islr.each do |f|
     Executes islr #{task_name}
   Desc
 end
+
+task :default => "sthda:all"
+
 
 =begin
 name = "#{$gem_name}-#{$version}.gem"

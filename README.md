@@ -30,3 +30,15 @@ Inspecting vec, show that it is a Truffle::Interop object. Although it is possib
 Interop objects in a program, doing so is hard and error prone. Bellow, we show how integration of
 Ruby and R can greatly simplify the development of Polyglot application.
 
+# Installation
+
+* gu install ruby
+* run post_install_hook.sh (as instructed)
+* gu install R
+* configure_fastr (as instructed)
+* gu rebuild-images ruby (might not be necessary - time and cpu intensive)
+* gem install galaaz
+* execute 'galaaz' to see a slide show with many graphics
+* execute 'galaaz -T' to see all available examples
+
+
