@@ -100,15 +100,96 @@ In order to run the 'specs' the following Ruby package is necessary:
 
 ## Running the Demo
 
-on the console do
+This demo was extracted from: http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html.
+
+On the console do
 
     > rake master_list:scatter_plot
 
 Doing this will show the following plot:
 
-![Midwest Scatterplot][examples/50Plots_MasterList/Images/midwest-scatterplot.PNG?raw=true]
+![midwest-scatterplot](https://user-images.githubusercontent.com/3999729/46742999-87bc2480-cc7e-11e8-9f16-31c3437e4a58.PNG)
+
+## The Code
+
+In R, the code to generate this plot is the following
+
+    # install.packages("ggplot2")
+    # load package and data
+    options(scipen=999)  # turn-off scientific notation like 1e+48
+    library(ggplot2)
+    theme_set(theme_bw())  # pre-set the bw theme.
+    data("midwest", package = "ggplot2")
+    # midwest <- read.csv("http://goo.gl/G1K41K")  # bkup data source
+
+    # Scatterplot
+    gg <- ggplot(midwest, aes(x=area, y=poptotal)) + 
+          geom_point(aes(col=state, size=popdensity)) + 
+          geom_smooth(method="loess", se=F) + 
+          xlim(c(0, 0.1)) + 
+          ylim(c(0, 500000)) + 
+          labs(subtitle="Area Vs Population", 
+               y="Population", 
+               x="Area", 
+               title="Scatterplot", 
+               caption = "Source: midwest")
+
+    plot(gg)
 
 
+The following now, is the code in Ruby and the one that you have just ran if you typed in your
+console: "rake master_list:scatter_plot"
+
+    require 'galaaz'
+    require 'ggplot'
+
+    # load package and data
+    R.options(scipen: 999)  # turn-off scientific notation like 1e+48
+    R.theme_set(R.theme_bw)  # pre-set the bw theme.
+
+    midwest = ~:midwest
+    # midwest <- read.csv("http://goo.gl/G1K41K")  # bkup data source
+
+    R.awt
+
+    # Scatterplot
+    gg = midwest.ggplot(E.aes(x: :area, y: :poptotal)) + 
+         R.geom_point(E.aes(col: :state, size: :popdensity)) + 
+         R.geom_smooth(method: "loess", se: false) + 
+         R.xlim(R.c(0, 0.1)) + 
+         R.ylim(R.c(0, 500000)) + 
+         R.labs(subtitle: "Area Vs Population", 
+                y: "Population", 
+                x: "Area", 
+                title: "Scatterplot", 
+                caption: "Source: midwest")
+
+    puts gg
+
+Both codes are very similar.  The Ruby code requires the use of "R." before calling any functions,
+for instance R function 'geom_point' becomes 'R.geom_point' in Ruby.  R named parameters such as
+(col = state, size = popdensity), becomes in Ruby (col: :state, size: :popdensity).
+
+One last
+point that needs to be observed is the call to the 'aes' function.  In Ruby instead of doing
+'R.aes', we use 'E.aes'.  The explanation of why E.aes is needed is an advanced topic in R and
+depends on what is know as Non-standard Evaluation (NSE) in R.  In short, function 'aes' is lazily
+evaluated in R, i.e., in R when calling geom_point(aes(col=state, size=popdensity)), function
+geom_point receives as argument something similar to a string containing
+'aes(col=state, size=popdensity)', and the aes function will be evaluated inside the geom_point
+function.  In Ruby, there is no Lazy evaluation and doing R.aes would try to evaluate aes
+immediately.  In order to delay the evaluation of function aes we need to use E.aes.  The
+interested reader on NSE in R is directed to http://adv-r.had.co.nz/Computing-on-the-language.html.
+
+## An extendion to the example
+
+If both codes are so similar, then why would one use Ruby instead of R and what good is galaaz
+after all?
+
+Ruby is a modern OO language with numerous very useful constructs such as classes, modules, blocks,
+procs, etc.  The example above focus on the coupling of both languages, and does not show the
+use of other Ruby constructs.  In the following example, we will show a more complex example using
+other Ruby constructs.
 
 
 
