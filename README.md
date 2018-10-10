@@ -12,9 +12,9 @@ for very tight coupling between the two languages to the point that the Ruby dev
 not need to know that there is an R engine running.  For this to happen we use new
 technologies provided by Oracle, with GraalVM, TruffleRuby and FastR:
 
-GraalVM is a universal virtual machine for running applications written in JavaScript,
-Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin, and LLVM-based languages
-such as C and C++.
+     GraalVM is a universal virtual machine for running applications written in JavaScript,
+     Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin, and LLVM-based languages
+     such as C and C++.
 
      GraalVM removes the isolation between programming languages and enables interoperability in a
      shared runtime. It can run either standalone or in the context of OpenJDK, Node.js,
@@ -40,7 +40,7 @@ While in the low level Polyglot APIs, developers must be knowledgeable about the
 their boundaries and calling procedures, in Galaaz, developers use normal Ruby classes,
 modules, etc. 
 
-# Running Ruby and R - The Polyglot Environment
+## The Polyglot Low Level API
 
 TruffleRuby (the Polyglot implementation of Ruby) can access, through the Polyglot interface,
 any other language available in the environment. For instance, in the code bellow, TruffleRuby
@@ -59,7 +59,8 @@ makes a call to JavaScript:
     puts js_obj[:msg] 
     puts js_obj[:payload].join(' ')
 
-Calling R is similar to the above. For example, in R, method 'c' concatenates its arguments making a vector:
+Calling R is similar to the above. For example, in R, method 'c' concatenates its arguments
+making a vector:
 
     vec = Polyglot.eval('R', 'c').call(1, 2, 3) 
     puts vec[0] 
@@ -71,6 +72,52 @@ As can be seen, vec is a vector with the first element (indexed at 0 - Ruby inde
 Inspecting vec, show that it is a Truffle::Interop object. Although it is possible to work with
 Interop objects in a program, doing so is hard and error prone. Bellow, we show how integration of
 Ruby and R can greatly simplify the development of Polyglot application.
+
+# Galaaz Demo
+
+## Prerequisites
+
+* GraalVM (>= rc7)
+* TruffleRuby
+* FastR
+
+The following R packages will be automatically installed when necessary, but could be installed prior
+to the demo if desired:
+
+* ggplot2
+* gridExtra
+
+Installation of R packages requires a development environment.  In Linux, the gnu compiler and
+tools should be enough.  I am not sure what is needed on the Mac.
+
+In order to run the 'specs' the following Ruby package is necessary:
+
+* gem install rspec
+
+## Preparation
+
+* gem install galaaz
+
+## Running the Demo
+
+on the console do
+
+    > rake master_list:scatter_plot
+
+Doing this will show the following plot:
+
+![Midwest Scatterplot][examples/50Plots_MasterList/Images/midwest-scatterplot.PNG?raw=true]
+
+
+
+
+
+# Galaaz High Level Constructs
+
+In R, the basic 
+
+## Vectors
+
 
 # Installation
 
