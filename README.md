@@ -171,7 +171,9 @@ Let's imagine that we work in a corporation that has its plot themes.  So, it ha
 'CorpTheme' module.  Plots in this corporation should not have grids, numbers in labels should
 not use scientific notation and the prefered color is blue.
 
-
+    # CorpTheme.rb
+    # defines the corporate theme for all plots
+    
     module CorpTheme
 
       #--------------------------------------------------------------------------------------
@@ -207,9 +209,9 @@ not use scientific notation and the prefered color is blue.
 
 We now define a ScatterPlot class:
 
-    require 'galaaz'
-    require 'ggplot'
-
+    # ScatterPlot.rb
+    # creates a scatter plot and allow some configuration
+    
     class ScatterPlot
 
       attr_accessor :title
@@ -298,6 +300,12 @@ We now define a ScatterPlot class:
     end
 
 And this is the final code for making the scatter plot with the midwest data
+
+    require 'galaaz'
+    require 'ggplot'
+
+    require 'CorpTheme'
+    require 'ScatterPlot'
 
     sp = ScatterPlot.new(~:midwest, x: :area, y: :poptotal)
     sp.title = "Midwest Dataset - Scatterplot"
