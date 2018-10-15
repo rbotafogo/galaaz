@@ -255,7 +255,7 @@ We now define a ScatterPlot class:
       # @return textGrob that can be included in a graph
       #--------------------------------------------------------------------------------------
 
-      def self.graph_params(title: "", subtitle: "", caption: "", x_label: "", y_label: "")
+      def graph_params(title: "", subtitle: "", caption: "", x_label: "", y_label: "")
         R.labs(
           title: title, 
           subtitle: subtitle, 
@@ -284,16 +284,15 @@ We now define a ScatterPlot class:
         R.awt
     
         puts @data.ggplot(E.aes(x: @x, y: @y)) +
-	  points + 
+          points + 
           R.geom_smooth(method: @method, se: @confidence) +
           R.xlim(R.c(0, 0.1)) +
           R.ylim(R.c(0, 500000)) + 
-          CorpTheme.
-            graph_params(title: @title,
-                         subtitle: @subtitle, 
-                         y_label: @y_label, 
-                         x_label: @x_label, 
-                         caption: @caption) +
+	  graph_params(title: @title,
+                       subtitle: @subtitle, 
+                       y_label: @y_label, 
+                       x_label: @x_label, 
+                       caption: @caption) +
           CorpTheme.global_theme
       end
   
@@ -365,7 +364,7 @@ Ruby and R can greatly simplify the development of Polyglot application.
 
 # Galaaz High Level Constructs
 
-In R, the basic 
+[TO BE CONTINUED...] 
 
 ## Vectors
 
