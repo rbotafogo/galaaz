@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "Knitting $PWD/$1"
+
+read -r -d '' TRUBY_ENG <<EOF
+library('knitr');
+library('rmarkdown');
+
+rmarkdown::render('$PWD/$1')
+EOF
+
+Rscript --jvm --polyglot -e "$TRUBY_ENG"
+
+
+

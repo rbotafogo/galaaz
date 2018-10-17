@@ -1,0 +1,45 @@
+---
+title: "Tightly Coupling Ruby and R with Galaaz"
+author: "Rodrigo Botafogo"
+date: "16 October 2018"
+output: html_document
+---
+
+```{r setup, echo=FALSE}
+
+import_ruby = function(name) {
+  export('file_name', name);
+  eval.polyglot("ruby", "old_stdout = STDOUT.dup; STDOUT.reopen('out.txt', 'w'); fn = Polyglot.import('file_name'); require_relative \"#{fn}\"; STDOUT.reopen(old_stdout)");
+  NULL;
+}
+
+knit_hooks$set(extern.ruby = function(before, options, envir) {
+  # print("hook called");
+  if (before) {
+    import_ruby(options$extern.ruby)
+  }
+})
+
+eng_truby = function(options) {
+  eval.polyglot("ruby", "require 'galaaz'\nrequire_relative 'exec_ruby'")
+  block_code = paste(options$code, collapse = '\n')
+  code = paste0("exec_ruby(", shQuote(block_code), ")");
+  out = eval.polyglot("ruby", code);
+  engine_output(options, block_code, out)
+}
+
+knit_engines$set(truby = eng_truby)
+
+print_output = function() {
+  writeLines(readLines("out.txt", -1))
+}  
+```
+
+
+# Introduction
+
+
+```{truby test_ruby}
+vec = R.c(1, 2, 3)
+puts vec
+```

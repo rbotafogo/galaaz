@@ -38,6 +38,8 @@ EOF
   # This gem targets TruffleRuby only
   # gem.platform='java'
 
+  gem.add_runtime_dependency ('pry', "~> 0.10")
+  
   gem.add_development_dependency('rspec', "~> 3.8")
   gem.add_development_dependency('simplecov', "~> 0.16")
   gem.add_development_dependency('rdoc', "~> 5.0")

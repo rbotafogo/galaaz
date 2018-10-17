@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "Loading Pry and Galaaz... Please wait!"
+ruby --polyglot --jvm -Xsingle_threaded -Ilib/ -S pry -r ./gserver.rb
