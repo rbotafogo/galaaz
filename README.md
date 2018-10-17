@@ -68,17 +68,26 @@ Preparation
 
 -   gem install galaaz
 
-Running the Demo
+Running the demo
 ----------------
 
-This demo was extracted from: <http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html>.
+The ggplot for this demos was extracted from: <http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html>.
 
 On the console do
 
-    > rake master_list:scatter_plot
+    > galaaz master_list:scatter_plot
 
-The Code
---------
+Running other demos
+-------------------
+
+Doing on the console
+
+    > galaaz -T
+
+will show a list with all available demos. To run any of the demos in the list, substitute the call to 'rake' to 'galaaz'. For instance, one of the examples in the list is 'rake sthda:bar'. In order to run this example just do 'galaaz sthda:bar'. Doing 'galaaz sthda:all' will run all demos in the sthda cathegory. Some of the examples require 'rspec' do be available. To install 'rspec' just do 'gem install rspec'.
+
+The demo code
+=============
 
 The following is the Ruby code and plot for the above example. There is a small difference between the code in the example and the code bellow. If the example is ran, the plot will appear on the screen, bellow, we generate an 'svg' image and then include it in this document. In order to generate and image, the R.svg device is used. To generate the plot on the screen, use the R.awt device, as commented on the code.
 
@@ -115,7 +124,7 @@ R.dev__off               # R.dev__off turns off the device.  If using awt, the p
                          # window will be closed
 ```
 
-![Midwest Plot](midwest.png)
+<img src="https://user-images.githubusercontent.com/3999729/46742999-87bc2480-cc7e-11e8-9f16-31c3437e4a58.PNG" alt="Midwest Plot" style="width:70.0%" />
 
 In R, the code to generate this plot is the following
 
@@ -148,7 +157,7 @@ Note that both codes are very similar. The Ruby code requires the use of "R." be
 One last point that needs to be observed is the call to the 'aes' function. In Ruby instead of doing 'R.aes', we use 'E.aes'. The explanation of why E.aes is needed is an advanced topic in R and depends on what is know as Non-standard Evaluation (NSE) in R. In short, function 'aes' is lazily evaluated in R, i.e., in R when calling geom\_point(aes(col=state, size=popdensity)), function geom\_point receives as argument something similar to a string containing 'aes(col=state, size=popdensity)', and the aes function will be evaluated inside the geom\_point function. In Ruby, there is no Lazy evaluation and doing R.aes would try to evaluate aes immediately. In order to delay the evaluation of function aes we need to use E.aes. The interested reader on NSE in R is directed to <http://adv-r.had.co.nz/Computing-on-the-language.html>.
 
 An extension to the example
----------------------------
+===========================
 
 If both codes are so similar, then why would one use Ruby instead of R and what good is galaaz after all?
 
@@ -156,7 +165,7 @@ Ruby is a modern OO language with numerous very useful constructs such as classe
 
 Let's imagine that we work in a corporation that has its plot themes. So, it has defined a 'CorpTheme' module. Plots in this corporation should not have grids, numbers in labels should not use scientific notation and the prefered color is blue.
 
-``` r
+``` truby
 # corp_theme.rb
 # defines the corporate theme for all plots
     
@@ -196,7 +205,7 @@ end
 
 We now define a ScatterPlot class:
 
-``` r
+``` truby
 # ScatterPlot.rb
 # creates a scatter plot and allow some configuration
     
@@ -268,10 +277,10 @@ class ScatterPlot
   # Plots the scatterplot
   #--------------------------------------------------------------------------------------
 
-  def plot
-    R.awt
-    
-    puts @data.ggplot(E.aes(x: @x, y: @y)) +
+  def plot(device = 'awt')
+    device == 'awt' ? R.awt : R.svg
+   
+    gg = @data.ggplot(E.aes(x: @x, y: @y)) +
       points + 
       R.geom_smooth(method: @method, se: @confidence) +
       R.xlim(R.c(0, 0.1)) +
@@ -282,6 +291,11 @@ class ScatterPlot
                    x_label: @x_label, 
                    caption: @caption) +
       CorpTheme.global_theme
+
+    R.png('scatter_plot.png') if !(device == 'awt')
+    puts gg
+    R.dev__off
+    
   end
   
 end
@@ -292,9 +306,6 @@ And this is the final code for making the scatter plot with the midwest data
 ``` truby
 require 'galaaz'
 require 'ggplot'
-
-require_relative 'corp_theme'
-require_relative 'scatter_plot'
 
 sp = ScatterPlot.new(~:midwest, x: :area, y: :poptotal)
 sp.title = "Midwest Dataset - Scatterplot"
@@ -309,7 +320,6 @@ sp.plot('svg')
 
 # require input from the user so that the script does not end removing the plot from
 # the screen
-# a = gets.chomp  
 ```
 
-![Midwest Plot with 'glm' function](scatter_plot.png)
+![Midwest Plot with 'glm' function and modified theme](https://user-images.githubusercontent.com/3999729/47120345-a903ae80-d244-11e8-9be3-a0db13cf51ab.PNG)
