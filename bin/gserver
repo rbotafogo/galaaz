@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env ruby
 
-echo "Loading Pry and Galaaz... Please wait!"
-ruby --polyglot --jvm -Xsingle_threaded -Ilib/ -S pry -r ./gserver.rb
+Dir.chdir(File.dirname(File.expand_path('.', __FILE__)))
+puts "Loading Pry and Galaaz... Please wait!"
+
+exec "ruby --polyglot --jvm -Xsingle_threaded -S pry -r ./gserver.rb"

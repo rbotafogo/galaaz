@@ -7,7 +7,7 @@ Gem::Specification.new do |gem|
   gem.name    = $gem_name
   gem.version = $version
   gem.date    = Date.today.to_s
-  gem.executables << 'galaaz'
+  gem.executables << 'galaaz' << 'gserver' << 'gknit'
   gem.summary     = "Tightly coupling Ruby and R"
   gem.description = <<-EOF
 Galaaz brings the power of R to the Ruby community. Galaaz 
@@ -38,7 +38,7 @@ EOF
   # This gem targets TruffleRuby only
   # gem.platform='java'
 
-  gem.add_runtime_dependency ('pry', "~> 0.10")
+  gem.add_runtime_dependency 'pry', '~> 0.10'
   
   gem.add_development_dependency('rspec', "~> 3.8")
   gem.add_development_dependency('simplecov', "~> 0.16")
@@ -48,7 +48,7 @@ EOF
   # ensure the gem is built out of versioned files
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
             'lib/**/*', 'specs/**/*', 'examples/**/*', 'r_requires/**/*',
-            'bin/**/*']
+            'bin/**/*', 'blogs/**/*']
   gem.files = fls
 
   gem.metadata["yard.run"] = "yri" # use "yard" to build full HTML docs

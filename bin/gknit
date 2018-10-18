@@ -1,15 +1,28 @@
-#!/bin/bash
+#!/usr/bin/env ruby
 
-echo "Knitting $PWD/$1"
+dir = Dir.pwd
+puts "Knitting #{dir}/#{ARGV[0]}"
 
-read -r -d '' TRUBY_ENG <<EOF
+req_gal = "require '../lib/galaaz'"
+
+code = <<EOF
 library('knitr');
 library('rmarkdown');
 
-rmarkdown::render('$PWD/$1')
+# define the galaaz engine for processing Ruby chunks in
+# rmarkdown
+eng_galaaz = function(options) {
+  block_code = paste(options$code, collapse = "\\n");
+  code = paste0("GalaazUtil.exec_ruby(", shQuote(block_code), ")");
+  out = eval.polyglot("ruby", code);
+  engine_output(options, block_code, out)
+}
+
+knit_engines$set(galaaz = eng_galaaz)
+
+eval.polyglot("ruby", "require %q(galaaz)")
+
+rmarkdown::render("#{dir}/#{ARGV[0]}")
 EOF
 
-Rscript --jvm --polyglot -e "$TRUBY_ENG"
-
-
-
+exec "Rscript --jvm --polyglot -e '#{code}'"

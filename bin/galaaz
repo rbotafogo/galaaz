@@ -1,8 +1,5 @@
 #!/usr/bin/env ruby
 
-# Dir.chdir(File.expand_path('..', Dir.pwd))
 Dir.chdir(File.dirname(File.expand_path('..', __FILE__)))
-
-puts Dir.pwd
 
 system ("rake #{ARGV[0]}")

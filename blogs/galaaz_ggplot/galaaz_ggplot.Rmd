@@ -5,22 +5,13 @@ author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
 date: "16 October 2018"
 output:
+  html_document:
   md_document:
     variant: markdown_github
 ---
 
 ```{r setup, echo=FALSE}
 
-eval.polyglot("ruby", "require 'galaaz'")
-
-eng_galaaz = function(options) {
-  block_code = paste(options$code, collapse = '\n')
-  code = paste0("GalaazUtil.exec_ruby(", shQuote(block_code), ")");
-  out = eval.polyglot("ruby", code);
-  engine_output(options, block_code, out)
-}
-
-knit_engines$set(galaaz = eng_galaaz)
 ```
 
 
