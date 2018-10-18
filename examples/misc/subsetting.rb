@@ -77,7 +77,7 @@ print("\n")
 # You can use integer indices to perform random sampling or bootstrapping
 # of a vector or data frame. sample() generates a vector of indices, then
 # subsetting to access the values:
-df = R.data__frame(x: R.rep((1..3), each: 2), y: (6..1), z: R.letters[(1..6)])
+df = R.data__frame(x: R.rep((1..3), each: 2), y: (6..1), z: (~:letters)[(1..6)])
 
 # Set seed for reproducibility
 R.set__seed(10)
@@ -174,12 +174,12 @@ print("\n")
 #------------------------------------------------------------------------------------------
 
 df = R.data__frame(x: R.c(2, 4, 1), y: R.c(9, 11, 6), n: R.c(3, 5, 1))
-R.rep((1..df.nrow), df.n).pp
+R.rep((1..(df.nrow << 0)), df.n).pp
 print("\n")
 
 # [1] 1 1 1 2 2 2 2 2 3
 
-df[R.rep((1..df.nrow), df.n), :all].pp
+df[R.rep((1..df.nrow << 0), df.n), :all].pp
 print("\n")
 
 #     x  y n
@@ -200,13 +200,13 @@ print("\n")
 # to nil:
 #------------------------------------------------------------------------------------------
 
-df = R.data__frame(x: (1..3), y: (3..1), z: R.letters[(1..3)])
+df = R.data__frame(x: (1..3), y: (3..1), z: (~:letters)[(1..3)])
 # Not implemented yet
 # df.z = nil
 df.pp
 print("\n")
 
-df = R.data__frame(x: (1..3), y: (3..1), z: R.letters[(1..3)])
+df = R.data__frame(x: (1..3), y: (3..1), z: (~:letters)[(1..3)])
 df[R.c("x", "y")].pp
 print("\n")
 
@@ -231,7 +231,9 @@ print("\n")
 # a data frame.
 #------------------------------------------------------------------------------------------
 
-R.mtcars[R.mtcars.gear == 5, :all].pp
+mtcars = ~:mtcars
+
+mtcars[mtcars.gear == 5, :all].pp
 print("\n")
 
 #                 mpg cyl  disp  hp drat    wt qsec vs am gear carb
@@ -241,7 +243,7 @@ print("\n")
 # Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.5  0  1    5    6
 # Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.6  0  1    5    8
 
-R.mtcars[(R.mtcars.gear == 5) & (R.mtcars.cyl == 4), :all].pp
+mtcars[(mtcars.gear == 5) & (mtcars.cyl == 4), :all].pp
 print("\n")
 
 #                mpg cyl  disp  hp drat    wt qsec vs am gear carb
@@ -303,12 +305,12 @@ print("\n")
 # intersect.  If this is a vector, then we need to print it with pp
 # but if this is a scalar, we need to print it with regular Ruby 'p' or
 # 'print'
-p R.intersect(x2, y2)
+puts R.intersect(x2, y2)
 print("\n")
 
 # 10
 
-p x2.intersect y2
+puts x2.intersect y2
 
 # 10
 

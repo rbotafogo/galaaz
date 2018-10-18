@@ -78,6 +78,7 @@ geoms = FileList['examples/sthda_ggplot/**/*.rb']
 specs = FileList['specs/**/*.rb']
 master_list = FileList['examples/50Plots_MasterList/**/*.rb']
 islr = FileList['examples/islr/**/*.rb']
+misc = FileList['examples/misc/**/*.rb']
 
 #===========================================================================================
 # Creates tasks for all specs.
@@ -128,6 +129,19 @@ islr.each do |f|
   dir_name = File.dirname(f)
   MakeTask.new("islr", dir_name, task_name, true, <<-Desc)
     Executes islr #{task_name}
+  Desc
+end
+
+#===========================================================================================
+# Creates tasks for misc examples
+# Running 'rake misc:all' will run all specs
+#===========================================================================================
+
+misc.each do |f|
+  task_name = File.basename(f, ".rb")
+  dir_name = File.dirname(f)
+  MakeTask.new("misc", dir_name, task_name, false, <<-Desc)
+    Executes misc #{task_name}
   Desc
 end
 
