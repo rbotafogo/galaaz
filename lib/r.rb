@@ -116,3 +116,6 @@ require_relative 'expression'
 require_relative 'ruby_extensions'
 # Class to allow R calling back into Ruby
 require_relative 'ruby_callback'
+
+# Util to execute Ruby code in a string redirecting stdout
+require_relative 'util/exec_ruby'
