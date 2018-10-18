@@ -21,7 +21,8 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require_relative 'r'
+require_relative 'R/r'
+require_relative 'util/exec_ruby'
 
 $LOAD_PATH << File.dirname(File.expand_path('..', __FILE__)) + "/r_requires"
 

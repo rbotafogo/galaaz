@@ -4,7 +4,7 @@ screen, bellow, we generate an 'svg' image and then include it in this document.
 generate and image, the R.svg device is used.  To generate the plot on the screen, use the R.awt
 device, as commented on the code.
 
-```{truby midwest_rb, warning=FALSE}
+```{galaaz midwest_rb, warning=FALSE}
 require 'galaaz'
 require 'ggplot'
 
