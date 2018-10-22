@@ -14,7 +14,6 @@ output:
 
 ```
 
-
 # Introduction
 
 Galaaz is a system for tightly coupling Ruby and R.  Ruby is a powerful language, with
@@ -27,7 +26,7 @@ Panda, SciPy, SciKit-Learn and a couple more.
 With Galaaz we do not intend to re-implement any of the scientific libraries in R, we allow
 for very tight coupling between the two languages to the point that the Ruby developer does
 not need to know that there is an R engine running.  For this to happen we use new
-technologies provided by Oracle, with GraalVM, TruffleRuby and FastR:
+technologies provided by Oracle: GraalVM, TruffleRuby and FastR:
 
      GraalVM is a universal virtual machine for running applications written in JavaScript,
      Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin, and LLVM-based languages
@@ -38,7 +37,7 @@ technologies provided by Oracle, with GraalVM, TruffleRuby and FastR:
      Oracle Database, or MySQL.
 
      GraalVM allows you to write polyglot applications with a seamless way to pass values from one
-     language to another. With GraalVM there is no copying or marshalling necessary as it is with
+     language to another. With GraalVM there is no copying or marshaling necessary as it is with
      other polyglot systems. This lets you achieve high performance when language boundaries are
      crossed. Most of the time there is no additional cost for crossing a language boundary at all.
 
@@ -51,6 +50,13 @@ technologies provided by Oracle, with GraalVM, TruffleRuby and FastR:
     
     With GraalVM we aim to allow developers to freely choose the right language for the task at
     hand without making compromises.
+
+Interested readers should also check out the following sites:
+
+* [GraalVM Home](https://www.graalvm.org/)
+* [TruffleRuby](https://github.com/oracle/truffleruby)
+* [FastR](https://github.com/oracle/fastr)
+* [Faster R with FastR](https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb)
 
 ## What does Galaaz mean
 
@@ -167,12 +173,12 @@ after all?
 Ruby is a modern OO language with numerous very useful constructs such as classes, modules, blocks,
 procs, etc.  The example above focus on the coupling of both languages, and does not show the
 use of other Ruby constructs.  In the following example, we will show a more complex example using
-other Ruby constructs.  This is certaily not a very well written and robust Ruby code, but
-it give the idea of how Ruby and R are stronglyg coupled.
+other Ruby constructs.  This is certainly not a very well written and robust Ruby code, but
+it give the idea of how Ruby and R are strongly coupled.
 
 Let's imagine that we work in a corporation that has its plot themes.  So, it has defined a
 'CorpTheme' module.  Plots in this corporation should not have grids, numbers in labels should
-not use scientific notation and the prefered color is blue.
+not use scientific notation and the preferred color is blue.
 
 ```{galaaz global_theme_rb}
 # corp_theme.rb
@@ -333,3 +339,22 @@ sp.plot('svg')
 ```
 
 ![Midwest Plot with 'glm' function and modified theme](https://user-images.githubusercontent.com/3999729/47120345-a903ae80-d244-11e8-9be3-a0db13cf51ab.PNG)
+
+# Conclusion
+
+R is a very powerful language for statistical analysis, data analytics, machine learning, plotting
+and many other scientific applications with a very large package ecosystem.  However R is often
+considered hard to learn and lacking modern computer languages constructs such as object oriented
+classes, modules, lambdas, etc.  For this reason, many developers have started or switched from R
+to Python.
+
+With Galaaz, R programmers can almost transparently migrate from R to Ruby, since syntax is
+almost identical and they have fastR as the R engine.  FastR, by most benchmarks, can be orders of
+magnitude faster than Gnu R.  Further, by using Galaaz the R developer can start (slowly if needed)
+using all of Ruby's constructs and libraries that nicely complement R packages.
+
+For the Ruby developer, Galaaz allows the immediate use of R functions completely transparently. As
+shown in the second example above, class ScatterPlot completely hides all the details an R calls
+from the Ruby developer, furthermore Galaaz is powered by TruffleRuby that can also be orders of
+magnitude faster than MRI Ruby.
+

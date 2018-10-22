@@ -1,0 +1,16 @@
+---
+title: "gKnit - Ruby and R Knitting with Galaaz"
+author: "Rodrigo Botafogo"
+tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2, knitr]
+date: "19 October 2018"
+output:
+  html_document:
+  md_document:
+    variant: markdown_github
+---
+
+```{r setup, echo=FALSE}
+
+```
+
+# Introduction

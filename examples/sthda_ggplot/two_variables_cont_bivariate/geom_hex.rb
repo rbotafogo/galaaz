@@ -24,7 +24,7 @@
 require 'galaaz'
 require 'ggplot'
 
-Polyglot.eval("R", "library('hexbin')")
+R.install_and_loads('hexbin')
 
 diamonds = ~:diamonds
 

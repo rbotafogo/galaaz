@@ -20,12 +20,6 @@
 ##########################################################################################
 
 require 'galaaz'
-require 'ggplot'
-
-# install.packages('quantreg')
-# install.packages('hexbin')
-# Library 'quantreg' is needed in misc
-R.install_and_loads('quantreg', 'hexbin')
 
 # Package Hmisc does not yet install on graalvm because of
 # problems with package data.table

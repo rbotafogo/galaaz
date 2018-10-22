@@ -24,7 +24,7 @@
 require 'galaaz'
 require 'ggplot'
 
-Polyglot.eval("R", "library('quantreg')")
+R.install_and_loads('quantreg')
 
 R.awt
 

@@ -3,11 +3,10 @@
 dir = Dir.pwd
 puts "Knitting #{dir}/#{ARGV[0]}"
 
-req_gal = "require '../lib/galaaz'"
-
 code = <<EOF
-library('knitr');
-library('rmarkdown');
+eval.polyglot("ruby", "require %q(galaaz)")
+eval.polyglot("ruby", "R.install_and_loads %q(knitr)")
+eval.polyglot("ruby", "R.install_and_loads %q(rmarkdown)")
 
 # define the galaaz engine for processing Ruby chunks in
 # rmarkdown
@@ -19,8 +18,6 @@ eng_galaaz = function(options) {
 }
 
 knit_engines$set(galaaz = eng_galaaz)
-
-eval.polyglot("ruby", "require %q(galaaz)")
 
 rmarkdown::render("#{dir}/#{ARGV[0]}")
 EOF
