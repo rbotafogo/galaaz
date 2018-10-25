@@ -1,0 +1,191 @@
+---
+title: "gKnit - Ruby and R Knitting with Galaaz"
+author: "Rodrigo Botafogo"
+tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr]
+date: "19 October 2018"
+output:
+  html_document:
+    keep_md: true
+---
+
+
+
+# Introduction
+
+The idea of "literate programming" was first introduced by Donald Knuth in the 1980's.
+The main intention of this approach was to develop code and at the same time document it
+is as understandably as possible to humans.  According to Knuth "The practitioner of 
+literate programming can be regarded as an essayist, whose main concern is with exposition 
+and excellence of style."
+
+The idea of literate programming envolved into the idea of reproducible research, in which
+all the data, information and documentation needed to reproduce a research is included in a
+single document that can be distributed to peers that can rerun the research obtaining
+the same results.
+
+The R community has put a great deal of effort in reproducible research.  In 2002, Sweave was
+introduced and it allowed mixing R code with Latex generating hight quality PDF documents.  Those
+documents could include the code, the result of executing the code, graphics and text.  This
+contained the whole narrative to reproduce the research.  But Sweave had many problems and in
+2012, Knitr, developed by Yihui Xie from RStudio was released, solving many of the long lasting
+problems from Sweave and including in one single package many extensions and add-on packages that
+were necessary for Sweave.  With Knitr, R markdown was also developed, an extension the the
+Markdown format.  With R markdown and Knitr it is possible to generate reports in a multitude
+of formats such as HTML, markdown, Latex, PDF, dvi, etc.  R markdown also allows the use of
+multiple programming languages in the same document.  However, other than R and Python (with
+the reticulate package), each chunk of code in any other language will execute in a new
+process, so memory and variables cannot be shared between chunks.
+
+In the Python community, the same effort to have code and text in an integrated environment
+started also on the first decade of 2000 and in 2006 iPython 0.7.2 was released.  In 2014,
+Fernando Pérez, spun off project Jupyter from iPython creating a web-based interactive
+computation environment.  Jupyter can now be used with many languages, including Ruby with the
+iruby gem (https://github.com/SciRuby/iruby).  I am not sure if multiple languages can be used
+in a Jupyter notebook.
+
+# gKnitting a Document
+
+This document describes gKnit.  gKnit used Knitr and R markdown to knit a document in any of the
+available formats for R markdown.  The only difference between gKnit and normal Knitr documents
+is that gKnit runs atop of GraalVM, and Galaaz (an integration library between Ruby and R).
+Another blog post on Galaaz and its integration with ggplot2 can be found at: https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021.  With
+Galaaz gKnit can knit documents in Ruby and R and both Ruby and R execute on the same process
+sharing variables and memory and variables, classes, etc. will be preserved between chunks of
+code.
+
+This is not a blog post on rmarkdown, and the intereste user is directed to https://bookdown.org/yihui/rmarkdown/ for detailed information on its capabilities and use.  Some of the features available for R code
+chunks are not yet available for Ruby code.  But we are working for removing any limitations.
+Here, we will describe quickly the main aspects of R markdown, so the user can start gKnit simple
+documents quickly.
+
+## The Yaml header
+
+An R markdown document should start with a Yaml header.  This document has the following header that
+when gKitted will generate and HTML document.
+
+```
+---
+title: "gKnit - Ruby and R Knitting with Galaaz"
+author: "Rodrigo Botafogo"
+tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr]
+date: "19 October 2018"
+output:
+  html_document:
+    keep_md: true
+---
+```
+
+For more information on the options in the Yaml header, check https://bookdown.org/yihui/rmarkdown/html-document.html.
+
+## R Markdown formatting
+
+Document formating can be done with simple markups such as:
+
+### Headers
+
+```
+# Header 1
+
+## Header 2
+
+### Header 3
+
+```
+
+### Lists
+
+```
+Unordered lists:
+
+* Item 1
+* Item 2
+    + Item 2a
+    + Item 2b
+```
+
+```
+Ordered Lists
+
+1. Item 1
+2. Item 2
+3. Item 3
+    + Item 3a
+    + Item 3b
+
+
+```
+
+Please, go to https://rmarkdown.rstudio.com/authoring_basics.html, for more R markdown formating.
+
+## Code Chunks
+
+### R chunks
+
+Running and executing Ruby and R code is actually what really interests us is this blog.  Doing so
+is very simple with code chunks.
+
+In order to add R code to a text, a code chunk is added with the following markup:
+
+So, for instance, here we create an R code chunk setting a variable to a vector:
+
+<code>```{r var_setting}
+
+r_vec <- c(1, 2, 3)
+
+</code>
+
+<code>```</code>
+
+
+```r
+r_vec <- c(1, 2, 3)
+```
+
+
+### Galaaz chunks
+
+
+```galaaz
+
+$a = [1, 2, 3]
+```
+
+
+
+```galaaz
+
+puts $a
+
+```
+
+```
+## 1
+## 2
+## 3
+```
+
+# Installing gKnit
+
+## Prerequisites
+
+* GraalVM (>= rc7)
+* TruffleRuby
+* FastR
+
+The following R packages will be automatically installed when necessary, but could be installed prior
+to using gKnit if desired:
+
+* ggplot2
+* gridExtra
+* knitr
+
+Installation of R packages requires a development environment and can be time consuming.  In Linux,
+the gnu compiler and tools should be enough.  I am not sure what is needed on the Mac.
+
+## Preparation
+
+* gem install galaaz
+
+## Usage
+
+* gknit [filename]

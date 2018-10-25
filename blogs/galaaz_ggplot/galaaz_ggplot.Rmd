@@ -8,6 +8,7 @@ output:
   html_document:
   md_document:
     variant: markdown_github
+  pdf_document:
 ---
 
 ```{r setup, echo=FALSE}

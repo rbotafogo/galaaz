@@ -7,3 +7,8 @@ doc
 src/build/
 cran/*
 *.nc
+*.out
+*.log
+*.dvi
+*.aux
+
