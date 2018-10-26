@@ -5,6 +5,7 @@ tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr]
 date: "19 October 2018"
 output:
   html_document:
+    self_contained: true
     keep_md: true
 ---
 
@@ -45,15 +46,20 @@ in a Jupyter notebook.
 
 # gKnitting a Document
 
-This document describes gKnit.  gKnit used Knitr and R markdown to knit a document in any of the
+This document describes gKnit.  gKnit used Knitr and R markdown to knit a document and output
+it in any of the
 available formats for R markdown.  The only difference between gKnit and normal Knitr documents
 is that gKnit runs atop of GraalVM, and Galaaz (an integration library between Ruby and R).
-Another blog post on Galaaz and its integration with ggplot2 can be found at: https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021.  With
-Galaaz gKnit can knit documents in Ruby and R and both Ruby and R execute on the same process
+Another blog post on Galaaz and its integration with ggplot2 can be found at:
+https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021.  With Galaaz gKnit can knit documents in Ruby and R and both
+Ruby and R execute on the same process
 sharing variables and memory and variables, classes, etc. will be preserved between chunks of
 code.
 
-This is not a blog post on rmarkdown, and the intereste user is directed to https://bookdown.org/yihui/rmarkdown/ for detailed information on its capabilities and use.  Some of the features available for R code
+This is not a blog post on rmarkdown, and the intereste user is directed to
+https://rmarkdown.rstudio.com/ or
+https://bookdown.org/yihui/rmarkdown/ for detailed information on its capabilities and use.
+Some of the features available for R code
 chunks are not yet available for Ruby code.  But we are working for removing any limitations.
 Here, we will describe quickly the main aspects of R markdown, so the user can start gKnit simple
 documents quickly.
@@ -72,6 +78,9 @@ date: "19 October 2018"
 output:
   html_document:
     keep_md: true
+includes:
+      in_header: ../../bin/header.html
+      after_body: ../../bin/footer.html    
 ---
 ```
 
@@ -111,8 +120,6 @@ Ordered Lists
 3. Item 3
     + Item 3a
     + Item 3b
-
-
 ```
 
 Please, go to https://rmarkdown.rstudio.com/authoring_basics.html, for more R markdown formating.
@@ -128,37 +135,81 @@ In order to add R code to a text, a code chunk is added with the following marku
 
 So, for instance, here we create an R code chunk setting a variable to a vector:
 
-<code>```{r var_setting}
-
+````
+```{r, eval=TRUE}
 r_vec <- c(1, 2, 3)
-
-</code>
-
-<code>```</code>
+```
+````
 
 
 ```r
 r_vec <- c(1, 2, 3)
+# Using an example vector "arg"
+arg = c(1, 2, 3, 4, 5)
+redundent_sum <- function(...) {
+  Reduce(sum, as.list(...))
+}
+redundent_sum(arg)
+```
+
+```
+## [1] 15
 ```
 
 
-### Galaaz chunks
+### Ruby chunks
 
 
-```galaaz
-
+```ruby
 $a = [1, 2, 3]
+$vec = R.c(1, 2, 3)
+$vec2 = R.c(10, 20, 30)
+$b = "R$ 250.000"
+$c = "class Array"
 ```
 
+This is some text with inline Ruby
+R$ 250.000
+is this lost will this continue?
+
+This is also possible
+1
+2
+3
+R$ 250.000
+what comes out??
+
+And what about this?
+
+# class Array
+Any problems surround it with text?
 
 
-```galaaz
+I'm now testing the ruby engine with more comples code in it.
 
+```ruby
 puts $a
-
+puts $vec * $vec2
 ```
 
 ```
+## 1
+## 2
+## 3
+## [1] 10 40 90
+```
+we need to check what the result is gona be
+
+
+```ruby
+a = String.new("hello there")
+b = [1, 2, 3]
+puts a
+puts b
+```
+
+```
+## hello there
 ## 1
 ## 2
 ## 3

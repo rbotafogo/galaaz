@@ -5,6 +5,7 @@ tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr]
 date: "19 October 2018"
 output:
   html_document:
+    self_contained: true
     keep_md: true
 ---
 
@@ -79,6 +80,9 @@ date: "19 October 2018"
 output:
   html_document:
     keep_md: true
+includes:
+      in_header: ../../bin/header.html
+      after_body: ../../bin/footer.html    
 ---
 ```
 
@@ -118,8 +122,6 @@ Ordered Lists
 3. Item 3
     + Item 3a
     + Item 3b
-
-
 ```
 
 Please, go to https://rmarkdown.rstudio.com/authoring_basics.html, for more R markdown formating.
@@ -135,32 +137,73 @@ In order to add R code to a text, a code chunk is added with the following marku
 
 So, for instance, here we create an R code chunk setting a variable to a vector:
 
-<code>```{r var_setting}
-
+````
+```{r, eval=TRUE}`r ''`
 r_vec <- c(1, 2, 3)
-
-</code>
-
-<code>```</code>
+```
+````
 
 ```{r var_setting}
 r_vec <- c(1, 2, 3)
+# Using an example vector "arg"
+arg = c(1, 2, 3, 4, 5)
+redundent_sum <- function(...) {
+  Reduce(sum, as.list(...))
+}
+redundent_sum(arg)
 ```
 
 
-### Galaaz chunks
+### Ruby chunks
 
-```{galaaz split_data}
-
+```{ruby split_data}
 $a = [1, 2, 3]
+$vec = R.c(1, 2, 3)
+$vec2 = R.c(10, 20, 30)
+$b = "R$ 250.000"
+$c = "class Array"
 ```
 
-
-```{galaaz split2}
-
+I'm now testing the ruby engine with more comples code in it.
+```{ruby split2}
 puts $a
-
+puts $vec * $vec2
 ```
+we need to check what the result is gona be
+
+```{ruby ruby_high, eval=FALSE}
+a = String.new("hello there")
+b = [1, 2, 3]
+puts a
+puts b
+```
+
+### Accessing R from Ruby
+
+
+### Inline Ruby code
+
+This is some text with inline Ruby
+```{rb puts $b}
+```
+is this lost will this continue?
+
+This is also possible
+```{rb puts $a; puts $b}
+```
+what comes out??
+
+And what about this?
+
+```{rb puts "# #{$c}"}
+```
+Any problems surround it with text?
+
+### Including Ruby files
+
+```{include model}
+```
+
 
 # Installing gKnit
 

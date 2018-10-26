@@ -21,9 +21,14 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require_relative 'R/r'
-require_relative 'util/exec_ruby'
-require_relative 'util/inline_file'
+require 'finder'
 
-$LOAD_PATH << File.dirname(File.expand_path('..', __FILE__)) + "/r_requires"
+module GalaazUtil
 
+  def self.inline_file(filename)
+    Find.load_path(filename, :relative=>true).each do |file|
+      puts file
+    end
+  end
+  
+end

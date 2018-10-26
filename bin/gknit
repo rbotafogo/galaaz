@@ -8,16 +8,41 @@ eval.polyglot("ruby", "require %q(galaaz)")
 eval.polyglot("ruby", "R.install_and_loads %q(knitr)")
 eval.polyglot("ruby", "R.install_and_loads %q(rmarkdown)")
 
-# define the galaaz engine for processing Ruby chunks in
+# define the ruby engine for processing Ruby chunks in
 # rmarkdown
-eng_galaaz = function(options) {
+eng_ruby = function(options) {
   block_code = paste(options$code, collapse = "\\n");
-  code = paste0("GalaazUtil.exec_ruby(", shQuote(block_code), ")");
+  code = paste0("GalaazUtil.exec_ruby(", 
+                   shQuote(block_code), 
+                  ")
+                ");
   out = eval.polyglot("ruby", code);
   engine_output(options, block_code, out)
 }
 
-knit_engines$set(galaaz = eng_galaaz)
+knit_engines$set(ruby = eng_ruby)
+
+# define the rb engine for inline Ruby code
+eng_rb = function(options) {
+  code = paste0("GalaazUtil.exec_ruby(", 
+                   shQuote(options$label), 
+                  ")
+                ");
+  out = eval.polyglot("ruby", code)
+  return(out)
+}
+
+knit_engines$set(rb = eng_rb)
+
+# define the include engine for including Ruby files
+# in place
+
+eng_inline = function(options) {
+  
+}
+
+knit_engines$set(include = eng_inline)
+
 
 rmarkdown::render("#{dir}/#{ARGV[0]}")
 EOF
