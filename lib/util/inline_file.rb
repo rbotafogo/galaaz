@@ -21,14 +21,52 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'finder'
+require 'find'
 
 module GalaazUtil
 
-  def self.inline_file(filename)
-    Find.load_path(filename, :relative=>true).each do |file|
-      puts file
+  def self.find_directories(pwd = Dir.pwd)
+    directories = []
+    begin
+      Find.find(pwd) do |path|
+        Find.prune if path.include? '.git'
+        next unless File.directory?(path)
+        directories << path
+      end
+    rescue
+      puts "Error reading files."
     end
+    directories
   end
   
+  def self.find_files(pwd = Dir.pwd)
+    files = []
+    begin
+      Find.find(pwd) do |path|
+        Find.prune if path.include? '.git'
+        next if path.include? 'picasa'
+        next unless File.file?(path)
+        files << path
+      end
+    rescue
+      puts "Error reading files."
+    end
+    files
+  end
+
+  def self.inline_file(filename, pwd = Dir.pwd)
+    file = "#{pwd}/#{filename}"
+    if File.exist?(file)
+      code = []
+      File.open(file, "r") do |fileObj|
+        while (line = fileObj.gets)
+          code << line
+        end
+      end
+      code
+    else
+      puts "File #{file} not found"
+    end
+  end
+
 end

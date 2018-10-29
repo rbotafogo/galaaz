@@ -4,6 +4,7 @@ dir = Dir.pwd
 puts "Knitting #{dir}/#{ARGV[0]}"
 
 code = <<EOF
+eval.polyglot("ruby", "$LOAD_PATH.unshift %q(/home/rbotafogo/desenv/galaaz/lib)")
 eval.polyglot("ruby", "require %q(galaaz)")
 eval.polyglot("ruby", "R.install_and_loads %q(knitr)")
 eval.polyglot("ruby", "R.install_and_loads %q(rmarkdown)")
@@ -37,11 +38,22 @@ knit_engines$set(rb = eng_rb)
 # define the include engine for including Ruby files
 # in place
 
-eng_inline = function(options) {
-  
+eng_include = function(options) {
+  code = paste0("GalaazUtil.inline_file(", 
+                   shQuote(options$label), 
+                  ")
+                ");
+  include = eval.polyglot("ruby", code);
+  inc = paste(include, collapse = " ");
+  code2 = paste0("GalaazUtil.exec_ruby(", 
+                    shQuote(inc), 
+                  ")
+                ");
+  out = eval.polyglot("ruby", code2);
+  engine_output(options, inc, out)
 }
 
-knit_engines$set(include = eng_inline)
+knit_engines$set(include = eng_include)
 
 
 rmarkdown::render("#{dir}/#{ARGV[0]}")

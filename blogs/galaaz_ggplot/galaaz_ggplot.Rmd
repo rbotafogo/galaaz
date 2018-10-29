@@ -5,10 +5,13 @@ author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
 date: "16 October 2018"
 output:
+  pdf_document:
+    includes:
+      in_header: ["galaaz.sty"]
+    number_sections: yes
   html_document:
   md_document:
     variant: markdown_github
-  pdf_document:
 ---
 
 ```{r setup, echo=FALSE}
@@ -63,7 +66,7 @@ Interested readers should also check out the following sites:
 
 Galaaz is the Portuguese name for "Galahad".  From Wikipedia:
 
-    Sir Galahad (/ˈɡæləhæd/; sometimes referred to as Galeas /ɡəˈliːəs/ or Galath /ˈɡæləθ/),
+    Sir Galahad (sometimes referred to as Galeas or Galath),
     in Arthurian legend, is a knight of King Arthur's Round Table and one of the three
     achievers of the Holy Grail. He is the illegitimate son of Sir Lancelot and Elaine of
     Corbenic, and is renowned for his gallantry and purity as the most perfect of all knights.
@@ -122,7 +125,7 @@ cathegory.  Some of the examples require 'rspec' do be available.  To install 'r
 ```{r midwest_child, child = 'midwest.Rmd'}
 ```
 
-![Midwest Plot](https://user-images.githubusercontent.com/3999729/46742999-87bc2480-cc7e-11e8-9f16-31c3437e4a58.PNG){width=70%}
+![Midwest Plot](midwest.png){width=70%}
 
 In R, the code to generate this plot is the following
 
@@ -181,16 +184,16 @@ Let's imagine that we work in a corporation that has its plot themes.  So, it ha
 'CorpTheme' module.  Plots in this corporation should not have grids, numbers in labels should
 not use scientific notation and the preferred color is blue.
 
-```{galaaz global_theme_rb}
+```{ruby global_theme_rb}
 # corp_theme.rb
 # defines the corporate theme for all plots
     
 module CorpTheme
 
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
   # Defines the plot theme (visualization).  In this theme we remove major and minor
   # grids, borders and background.  We also turn-off scientific notation.
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
   
   def self.global_theme
     
@@ -221,7 +224,7 @@ end
 
 We now define a ScatterPlot class:
 
-```{galaaz ScatterPlot_rb}
+```{ruby ScatterPlot_rb}
 # ScatterPlot.rb
 # creates a scatter plot and allow some configuration
     
@@ -233,40 +236,40 @@ class ScatterPlot
   attr_accessor :x_label
   attr_accessor :y_label
   
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
   # Initialize the plot with the data and the x and y variables
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
 
   def initialize(data, x:, y:)
     @data = data
     @x = x
     @y = y
   end
-
-  #--------------------------------------------------------------------------------------
+  
+  #---------------------------------------------------------------------------------
   # Define groupings by color and size
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
 
   def group_by(color:, size:)
     @color_by = color
     @size_by = size
   end
 
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
   # Add a smoothing line, and if confidence is true the add a confidence interval, if
   # false does not add the confidence interval
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
 
   def add_smoothing_line(method:, confidence: true)
     @method = method
     @confidence = confidence
   end
   
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
   # Creates the graph title, properly formated for this theme
   # @param title [String] The title to add to the graph
   # @return textGrob that can be included in a graph
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
 
   def graph_params(title: "", subtitle: "", caption: "", x_label: "", y_label: "")
     R.labs(
@@ -278,9 +281,9 @@ class ScatterPlot
     )
   end
 
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
   # Prepare the plot's points
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
 
   def points
     params = {}
@@ -289,9 +292,9 @@ class ScatterPlot
     R.geom_point(E.aes(params))
   end
       
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
   # Plots the scatterplot
-  #--------------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------
 
   def plot(device = 'awt')
     device == 'awt' ? R.awt : R.svg
@@ -320,7 +323,7 @@ end
 
 And this is the final code for making the scatter plot with the midwest data
 
-```{galaaz scatter_plot_rb}
+```{ruby scatter_plot_rb}
 require 'galaaz'
 require 'ggplot'
 
@@ -339,7 +342,7 @@ sp.plot('svg')
 # the screen
 ```
 
-![Midwest Plot with 'glm' function and modified theme](https://user-images.githubusercontent.com/3999729/47120345-a903ae80-d244-11e8-9be3-a0db13cf51ab.PNG)
+![Midwest Plot with 'glm' function and modified theme](scatter_plot.png){width=70%}
 
 # Conclusion
 
@@ -358,4 +361,3 @@ For the Ruby developer, Galaaz allows the immediate use of R functions completel
 shown in the second example above, class ScatterPlot completely hides all the details an R calls
 from the Ruby developer, furthermore Galaaz is powered by TruffleRuby that can also be orders of
 magnitude faster than MRI Ruby.
-

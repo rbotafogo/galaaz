@@ -39,7 +39,6 @@ EOF
   # gem.platform='java'
 
   gem.add_runtime_dependency 'pry', '~> 0.10'
-  gem.add_runtime_dependency 'finder', '~> 0.4'
   
   gem.add_development_dependency('rspec', "~> 3.8")
   gem.add_development_dependency('simplecov', "~> 0.16")

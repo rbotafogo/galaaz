@@ -1,5 +1,5 @@
 require 'galaaz'
-require 'awesome_print'
+# require 'awesome_print'
 
 # Loads the R 'caret' package.  If not present, installs it 
 R.install_and_loads 'caret'

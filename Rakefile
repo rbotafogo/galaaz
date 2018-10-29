@@ -79,6 +79,7 @@ specs = FileList['specs/**/*.rb']
 master_list = FileList['examples/50Plots_MasterList/**/*.rb']
 islr = FileList['examples/islr/**/*.rb']
 misc = FileList['examples/misc/**/*.rb']
+blogs = Dir.entries("blogs")
 
 #===========================================================================================
 # Creates tasks for all specs.
@@ -146,6 +147,21 @@ misc.each do |f|
 end
 
 task :default => "sthda:all"
+
+#===========================================================================================
+# Creates task for running gknit
+#===========================================================================================
+
+blogs.each do |dir|
+  next if dir == '.' || dir == '..'
+  blog_rmd = "blogs/#{dir}/#{dir}.Rmd"
+  desc "run gknit to build #{dir} blog post"
+  task "blog:#{dir}" do
+    (sh %{ bin/gknit #{blog_rmd} })
+  end
+end
+  
+
 
 
 =begin
