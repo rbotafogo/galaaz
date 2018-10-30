@@ -1,5 +1,4 @@
 require 'galaaz'
-# require 'awesome_print'
 
 # Loads the R 'caret' package.  If not present, installs it 
 R.install_and_loads 'caret'
@@ -27,10 +26,10 @@ class Model
   #
   #==========================================================
 
-  def partition
+  def partition(field)
 
     train_index =
-      R.createDataPartition(@data.mpg, p: @percet_train,
+      R.createDataPartition(@data.send(field), p: @percet_train,
                             list: false, times: 1)
     @train = @data[train_index, :all]
     @test = @data[-train_index, :all]
@@ -39,9 +38,4 @@ class Model
   
 end
 
-mtcars = ~:mtcars
-model = Model.new(mtcars, percent_train: 0.8)
-model.partition
-puts model.train.head
-puts model.test.head
 

@@ -63,7 +63,7 @@ module GalaazUtil
       end
       code
     else
-      raise Errno::ENOENT, "file #{file} not found"
+      raise Errno::ENOENT, "file #{filename} not found"
     end
   end
   
