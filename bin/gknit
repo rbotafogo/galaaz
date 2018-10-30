@@ -39,18 +39,30 @@ knit_engines$set(rb = eng_rb)
 # in place
 
 eng_include = function(options) {
+  if (is.null(options$relative) | isTRUE(options$relative)) {
+    req = "require_relative "
+  } else {
+    req = "require "
+  }
+
+  # read the file and store it to output in the code block
   code = paste0("GalaazUtil.inline_file(", 
-                   shQuote(options$label), 
+                   shQuote(options$label),
+                   ", ",
+                   shQuote(req),
                   ")
                 ");
   include = eval.polyglot("ruby", code);
-  inc = paste(include, collapse = " ");
-  code2 = paste0("GalaazUtil.exec_ruby(", 
-                    shQuote(inc), 
+
+  # require the file
+  require = paste0(req, shQuote(options$label));
+  code = paste0("GalaazUtil.exec_ruby(", 
+                   shQuote(require), 
                   ")
                 ");
-  out = eval.polyglot("ruby", code2);
-  engine_output(options, inc, out)
+
+  out = eval.polyglot("ruby", code);
+  engine_output(options, include, out)
 }
 
 knit_engines$set(include = eng_include)

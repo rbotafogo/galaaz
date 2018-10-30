@@ -165,17 +165,32 @@ For including a Ruby chunk, just change the name of the engine to ruby as follow
 ```
 ````
 
-In this example, this ruby chunk is called 'first_ruby_chunk'.  One important aspect of chunk
+In this example, the ruby chunk is called 'first_ruby_chunk'.  One important aspect of chunk
 labels is that they cannot be duplicate.  If a chunk label is duplicate, the knitting will
 stop with an error.
 
 ### R chunks
 
 Let's now add an R chunk to this document.  In this example, a vector 'r_vec' is created and
-a new function 'redundat_sum' is defined.
+a new function 'redundat_sum' is defined.  The chunk specification is
 
-```{r var_setting}
-r_vec <- c(1, 2, 3)
+````
+```{r data_creation}`r ''`
+r_vec <- c(1, 2, 3, 4, 5)
+
+# Using an example vector "arg"
+redundant_sum <- function(...) {
+  Reduce(sum, as.list(...))
+}
+```
+````
+
+and this is how it will look like once executed.  From now on, we will not show the chunk
+definition any longer.
+
+
+```{r data_creation}
+r_vec <- c(1, 2, 3, 4, 5)
 
 # Using an example vector "arg"
 redundant_sum <- function(...) {
@@ -183,14 +198,17 @@ redundant_sum <- function(...) {
 }
 ```
 
-We can, in another chunk, access the vector and call the function as follows:
+We can, possibly in another chunk, access the vector and call the function as follows:
 
 ```{r using_previous}
-
+print(r_vec)
+print(redundant_sum(r_vec))
 ```
 
-
 ### Ruby chunks
+
+In the same way that an R chunk was created, let's now create a Ruby chunk.  One important aspect
+of Ruby is that chunks 
 
 ```{ruby split_data}
 $a = [1, 2, 3]
@@ -237,8 +255,15 @@ Any problems surround it with text?
 
 ### Including Ruby files
 
-```{include model.rb}
+```{include model}
 ```
+
+### Documenting Gems
+
+```{include bigdecimal, relative = FALSE}
+```
+
+## Converting to PDF
 
 
 # Conclusion

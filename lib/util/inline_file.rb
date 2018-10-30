@@ -21,43 +21,41 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'find'
-
 module GalaazUtil
 
-  def self.find_directories(pwd = Dir.pwd)
-    directories = []
-    begin
-      Find.find(pwd) do |path|
-        Find.prune if path.include? '.git'
-        next unless File.directory?(path)
-        directories << path
-      end
-    rescue
-      puts "Error reading files."
-    end
-    directories
-  end
+  #========================================================================================
+  # Opens the given filename for reading and returns the file content so that it can be
+  # printed as a code chunk in rmarkdown
+  # @param filename [String] the name of the file to be found.  If the file has no
+  #    extension then '.rb' is assumed
+  # @param relative [String] containing either 'require_relative ' or 'require '.  In the
+  #    first case looks on the current directory, on the latter, searches the $LOAD_PATH
+  # @param pwd [String] Directory to look at when 'require_relative ', by default, its
+  #    the pwd directory
+  #========================================================================================
   
-  def self.find_files(pwd = Dir.pwd)
-    files = []
-    begin
-      Find.find(pwd) do |path|
-        Find.prune if path.include? '.git'
-        next if path.include? 'picasa'
-        next unless File.file?(path)
-        files << path
-      end
-    rescue
-      puts "Error reading files."
-    end
-    files
-  end
+  def self.inline_file(filename, relative, pwd = Dir.pwd)
 
-  def self.inline_file(filename, pwd = Dir.pwd)
+    filename << ".rb" if File.extname(filename) == ""
     file = "#{pwd}/#{filename}"
+    
+    if (relative == 'require ')
+      $LOAD_PATH.each do |path|
+        begin
+          files = Dir.entries(path)
+        rescue Errno::ENOENT
+          next
+        end
+
+        if files != nil && files.include?("bigdecimal.rb")
+          file = "#{path}/#{filename}"
+          break
+        end
+      end
+    end
+
     if File.exist?(file)
-      code = []
+      code = ""
       File.open(file, "r") do |fileObj|
         while (line = fileObj.gets)
           code << line
@@ -65,8 +63,8 @@ module GalaazUtil
       end
       code
     else
-      puts "File #{file} not found"
+      raise Errno::ENOENT, "file #{file} not found"
     end
   end
-
+  
 end

@@ -21,6 +21,8 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
+require 'pry'
+
 require_relative 'R/r'
 require_relative 'util/exec_ruby'
 require_relative 'util/inline_file'

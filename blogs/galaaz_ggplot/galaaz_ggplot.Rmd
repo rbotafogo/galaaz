@@ -7,7 +7,7 @@ date: "16 October 2018"
 output:
   pdf_document:
     includes:
-      in_header: ["galaaz.sty"]
+      in_header: ["../../sty/galaaz.sty"]
     number_sections: yes
   html_document:
   md_document:
