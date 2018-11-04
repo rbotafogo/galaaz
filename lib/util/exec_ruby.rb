@@ -26,11 +26,12 @@ require 'stringio'
 module GalaazUtil
   
   def self.exec_ruby(code)
+    
     # Set up standard output as a StringIO object.
     foo = StringIO.new
     $stdout = foo
-    
-    eval code
+
+    eval code 
     
     out = $stdout.string
     

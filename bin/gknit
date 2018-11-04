@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# coding: utf-8
 
 dir = Dir.pwd
 puts "Knitting #{dir}/#{ARGV[0]}"
@@ -9,6 +10,105 @@ eval.polyglot("ruby", "require %q(galaaz)")
 eval.polyglot("ruby", "R.install_and_loads %q(knitr)")
 eval.polyglot("ruby", "R.install_and_loads %q(rmarkdown)")
 
+# graphics devices in base R, plus those in Cairo, cairoDevice, tikzDevice
+auto_exts = c(
+  bmp = "bmp", postscript = "eps", pdf = "pdf", png = "png", svg = "svg",
+  jpeg = "jpeg", pictex = "tex", tiff = "tiff", win.metafile = "wmf",
+  cairo_pdf = "pdf", cairo_ps = "eps",
+
+  quartz_pdf = "pdf", quartz_png = "png", quartz_jpeg = "jpeg",
+  quartz_tiff = "tiff", quartz_gif = "gif", quartz_psd = "psd",
+  quartz_bmp = "bmp",
+
+  CairoJPEG = "jpeg", CairoPNG = "png", CairoPS = "eps", CairoPDF = "pdf",
+  CairoSVG = "svg", CairoTIFF = "tiff",
+
+  Cairo_pdf = "pdf", Cairo_png = "png", Cairo_ps = "eps", Cairo_svg = "svg",
+
+  svglite = "svg",
+
+  tikz = "tex"
+)
+
+is_plot_output = function(x) {
+  evaluate::is.recordedplot(x) || inherits(x, "knit_image_paths")
+}
+
+# find recorded plots in the output of evaluate()
+find_recordedplot = function(x) {
+  vapply(x, is_plot_output, logical(1))
+}
+
+dev2ext = function(x) {
+  res = auto_exts[x]
+  if (any(idx <- is.na(res))) {
+    for (i in x[idx]) check_dev(i)
+    stop2(
+      "cannot find appropriate filename extensions for device ", x[idx], "; ",
+      "please use chunk option 'fig.ext' (https://yihui.name/knitr/options)"
+    )
+  }
+  unname(res)
+}
+
+# filter the dev.args option
+get_dargs = function(dargs, dev) {
+  if (length(dargs) == 0) return()
+  if (is.list(dargs) && all(sapply(dargs, is.list))) {
+    # dev.args is list(dev1 = list(arg1 = val1, ...), dev2 = list(arg2, ...))
+    dargs = dargs[[dev]]
+  }
+  dargs
+}
+
+# open a device for a chunk; depending on the option global.device, may or may
+# not need to close the device on exit
+chunk_device = function(
+  width, height, record = TRUE, dev, dev.args, dpi, options, tmp = tempfile()
+) {
+  dev_new = function() {
+    # actually I should adjust the recording device according to dev, but here I
+    # have only considered the png and tikz devices (because the measurement
+    # results can be very different especially with the latter, see #1066), and
+    # also the cairo_pdf device (#1235)
+    if (identical(dev, "png")) {
+      do.call(grDevices::png, c(list(
+        filename = tmp, width = width, height = height, units = "in", res = dpi
+      ), get_dargs(dev.args, "png")))
+    } else if (identical(dev, "tikz")) {
+      dargs = c(list(
+        file = tmp, width = width, height = height
+      ), get_dargs(dev.args, "tikz"))
+      dargs$sanitize = options$sanitize; dargs$standAlone = options$external
+      if (is.null(dargs$verbose)) dargs$verbose = FALSE
+      do.call(tikz_dev, dargs)
+    } else if (identical(dev, "cairo_pdf")) {
+      do.call(grDevices::cairo_pdf, c(list(
+        filename = tmp, width = width, height = height
+      ), get_dargs(dev.args, "cairo_pdf")))
+    } else if (identical(getOption('device'), pdf_null)) {
+      if (!is.null(dev.args)) {
+        dev.args = get_dargs(dev.args, "pdf")
+        dev.args = dev.args[intersect(names(dev.args), c("pointsize", "bg"))]
+      }
+      do.call(pdf_null, c(list(width = width, height = height), dev.args))
+    } else dev.new(width = width, height = height)
+  }
+  if (!opts_knit$get("global.device")) {
+    dev_new()
+    dev.control(displaylist = if (record) "enable" else "inhibit")  # enable recording
+    # if returns TRUE, we need to close this device after code is evaluated
+    return(TRUE)
+  } else if (is.null(dev.list())) {
+    # want to use a global device but not open yet
+    dev_new()
+    dev.control("enable")
+  }
+  FALSE
+}
+
+showtext = function(show) if (isTRUE(show)) showtext::showtext_begin()
+
 # define the ruby engine for processing Ruby chunks in
 # rmarkdown
 eng_ruby = function(options) {
@@ -17,8 +117,60 @@ eng_ruby = function(options) {
                    shQuote(block_code), 
                   ")
                 ");
-  out = eval.polyglot("ruby", code);
-  engine_output(options, block_code, out)
+
+  # png(paste0("gknit_files/figure-html/", options$label, ".png"));
+
+  keep = options$fig.keep
+  keep.idx = NULL
+  if (is.numeric(keep)) {
+    keep.idx = keep
+    keep = "index"
+  }
+
+  tmp.fig = tempfile(); on.exit(unlink(tmp.fig), add = TRUE)
+
+  # open a device to record plots
+  if (chunk_device(options$fig.width[1L], options$fig.height[1L], keep != "none",
+                   options$dev, options$dev.args, options$dpi, options, tmp.fig)) {
+    # preserve par() settings from the last code chunk
+    if (keep.pars <- opts_knit$get("global.par"))
+      par2(opts_knit$get("global.pars"))
+    showtext(options$fig.showtext)  # showtext support
+    dv = dev.cur()
+    on.exit({
+      if (keep.pars) opts_knit$set(global.pars = par(no.readonly = TRUE))
+      dev.off(dv)
+    }, add = TRUE)
+   }
+
+  # guess plot file type if it is NULL
+  if (keep != "none" && is.null(options$fig.ext))
+    options$fig.ext = dev2ext(options$dev)
+
+  # out = eval.polyglot("ruby", code);
+  res = eval.polyglot("ruby", code);
+
+# rearrange locations of figures
+  figs = find_recordedplot(res)
+  if (length(figs) && any(figs)) {
+    if (keep == 'none') {
+      res = res[!figs] # remove all
+    } else {
+      if (options$fig.show == 'hold') res = c(res[!figs], res[figs]) # move to the end
+      figs = find_recordedplot(res)
+      if (length(figs) && sum(figs) > 1) {
+        if (keep %in% c('first', 'last')) {
+          res = res[-(if (keep == 'last') head else tail)(which(figs), -1L)]
+        } else {
+          # keep only selected
+          if (keep == 'index') res = res[which(figs)[keep.idx]]
+          # merge low-level plotting changes
+          if (keep == 'high') res = merge_low_plot(res, figs)
+        }
+      }
+    }
+}
+  engine_output(options, block_code, res)
 }
 
 knit_engines$set(ruby = eng_ruby)

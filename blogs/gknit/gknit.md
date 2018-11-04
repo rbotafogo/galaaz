@@ -25,14 +25,14 @@ executable code and at the same time easily read by a human developer. According
 literate programming can be regarded as an essayist, whose main concern is with exposition 
 and excellence of style."
 
-The idea of literate programming envolved into the idea of reproducible research, in which
+The idea of literate programming evolved into the idea of reproducible research, in which
 all the data, software code, documentation, graphics etc. needed to reproduce the research
 and its reports could be included in a
 single document or set of documents that when distributed to peers could be rerun generating
 the same output and reports.
 
 The R community has put a great deal of effort in reproducible research.  In 2002, Sweave was
-introduced and it allowed mixing R code with Latex generating hight quality PDF documents.  Those
+introduced and it allowed mixing R code with Latex generating high quality PDF documents.  Those
 documents could include the code, the result of executing the code, graphics and text.  This
 contained the whole narrative to reproduce the research.  But Sweave had many problems and in
 2012, Knitr, developed by Yihui Xie from RStudio was released, solving many of the long lasting
@@ -102,7 +102,7 @@ For more information on the options in the Yaml header, check https://bookdown.o
 
 ## R Markdown formatting
 
-Document formating can be done with simple markups such as:
+Document formatting can be done with simple markups such as:
 
 ### Headers
 
@@ -136,7 +136,7 @@ Ordered Lists
     + Item 3b
 ```
 
-Please, go to https://rmarkdown.rstudio.com/authoring_basics.html, for more R markdown formating.
+Please, go to https://rmarkdown.rstudio.com/authoring_basics.html, for more R markdown formatting.
 
 ## Code Chunks
 
@@ -174,7 +174,7 @@ stop with an error.
 ### R chunks
 
 Let's now add an R chunk to this document.  In this example, a vector 'r_vec' is created and
-a new function 'redundat_sum' is defined.  The chunk specification is
+a new function 'redef_sum' is defined.  The chunk specification is
 
 ````
 ```{r data_creation}
@@ -218,6 +218,27 @@ print(redef_sum(r_vec))
 ## [1] 15
 ```
 
+
+```r
+# load package and data
+library(ggplot2)
+data(mpg, package="ggplot2")
+# mpg <- read.csv("http://goo.gl/uEeRGu")
+
+mpg_select <- mpg[mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"), ]
+
+# Scatterplot
+theme_set(theme_bw())  # pre-set the bw theme.
+g <- ggplot(mpg_select, aes(displ, cty)) + 
+  labs(subtitle="mpg: Displacement vs City Mileage",
+       title="Bubble chart")
+
+g + geom_jitter(aes(col=manufacturer, size=hwy)) + 
+  geom_smooth(aes(col=manufacturer), method="lm", se=F)
+```
+
+![](/home/rbotafogo/desenv/galaaz/blogs/gknit/gknit_files/figure-html/bubble-1.png)<!-- -->
+
 ### Ruby chunks
 
 In the same way that an R chunk was created, let's now create a Ruby chunk.  One important aspect
@@ -259,7 +280,7 @@ puts $vec * $vec2
 
 One of the nice aspects of Galaaz on GraalVM, is that variables and functions defined in R, can
 be easily accessed from Ruby.  This next chunk, reads data from R and uses the 'redef_fun'
-function defined previously.  To access an R variable from Ruby the '~' function shoud be
+function defined previously.  To access an R variable from Ruby the '~' function should be
 applied to the Ruby symbol representing the R variable.  Since the R variable is called 'r_vec',
 in Ruby, the symbol to acess it is ':r_vec' and thus '~:r_vec' retrieves the value of the
 variable.
@@ -299,7 +320,7 @@ This is some text with inline Ruby accessing variable \$b which has value:
 and is followed by some other text!
 ````
 
-The result of executing the above ckunk is the following sentence with inline Ruby code
+The result of executing the above chunk is the following sentence with inline Ruby code
 
 <div style="margin-bottom:50px;">
 </div>
@@ -311,11 +332,11 @@ and is followed by some other text!
 <div style="margin-bottom:50px;">
 </div>
 
-In an inline block, it is possible to execute multiple Ruby statements by adding a semicolom
+In an inline block, it is possible to execute multiple Ruby statements by adding a semicolon
 between them:
 
 ````
-Multiple statements in the 'rb' engine use semicolom:
+Multiple statements in the 'rb' engine use semicolon:
 ```{rb puts $a, puts $b}
 ```
 ````
@@ -324,7 +345,7 @@ Multiple statements in the 'rb' engine use semicolom:
 </div>
 
 
-Multiple statements in the 'rb' engine use semicolom:
+Multiple statements in the 'rb' engine use semicolon:
 1
 2
 3
@@ -348,6 +369,40 @@ the following chunk:
 Remember that variable '$\c' was defined in a previous Ruby chunk and is now being used to
 create the section heading for this section.
 
+
+### Plotting
+
+
+```ruby
+require 'ggplot'
+
+R.theme_set R.theme_bw
+
+# Data Prep
+mtcars = ~:mtcars
+mtcars.car_name = R.rownames(:mtcars)
+# compute normalized mpg 
+mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean)/mtcars.mpg.sd).round 2
+mtcars.mpg_type = mtcars.mpg_z < 0 ? "below" : "above"
+mtcars = mtcars[mtcars.mpg_z.order, :all]
+# convert to factor to retain sorted order in plot
+mtcars.car_name = mtcars.car_name.factor levels: mtcars.car_name
+
+# Diverging Barcharts
+# R.png
+gg = mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) + 
+     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity',  width: 0.5) +
+     R.scale_fill_manual(name: "Mileage", 
+                         labels: R.c("Above Average", "Below Average"), 
+                         values: R.c("above": "#00ba38", "below": "#f8766d")) + 
+     R.labs(subtitle: "Normalised mileage from 'mtcars'", 
+            title: "Diverging Bars") + 
+     R.coord_flip()
+print gg
+# R.dev__off
+# R.include_graphics("Rplot001.png")
+```
+
 ### Including Ruby files
 
 R is a language that was created to be easy and fast for statisticians to use.  It was not a
@@ -361,7 +416,7 @@ literate programming we cannot expect the developer to add all the files in a si
 file.  gKnit provides the 'include' chunk engine to include a Ruby file as if it had being
 typed in the '.Rmd' file.
 
-To include a file the following chunk should be created, whre <filename> is the name of
+To include a file the following chunk should be created, where <filename> is the name of
 the file to be include and where the extension, if it is '.rb', does not need to be added.
 If the 'relative' option is not included, then it is treated as TRUE.  When 'relative' is
 true, 'require_relative' semantics is used to load the file, when false, Ruby's $LOAD_PATH
@@ -524,11 +579,11 @@ output:
 
 # Conclusion
 
-One of the promisses of GraalVM is that users/developers will be able to use the best tool
-for their task at hand, idependetly of the programming language the tool was written.  Galaaz
+One of the promises of GraalVM is that users/developers will be able to use the best tool
+for their task at hand, independently of the programming language the tool was written.  Galaaz
 and gKnit are not trivial implementations atop the GraalVM and Truffle interop messages;
 however, the time and effort it took to wrap Ruby over R - Galaaz - (not finished yet) or to
-wrap Knitr with gKnit is a fraction of a fraction of a franction of the time require to
+wrap Knitr with gKnit is a fraction of a fraction of a fraction of the time require to
 implement the original tools.  Trying to reimplement all R packages in Ruby would require the
 same effort it is taking Python to implement NumPy, Panda and all supporting libraries and it
 is unlikely that this effort would ever be done.  GraalVM has allowed Ruby to profit "almost
@@ -536,7 +591,7 @@ for free" from this huge set of libraries and tools that make R one of the most 
 languages for data analysis and machine learning.
 
 More interesting though than being able to wrap the R libraries with Ruby, is that Ruby adds
-value to R, by allowing developers to use powerful and modern constructs for code resuse that
+value to R, by allowing developers to use powerful and modern constructs for code reuse that
 are not the strong points of R.  As shown in this blog, R and Ruby can easily communicate
 and R can be structured in classes and modules in a way that greatly expands its power and
 readability.
@@ -565,4 +620,4 @@ the gnu compiler and tools should be enough.  I am not sure what is needed on th
 
 ## Usage
 
-* gknit [filename]
+* gknit <filename>

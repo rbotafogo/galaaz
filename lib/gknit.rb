@@ -21,11 +21,21 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'pry'
+require 'galaaz'
+require 'ggplot'
 
-require_relative 'R_interface/r'
-require_relative 'util/exec_ruby'
-require_relative 'util/inline_file'
+R.install_and_loads('knitr', 'rmarkdown')
 
-$LOAD_PATH << File.dirname(File.expand_path('..', __FILE__)) + "/r_requires"
+puts "gknit loaded"
+dir = File.dirname(File.expand_path('.', __FILE__))
+src = "#{dir}/R/eng_ruby.R"
+
+eng_ruby = Proc.new do |code, options|
+  puts code
+  puts options
+end
+
+R.knit_engines.set(ruby: eng_ruby)
+
+# R.source(src)
 
