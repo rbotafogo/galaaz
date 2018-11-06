@@ -29,7 +29,8 @@ module R
   RCONSTANTS = ["LETTERS", "letters", "month.abb", "month.name", "pi"]
 
   #----------------------------------------------------------------------------------------
-  #
+  # Executes a missing method. If a block is given, then the method needs to be executed
+  # in the scope of the block.  @bug: Not ready yeat
   #----------------------------------------------------------------------------------------
 
   def self.method_missing(symbol, *args, &block)

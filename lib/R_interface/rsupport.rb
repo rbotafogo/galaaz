@@ -62,6 +62,7 @@ module R
     @@exec_from_ruby = Polyglot.eval("R", <<-R)
       function(build_method, ...) {
         # print(build_method);
+        # print("exec_from_ruby")
         # args = list(...);
         # print(args);
         res = do.call(...);
@@ -102,6 +103,7 @@ module R
       when Truffle::Interop
         arg
       when R::Object
+        # return (Truffle::Interop.null?(arg.r_interop)) ? nil : arg.r_interop
         arg.r_interop
       when NegRange
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
@@ -127,14 +129,14 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.parse2list(*args)
-      
+
       params = Polyglot.eval("R", "list()")
       
       args.each_with_index do |arg, i|
         if (arg.is_a? Hash)
           arg.each_pair do |key, value|
             k = key.to_s.gsub(/__/,".")
-            # HAS CHANGED IN RC6... FIX THIS TO THE NEW API
+            # HAS CHANGED IN RC6... FIXME: THIS TO THE NEW API
             # When evaluating to NA, Interop treats it as FALSE.  This breaks
             # all expectations about NA.  We need to protect NA from Interop
             # unboxing.  Class NotAvailable
@@ -157,7 +159,10 @@ module R
         end
       end
 
-      params
+      # if the parameter is an empty list, then add the element NULL to the list
+      (Polyglot.eval("R", "length").call(params) == 0) ?
+        Polyglot.eval("R", "list").call(nil) : params
+      # params
       
     end
     
@@ -206,13 +211,13 @@ module R
     
     #----------------------------------------------------------------------------------------
     # @param function_name [String] Name of the R function to execute
-    # @param internal [Boolean] true if returning to an internal object, i.e., does not
-    # wrap the return object in a Ruby object
     # @args [Array] Array of arguments for the function
     #----------------------------------------------------------------------------------------
     
     def self.exec_function_name(function_name, *args)
-      R::Support.exec_function(R::Support.eval(function_name), *args)
+      # TODO: should check the function name before calling eval
+      f = R::Support.eval(function_name)
+      R::Support.exec_function(f, *args)
     end
 
     #----------------------------------------------------------------------------------------
