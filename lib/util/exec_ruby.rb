@@ -31,7 +31,7 @@ module GalaazUtil
     foo = StringIO.new
     $stdout = foo
 
-    eval code 
+    eval(code) 
     
     out = $stdout.string
     

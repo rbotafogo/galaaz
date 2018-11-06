@@ -22,20 +22,6 @@
 ##########################################################################################
 
 require 'galaaz'
-require 'ggplot'
 
-R.install_and_loads('knitr', 'rmarkdown')
-
-puts "gknit loaded"
-dir = File.dirname(File.expand_path('.', __FILE__))
-src = "#{dir}/R/eng_ruby.R"
-
-eng_ruby = Proc.new do |code, options|
-  puts code
-  puts options
-end
-
-R.knit_engines.set(ruby: eng_ruby)
-
-# R.source(src)
-
+require_relative 'gknit/knitr_engine'
+require_relative 'gknit/ruby_engine'
