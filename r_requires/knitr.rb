@@ -21,4 +21,7 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-R.install_and_loads('ggplot2', 'grid', 'gridExtra')
+# Require knitr, required package that provides needed functions
+# to capture plots and generating images in diverse formats such
+# as 'png', 'pdf', etc. 
+R.install_and_loads('knitr')

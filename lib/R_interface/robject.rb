@@ -283,7 +283,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def to_s
-      cap = R::Support.capture.call(r_interop)
+      
+      cap = nil
+      # dev = R::Device.new('png', width: 5, height: 7, dpi: 300, record: true) {
+        cap = R::Support.capture.call(r_interop)
+      # }
       str = String.new
       (0...(cap.size - 1)).each do |i|
         str << cap[i] << "\n"

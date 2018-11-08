@@ -144,32 +144,32 @@ eng_ruby = function(options) {
    }
 
   # guess plot file type if it is NULL
-  if (keep != "none" && is.null(options$fig.ext))
-    options$fig.ext = dev2ext(options$dev)
+  # if (keep != "none" && is.null(options$fig.ext))
+  #   options$fig.ext = dev2ext(options$dev)
 
   # out = eval.polyglot("ruby", code);
   res = eval.polyglot("ruby", code);
 
 # rearrange locations of figures
-  figs = find_recordedplot(res)
-  if (length(figs) && any(figs)) {
-    if (keep == 'none') {
-      res = res[!figs] # remove all
-    } else {
-      if (options$fig.show == 'hold') res = c(res[!figs], res[figs]) # move to the end
-      figs = find_recordedplot(res)
-      if (length(figs) && sum(figs) > 1) {
-        if (keep %in% c('first', 'last')) {
-          res = res[-(if (keep == 'last') head else tail)(which(figs), -1L)]
-        } else {
-          # keep only selected
-          if (keep == 'index') res = res[which(figs)[keep.idx]]
-          # merge low-level plotting changes
-          if (keep == 'high') res = merge_low_plot(res, figs)
-        }
-      }
-    }
-}
+#  figs = find_recordedplot(res)
+#  if (length(figs) && any(figs)) {
+#    if (keep == 'none') {
+#      res = res[!figs] # remove all
+#    } else {
+#      if (options$fig.show == 'hold') res = c(res[!figs], res[figs]) # move to the end
+#      figs = find_recordedplot(res)
+#      if (length(figs) && sum(figs) > 1) {
+#        if (keep %in% c('first', 'last')) {
+#          res = res[-(if (keep == 'last') head else tail)(which(figs), -1L)]
+#        } else {
+#          # keep only selected
+#          if (keep == 'index') res = res[which(figs)[keep.idx]]
+#          # merge low-level plotting changes
+#          if (keep == 'high') res = merge_low_plot(res, figs)
+#        }
+#      }
+#    }
+#}
   engine_output(options, block_code, res)
 }
 

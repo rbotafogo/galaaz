@@ -43,7 +43,7 @@ EOF
   gem.add_development_dependency('rspec', "~> 3.8")
   gem.add_development_dependency('simplecov', "~> 0.16")
   gem.add_development_dependency('rdoc', "~> 5.0")
-  gem.add_development_dependency('rake', '~> 12.0')
+  # gem.add_development_dependency('rake', '~> 12.0')
 
   # ensure the gem is built out of versioned files
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',

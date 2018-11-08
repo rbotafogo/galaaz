@@ -23,9 +23,8 @@
 
 require 'pry'
 
+$LOAD_PATH << File.dirname(File.expand_path('..', __FILE__)) + "/r_requires"
+
 require_relative 'R_interface/r'
 require_relative 'util/exec_ruby'
 require_relative 'util/inline_file'
-
-$LOAD_PATH << File.dirname(File.expand_path('..', __FILE__)) + "/r_requires"
-

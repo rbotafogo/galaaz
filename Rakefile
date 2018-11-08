@@ -167,7 +167,14 @@ blogs.each do |dir|
   
 end
   
+#===========================================================================================
+# Loads R and require libraries to run Galaaz
+#===========================================================================================
 
+desc 'Prepare R for running'
+task :make_r do
+  (sh %{ gu install r })
+end
 
 
 =begin
