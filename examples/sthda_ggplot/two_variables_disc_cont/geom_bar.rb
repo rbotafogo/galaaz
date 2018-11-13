@@ -30,8 +30,8 @@ df = R.data__frame(dose: R.c("D0.5", "D1", "D2"),
 puts df.head
 
 df2 = R.data__frame(supp: R.rep(R.c("VC", "OJ"), each: 3),
-                   dose: R.rep(R.c("D0.5", "D1", "D2"), 2),
-                   len: R.c(6.8, 15, 33, 4.2, 10, 29.5))
+                    dose: R.rep(R.c("D0.5", "D1", "D2"), 2),
+                    len: R.c(6.8, 15, 33, 4.2, 10, 29.5))
 puts df2.head
 
 f = df.ggplot(E.aes(x: :dose, y: :len))

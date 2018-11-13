@@ -36,6 +36,7 @@ module R
     #--------------------------------------------------------------------------------------
     
     def =~(other_object)
+      # puts "doing #{self} =~ #{other_object}"
       exec_oper("`~`", other_object, true)
     end
 

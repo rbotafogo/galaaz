@@ -23,6 +23,10 @@
 
 require 'stringio'
 
+class RubyChunk
+
+end
+
 module GalaazUtil
   
   def self.exec_ruby(code)
@@ -31,7 +35,8 @@ module GalaazUtil
     foo = StringIO.new
     $stdout = foo
 
-    eval(code) 
+    # eval(code)
+    RubyChunk.instance_eval(code)
     
     out = $stdout.string
     

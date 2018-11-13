@@ -60,7 +60,8 @@ class Symbol
   #--------------------------------------------------------------------------------------
 
   def +@
-    R::Object.build(R::Support.eval("as.name").call(to_s))
+    var = (self == :all)? '.' : to_s
+    R::Object.build(R::Support.eval("as.name").call(var))
   end
 
   #--------------------------------------------------------------------------------------

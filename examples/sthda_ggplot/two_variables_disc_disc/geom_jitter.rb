@@ -32,7 +32,6 @@ print diamonds.ggplot(E.aes(:cut, :color)) +
       R.geom_jitter(E.aes(color: :cut), size: 0.5)
 
 sleep(2)
-R.grid__newpage
 
 # a = gets.chomp
 

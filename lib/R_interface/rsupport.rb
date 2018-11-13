@@ -258,10 +258,10 @@ module R
       name = R::Support.convert_symbol2r(symbol)
       
       case name
-      # missing method has an '=' sign in it...
+      # when missing method has an '=' sign in it...
       when ->(x) { x =~ /(.*)=$/ }
         R::Support.set_symbol($1, *args)
-      # missing method is 'eval'... needs special treatment
+      # when missing method is 'eval'... needs special treatment
       when "eval"
         R::Support.r_evaluate(*args)
       else

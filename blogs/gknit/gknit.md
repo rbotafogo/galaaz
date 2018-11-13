@@ -479,6 +479,11 @@ end
 
 ```
 
+```
+## The following packages are missing and will be installed:
+##  [1] "caret"
+```
+
 
 ```ruby
 mtcars = ~:mtcars
