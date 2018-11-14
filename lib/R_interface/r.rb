@@ -126,3 +126,4 @@ require 'knitr'
 
 # Methods to capture a plot sent to a device
 require_relative 'rdevices'
+

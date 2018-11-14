@@ -1,5 +1,5 @@
 ---
-title: "High Quality Scientific Plotting with Ruby in GraalVM"
+title: "High Quality Scientific Plotting with Ruby in GraalVM with Galaaz"
 author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM]
 date: "19 October 2018"
@@ -17,9 +17,9 @@ output:
 
 # Introduction
 
-Ruby is a dynamic, interpreted, reflective, object-oriented, general-purpose
-programming language. It was designed and developed in the mid-1990s by Yukihiro
-"Matz" Matsumoto in Japan.  It reached high popularity with the development of Ruby on Rails
+According to Wikipedia "Ruby is a dynamic, interpreted, reflective, object-oriented, 
+general-purpose programming language. It was designed and developed in the mid-1990s by Yukihiro
+"Matz" Matsumoto in Japan."  It reached high popularity with the development of Ruby on Rails
 (RoR) by David Heinemeier Hansson. RoR is a web application framework which was first release
 circa 2005 and makes extensive use of Ruby's metaprogramming features.  With the advend of
 RoR, Ruby became extremely popular and it peeked in popularity around 2008 according to the Tiobe
@@ -29,14 +29,14 @@ this writing (November 2018), Ruby is ranked 16th in the Tiobe index.
 
 Python, considered a similar language to Ruby with similar features ranks 4th in the index.  The
 first three positions are taken by Java, C and C++.  One criticism often heard about Ruby, is
-that it is useful only for web applications while Python, with similar features has more diverse
+that it is useful only for web applications while Python, with similar features, has more diverse
 libraries, being useful for web applications with the Django framework, but also for
 scientific applications such as statistics, data analysis, big data, biology, etc.  This
 criticism is by no way wrong.  Although Ruby can do much more than just web applications:
 https://github.com/markets/awesome-ruby, for scientific computing, Ruby lags
 way behind Python and R, the
 two most prestigous languages in the field, with R being prefered by statisticians
-while Python is prefered by everyone else, because of it's gentle learning curve and more
+while Python by everyone else, because of it's gentle learning curve and more
 "natural" programming paradigm.
 
 Until recently, there was no real perspective for Ruby to bridge this gap and have even the
@@ -75,13 +75,13 @@ on GraalVM, the Galaaz project was started.  Galaaz indends to tightly couple Ru
 and allow those languages to _seamlessly_ interact in a way that the user will be unaware
 of such interaction.
 
-Library wrapping is an usual way of bringing features from one library into another
-language.  For instance, whenever Python needs to perform operations
+Library wrapping is an usual way of bringing features from one language into another.
+For instance, whenever Python needs to perform operations
 efficiently, C libraries are wrapped in Python.
 For the Python developer, the existence of such C library is of no concern.  The problem with
-library wrapping is that for any new library of interest, there is the need to hand craft a new
+library wrapping is that for any new library of interest, there is the need to handcraft a new
 wrapper.  With Galaaz, the same concept of wrapping was done, but instead of wrapping a
-single C or R library, Galaaz wraps the whole of the R language.  Doing so,
+single C or R library, Galaaz wraps the whole of the R language in Ruby.  Doing so,
 all thousands of R libraries
 are immediately available to Ruby developers and any new library developed in R will also become
 available without requiring a new wrapping effort.
@@ -89,11 +89,10 @@ available without requiring a new wrapping effort.
 In this article, the graphing ggplot2 library from R will be accessed by Ruby transparently,
 bringing to Ruby the power of high quality scientific plotting.  It might seem, from
 the exposed above, that Galaaz mainly benefits Ruby developers and might be of no
-consequence to the R developer.  This article will however show that migrating from R to
-Ruby with Galaaz is a matter of small syntactic changes.  Furthermore, R lacks some
-fundamental constructs for code reuse and large system construction. Using Galaaz, the R
-developer can easily migrate to a powerful OO language, at virtually no cost and then, as
-needs requires, she can add them to her toolbox.
+interest to the R developer.  This article will however show that migrating from R to
+Ruby with Galaaz is a matter of small syntactic changes. Furthermore, Ruby's powerful OO
+features are naturally available to the R developer, that can make use of them to move
+the R code from the analysis fase to the production fase in a much easier and natural way.
 
 In this article we will explore the R ToothGrowth dataset.  In doing so, we will
 create some plots.
@@ -106,39 +105,46 @@ In https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightl
 
 This document was written using rmarkdown and the corresponding HTML was generated by the gKnit
 application.  gKnit is a wrapper around the powerful 'knitr' application which converts
-rmarkdown text to many different output formats such as HTML, Latex, docx, etc.  The gKnit
+rmarkdown text to many different output formats such as HTML, $LaTex$, docx, etc.  The gKnit
 tool is still under active development and will soon be released.
 
-In rmarkdown, text and code can be part of the same document, and code blocks are marked
-with a special markup.  Interested readers can easily google 'knitr' and 'rmarkdown'.  in
-gKnit, each Ruby block can be considere as a function call with the block code and thus
-Ruby creates a new scope for the code execution.  Local variables defined in a block are
-not accessible in another block.  All blocks are, however, executed in the scope of a
-single instance of a class, and instance variables ('@'), will be accessed by all blocks. 
+In rmarkdown, text and code can be part of the same document, and code chunks are marked
+with a special markup.  Interested readers can easily google 'knitr' and 'rmarkdown' for
+more information on how to 'knit' a document. The 'knitr' application can knit not only R, but
+also Python, Ruby and many other languages.  However, other than R, code chunks cannot
+share data and variables.  In gKnit, this limitation is removed for Ruby chunks. Ruby
+chunks can share data and variables and they can even access variables created in an R
+chunk.  gKnit will be the subject of another blog to come. 
+
+In gKnit each
+Ruby chunk is executed in its own scope and thus, local variable are not accessible by other
+chunks.  However, all chunks execute in the scope of a 'chunk' class and instance
+variables ('@'), will be accessed by all chunks. 
 
 
 # Exploring the Dataset
 
-Let start by exploring our selected dataset.  In this dataset the response is the length of
+Let start by exploring our selected dataset.  ToothGrowth is
+an R dataset.  For the Rubyist, a dataset is like an excel spreadsheet, but in which each
+column has only one type of data, for instance, float, integer, string, etc.  This
+dataset analyses the length of
 odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal
-received one of three dose levels of vitamin C (0.5, 1, and 2 mg/day) by one of two
-delivery methods, orange juice or ascorbic acid (a form of vitamin C and coded as VC). 
+received one of three dose levels of Vitamin C (0.5, 1, and 2 mg/day) by one of two
+delivery methods, orange juice or ascorbic acid (a form of vitamin C and coded as VC).
 
-In Galaaz, in order to have access to an R variable pointed by an R symbol we use the
-corresponding Ruby symbol preceeded by the tilda ('~') function.
+The ToothGrowth dataset is composed of three columns: 'len', 'supp' and 'dose'.  Let's
+take a look at a few rows of this dataset. In Galaaz, in order to have access to an R
+variable we use the
+corresponding Ruby symbol preceeded by the tilda ('~') function.  Note in the following
+chunk that Ruby's '@tooth_growth' gets assigned to '~:ToothGrowth', where 'ToothGrowth' is
+an R variable containing the dataset of interest.
 
 
 ```ruby
 # Read the R ToothGrowth variable and assign it to the
 # Ruby @tooth_growth variable is an instance variable
-# available to all blocks in this document.
+# available to all Ruby chunks in this document.
 @tooth_growth = ~:ToothGrowth
-# convert the dose to a factor
-@tooth_growth.dose = @tooth_growth.dose.as__factor
-```
-
-
-```ruby
 # print the first few elements of the dataset
 puts @tooth_growth.head
 ```
@@ -153,12 +159,31 @@ puts @tooth_growth.head
 ## 6 10.0   VC  0.5
 ```
 
-Great! We've managed to read the ToothGrowth dataset and take a look at its elements.  Observe
-that we have three columns in this dataset: 'len', 'supp' and 'dose'.  This dataset contains
-data about the length of odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. 
-Each animal received one of three dose levels of vitamin C either by drinking orange juice (OJ)
-or by receiving a dose of vitamin c (VC).  Accessing a column,
-for example the 'len' column, is done by doing '@tooth_growth.len'.  
+Great! We've managed to read the ToothGrowth dataset and take a look at its elements. We
+see here the first 6 rows of the dataset.  The columns of the dataset can be accessed
+by appending the column name to the dataset name separated by a '.', as if accessing an
+instance variable from a class.  Also note that methods can be chained in the usual Ruby
+stile with '.'. 
+
+
+```ruby
+# Access the tooth_growth 'dose' column and print the first few
+# elements of this column with the 'head' method.
+puts @tooth_growth.dose.head
+```
+
+```
+## [1] 0.5 0.5 0.5 0.5 0.5 0.5
+```
+
+The 'dose' column contains a numeric value wiht either, 0.5, 1 or 2.  Although those are
+number, they are better interpreted as a factor or cathegory (https://swcarpentry.github.io/r-novice-inflammation/12-supp-factors/).  So, let's convert our 'dose' column from numeric to 'factor':
+
+
+```ruby
+# convert the dose to a factor
+@tooth_growth.dose = @tooth_growth.dose.as__factor
+```
 
 Let's explore some more details of this dataset.  In particular, let's look at its dimensions,
 structure and summary statistics.
@@ -166,14 +191,16 @@ structure and summary statistics.
 
 ```ruby
 puts @tooth_growth.dim
-# chdck why NULL
-puts R.str(:ToothGrowth)
+@tooth_growth.str
 puts @tooth_growth.summary
 ```
 
 ```
 ## [1] 60  3
-## NULL
+## [1] "'data.frame':\t60 obs. of  3 variables:"                                 
+## [2] " $ len : num  4.2 11.5 7.3 5.8 6.4 10 11.2 11.2 5.2 7 ..."               
+## [3] " $ supp: Factor w/ 2 levels \"OJ\",\"VC\": 2 2 2 2 2 2 2 2 2 2 ..."      
+## [4] " $ dose: Factor w/ 3 levels \"0.5\",\"1\",\"2\": 1 1 1 1 1 1 1 1 1 1 ..."
 ##       len        supp     dose   
 ##  Min.   : 4.20   OJ:30   0.5:20  
 ##  1st Qu.:13.07   VC:30   1  :20  
@@ -182,6 +209,8 @@ puts @tooth_growth.summary
 ##  3rd Qu.:25.27                   
 ##  Max.   :33.90
 ```
+
+# Quick plot for seen the data
 
 Let's now create our first plot with the given data by accessing ggplot2 from Ruby.  For Rubyist
 that have never seen or used ggplot2, here is the description found on ggplot home page:

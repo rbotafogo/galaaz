@@ -57,6 +57,8 @@ module R
 
   module Support
 
+    @@exec_counter = 0
+    
     # Using this method gives us more control over what happens when calling do.call
     # and allows for debugging.  Use it in exec_function when debugging is needed.
     @@exec_from_ruby = Polyglot.eval("R", <<-R)
@@ -199,14 +201,35 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.exec_function(function, *args)
-      # function has no arguments, call it directly
-      if (args.length == 0)
-        return R::Object.build(function.call) # if args.length == 0
+
+      # If the execution counter is 0, function was not recursively called
+      # Starts capturing output
+      if (@@exec_counter == 0)
+        R::Support.eval("unlockBinding('r_capture', globalenv())")
+        @@con = R::Support.start_capture.call("r_capture")
       end
 
-      pl = R::Support.parse2list(*args)
-      @@exec_from_ruby.call(R::Object.method(:build), function, pl)
-      # R::Object.build(R::Support.eval("do.call").call(function, pl))
+      @@exec_counter = @@exec_counter + 1
+      
+      # function has no arguments, call it directly
+      if (args.length == 0)
+        res = R::Object.build(function.call)
+      else
+        pl = R::Support.parse2list(*args)
+        res = @@exec_from_ruby.call(R::Object.method(:build), function, pl)
+        # R::Object.build(R::Support.eval("do.call").call(function, pl))
+      end
+
+      @@exec_counter = @@exec_counter - 1
+
+      # When execution counter back to 0, print the captured output if the lenght
+      # of the output is greater than 0
+      if (@@exec_counter == 0)
+        R::Support.stop_capture.call(@@con)
+        puts ~:r_capture if (R::Support.eval("length(r_capture) > 0")[0])
+      end
+
+      res
     end
     
     #----------------------------------------------------------------------------------------
@@ -269,7 +292,7 @@ module R
         internal ? R::Support.exec_function_i(function, *args) :
           R::Support.exec_function(function, *args)
       end
-      
+
     end
     
     #----------------------------------------------------------------------------------------

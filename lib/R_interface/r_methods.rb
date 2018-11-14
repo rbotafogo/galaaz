@@ -30,19 +30,35 @@ module R
     #--------------------------------------------------------------------------------------
     
     def self.capture
-      
       Polyglot.eval("R", <<-R)
         function(obj, ...) {
-          sink(tt <- textConnection("results","w"), split=FALSE);
+          sink(tt <- textConnection("results","w"), split=FALSE, type = c("output", "message"));
           print(obj, ...);
           sink();
           close(tt);
           results
         }
       R
-      
-    end 
-    
+    end
+
+    def self.start_capture
+      Polyglot.eval("R", <<-R)
+        function(cap_variable) {
+          sink(con <- textConnection(cap_variable,"w"), split=FALSE, type = c("output"));
+          con
+        }
+      R
+    end
+
+    def self.stop_capture
+      Polyglot.eval("R", <<-R)
+        function(con) {
+          sink();
+          close(con);
+        }
+      R
+    end
+
     #--------------------------------------------------------------------------------------
     # multi-dimensional indexing
     #--------------------------------------------------------------------------------------
