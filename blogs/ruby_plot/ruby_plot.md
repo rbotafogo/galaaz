@@ -1,7 +1,7 @@
 ---
-title: "High Quality Scientific Plotting with Ruby in GraalVM with Galaaz"
+title: "How to make Beautiful Ruby Plots with Galaaz"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM]
+tags: [Tech, Data Science, Ruby, R, GraalVM]
 date: "19 October 2018"
 output:
   html_document:
@@ -20,124 +20,120 @@ output:
 According to Wikipedia "Ruby is a dynamic, interpreted, reflective, object-oriented, 
 general-purpose programming language. It was designed and developed in the mid-1990s by Yukihiro
 "Matz" Matsumoto in Japan."  It reached high popularity with the development of Ruby on Rails
-(RoR) by David Heinemeier Hansson. RoR is a web application framework which was first release
-circa 2005 and makes extensive use of Ruby's metaprogramming features.  With the advend of
-RoR, Ruby became extremely popular and it peeked in popularity around 2008 according to the Tiobe
-index (https://www.tiobe.com/tiobe-index/ruby/).  From 2008 to 2015, it's popularity
-declined consistently and then started picking up again during the next 3 years.  At the time of
-this writing (November 2018), Ruby is ranked 16th in the Tiobe index.
+(RoR) by David Heinemeier Hansson. RoR is a web application framework first released
+around 2005. It makes extensive use of Ruby's metaprogramming features.  With RoR,
+Ruby became very popular.  According to [Ruby's Tiobe index](https://www.tiobe.com/tiobe-index/ruby/)
+it peeked in popularity around 2008. Then it's popularity
+declined until 2015 when it started picking up again.  At the time of
+this writing (November 2018), the Tiobe index puts ruby in 16th position.
 
-Python, considered a similar language to Ruby with similar features ranks 4th in the index.  The
-first three positions are taken by Java, C and C++.  One criticism often heard about Ruby, is
-that it is useful only for web applications while Python, with similar features, has more diverse
-libraries, being useful for web applications with the Django framework, but also for
-scientific applications such as statistics, data analysis, big data, biology, etc.  This
-criticism is by no way wrong.  Although Ruby can do much more than just web applications:
-https://github.com/markets/awesome-ruby, for scientific computing, Ruby lags
-way behind Python and R, the
-two most prestigous languages in the field, with R being prefered by statisticians
-while Python by everyone else, because of it's gentle learning curve and more
-"natural" programming paradigm.
+Python, a similar language to Ruby, ranks 4th in the index.  Java, C and C++ take the
+first three positions.  Ruby is often criticized for its focus on web applications.
+But Ruby can do [much more](https://github.com/markets/awesome-ruby) than just web applications.
+Yet, for scientific computing, Ruby lags way behind Python and R.  Python has
+Django framework for web, NumPy for numerical arrays, Pandas for data analysis.
+R is a free software environment for statistical computing and graphics with thousands
+of libraries for data analysis. 
 
-Until recently, there was no real perspective for Ruby to bridge this gap and have even the
-most basic scientific computing infrastructure.  Comes GraalVM into the picture:
+Until recently, there was no real perspective for Ruby to bridge this gap.
+Implementing a complete scientific computing infrastructure would take too long.
+Comes GraalVM into the picture:
 
-     GraalVM is a universal virtual machine for running applications written in
-     JavaScript, Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin,
-     and LLVM-based languages such as C and C++.
-
-     GraalVM removes the isolation between programming languages and enables
-     interoperability in a shared runtime. It can run either standalone or in the
-     context of OpenJDK, Node.js, Oracle Database, or MySQL.
-
-     GraalVM allows you to write polyglot applications with a seamless way to pass
-     values from one language to another. With GraalVM there is no copying or
-     marshaling necessary as it is with other polyglot systems. This lets you
-     achieve high performance when language boundaries are crossed. Most of the time
-     there is no additional cost for crossing a language boundary at all.
-
-     Often developers have to make uncomfortable compromises that require them
-     to rewrite their software in other languages. For example:
-
-      * “That library is not available in my language. I need to rewrite it.” 
-      * “That language would be the perfect fit for my problem, but we cannot
-        run it in our environment.” 
-      * “That problem is already solved in my language, but the language is
-        too slow.”
-    
-    With GraalVM we aim to allow developers to freely choose the right language for
-    the task at hand without making compromises.
+> GraalVM is a universal virtual machine for running applications written in
+> JavaScript, Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin,
+> and LLVM-based languages such as C and C++.
+>
+> GraalVM removes the isolation between programming languages and enables
+> interoperability in a shared runtime. It can run either standalone or in the
+> context of OpenJDK, Node.js, Oracle Database, or MySQL.
+>
+> GraalVM allows you to write polyglot applications with a seamless way to pass
+> values from one language to another. With GraalVM there is no copying or
+> marshaling necessary as it is with other polyglot systems. This lets you
+> achieve high performance when language boundaries are crossed. Most of the time
+> there is no additional cost for crossing a language boundary at all.
+>
+> Often developers have to make uncomfortable compromises that require them
+> to rewrite their software in other languages. For example:
+>
+>  * “That library is not available in my language. I need to rewrite it.” 
+>  * “That language would be the perfect fit for my problem, but we cannot
+>    run it in our environment.” 
+>  * “That problem is already solved in my language, but the language is
+>    too slow.”
+>   
+>  With GraalVM we aim to allow developers to freely choose the right language for
+>  the task at hand without making compromises.
 
 As stated above, GraalVM is a _universal_ virtual machine that allows Ruby and R (and other
 languages) to run on the same environment.  GraalVM allows polyglot applications to
-_seamlessly_ interact with one another and pass values from one language to the other.  Based
-on GraalVM, the Galaaz project was started.  Galaaz indends to tightly couple Ruby and R
-and allow those languages to _seamlessly_ interact in a way that the user will be unaware
+_seamlessly_ interact with one another and pass values from one language to the other.
+Galaaz, a gem for Ruby, intends to tightly couple Ruby and R
+and allow those languages to interact in a way that the user will be unaware
 of such interaction.
 
 Library wrapping is an usual way of bringing features from one language into another.
-For instance, whenever Python needs to perform operations
-efficiently, C libraries are wrapped in Python.
-For the Python developer, the existence of such C library is of no concern.  The problem with
-library wrapping is that for any new library of interest, there is the need to handcraft a new
-wrapper.  With Galaaz, the same concept of wrapping was done, but instead of wrapping a
-single C or R library, Galaaz wraps the whole of the R language in Ruby.  Doing so,
-all thousands of R libraries
-are immediately available to Ruby developers and any new library developed in R will also become
-available without requiring a new wrapping effort.
+To improve performance, Python often wraps more efficient C libraries. For the
+Python developer, the existence of such C libraries is of no concern.  The problem with
+library wrapping is that for any new library, there is the need to handcraft a new
+wrapper.
 
-In this article, the graphing ggplot2 library from R will be accessed by Ruby transparently,
-bringing to Ruby the power of high quality scientific plotting.  It might seem, from
-the exposed above, that Galaaz mainly benefits Ruby developers and might be of no
-interest to the R developer.  This article will however show that migrating from R to
-Ruby with Galaaz is a matter of small syntactic changes. Furthermore, Ruby's powerful OO
-features are naturally available to the R developer, that can make use of them to move
-the R code from the analysis fase to the production fase in a much easier and natural way.
+Galaaz, instead of wrapping a single C or R library, wraps the whole of
+the R language in Ruby.  Doing so, all thousands of R libraries are available to
+Ruby developers.  Also any new library developed in R will be available without a
+new wrapping effort.
+
+This article shows how Ruby can use R's ggplot2 library tranparantly, and 
+bring to Ruby the power of high quality scientific plotting.  it also shows that
+migrating from R to Ruby with Galaaz is a matter of small syntactic changes.
+Using Ruby, the R developer can use all its powerful OO features. It also
+becomes much easier to move code from the analysis phase to the production phase.
 
 In this article we will explore the R ToothGrowth dataset.  In doing so, we will
-create some plots.
-Furthermore we will create a "Corporate Template" for our plots ensuring that any plot of the
-same type will have a consistent visualisation.
+create some boxplots.  A primer on boxplot is available in 
+[this article](https://towardsdatascience.com/understanding-boxplots-5e2df7bcbd51).
 
-In https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021 some other nice plots are shown with their respective Ruby code.
+We will also create a Corporate Template ensuring that plots will have a consistent
+visualization.  This template is build using a Ruby module.  There is a way of building
+ggplot themes that will work the same as the Ruby module.  Yet, writing a new theme
+requires specific knowledge.  Ruby modules are standard to the language and don't
+need special knowledge.
+
+In [this blog](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021) a scatter plot is implemented in Ruby.
 
 # gKnit
 
-This document was written using rmarkdown and the corresponding HTML was generated by the gKnit
-application.  gKnit is a wrapper around the powerful 'knitr' application which converts
-rmarkdown text to many different output formats such as HTML, $LaTex$, docx, etc.  The gKnit
-tool is still under active development and will soon be released.
+_Knitr_ is an application that converts text written in rmarkdown to many
+different output formats.  For instance, a writer can convert an rmarkdown  document
+to HTML, $LaTex$, docx and many other formats. Rmarkdown documents can contain
+text and _code chunks_. Knitr puts code chunks in a box in the final document.
+It also executes the code chunks and formats the output in another type of box. 
 
-In rmarkdown, text and code can be part of the same document, and code chunks are marked
-with a special markup.  Interested readers can easily google 'knitr' and 'rmarkdown' for
-more information on how to 'knit' a document. The 'knitr' application can knit not only R, but
-also Python, Ruby and many other languages.  However, other than R, code chunks cannot
-share data and variables.  In gKnit, this limitation is removed for Ruby chunks. Ruby
-chunks can share data and variables and they can even access variables created in an R
-chunk.  gKnit will be the subject of another blog to come. 
+Knitr allows code chunks to be in R, Python,
+Ruby and dozens of other languages.  Yet, while R and Python chunks can share data, in other
+languages, chunks are independent.  This means that a variable defined in one chunk
+cannot be used in another chunk.
 
-In gKnit each
-Ruby chunk is executed in its own scope and thus, local variable are not accessible by other
-chunks.  However, all chunks execute in the scope of a 'chunk' class and instance
-variables ('@'), will be accessed by all chunks. 
-
+With _gKnit_ Ruby code chunks can share data.  In gKnit each
+Ruby chunk executes in its own scope and thus, local variable are not accessible by other
+chunks.  All chunks execute in the scope of a 'chunk' class and instance
+variables ('@'), are available in all chunks.
 
 # Exploring the Dataset
 
-Let start by exploring our selected dataset.  ToothGrowth is
-an R dataset.  For the Rubyist, a dataset is like an excel spreadsheet, but in which each
-column has only one type of data, for instance, float, integer, string, etc.  This
-dataset analyses the length of
-odontoblasts (cells responsible for tooth growth) in 60 guinea pigs. Each animal
-received one of three dose levels of Vitamin C (0.5, 1, and 2 mg/day) by one of two
-delivery methods, orange juice or ascorbic acid (a form of vitamin C and coded as VC).
+Let's start by exploring our selected dataset.  ToothGrowth is an R dataset.  A dataset
+is like an excel spreadsheet, but in which each column has only one type of data.
+For instance one column can have float, the other integer, and a third strings.
+This dataset analyses the length of odontoblasts (cells responsible for tooth growth)
+in 60 guinea pigs, where each animal received one of three dose levels of Vitamin C
+(0.5, 1, and 2 mg/day) by one of two delivery methods, orange juice or ascorbic acid
+(a form of vitamin C and coded as VC).
 
-The ToothGrowth dataset is composed of three columns: 'len', 'supp' and 'dose'.  Let's
-take a look at a few rows of this dataset. In Galaaz, in order to have access to an R
-variable we use the
-corresponding Ruby symbol preceeded by the tilda ('~') function.  Note in the following
-chunk that Ruby's '@tooth_growth' gets assigned to '~:ToothGrowth', where 'ToothGrowth' is
-an R variable containing the dataset of interest.
+The ToothGrowth dataset contains three columns: 'len', 'supp' and 'dose'.  Let's
+take a look at a few rows of this dataset. In Galaaz, in to have access to an R variable
+we use the corresponding Ruby symbol preceeded by the tilda ('~') function. Note in the
+following chunk that Ruby's '@tooth_growth' gets assigned to '~:ToothGrowth'.
+'ToothGrowth' is the R variable containing the dataset of interest.
 
 
 ```ruby
@@ -159,11 +155,10 @@ puts @tooth_growth.head
 ## 6 10.0   VC  0.5
 ```
 
-Great! We've managed to read the ToothGrowth dataset and take a look at its elements. We
-see here the first 6 rows of the dataset.  The columns of the dataset can be accessed
-by appending the column name to the dataset name separated by a '.', as if accessing an
-instance variable from a class.  Also note that methods can be chained in the usual Ruby
-stile with '.'. 
+Great! We've managed to read the ToothGrowth dataset and take a look at its elements.
+We see here the first 6 rows of the dataset. To access a column follow the dataset name
+with a dot ('.') and the name of the column. Also use dot notation to chain methods
+in usual Ruby style.
 
 
 ```ruby
@@ -175,9 +170,9 @@ puts @tooth_growth.dose.head
 ```
 ## [1] 0.5 0.5 0.5 0.5 0.5 0.5
 ```
-
+ 
 The 'dose' column contains a numeric value wiht either, 0.5, 1 or 2.  Although those are
-number, they are better interpreted as a factor or cathegory (https://swcarpentry.github.io/r-novice-inflammation/12-supp-factors/).  So, let's convert our 'dose' column from numeric to 'factor':
+number, they are better interpreted as a [factor or cathegory](https://swcarpentry.github.io/r-novice-inflammation/12-supp-factors/).  So, let's convert our 'dose' column from numeric to 'factor':
 
 
 ```ruby
@@ -191,16 +186,35 @@ structure and summary statistics.
 
 ```ruby
 puts @tooth_growth.dim
-@tooth_growth.str
-puts @tooth_growth.summary
 ```
 
 ```
 ## [1] 60  3
-## [1] "'data.frame':\t60 obs. of  3 variables:"                                 
-## [2] " $ len : num  4.2 11.5 7.3 5.8 6.4 10 11.2 11.2 5.2 7 ..."               
-## [3] " $ supp: Factor w/ 2 levels \"OJ\",\"VC\": 2 2 2 2 2 2 2 2 2 2 ..."      
-## [4] " $ dose: Factor w/ 3 levels \"0.5\",\"1\",\"2\": 1 1 1 1 1 1 1 1 1 1 ..."
+```
+
+Note that we do not call 'puts' when using the 'str' function.  This functions does not
+return anything and prints the structure of the dataset as a side effect.
+
+
+```ruby
+@tooth_growth.str
+```
+
+```
+## 'data.frame':	60 obs. of  3 variables:
+##  $ len : num  4.2 11.5 7.3 5.8 6.4 10 11.2 11.2 5.2 7 ...
+##  $ supp: Factor w/ 2 levels "OJ","VC": 2 2 2 2 2 2 2 2 2 2 ...
+##  $ dose: Factor w/ 3 levels "0.5","1","2": 1 1 1 1 1 1 1 1 1 1 ...
+```
+
+Finally, using the summary method, we get the statistical summary for the dataset
+
+
+```ruby
+puts @tooth_growth.summary
+```
+
+```
 ##       len        supp     dose   
 ##  Min.   : 4.20   OJ:30   0.5:20  
 ##  1st Qu.:13.07   VC:30   1  :20  
@@ -210,32 +224,33 @@ puts @tooth_growth.summary
 ##  Max.   :33.90
 ```
 
-# Quick plot for seen the data
+# Doing the Data Analysis
+
+## Quick plot for seing the data
 
 Let's now create our first plot with the given data by accessing ggplot2 from Ruby.  For Rubyist
-that have never seen or used ggplot2, here is the description found on ggplot home page:
+that have never seen or used ggplot2, here is the description of ggplot found on its home page:
 
-```
-"ggplot2 is a system for declaratively creating graphics, based on _The Grammar of Graphics_.
-You provide the data, tell ggplot2 how to map variables to aesthetics, what graphical 
-primitives to use, and it takes care of the details."
-```
+> "ggplot2 is a system for declaratively creating graphics, based on _The Grammar of Graphics_.
+> You provide the data, tell ggplot2 how to map variables to aesthetics, what graphical 
+> primitives to use, and it takes care of the details."
 
 This description might be a bit cryptic and it is best to see it at work to understand it.
-Basically, in the _grammar of graphics_ each component of the plot such as the grid, the axis,
-the data, title, subtitle, etc. is added to the plot in layers to form the final graphics.
+Basically, in the _grammar of graphics_ developers add layers of components to the plot
+such as grid, axis, data, title, subtitle to form the final graphics.
 
-In this plot bellow, the 'dose' is plotted on the 'x' axis and the tooth length on the 'y' axis.  Note
-the specification in the the 'aes' method: 'E.aes(x: :dose, y: :len)',  where ':dose' is the 'dose'
-column of the dataset and ':len' the 'len' column.  The 'aes' method is the _aesthetics_ for this
-plot.  Then, to this layer, the 'geom_boxplot' is added and the whole plot is printed.
+In order to make a plot, we use the 'ggplot' function to the dataset.  In R, this would be
+written as ```ggplot(<dataset>, ...)```.  In Galaaz, use either ```R.ggplot(<dataset>, ...)```,
+or ```<dataset>.ggplot(...)```.  In the graph specification bellow, we use the second notation
+that looks more Ruby like.  The plot specifies the 'dose' on the $x$ axis and the 'length' on
+the $y$ axis with the 'aes' method. 'E.aes(x: :dose, y: :len)'.  To specify the type of plot to
+create add a geom to the plot.  For a boxplot, the geom is R.geom_boxplot.
 
 Note also that we have a call to 'R.png' before plotting and 'R.dev__off' after the print
-statement.  'R.png' opens a 'png' device for writing the plot.  When 'R.dev__off' is called, the
-device is closed and a 'png' file is created. If no name is given to the 'png' function, a file
-named 'Rplot<nnn>' is generated, where <nnn> is the number of the plot.  So, this first plot is
-called 'Rplot001.png'.  We can then include the generated 'png' file in
-this document, by adding an rmarkdown directive.
+statement.  'R.png' opens a 'png' device for outputting the plot.  'R.dev__off'
+closes the device and creates the 'png' file. If we do no pass a name to the 'png' function, the
+image gets a default name of 'Rplot<nnn>' where <nnn> is the number of the plot.  We can then
+include the generated 'png' file in the document by adding an rmarkdown directive.
 
 
 ```ruby
@@ -253,73 +268,204 @@ R.dev__off
 [//]: # (of gKnit, the figures should be automatically saved and the name)
 [//]: # (taken from the chunk 'label' and possibly chunk parameters)
 
-![ToothGrowth](figures/dose_len.png)
+![](figures/dose_len.png)
 
-We've just managed to generate our first plot in Ruby with only two lines of code.  This plot,
-however, if far from being pleasing to the eye.  But, for a first analysis of the data, it
-shows already a clear trend: as the dose of the supplement is increased, so is the length of
-theeth.  Let's add some color to this plot, to make the trend more visible.  In the
-following plot the boxes are color coded by dose.
+Great! We've just managed to create and save our first plot in Ruby with only
+four lines of code. We can see with this plot a clear trend: as the dose of the supplement
+is increased, so is the length of the teeth.
+
+## Facetting the plot
+
+This first plot shows a trend, but our data has information about two different forms
+of delivery method, either by Orange Juice (OJ) or by Vitamin C (VC).
+Let's then try to create a plot that explicits the effect of each delivery method.  This next
+plot is a _facetted_ plot where each delivery method gets is own plot.
+On the left side, the plot shows the OJ delivery method.  On the right side, we see the
+VC delivery method. To obtain this plot, we use the 'R.facet_grid' function, that
+automatically creates the facets based on the delivery method factors.  
 
 
 ```ruby
-R.png("figures/color_by_dose.png")
+R.png("figures/facet_by_delivery.png")
 
-@bp = @tooth_growth.ggplot(E.aes(x: :dose, y: :len, group: :dose)) + 
-      R.geom_boxplot(E.aes(fill: :dose))
+@base_tooth = @tooth_growth.ggplot(E.aes(x: :dose, y: :len, group: :dose))
+
+@bp = @base_tooth + R.geom_boxplot +
+      # Split in vertical direction
+      R.facet_grid(+:all =~ +:supp)
+      
 puts @bp
 
 R.dev__off
 ```
 
-![ToothGrowth grouped by dose](figures/color_by_dose.png)
+![](figures/facet_by_delivery.png)
 
-Although we can see a trend and the plot is a little nicer to the eye, those plots do not
-show any distinction between the two forms of supplement given to the pigs.  Let's then
-create a new plot, but this time we will facet the plot by type of supplement.
+It now becomes clear that although both methods of delivery have a direct
+impact on tooth growth, method (OJ) is non-linear having a higher impact with smaller
+doses of ascorbic acid and reducing it's impact as the dose increases.  With the
+(VC) approach, the impact seems to be more linear.
+
+## Adding Color
+
+If this paper was about data analysis, we should make a better analysis of the trends and
+should improve the statistical analysis.  But we are interested in working with ggplot
+in Ruby.  So, Let's add some color to this plot to make the trend and comparison more
+visible.  In the following plot the boxes are color coded by dose.  To add color, it is
+enough to add ```fill: :dose``` to the aesthetic of boxplot.  With this command each 'dose'
+factor gets its own color.
 
 
 ```ruby
-R.png("figures/facets_by_supp.png")
+R.png("figures/facets_by_delivery_color.png")
 
-# Split in vertical direction
-@bp = @bp + R.facet_grid(+:all =~ +:supp)
+@bp = @bp + R.geom_boxplot(E.aes(fill: :dose))
 puts @bp
 
 R.dev__off
 ```
 
-![ToothGrowth grouped by supplements given](figures/facets_by_supp.png)
+![](figures/facets_by_delivery_color.png)
 
-We now observe that administering vitamin C inpacts thooth growth a little bit differently when
-the Vitamin C is administered by oranje juice (OJ) versus ascorbic acid (VC).  There is a
-positive effect of the dosage, as the dosage increases the tooth growth increases.
-In the specific case of the VC, the tooth growth has a linear relationship with dosage.
-The higher dossage (2.0mg) has less improvement in tooth growth with the OJ supplement.
-However, the OJ supplement generally induces more tooth growth than VC except at
-higher dosage (2.0 mg).
+Facetting helps us compare the general trends in the OJ and VC delivery methods. Adding color
+allow us to compare specifically how each dosage impacts the teeth growth. It is possible
+to observe that with smaller doses, up to 1mg, (OJ) performs better than (VC) (red color).
+For 2mg, both (OJ) and (VC) have the same median, but (OJ) is less disperse (blue color).
+For 1mg (green color), (OJ) is significantly bettern than (VC). By this very quick analysis,
+it seems that (OJ) is a better delivery method than (VC).
+
+## Clarifying the data
+
+Boxplots give us a nice idea of the distribution of data, but looking at those plots with
+large colored boxes leaves us wondering what is going on on those boxes.  According to
+Edward Tufte in Envisioning Information:
+
+> Thin data rightly prompts suspicions: "What are they leaving out? Is that really everything
+> they know? What are they hiding? Is that all they did?" Now and then it is claimed
+> that vacant space is "friendly" (anthropomorphizing an inherently murky idea) but
+> _it is not how much empty space there is, but rather how it is used. It is not how much
+> information there is, but rather how effectively it is arranged._
+
+And he states:
+
+> A most unconventional design strategy is revealed: _to clarify, add detail._
+
+Let's then use this wisdom and add yet another layer of data to our plot, so that we clarify
+it with detail and do not leave large empty boxes.  In this next plot, we add data points for
+each of the 60 pigs in the experiment.  For that, add the function 'R.geom_point' to the
+plot.
+
+
+```ruby
+R.png("figures/facets_with_points.png")
+
+# Split in vertical direction
+@bp = @bp + R.geom_point
+
+puts @bp
+
+R.dev__off
+```
+
+![](figures/facets_with_points.png)
+
+Now we can see the actual distribution of all the 60 subject.  Actually, this is not
+totally true.  We have a hard time seing all 60 subjects. It seems that some points
+might be placed one over the other hiding useful information.
+
+But no sweat! Another layer might solve the problem.  In the following plot a new layer
+called 'geom_jitter' is added to the plot.  This adds randomness to the position of
+the points, making it easier to see all of then and preventing data hiding.  We also add
+color and change the shape of the points, making them even easier to see.
+
+
+```ruby
+R.png("figures/facets_with_jitter.png")
+
+# Split in vertical direction
+puts @bp + R.geom_jitter(shape: 23, color: "cyan3", size: 1)
+
+R.dev__off
+```
+
+![](figures/facets_with_jitter.png)
+
+# Preparing the Plot for Presentation
+
+
+
+## Improving on Colors
+
+
+```ruby
+R.png("figures/facets_by_delivery_color2.png")
+
+@bp = @bp + R.geom_boxplot(E.aes(fill: :dose)) +
+      R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"))
+
+puts @bp
+
+R.dev__off
+```
+
+![ToothGrowth plot with decorations](figures/facets_by_delivery_color2.png)
+
+
+## Violin Plot and Jitter
 
 
 
 
 ```ruby
-R.png("figures/facets_with_decorations.png")
+R.png("figures/violin_with_jitter.png")
 
-# Split in vertical direction
-@bp = @bp + R.geom_point 
-puts @bp + R.labs(title: "Plot of length by dose",
-                  x: "Dose (mg)", y: "Teeth length")
+@violin = @base_tooth + R.geom_violin(E.aes(fill: :dose)) + 
+   R.facet_grid(+:all =~ +:supp) +
+   R.geom_jitter(shape: 23, color: "cyan3", size: 1) +
+   R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"))
+puts @violin
+
+R.dev__off
+```
+
+![](figures/violin_with_jitter.png)
+
+## Adding Decoration
+
+We have come a long way since our first plot.  But our work is not yet finished. Making the
+data analysis and seeing the data is just the beginning, now, it is necessary to make the
+plot presentable to our stakeholders.  This plot could be presented in a meeting 
+
+
+```ruby
+R.png("figures/facets_with_decorations.png", width: 540, height: 540)
+
+caption = <<-EOT
+Length of odontoblasts in 60 guinea pigs. 
+Each animal received one of three dose levels of vitamin C.
+EOT
+
+@decorations =
+  R.labs(title: "Tooth Growth:  Length by Dose",
+         subtitle: "Faceted by delivery method, (OJ) or (VC)",
+         x: "Dose (mg)", y: "Teeth length",
+         caption: caption)
+
+puts @bp + @decorations
 
 R.dev__off
 ```
 
 ![ToothGrowth plot with decorations](figures/facets_with_decorations.png)
 
+## The Corp Theme
 
 
 ```ruby
 module CorpTheme
 
+  R.install_and_loads 'RColorBrewer'
+  
   #---------------------------------------------------------------------------------
   # face can be  (1=plain, 2=bold, 3=italic, 4=bold-italic)
   #---------------------------------------------------------------------------------
@@ -327,8 +473,7 @@ module CorpTheme
   def self.text_element(size, face = "plain")
     E.element_text(color: "#000080", 
                    face: face,
-                   size: size,
-                   hjust: 1)
+                   size: size)
   end
   
   #---------------------------------------------------------------------------------
@@ -339,6 +484,7 @@ module CorpTheme
   def self.global_theme(faceted = false)
     
     R.options(scipen: 999)  # turn-off scientific notation like 1e+48
+    #    R.theme_set(R.theme_bw)
     
     # remove major grids
     gb = R.theme(panel__grid__major: E.element_blank())
@@ -360,37 +506,65 @@ module CorpTheme
     gb = gb + R.theme(plot__subtitle: text_element(9, "plain"))
     # change font of captions
     gb = gb + R.theme(plot__caption: text_element(8))
-    
+
   end
    
 end
 ```
 
+## Final Box Plot
+
 
 ```ruby
-R.png("figures/final_plot.png")
+R.png("figures/final_box_plot.png", width: 530, height: 530)
+
+# Facet the plot by the s
+
+puts @bp + @decorations + CorpTheme.global_theme(faceted: true)
+
+R.dev__off
+```
+
+![](figures/final_box_plot.png)
+
+## Final Violin Plot
+
+
+```ruby
+R.png("figures/final_violin_plot.png", width: 540, height: 540)
+
+puts @violin + @decorations + CorpTheme.global_theme(faceted: true)
+
+R.dev__off
+```
+
+![](figures/final_violin_plot.png)
+
+## Another View
+
+
+```ruby
+R.png("figures/facet_by_dose.png")
 
 caption = <<-EOT
 Length of odontoblasts in 60 guinea pigs. 
 Each animal received one of three dose levels of vitamin C.
 EOT
 
-# Facet the plot by the s
-@bp = @bp +
-     R.labs(title: "Tooth Growth:  Length by Dose",
-            subtitle: "Faceted by delivery method, Orange Juince (OJ)\n or Ascorbic Acid (VC)",
-            x: "Dose (mg)", y: "Teeth length",
-            caption: caption) +
-     CorpTheme.global_theme(faceted: true)
-
+@bp = @tooth_growth.ggplot(E.aes(x: :supp, y: :len, group: :supp)) + 
+      R.geom_boxplot(E.aes(fill: :supp)) + R.facet_grid(+:all =~ +:dose) +
+      R.scale_fill_manual(values: R.c("cyan", "deepskyblue4")) +
+      R.labs(title: "Tooth Growth:  Length by Dose",
+             subtitle: "Faceted by dose",
+             x: "Delivery method", y: "Teeth length",
+             caption: caption) +
+      CorpTheme.global_theme(faceted: true)
 puts @bp
-
-# CorpTheme.layout("Plot of length by dose", "subtitle", bp)
 
 R.dev__off
 ```
 
-![](figures/final_plot.png)
+![](figures/facet_by_dose.png)
 
 # Conclusion
 
@@ -420,3 +594,11 @@ the gnu compiler and tools should be enough.  I am not sure what is needed on th
 ## Usage
 
 * gknit <filename>
+
+
+
+And now that you’ve read this far, here’s how to submit your story to the freeCodeCamp
+publication: send an email to submit at freecodecamp org. Include the URL for your story on
+Medium (preferably an unpublished draft) and the word “bananas” so that we’ll know that you
+have read all this. Only send one story URL per email. There’s no need to add anything
+further to your email — we just read the stories and judge them based on their own merits.
