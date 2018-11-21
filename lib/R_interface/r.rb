@@ -119,10 +119,9 @@ require_relative 'ruby_extensions'
 require_relative 'ruby_callback'
 
 # R packages and functions needed
-
 # Requires ggplot for plotting graphics
 # require 'ggplot'
-require 'knitr'
+# require 'knitr'
 
 # Methods to capture a plot sent to a device
 require_relative 'rdevices'

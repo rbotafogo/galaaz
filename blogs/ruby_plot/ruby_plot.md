@@ -2,7 +2,7 @@
 title: "How to make Beautiful Ruby Plots with Galaaz"
 author: "Rodrigo Botafogo"
 tags: [Tech, Data Science, Ruby, R, GraalVM]
-date: "19 October 2018"
+date: "November 19th, 2018"
 output:
   html_document:
     self_contained: true
@@ -18,7 +18,7 @@ output:
 # Introduction
 
 According to Wikipedia "Ruby is a dynamic, interpreted, reflective, object-oriented, 
-general-purpose programming language. It was designed and developed in the mid-1990s by Yukihiro
+general-purpose programming language. It was designed and developed in the mid-1990s by Yukihiro 
 "Matz" Matsumoto in Japan."  It reached high popularity with the development of Ruby on Rails
 (RoR) by David Heinemeier Hansson. RoR is a web application framework first released
 around 2005. It makes extensive use of Ruby's metaprogramming features.  With RoR,
@@ -56,11 +56,11 @@ Comes GraalVM into the picture:
 > Often developers have to make uncomfortable compromises that require them
 > to rewrite their software in other languages. For example:
 >
->  * “That library is not available in my language. I need to rewrite it.” 
->  * “That language would be the perfect fit for my problem, but we cannot
->    run it in our environment.” 
->  * “That problem is already solved in my language, but the language is
->    too slow.”
+>  * That library is not available in my language. I need to rewrite it. 
+>  * That language would be the perfect fit for my problem, but we cannot
+>    run it in our environment. 
+>  * That problem is already solved in my language, but the language is
+>    too slow.
 >   
 >  With GraalVM we aim to allow developers to freely choose the right language for
 >  the task at hand without making compromises.
@@ -86,7 +86,7 @@ new wrapping effort.
 This article shows how Ruby can use R's ggplot2 library tranparantly, and 
 bring to Ruby the power of high quality scientific plotting.  it also shows that
 migrating from R to Ruby with Galaaz is a matter of small syntactic changes.
-Using Ruby, the R developer can use all its powerful OO features. It also
+Using Ruby, the R developer can use all of Ruby's powerful OO features. It also
 becomes much easier to move code from the analysis phase to the production phase.
 
 In this article we will explore the R ToothGrowth dataset.  In doing so, we will
@@ -99,15 +99,16 @@ ggplot themes that will work the same as the Ruby module.  Yet, writing a new th
 requires specific knowledge.  Ruby modules are standard to the language and don't
 need special knowledge.
 
-In [this blog](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021) a scatter plot is implemented in Ruby.
+In [this blog](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021) we show a scatter plot in Ruby also with Galaaz.
 
 # gKnit
 
 _Knitr_ is an application that converts text written in rmarkdown to many
 different output formats.  For instance, a writer can convert an rmarkdown  document
 to HTML, $LaTex$, docx and many other formats. Rmarkdown documents can contain
-text and _code chunks_. Knitr puts code chunks in a box in the final document.
-It also executes the code chunks and formats the output in another type of box. 
+text and _code chunks_. Knitr formats code chunks in a grayed box in the output document.
+It also executes the code chunks and formats the output in a white box.  Every line of
+output from the execution code is preceded by '##'.
 
 Knitr allows code chunks to be in R, Python,
 Ruby and dozens of other languages.  Yet, while R and Python chunks can share data, in other
@@ -115,9 +116,9 @@ languages, chunks are independent.  This means that a variable defined in one ch
 cannot be used in another chunk.
 
 With _gKnit_ Ruby code chunks can share data.  In gKnit each
-Ruby chunk executes in its own scope and thus, local variable are not accessible by other
-chunks.  All chunks execute in the scope of a 'chunk' class and instance
-variables ('@'), are available in all chunks.
+Ruby chunk executes in its own scope and thus, local variable defined in a chunk are
+not accessible by other chunks.  Yet, All chunks execute in the scope of a 'chunk'
+class and instance variables ('@'), are available in all chunks.
 
 # Exploring the Dataset
 
@@ -126,19 +127,19 @@ is like an excel spreadsheet, but in which each column has only one type of data
 For instance one column can have float, the other integer, and a third strings.
 This dataset analyses the length of odontoblasts (cells responsible for tooth growth)
 in 60 guinea pigs, where each animal received one of three dose levels of Vitamin C
-(0.5, 1, and 2 mg/day) by one of two delivery methods, orange juice or ascorbic acid
+(0.5, 1, and 2 mg/day) by one of two delivery methods, orange juice (OJ) or ascorbic acid
 (a form of vitamin C and coded as VC).
 
 The ToothGrowth dataset contains three columns: 'len', 'supp' and 'dose'.  Let's
-take a look at a few rows of this dataset. In Galaaz, in to have access to an R variable
+take a look at a few rows of this dataset. In Galaaz, to have access to an R variable
 we use the corresponding Ruby symbol preceeded by the tilda ('~') function. Note in the
-following chunk that Ruby's '@tooth_growth' gets assigned to '~:ToothGrowth'.
+following chunk that Ruby's '@tooth_growth' is assigned the value of '~:ToothGrowth'.
 'ToothGrowth' is the R variable containing the dataset of interest.
 
 
 ```ruby
 # Read the R ToothGrowth variable and assign it to the
-# Ruby @tooth_growth variable is an instance variable
+# Ruby instance variable @tooth_growth that will be 
 # available to all Ruby chunks in this document.
 @tooth_growth = ~:ToothGrowth
 # print the first few elements of the dataset
@@ -156,23 +157,26 @@ puts @tooth_growth.head
 ```
 
 Great! We've managed to read the ToothGrowth dataset and take a look at its elements.
-We see here the first 6 rows of the dataset. To access a column follow the dataset name
+We see here the first 6 rows of the dataset. To access a column, follow the dataset name
 with a dot ('.') and the name of the column. Also use dot notation to chain methods
 in usual Ruby style.
 
 
 ```ruby
-# Access the tooth_growth 'dose' column and print the first few
+# Access the tooth_growth 'len' column and print the first few
 # elements of this column with the 'head' method.
-puts @tooth_growth.dose.head
+puts @tooth_growth.len.head
 ```
 
 ```
-## [1] 0.5 0.5 0.5 0.5 0.5 0.5
+## [1]  4.2 11.5  7.3  5.8  6.4 10.0
 ```
  
 The 'dose' column contains a numeric value wiht either, 0.5, 1 or 2.  Although those are
-number, they are better interpreted as a [factor or cathegory](https://swcarpentry.github.io/r-novice-inflammation/12-supp-factors/).  So, let's convert our 'dose' column from numeric to 'factor':
+number, they are better interpreted as a [factor or cathegory](https://swcarpentry.github.io/r-novice-inflammation/12-supp-factors/).  So, let's convert our 'dose' column from numeric to 'factor'.
+In R, the function 'as.factor' is used to convert data in a vector to factors.  To use this
+function from Galaaz the dot ('.') in the function name is substituted by '__' (double underline).
+The function 'as.factor' becomes 'R.as__factor' or just 'as__factor' when chaining.
 
 
 ```ruby
@@ -192,6 +196,8 @@ puts @tooth_growth.dim
 ## [1] 60  3
 ```
 
+This dataset has 60 rows, one for each subject and 3 columns, as we have already seen.
+
 Note that we do not call 'puts' when using the 'str' function.  This functions does not
 return anything and prints the structure of the dataset as a side effect.
 
@@ -206,6 +212,8 @@ return anything and prints the structure of the dataset as a side effect.
 ##  $ supp: Factor w/ 2 levels "OJ","VC": 2 2 2 2 2 2 2 2 2 2 ...
 ##  $ dose: Factor w/ 3 levels "0.5","1","2": 1 1 1 1 1 1 1 1 1 1 ...
 ```
+Observe that both variables 'supp' and 'dose' are factors.  The system made variable 'supp'
+a factor automatically, since it contais two strings OJ and VC.
 
 Finally, using the summary method, we get the statistical summary for the dataset
 
@@ -236,8 +244,9 @@ that have never seen or used ggplot2, here is the description of ggplot found on
 > primitives to use, and it takes care of the details."
 
 This description might be a bit cryptic and it is best to see it at work to understand it.
-Basically, in the _grammar of graphics_ developers add layers of components to the plot
-such as grid, axis, data, title, subtitle to form the final graphics.
+Basically, in the _grammar of graphics_ developers add layers of components such as grid,
+axis, data, title, subtitle and also graphical primitives such as _bar plot_, _box plot_,
+to form the final graphics.
 
 In order to make a plot, we use the 'ggplot' function to the dataset.  In R, this would be
 written as ```ggplot(<dataset>, ...)```.  In Galaaz, use either ```R.ggplot(<dataset>, ...)```,
@@ -249,8 +258,8 @@ create add a geom to the plot.  For a boxplot, the geom is R.geom_boxplot.
 Note also that we have a call to 'R.png' before plotting and 'R.dev__off' after the print
 statement.  'R.png' opens a 'png' device for outputting the plot.  'R.dev__off'
 closes the device and creates the 'png' file. If we do no pass a name to the 'png' function, the
-image gets a default name of 'Rplot<nnn>' where <nnn> is the number of the plot.  We can then
-include the generated 'png' file in the document by adding an rmarkdown directive.
+image gets a default name of 'Rplot\<nnn\>' where \<nnn\> is the number of the plot.  We can
+then include the generated 'png' file in the document by adding an rmarkdown directive.
 
 
 ```ruby
@@ -272,7 +281,7 @@ R.dev__off
 
 Great! We've just managed to create and save our first plot in Ruby with only
 four lines of code. We can see with this plot a clear trend: as the dose of the supplement
-is increased, so is the length of the teeth.
+is increased, so is the length of teeth.
 
 ## Facetting the plot
 
@@ -282,7 +291,25 @@ Let's then try to create a plot that explicits the effect of each delivery metho
 plot is a _facetted_ plot where each delivery method gets is own plot.
 On the left side, the plot shows the OJ delivery method.  On the right side, we see the
 VC delivery method. To obtain this plot, we use the 'R.facet_grid' function, that
-automatically creates the facets based on the delivery method factors.  
+automatically creates the facets based on the delivery method factors.  The parameter to
+the 'facet_grid' method is a [_formula_](https://thomasleeper.com/Rcourse/Tutorials/formulae.html).
+
+In Galaaz, formulas are written a bit differently than in R.  The following changes are
+necessary:
+
+* R symbols are represented by the same Ruby symbol prefixed with the '+' method. The
+  symbol ```x``` in R becomes ```+:x``` in Ruby;
+* The '~' operator in R becomes '=~' in Ruby.  The formula ```x ~ y``` in R is written as
+  ```+:x =~ +:y``` in Ruby;
+* The '.' symbol in R becomes '+:all'
+
+Another way of writing a formula is to use the 'formula' function with the actual formula as
+a string.  The formula ```x ~ y``` in R can be written as ```R.formula("x ~ y")```.  For more
+complex formulas, the use of the 'formula' function is preferred.
+
+The formula ```+:all =~ +:supp``` indicates to the 'facet_grid' function that it needs to
+facet the plot based on the ```supp``` variable and split the plot vertically.  Changing
+the formula to ```+:supp =~ +:all``` would split the plot horizontally.
 
 
 ```ruby
@@ -311,7 +338,7 @@ doses of ascorbic acid and reducing it's impact as the dose increases.  With the
 If this paper was about data analysis, we should make a better analysis of the trends and
 should improve the statistical analysis.  But we are interested in working with ggplot
 in Ruby.  So, Let's add some color to this plot to make the trend and comparison more
-visible.  In the following plot the boxes are color coded by dose.  To add color, it is
+visible.  In the following plot, the boxes are color coded by dose.  To add color, it is
 enough to add ```fill: :dose``` to the aesthetic of boxplot.  With this command each 'dose'
 factor gets its own color.
 
@@ -327,10 +354,11 @@ R.dev__off
 
 ![](figures/facets_by_delivery_color.png)
 
-Facetting helps us compare the general trends in the OJ and VC delivery methods. Adding color
-allow us to compare specifically how each dosage impacts the teeth growth. It is possible
-to observe that with smaller doses, up to 1mg, (OJ) performs better than (VC) (red color).
-For 2mg, both (OJ) and (VC) have the same median, but (OJ) is less disperse (blue color).
+Facetting helps us compare the general trends in the (OJ) and (VC) delivery methods.
+Adding color allow us to compare specifically how each dosage impacts the teeth growth.
+It is possible to observe that with smaller doses, up to 1mg, (OJ) performs better
+than (VC) (red color). For 2mg, both (OJ) and (VC) have the same median, but (OJ) is
+less disperse (blue color).
 For 1mg (green color), (OJ) is significantly bettern than (VC). By this very quick analysis,
 it seems that (OJ) is a better delivery method than (VC).
 
@@ -390,30 +418,70 @@ R.dev__off
 
 ![](figures/facets_with_jitter.png)
 
+Now we can see all 60 points in the graph. We have here a much higher information density
+and we can see outliers and subjects distribution.
+
 # Preparing the Plot for Presentation
 
+We have come a long way since our first plot.  As was already said, this is not
+an article about data analysis and the focus is on the
+integration of Ruby and ggplot.  So, let's assume that the analysis is now done.  Yet,
+ending the analysis does not mean that the work is done.  On the contrary, the hardest
+part is yet to come!
 
+After the analysis it is necessary to communicate it by making a final plot for
+presentation.  The last plot has all the information we want to share, but it is not very
+pleasing to the eye.
 
-## Improving on Colors
+## Improving Colors
+
+Let's start by trying to improve colors.  For now, we will not use the jitter layer.
+The previous plot has three bright colors that have no relashionship between them.  Is
+there any obvious, or non-obvious for that matter, interpretation for the colors?
+Clearly, they are just random colors selected automatically by our software.  Although
+those colors helped us understand the data, for a final presentation random colors
+can distract the viewer.
+
+In the following plot we use shades function 'scale_fill_manual' to change
+the colors of the boxes and order of labels.  For colors we use shades of blue for
+each dosage, with light blue ('cyan')
+representing the lower dose and deep blue ('deepskyblue4') the higher dose. Also
+the smaller value (0.5) is on
+the botton of the labels and (2) at the top.  This ordering seems more natural and
+matches with the actual order of the colors in the plot.
 
 
 ```ruby
 R.png("figures/facets_by_delivery_color2.png")
 
-@bp = @bp + R.geom_boxplot(E.aes(fill: :dose)) +
-      R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"))
+@bp = @bp +
+      R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
+                          breaks: R.c("2","1","0.5"))
 
 puts @bp
 
 R.dev__off
 ```
 
-![ToothGrowth plot with decorations](figures/facets_by_delivery_color2.png)
+![](figures/facets_by_delivery_color2.png)
 
 
 ## Violin Plot and Jitter
 
+The boxplot with jitter did look a bit overwhelming.  The next plot uses a variation of
+a boxplot known as a _violin plot_ with jittered data.
 
+[From Wikipedia](https://en.wikipedia.org/wiki/Violin_plot)
+
+
+> A violin plot is a method of plotting numeric data. It is similar to a box plot with
+> a rotated kernel density plot on each side.
+> 
+> A violin plot has four layers. The outer shape represents all possible results, with
+> thickness indicating how common. (Thus the thickest section represents the mode average.)
+> The next layer inside represents the values that occur 95% of the time.
+> The next layer (if it exists) inside represents the values that occur 50% of the time.
+> The central dot represents the median average value. 
 
 
 ```ruby
@@ -422,7 +490,9 @@ R.png("figures/violin_with_jitter.png")
 @violin = @base_tooth + R.geom_violin(E.aes(fill: :dose)) + 
    R.facet_grid(+:all =~ +:supp) +
    R.geom_jitter(shape: 23, color: "cyan3", size: 1) +
-   R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"))
+   R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
+                       breaks: R.c("2","1","0.5"))
+
 puts @violin
 
 R.dev__off
@@ -430,15 +500,26 @@ R.dev__off
 
 ![](figures/violin_with_jitter.png)
 
+This plot is an alternative to the original boxplot.  For the final presentation, it is
+important to think which graphics will be best understood by our audience. A violin plot
+is a less known plot and could add mental overhead, yet, in my opinion, it does look a lit
+bit better than the boxplot and provides even more information than the boxplot with jitter.
+
 ## Adding Decoration
 
-We have come a long way since our first plot.  But our work is not yet finished. Making the
-data analysis and seeing the data is just the beginning, now, it is necessary to make the
-plot presentable to our stakeholders.  This plot could be presented in a meeting 
+Our final plot is starting to take shape, but a presentation plot should have at least a
+title, labels on the axis and maybe some other decorations.  Let's start adding those.
+Since decoration requires more graph area, this new plot has a 'width' and 'height'
+specification.  When there is no specification, the default values for width and height are
+480.
+
+The 'labs' function adds require decoration.  In this example we use 'title', 'subtitle',
+'x' for the $x$ axis label and 'y', for the $y$ axis label, and 'caption' for information
+about the plot.
 
 
 ```ruby
-R.png("figures/facets_with_decorations.png", width: 540, height: 540)
+R.png("figures/facets_with_decorations.png", width: 540, height: 560)
 
 caption = <<-EOT
 Length of odontoblasts in 60 guinea pigs. 
@@ -456,9 +537,19 @@ puts @bp + @decorations
 R.dev__off
 ```
 
-![ToothGrowth plot with decorations](figures/facets_with_decorations.png)
+![](figures/facets_with_decorations.png)
+
 
 ## The Corp Theme
+
+We are almost done.  But the plot does not yet look nice to the eye. We are still distracted
+by many aspects of the graph.  First, the back font color does not look good.  Then
+plot background, borders, grids all add clutter to the plot.
+
+We will now define our corporate theme.  In this theme, we remove borders and grids.  The
+background if left for faceted plots but removed for non-faceted plots.  Font colors are
+a shade o blue (color: '#00080').  Axis labels are moved near the end of the axis and
+written in 'bold'.
 
 
 ```ruby
@@ -470,10 +561,11 @@ module CorpTheme
   # face can be  (1=plain, 2=bold, 3=italic, 4=bold-italic)
   #---------------------------------------------------------------------------------
   
-  def self.text_element(size, face = "plain")
+  def self.text_element(size, face: "plain", hjust: nil)
     E.element_text(color: "#000080", 
                    face: face,
-                   size: size)
+                   size: size,
+		   hjust: hjust)
   end
   
   #---------------------------------------------------------------------------------
@@ -499,11 +591,11 @@ module CorpTheme
     # Change axis font
     gb = gb + R.theme(axis__text: text_element(8))
     # change axis title font
-    gb = gb + R.theme(axis__title: text_element(10, "plain"))
+    gb = gb + R.theme(axis__title: text_element(10, face: "bold", hjust: 1))
     # change font of title
-    gb = gb + R.theme(title: text_element(12, "bold"))
+    gb = gb + R.theme(title: text_element(12, face: "bold"))
     # change font of subtitle
-    gb = gb + R.theme(plot__subtitle: text_element(9, "plain"))
+    gb = gb + R.theme(plot__subtitle: text_element(9))
     # change font of captions
     gb = gb + R.theme(plot__caption: text_element(8))
 
@@ -514,11 +606,11 @@ end
 
 ## Final Box Plot
 
+Here is our final boxplot, without jitter.
+
 
 ```ruby
-R.png("figures/final_box_plot.png", width: 530, height: 530)
-
-# Facet the plot by the s
+R.png("figures/final_box_plot.png", width: 540, height: 560)
 
 puts @bp + @decorations + CorpTheme.global_theme(faceted: true)
 
@@ -529,9 +621,12 @@ R.dev__off
 
 ## Final Violin Plot
 
+Here is the final violin plot, with jitter and the same look and feel of the corporate
+boxplot.
+
 
 ```ruby
-R.png("figures/final_violin_plot.png", width: 540, height: 540)
+R.png("figures/final_violin_plot.png", width: 540, height: 560)
 
 puts @violin + @decorations + CorpTheme.global_theme(faceted: true)
 
@@ -542,9 +637,12 @@ R.dev__off
 
 ## Another View
 
+Finally, here is a last plot, with the same look and feel as before but facetted by
+dose and not by supplement.
+
 
 ```ruby
-R.png("figures/facet_by_dose.png")
+R.png("figures/facet_by_dose.png", width: 540, height: 560)
 
 caption = <<-EOT
 Length of odontoblasts in 60 guinea pigs. 
@@ -568,12 +666,41 @@ R.dev__off
 
 # Conclusion
 
+Galaaz tightly couples Ruby and R in a way that Ruby developers do not need to be aware
+of the executing R engine.  For the Ruby developer the existence of R
+is of no consequence.  For her, she is just coding in Ruby.  On the other hand, for the R
+developer, migration to Ruby is a matter of small syntactic changes and very gentle
+learning curve. As the R developer becomes more proficient in Ruby, he can start using
+'classes', 'modules', 'procs', 'lambdas'.  
+
+This coupling shows the power of GraalVM and Truffle polyglot environment.  Trying to
+bring to Ruby the power of R starting from scratch is an enourmous endeavour and would
+probably never be accomplished.  Today's data scientists would certainly stick with either
+Python or R.  Now, both the Ruby and R communities might benefit from this marriage.  Also,
+the process to couple Ruby and R can be also be done to couple Ruby and JavaScript and
+maybe also Ruby and Python.  In a polyglot world a *uniglot* language might be extremely
+relevant.
+
+From the perspective of performance, GraalVM and Truffle promises improvements that could
+reach over 10 times, both for [FastR](https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb)
+and for [TruffleRuby](https://rubykaigi.org/2018/presentations/eregontp.html).
+
+This article has shown how to improve a plot step-by-step.  Starting from a very simple
+boxplot with all default configurations, we moved slowly to our final plot.  The important
+point here is not if the final plot is actually beautiful, but that there is a process
+of small steps improvements that can be followed to getting a final plot ready for
+presentation.
+
+Finally, this whole article was written in rmarkdown and compiled to HTML by _gknit_, an
+application that wraps _knitr_ and allows documenting Ruby code.  This application can
+be of great help for any Rubyist trying to write articles, blogs or documentation for Ruby.
+
 
 # Installing Galaaz
 
 ## Prerequisites
 
-* GraalVM (>= rc8)
+* GraalVM (>= rc8): https://github.com/oracle/graal/releases
 * TruffleRuby
 * FastR
 
@@ -594,7 +721,7 @@ the gnu compiler and tools should be enough.  I am not sure what is needed on th
 ## Usage
 
 * gknit <filename>
-
+* In a scrip add: require 'galaaz'
 
 
 And now that you’ve read this far, here’s how to submit your story to the freeCodeCamp
