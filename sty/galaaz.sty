@@ -5,7 +5,7 @@
 \usepackage{geometry}
 \geometry{a4paper, top=1in}
 
-% necessários para uso com kableExtra
+% needed for kableExtra
 \usepackage{longtable}
 \usepackage{multirow}
 \usepackage[table]{xcolor}
@@ -22,17 +22,38 @@
 \usepackage{expex}
 
 \usepackage{graphicx}
+
 \usepackage{fancyhdr}
+% set the header and foot style
+% style 'fancy' adds the section name on the header
+% and the page number on the footer
 \pagestyle{fancy}
-\fancyhf{}
 
-\usepackage{lipsum}
+% style 'fancyhf' leaves header and footer empty
+%\fancyhf{}
 
-% disponibilizar o comando lastpage
+% sets the left head element to \rightmark, which contains the
+% current section (\leftmark is the current chapter)
+%\fancyhead[L]{\rightmark} .
+
+% sets the right head element to the page number.
+% \fancyhead[R]{\thepage}
+
+% lets the head rule disappear.
+% \renewcommand{\headrulewidth}{0pt}
+% Possible selectors for the optional argument of \fancyhead/\fancyfoot
+% are L (left), C (center) or R (right) for the position of the element
+% and E (even) or O (odd) to distinguish even and odd pages. If you omit
+% E/O the element is set for all pages.
+
+% \usepackage{lipsum}
+
+% make available command lastpage
 \usepackage{lastpage}
 
-% tamanho do font padrão 11pt
-\usepackage[fontsize=10pt]{scrextend}
+% default fontsize 11pt better to add
+% fontsize on the yaml header
+% \usepackage[fontsize=11pt]{scrextend}
 
 % comandos para formatar uma tabela
 \usepackage{array}
@@ -40,8 +61,11 @@
 \newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 
-% necessário para importar outros arquivos latex
+% necessário if we need to import other latex documents
 \usepackage{import}
 
+% Command to import an R variable to latex
 \newcommand{\RtoLatex}[2]{\newcommand{#1}{#2}}
+
+% 
 %\newcommand{\atraso}[1]{\color{red} \textbf {Tempo desde a Assinatura do Contrato: #1 dias}}

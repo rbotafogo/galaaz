@@ -48,7 +48,7 @@ EOF
   # ensure the gem is built out of versioned files
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
             'lib/**/*', 'specs/**/*', 'examples/**/*', 'r_requires/**/*',
-            'bin/**/*', 'blogs/**/*']
+            'bin/**/*', 'blogs/**/*', 'sty/**/*']
   gem.files = fls
 
   gem.metadata["yard.run"] = "yri" # use "yard" to build full HTML docs

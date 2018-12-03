@@ -23,22 +23,68 @@
 
 require 'stringio'
 
+#----------------------------------------------------------------------------------------
+# Class RubyChunk is used only as a context for all ruby chunks in the rmarkdown file.
+# This allows for chunks to access instance_variables (@)
+#----------------------------------------------------------------------------------------
+
 class RubyChunk
 
 end
 
+#----------------------------------------------------------------------------------------
+#
+#----------------------------------------------------------------------------------------
+
 module GalaazUtil
+
+  #----------------------------------------------------------------------------------------
+  # Executes the ruby code with the given options.
+  # @param options [R::List] An R list of options
+  # @return [R::List] an R list with everything that needs to be outputed.
+  # The options are:
+  # * options.code: the ruby code
+  # * options[["eval"]]: evaluate if true
+  # * options.echo: if true, show the source code of the chunk in the output
+  # * options.message: if true, show error message if any exception in the ruby code
+  # * options.warning: if true, show stack trace from the ruby code
+  # * options.include: if true, include the code output
+  # Note that we need to access the 'eval' element of the list by indexing as
+  # options[["eval"]], this is because eval is a Ruby function and doing options.eval
+  # will call the eval method on options, which is not what we want
+  #----------------------------------------------------------------------------------------
   
-  def self.exec_ruby(code)
+  def self.exec_ruby(options)
+
+    # read the chunk code
+    code = R.paste(options.code, collapse: "\n") << 0
+
+    out_list = R.list
+    out_list["source"] = code if (options.echo << 0)
     
-    # Set up standard output as a StringIO object.
-    $stdout = StringIO.new
-    RubyChunk.instance_eval(code)
-    out = $stdout.string
-    # return $stdout to standard output
-    $stdout = STDOUT
-    # return everything that was outputed
-    out
+    begin
+      # Set up standard output as a StringIO object.
+      $stdout = StringIO.new
+      RubyChunk.instance_eval(code) if (options[["eval"]] << 0)
+      out = $stdout.string
+      # KnitrEngine.capture_plot
+      
+      # return $stdout to standard output
+      $stdout = STDOUT
+      # return everything that was outputed
+      out_list["text"] = out
+    rescue StandardError => e
+      out_list["message"] = e.message if (options.message << 0)
+      out_list["warning"] = e.backtrace.inspect if (options.warning << 0)
+    end
+
+    # TODO: check the name of procedures since communication is
+    # bidirectional.  The name parse_arg was done thinking only on
+    # the Ruby -> R direction.
+    # exec_ruby returns its output to an R script, so we need to pass
+    # the output (out_list) through parse_arg to make it available
+    # to R.
+    (options.include << 0)? R::Support.parse_arg(out_list) : nil
     
   end
 

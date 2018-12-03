@@ -26,9 +26,10 @@ eng_ruby = Proc.new do |options|
 
   begin
     # read the chunk code
-    code = R.paste(options.code, collapse: "\n") << 0
+    # code = R.paste(options.code, collapse: "\n") << 0
     
-    # process the chunk options
+    # process the chunk options. Better to let interested methods process their
+    # options
     KnitrEngine.process_options(options)
 
     tmp_fig = R.tempfile()
@@ -52,15 +53,13 @@ eng_ruby = Proc.new do |options|
     end
     
     # executes the code
-    res = GalaazUtil.exec_ruby(code)
+    res = GalaazUtil.exec_ruby(options)
     
     # formats and outputs the code and results
-    R.engine_output(options, options.code, res)
+    R.engine_output(options, out: res)
 
   ensure
     R.dev__off(dv)
-    # tmp_fig.unlink
-    # if (keep.pars) opts_knit$set(global.pars = par(no.readonly = TRUE))
   end
   
 end

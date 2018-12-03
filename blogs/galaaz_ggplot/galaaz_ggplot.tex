@@ -1,4 +1,4 @@
-\documentclass[]{article}
+\documentclass[11pt,]{article}
 \usepackage{lmodern}
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
@@ -132,7 +132,7 @@
 \usepackage{geometry}
 \geometry{a4paper, top=1in}
 
-% necessários para uso com kableExtra
+% needed for kableExtra
 \usepackage{longtable}
 \usepackage{multirow}
 \usepackage[table]{xcolor}
@@ -149,17 +149,38 @@
 \usepackage{expex}
 
 \usepackage{graphicx}
+
 \usepackage{fancyhdr}
+% set the header and foot style
+% style 'fancy' adds the section name on the header
+% and the page number on the footer
 \pagestyle{fancy}
-\fancyhf{}
 
-\usepackage{lipsum}
+% style 'fancyhf' leaves header and footer empty
+%\fancyhf{}
 
-% disponibilizar o comando lastpage
+% sets the left head element to \rightmark, which contains the
+% current section (\leftmark is the current chapter)
+%\fancyhead[L]{\rightmark} .
+
+% sets the right head element to the page number.
+% \fancyhead[R]{\thepage}
+
+% lets the head rule disappear.
+% \renewcommand{\headrulewidth}{0pt}
+% Possible selectors for the optional argument of \fancyhead/\fancyfoot
+% are L (left), C (center) or R (right) for the position of the element
+% and E (even) or O (odd) to distinguish even and odd pages. If you omit
+% E/O the element is set for all pages.
+
+% \usepackage{lipsum}
+
+% make available command lastpage
 \usepackage{lastpage}
 
-% tamanho do font padrão 11pt
-\usepackage[fontsize=10pt]{scrextend}
+% default fontsize 11pt better to add
+% fontsize on the yaml header
+% \usepackage[fontsize=11pt]{scrextend}
 
 % comandos para formatar uma tabela
 \usepackage{array}
@@ -167,15 +188,22 @@
 \newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 \newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
 
-% necessário para importar outros arquivos latex
+% necessário if we need to import other latex documents
 \usepackage{import}
 
+% Command to import an R variable to latex
 \newcommand{\RtoLatex}[2]{\newcommand{#1}{#2}}
+
+% 
 %\newcommand{\atraso}[1]{\color{red} \textbf {Tempo desde a Assinatura do Contrato: #1 dias}}
 
 \begin{document}
 \maketitle
 
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
 \section{Introduction}\label{introduction}
 
 Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful
@@ -193,28 +221,32 @@ that there is an R engine running. For this to happen we use new
 technologies provided by Oracle: GraalVM, TruffleRuby and FastR:
 
 \begin{verbatim}
- GraalVM is a universal virtual machine for running applications written in JavaScript,
- Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin, and LLVM-based languages
- such as C and C++.
+ GraalVM is a universal virtual machine for running applications
+ written in JavaScript, Python 3, Ruby, R, JVM-based languages like Java,
+ Scala, Kotlin, and LLVM-based languages such as C and C++.
 
- GraalVM removes the isolation between programming languages and enables interoperability in a
- shared runtime. It can run either standalone or in the context of OpenJDK, Node.js,
- Oracle Database, or MySQL.
+ GraalVM removes the isolation between programming languages and enables
+ interoperability in a shared runtime. It can run either standalone or in
+ the context of OpenJDK, Node.js, Oracle Database, or MySQL.
 
- GraalVM allows you to write polyglot applications with a seamless way to pass values from one
- language to another. With GraalVM there is no copying or marshaling necessary as it is with
- other polyglot systems. This lets you achieve high performance when language boundaries are
- crossed. Most of the time there is no additional cost for crossing a language boundary at all.
+ GraalVM allows you to write polyglot applications with a seamless way to
+ pass values from one language to another. With GraalVM there is no copying
+ or marshaling necessary as it is with other polyglot systems. This lets
+ you achieve high performance when language boundaries are crossed. Most
+ of the time there is no additional cost for crossing a language boundary
+ at all.
 
- Often developers have to make uncomfortable compromises that require them to rewrite
- their software in other languages. For example:
+ Often developers have to make uncomfortable compromises that require them
+ to rewrite their software in other languages. For example:
 
   * “That library is not available in my language. I need to rewrite it.” 
-  * “That language would be the perfect fit for my problem, but we cannot run it in our environment.” 
-  * “That problem is already solved in my language, but the language is too slow.”
+  * “That language would be the perfect fit for my problem, but we cannot
+    run it in our environment.” 
+  * “That problem is already solved in my language, but the language is
+    too slow.”
 
-With GraalVM we aim to allow developers to freely choose the right language for the task at
-hand without making compromises.
+With GraalVM we aim to allow developers to freely choose the right language
+for the task at hand without making compromises.
 \end{verbatim}
 
 Interested readers should also check out the following sites:
@@ -238,13 +270,15 @@ Galaaz is the Portuguese name for ``Galahad''. From Wikipedia:
 
 \begin{verbatim}
 Sir Galahad (sometimes referred to as Galeas or Galath),
-in Arthurian legend, is a knight of King Arthur's Round Table and one of the three
-achievers of the Holy Grail. He is the illegitimate son of Sir Lancelot and Elaine of
-Corbenic, and is renowned for his gallantry and purity as the most perfect of all knights.
-Emerging quite late in the medieval Arthurian tradition, Sir Galahad first appears in the
-Lancelot–Grail cycle, and his story is taken up in later works such as the Post-Vulgate
-Cycle and Sir Thomas Malory's Le Morte d'Arthur. His name should not be mistaken with
-Galehaut, a different knight from Arthurian legend. 
+in Arthurian legend, is a knight of King Arthur's Round Table and one
+of the three achievers of the Holy Grail. He is the illegitimate son
+of Sir Lancelot and Elaine of Corbenic, and is renowned for his
+gallantry and purity as the most perfect of all knights. Emerging quite
+late in the medieval Arthurian tradition, Sir Galahad first appears in the
+Lancelot–Grail cycle, and his story is taken up in later works such as
+the Post-Vulgate Cycle and Sir Thomas Malory's Le Morte d'Arthur.
+His name should not be mistaken with Galehaut, a different knight from
+Arthurian legend. 
 \end{verbatim}
 
 \section{Galaaz Demo}\label{galaaz-demo}

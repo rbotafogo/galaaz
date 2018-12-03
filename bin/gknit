@@ -114,11 +114,9 @@ showtext = function(show) if (isTRUE(show)) showtext::showtext_begin()
 eng_ruby = function(options) {
   block_code = paste(options$code, collapse = "\\n");
   code = paste0("GalaazUtil.exec_ruby(", 
-                   shQuote(block_code), 
+                   shQuote(block_code),
                   ")
                 ");
-
-  # png(paste0("gknit_files/figure-html/", options$label, ".png"));
 
   keep = options$fig.keep
   keep.idx = NULL
@@ -147,7 +145,6 @@ eng_ruby = function(options) {
   # if (keep != "none" && is.null(options$fig.ext))
   #   options$fig.ext = dev2ext(options$dev)
 
-  # out = eval.polyglot("ruby", code);
   res = eval.polyglot("ruby", code);
 
 # rearrange locations of figures
@@ -170,7 +167,14 @@ eng_ruby = function(options) {
 #      }
 #    }
 #}
-  engine_output(options, block_code, res)
+
+  engine_output(options, out = res)
+
+#  out_list = list(source = block_code, text = res, message = "message from Galaaz",
+#                  warning = "Warning from Galaaz", error = "Error from Galaaz",
+#                  value = "Value from Galaaz")
+#  engine_output(options, out = out_list)
+#  engine_output(options, block_code, res)
 }
 
 knit_engines$set(ruby = eng_ruby)

@@ -88,11 +88,29 @@ class KnitrEngine
 
   def self.file_ext
     # guess plot file type if it is NULL
-    if (@keep != 'none' && @options.fig__ext.is__null)
-      @options.fig__ext = R.dev2ext(@options.dev)
+    if (((@keep != 'none') << 0) && (@options.fig__ext.is__null << 0))
+      # TODO: allow @options.fig__ext when it is null... confusing otherwise!
+      @options["fig.ext"] = R.knitr_dev2ext(@options.dev)
+      puts @options.fig__ext
     end
   end
+
+  #--------------------------------------------------------------------------------------
+  # 
+  #--------------------------------------------------------------------------------------
+
+  def self.capture_plot
     
+    plot = R.evaluate_plot_snapshot
+    
+    if (!(R.is__null(plot) << 0))
+      R.png(@filename)
+      R.print(plot)
+      R.dev__off
+    end
+    
+  end
+  
   #--------------------------------------------------------------------------------------
   # Process the chunk options
   #--------------------------------------------------------------------------------------
@@ -102,9 +120,15 @@ class KnitrEngine
     
     # verifies if figures should be kept
     fig_keep
-    
+
     # if figures are to be kept, take or guess the file extension
-    # file_ext
+    file_ext
+
+    # puts @keep
+    
+    # make final filename
+    @filename = R.paste0(@options.fig__path, @options.label, ".", @options.fig__ext)
+    
   end
 
   #--------------------------------------------------------------------------------------
@@ -115,6 +139,36 @@ class KnitrEngine
   
   def add(spec)
     (~:knit_engines).set.call(spec)
+  end
+  
+end
+
+
+
+module R
+
+  class Object
+    
+    #--------------------------------------------------------------------------------------
+    # Redefine to_s in order to capture plots when in knitr
+    #--------------------------------------------------------------------------------------
+    
+    def to_s
+
+      cap = nil
+      # dev = R::Device.new('png', width: 5, height: 7, dpi: 300, record: true) {
+      cap = R::Support.capture.call(r_interop)
+      # cap = R::Support.capture_output.call(r_interop)
+      # }
+      str = String.new
+      (0...(cap.size - 1)).each do |i|
+        str << cap[i] << "\n"
+      end
+      str << cap[cap.size - 1] if cap.size >= 1
+      KnitrEngine.capture_plot
+      str
+    end
+
   end
   
 end

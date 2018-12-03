@@ -29,3 +29,7 @@ knitr_save_plot = function(plot, name, dev, width, height, ext, dpi, options) {
 knitr_opts_chunk = function() {
     knitr:::opts_chunk
 }
+
+evaluate_plot_snapshot = function() {
+    evaluate:::plot_snapshot()
+}
