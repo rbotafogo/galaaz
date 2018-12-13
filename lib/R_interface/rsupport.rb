@@ -246,7 +246,8 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.exec_function_name(function_name, *args)
-      # TODO: should check the function name before calling eval
+      # @TODO: should check all that can go wrong when calling eval(function_name) to
+      # raise the proper exception
       f = R::Support.eval(function_name)
       R::Support.exec_function(f, *args)
     end

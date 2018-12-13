@@ -25,6 +25,7 @@ module R
 
   class DataFrame < List
     include MDIndexedObject
+    include Enumerable
 
     #--------------------------------------------------------------------------------------
     # Calls the R.qplot adding the data: parameter
@@ -35,29 +36,47 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    #
+    # Goes through each row of the dataframe and return the whole row as the first element
+    # and the row name (Ruby string) as the second
     #--------------------------------------------------------------------------------------
 
     def each_row
-      
+
+      # nrow is the R function that return the number of rows in the dataset.  This
+      # function returns a R::Vector, so we need to extract its first element (<< 0)
       (1..nrow << 0).each do |i|
-        yield self[i, :all], self.rownames[i]
+        yield self[i, :all], self.rownames[i] << 0
       end
 
     end
 
     #--------------------------------------------------------------------------------------
-    #
+    # Goes through each column of the dataframe and return the whole column as the first
+    # element and the column name (Ruby string) as the second
     #--------------------------------------------------------------------------------------
 
     def each_column
       
+      # ncol is the R function that return the number of columns in the dataset.  This
+      # function returns a R::Vector, so we need to extract its first element (<< 0)
       (1..ncol << 0).each do |i|
-        yield self[:all, i], self.names[i]
+        yield self[:all, i], self.names[i] << 0
       end
       
     end
-    
+
+#=begin    
+    #--------------------------------------------------------------------------------------
+    # @TODO Need to understand why to_ary is being called here and what the effect is of
+    # returning the empty array.  For now, doing this returns better error messages in
+    # rspec
+    #--------------------------------------------------------------------------------------
+
+    def to_ary
+      []
+    end
+#=end
+
   end
   
 end

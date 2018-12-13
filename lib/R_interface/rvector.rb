@@ -47,6 +47,8 @@ module R
     #--------------------------------------------------------------------------------------
 
     def <<(index)
+      raise IndexError.new("index #{index} out of array bounds: -#{index - 1}...#{index - 1}") if
+        (index >= @r_interop.size) 
       @r_interop[index]
     end
 
@@ -104,12 +106,24 @@ module R
     end
     
     #--------------------------------------------------------------------------------------
-    # SHOULD DEFINE COMPARISON BETWEEN TWO VECTORS
+    # @TODO: SHOULD DEFINE COMPARISON BETWEEN TWO VECTORS
     #--------------------------------------------------------------------------------------
 
     def <=>(other_vector)
-      
+      puts "comparison called"
     end
+
+#=begin    
+    #--------------------------------------------------------------------------------------
+    # @TODO Need to understand why to_ary is being called here and what the effect is of
+    # returning the empty array.  For now, doing this returns better error messages in
+    # rspec
+    #--------------------------------------------------------------------------------------
+
+    def to_ary
+      []
+    end
+#=end
     
   end
   

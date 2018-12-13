@@ -22,63 +22,39 @@
 ##########################################################################################
 
 require 'galaaz'
+#require 'ggplot'
 
-class ArrayEmul
-  attr_reader :array
+lst = R.list(a: 1, b: 2, c: 3)
+=begin
+puts lst
+puts lst[1]
+puts lst[[1]]
+puts lst << 0  # should return 1
+puts lst << 1  # should return 2
+puts lst << 2  # should return 3
+=end
+puts lst << 3  # should raise exception
 
-  def initialize
-    @array = []
-  end
+puts lst['a'] << 0 # should return 1
 
-  def method_missing(symbol, *args)
-    @array.send(symbol, *args)
-  end
 
-  def to_s
-    @array.to_s
-  end
+puts lst['k']
+puts lst['k'] << 0 # should return nil
 
-  def pp
-    puts @array.to_s
-  end
 
-  def fetch(index)
-    @array[index[0]]
-  end
-  
-end
+=begin
+R::Support.eval(<<-R)
 
-make_obj = Polyglot.eval("R", <<-R)
-  function(ruby_obj) {
-    x = list(ruby_obj);
-    attr(x, "class") = "ruby_obj";
-    x;
-   }
-R
-
-rf = Polyglot.eval("R", <<-R)
-  function(ruby_obj) {
-    # print(ruby_obj);
-    attr(ruby_obj, "class") = "ruby_obj"
-    print(ruby_obj@to_s());
-    print(class(ruby_obj));
-    # df = data.frame(ruby_obj);
-  }
-
-  print.ruby_obj = function(x, index, ...) {
-    print(index);
-    x[[1]]@fetch(index);
-  }
+# check in RC10 if works: "calling ruby from r" 
+arr_class = eval.polyglot("ruby", "Array")
+# print(arr_class@class())
+arr = arr_class@new()
+print(arr)
+arr@insert(0, 10)
+#print(arr$to_s)
 
 R
-
-h = ArrayEmul.new
-h << 1 << 2 << 3
-puts h
-
-r_obj = make_obj.call(h)
-p Polyglot.eval("R", "print").call(r_obj, 0)[0]
-
+=end
 
 
 
@@ -131,4 +107,128 @@ puts R.model__frame(+:y =~ +:x + +:x2 + (+:x ^ +:x2),
 
 puts R.model__frame(+:y =~ +:x + (:x ** 2).i,
                     data: R.data__frame(x: R.rnorm(5), y: R.rnorm(5)))
+=end
+=begin
+class User
+  
+  attr_reader :id
+  attr_reader :name
+  attr_reader :favoriteLanguage
+  
+  def initialize(id, name, favorite_language)
+    @id = id
+    @name = name
+    @favorite_language = favorite_language
+  end
+  
+end
+
+class NameColumn
+
+  attr_reader :users
+  
+  def initialize(users)
+    @users = users
+  end
+
+  def get(index)
+    users[index].name
+  end
+
+  def set(index, val)
+  end
+
+  def getSize
+    users.size
+  end
+
+  def method_missing(symbol, *args)
+    puts "NameColumn method_missing"
+    puts symbol
+    puts args
+  end
+  
+end
+
+class IdColumn
+
+  attr_reader :users
+  
+  def initialize(users)
+    @users = users
+  end
+
+  def get(index)
+    users[index].id
+  end
+
+  def set(index, val)
+  end
+
+  def getSize
+    users.size
+  end
+  
+  def method_missing(symbol, *args)
+    puts "IdColumn method_missing"
+    puts symbol
+    puts args
+  end
+
+end
+
+class UsersTable
+  attr_reader :id
+  attr_reader :name
+  attr_reader :language
+
+  def initialize(users)
+    @users = users
+    @id = IdColumn.new(users)
+    @name = NameColumn.new(users)
+  end
+
+  def getSize
+    puts users.size
+    users.size
+  end
+
+  def method_missing(symbol, *args)
+    puts "UsersTable method_missing"
+    puts symbol
+    puts args
+  end
+  
+end
+
+rf = R::Support.eval(<<-R)
+  function(table) { 
+    print(table);
+    table <- as.data.frame(table);
+    cat('The whole data frame printed in R:\n');
+    print(table);
+    cat('---------\n\n');
+
+    cat('Filter out users with ID>2:\n');
+    print(table[table$id > 2,]);
+    cat('---------\n\n');
+
+    cat('How many users like Java: ');
+    cat(nrow(table[table$language == 'Java',]), '\n');
+  }
+R
+
+users = []
+users << User.new(1, "Florian", "Python")
+users << User.new(2, "Lukas", "R")
+users << User.new(3, "Mila", "Java")
+users << User.new(4, "Paley", "Coq")
+users << User.new(5, "Stepan", "C#")
+users << User.new(6, "Tomas", "Java")
+users << User.new(7, "Zbynek", "Scala")
+
+puts users[0].name
+ut = UsersTable.new(users)
+rut = R.list(ut)
+rf.call(rut)
 =end

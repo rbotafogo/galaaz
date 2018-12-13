@@ -21,27 +21,60 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-module R
+class RubyEngine < KnitrEngine
+
+  attr_reader :eng_ruby
 
   #--------------------------------------------------------------------------------------
-  # Module to be included for objects that have multi dimensional indices, such as
-  # array and dataframe
+  # Ruby engine for processing Ruby chunks
   #--------------------------------------------------------------------------------------
   
-  module MDIndexedObject
+  def initialize
 
-    #--------------------------------------------------------------------------------------
-    # Index a DataFrame by using []
-    #--------------------------------------------------------------------------------------
-
-    def [](*index)
-      if (index[0].is_a? Array)
-        R::Support.exec_function_name("`[[`", @r_interop, R.internal_eval(:c, *index))
-      else
-        R::Support.exec_function(R::Support.md_index, @r_interop, *index)
+    @eng_ruby = Proc.new do |options|
+      
+      begin
+        # process the chunk options.
+        KnitrEngine.process_options(options)
+        
+        tmp_fig = R.tempfile()
+        
+        # opens a device for the current chunk for plot recording
+        KnitrEngine.device(options.dev << 0, tmp_fig << 0)
+        
+        # chunk requires library 'showtext'.  Install and loads if not present
+        # FIXME: library showtext is giving error when trying to execute showtext beginning
+        if (!options[['fig.showtext']].is__null << 0) &&
+           options[['fig.showtext']] << 0
+          R.install_and_loads('showtext')
+          R.showtext
+        end
+        
+        dv = R.dev__cur
+        
+        #end
+        # executes the code
+        res = GalaazUtil.exec_ruby(options)
+        
+        # formats and outputs the code and results
+        R.engine_output(options, out: res)
+        
+        if (!((options[['filename']] == '.') << 0))
+          # include chunk graphics
+          R.knitr_wrap(R.knit_print(R.include_graphics(options.filename << 0)), options)
+        end
+      
+      ensure
+        R.dev__off(dv)
       end
-    end
 
+    end # end proc
+
+    add(ruby: @eng_ruby)
+    
   end
-
+  
 end
+
+ruby_engine = RubyEngine.new
+

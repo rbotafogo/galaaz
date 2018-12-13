@@ -53,29 +53,37 @@ module GalaazUtil
   # options[["eval"]], this is because eval is a Ruby function and doing options.eval
   # will call the eval method on options, which is not what we want
   #----------------------------------------------------------------------------------------
-  
+
+  # def self.exec_ruby(code, eval, echo, message, warning, include)
   def self.exec_ruby(options)
 
     # read the chunk code
     code = R.paste(options.code, collapse: "\n") << 0
 
-    out_list = R.list
-    out_list["source"] = code if (options.echo << 0)
+    # the output should be a list with the proper structure to pass to
+    # function engine_output.
+    out_list = R.list(R.structure(R.list(src: code), class: 'source'))
     
     begin
       # Set up standard output as a StringIO object.
-      $stdout = StringIO.new
+      # $stdout = StringIO.new
+      $stdout = STDOUT
       RubyChunk.instance_eval(code) if (options[["eval"]] << 0)
       out = $stdout.string
-      # KnitrEngine.capture_plot
-      
+      # add the result from ruby execution to the out_list
+      out_list = R.c(out_list, out)
+    rescue StandardError => e
+      if (options.message << 0)
+        message = R.list(R.structure(R.list(message: e.message), class: 'message'))
+        out_list = R.c(out_list, message)
+      end
+      if (options.warning << 0)
+        warning = R.list(R.structure(R.list(message: e.backtrace.inspect), class: 'message'))
+        out_list = R.c(out_list, warning)
+      end
+    ensure
       # return $stdout to standard output
       $stdout = STDOUT
-      # return everything that was outputed
-      out_list["text"] = out
-    rescue StandardError => e
-      out_list["message"] = e.message if (options.message << 0)
-      out_list["warning"] = e.backtrace.inspect if (options.warning << 0)
     end
 
     # TODO: check the name of procedures since communication is
@@ -85,7 +93,7 @@ module GalaazUtil
     # the output (out_list) through parse_arg to make it available
     # to R.
     (options.include << 0)? R::Support.parse_arg(out_list) : nil
-    
+
   end
 
 end

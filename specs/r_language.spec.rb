@@ -31,17 +31,17 @@ describe R::Language do
     it "should convert a Ruby Symbol to an R Symbol with '+'" do
       a = +:cyl
       expect(a.is_a? R::RSymbol).to eq true
-      expect a.to_s == "cyl"
+      expect(a.to_s).to eq "cyl"
     end
     
     it "should assign to an R symbol and retrieve from it" do
       R.cyl = 10
-      expect ~:cyl == 10
+      expect(~:cyl).to eq 10
     end
 
     it "should allow calling evaluate on the symbol" do
       R.cyl = 10
-      expect R.eval(~:cyl) == 10
+      expect(R.eval(~:cyl)).to eq 10
     end
 
   end
@@ -49,14 +49,15 @@ describe R::Language do
   #========================================================================================
   context "When creating Calls" do
 
+    
     it "binary operators should apply to symbols" do
       # this behaviour is a bit different from R's.  In R this would raise an error
       # with cyl not found
-      expect (:cyl + 5).to_s == '.Primitive("+")(cyl, 5L)'
+      expect((:cyl + 5).to_s).to eq '.Primitive("+")(cyl, 5L)'
     end
 
-    it "should properly coerce to language" do
-      expect (5 + 5).to_s == '.Primitive("+")(5L, cyl)'
+    it "convert evaluate Ruby symbol to R symbol in function argument" do
+      expect(5 + :cyl).to eq R.c(15)
     end
 
     # Formula objects are special and are very similar to quoted expressions, but
@@ -64,17 +65,17 @@ describe R::Language do
     # evaluate the formula.  We add methods .typeof and .rclass in the Ruby class
     it "formula have typeof and rclass" do
       call = :cyl + 5
-      expect call.typeof == "language"
-      expect call.rclass == "call"
+      expect(call.typeof).to eq "language"
+      expect(call.rclass).to eq "call"
     end
 
     it "during calls creation, only symbols are unevaluated" do
       # 5 * 10 evaluate to 50 in the call
-      expect(:cyl + 5 * 10).to_s == '.Primitive("+")(cyl, 50L)'
+      expect((:cyl + 5 * 10).to_s).to eq '.Primitive("+")(cyl, 50L)'
       # define a variable x
       x = 20
       # x is not quoted in the expression
-      expect(:cyl + 5 * x).to_s == '.Primitive("+")(cyl, 100L)'
+      expect((:cyl + 5 * x).to_s).to eq '.Primitive("+")(cyl, 100L)'
     end
 
   end
@@ -86,14 +87,14 @@ describe R::Language do
     it "should eval an R expression in the context of a list" do
       ct = R.list(a: 10, b: 20, c: 30)
       exp = :a + :b * :c
-      expect R.eval(exp, ct) == 610
+      expect(R.eval(exp, ct)).to eq 610
     end
 
     it "should eval an R function in the context of a list" do
       R.x = 5
-      expect R.eval(:x + 10) == 15
+      expect(R.eval(:x + 10)).to eq 15
       ct = R.list(x: 20)
-      expect R.eval(:x + 10, ct) == 30
+      expect(R.eval(:x + 10, ct)).to eq 30
     end
     
   end
@@ -114,19 +115,19 @@ describe R::Language do
     
     it "should create a RSymbol from a Ruby Symbol using +" do
       sym = +:sym
-      expect sym.to_s == "sym"
+      expect(sym.to_s).to eq "sym"
     end
 
     it "should create a formula with '.' by using the ':all' keyword" do
       # this formula is interpreted as 'supp ~ .'
       formula = +:supp =~ :all
-      expect formula.rclass == "formula"
+      expect(formula.rclass).to eq "formula"
     end
 
     it "should create a formula with '.' by using the ':all' keyword in the lhs" do
       # this formula is interpreted as '. ~ supp'
       formula = +:all =~ +:supp
-      expect formula.rclass == "formula"
+      expect(formula.rclass).to eq "formula"
     end
     
 =begin

@@ -43,14 +43,6 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def as__data__frame
-      R.as__data__frame.call(@r_interop)
-    end
-
-    #--------------------------------------------------------------------------------------
     # @param r_interop [Interop] pointer to an R object
     # @return the R object wrapped in a Ruby class
     #--------------------------------------------------------------------------------------
@@ -106,6 +98,10 @@ module R
 
       name = R::Support.convert_symbol2r(symbol)
 
+      # Need to raise a NoMethodError when method_missing is called by an implicit
+      # call to "to_ary".  I'm not sure why "to_ary" is being called, but it is
+      raise NoMethodError if name == "to_ary"
+      
       case
       when block_given?
         R::Support.new_scope(symbol, self, *args, &block)
@@ -146,6 +142,14 @@ module R
       R::Support.exec_function_name(name, *args)
     end
         
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def ==(other)
+      R.identical(self, other) << 0
+    end
+    
     #--------------------------------------------------------------------------------------
     # Sets the current object self interop pointer to the returned value of the execution
     # of the given method with arguments. This method should be called when R will copy

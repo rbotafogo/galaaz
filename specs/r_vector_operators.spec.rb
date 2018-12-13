@@ -142,6 +142,10 @@ describe R::Vector do
        expect((@vec1 << 2)).to eq 10
      end
 
+     it "Should raise an exeption if '<<' out of bounds" do
+       expect { @vec1 << 5 }.to raise_error(IndexError)
+     end
+
      it "should treat R::Vector as an Enumerable" do
        # each 'value' is an R::Vector, with only 1 element.  In order to use Ruby 'sum'
        # we need to extract the value as a Ruby Numeric with << 1

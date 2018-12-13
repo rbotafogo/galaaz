@@ -310,7 +310,6 @@ class KnitrEngine
   # fig.lp: ('fig:'; character) label prefix for the figure label to be used
   # in \label{}; the actual label is made by concatenating this prefix and the
   # chunk label, e.g. the figure label for <<foo-plot>>= will be fig:foo-plot by default
-  attr_reader :label
   attr_reader :fig__lp
   
   # fig.pos: (''; character) a character string for the figure position arrangement
@@ -399,11 +398,20 @@ class KnitrEngine
   #
   #--------------------------------------------------------------------------------------
 
-  def units
+  def self.units
     opt_units = (@options[["units"]])
     (opt_units.is__null << 0) ? "in" : opt_units
   end
 
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+
+  def self.res
+    opt_res = (@options[["res"]])
+    (opt_res.is__null << 0) ? 72 : opt_res
+  end
+  
   #--------------------------------------------------------------------------------------
   # Process the fig.keep chunk option
   # @param keep [String/Numeric] a string or a number.  If it is a string then it should
@@ -418,116 +426,122 @@ class KnitrEngine
   #   index.
   #--------------------------------------------------------------------------------------
 
-  def fig_keep
+  def self.fig_keep
     @keep = @options.fig__keep
     @keep_idx = nil
-    
+
     if (@keep.is__numeric << 0)
       @keep_idx = @keep
       @keep = "index"
     end
-    
+
   end
-  
+
   #--------------------------------------------------------------------------------------
   # 
   #--------------------------------------------------------------------------------------
 
-  def file_ext
+  def self.file_ext
     # guess plot file type if it is NULL
     if (((@keep != 'none') << 0) && (@options.fig__ext.is__null << 0))
-      @fig__ext = (R.knitr_dev2ext(@options.dev) << 0)
+      @options["fig.ext"] = R.knitr_dev2ext(@options.dev)
     end
-    
   end
 
   #--------------------------------------------------------------------------------------
   # Process the chunk options
   #--------------------------------------------------------------------------------------
   
-  def process_options(options)
-
+  def self.process_options(options)
+    
     @options = options
-
-    # Chunk options
-    @label = (options['label'] << 0)
     
     # Text results
-    @eval = options['eval'] 
-    @echo = (options['echo'] << 0)
-    @results = options['results'] 
-    @collapse = options['collapse'] 
-    @warning = options['warning'] 
-    @error = options['error'] 
-    @message = options['message'] 
-    @split = options['split'] 
-    @include = options['include'] 
-    @strip__white = options['strip.white'] 
+    @eval = options['eval'] << 0
+    @echo = options['echo'] << 0
+    @results = options['results'] << 0
+    @collapse = options['collapse'] << 0
+    @warning = options['warning'] << 0
+    @error = options['error'] << 0
+    @message = options['message'] << 0
+    @split = options['split'] << 0
+    @include = options['include'] << 0
+    @strip__white = options['strip__white'] << 0
     # @render = options['render'] # a function
-    @class__output = options['class.output'] 
+    @class__output = options['class__output'] << 0
     
     # Code Decoration
     # @tidy = options['tidy'] 
-    # @tidy__opts = options['tidy.opts']
-    @prompt = options['prompt']  
-    @comment = options['comment'] 
-    @highlight = options['highlight'] 
-    @size = options['size'] 
-    @background = options['background'] 
-    @class__source = options['class_source'] 
+    # @tidy__opts = options['tidy__opts']
+    @prompt = options['prompt'] << 0 
+    @comment = options['comment'] << 0
+    @highlight = options['highlight'] << 0
+    @size = options['size'] << 0
+    @background = options['background'] << 0
+    @class__source = options['class_source'] << 0
     
     # Plots
-    @fig__path = (options['fig.path'] << 0)
-    # @fig__keep = options['fig.keep'] # can be a vector
-    @fig__show = options['fig.show'] 
-    @dev = options['dev'] 
-    # @dev__args = options['dev.args'] # can be a vector
-    @fig__ext = (options['fig.ext'] << 0)
-    @dpi = options['dpi'] 
-    @fig__width = options['fig.width'] 
-    @fig__height = options['fig.height'] 
-    @fig__asp = options['fig.asp'] 
-    # @fig__dim = options['fig.dim']  # vector with two elements
-    @out__width = options['out.width'] 
-    @out__height = options['out.height'] 
-    @out__extra = options['out.extra'] 
-    @fig__retina = options['fig.retina'] 
-    @resize__width = options['resize.width'] 
-    @resize__height = options['resize.height'] 
-    @fig__align = options['fig.align'] 
-    @fig__env = options['fig.env'] 
-    @fig__cap = options['fig.cap'] 
-    @fig__scap = options['fig.scap'] 
-    @fig__lp = options['fig.lp'] 
-    @fig__pos = options['fig.pos'] 
-    @fig__subcap = options['fig.subcap'] 
-    @fig__ncol = options['fig.ncol'] 
-    # @fig__sep = options['fig.sep'] # a vector
-    @fig__process = options['fig.process'] 
-    @fig__showtext = options['fig.showtext'] 
-    @external = options['external'] 
-    @sanitize = options['sanitize'] 
-        
+    @fig__path = options['fig__path'] << 0
+    attr_reader :fig__filename
+    # @fig__keep = options['fig__keep'] # can be a vector
+    @fig__show = options['fig__show'] << 0
+    @dev = options['dev'] << 0
+    # @dev__args = options['dev__args'] # can be a vector
+    @fig__ext = options['fig__ext'] << 0
+    @dpi = options['dpi'] << 0
+    @fig__width = options['fig__width'] << 0
+    @fig__height = options['fig__height'] << 0
+    @fig__asp = options['fig__asp'] << 0
+    # @fig__dim = options['fig__dim']  # vector with two elements
+    @out__width = options['out__width'] << 0
+    @out__height = options['out__height'] << 0
+    @out__extra = options['out__extra'] << 0
+    @fig__retina = options['fig__retina'] << 0
+    @resize__width = options['resize__width'] << 0
+    @resize__height = options['resize__height'] << 0
+    @fig__align = options['fig__align'] << 0
+    @fig__env = options['fig__env'] << 0
+    @fig__cap = options['fig__cap'] << 0
+    @fig__scap = options['fig__scap'] << 0
+    @fig__lp = options['fig__lp'] << 0
+    @fig__pos = options['fig__pos'] << 0
+    @fig__subcap = options['fig__subcap'] << 0
+    @fig__ncol = options['fig__ncol'] << 0
+    # @fig__sep = options['fig__sep'] # a vector
+    @fig__process = options['fig__process'] << 0
+    @fig__showtext = options['fig__showtext'] << 0
+    @external = options['external'] << 0
+    @sanitize = options['sanitize'] << 0
+    
+    # verifies if figures should be kept
+    fig_keep
+    
+    # if figures are to be kept, take or guess the file extension
+    file_ext
+    
+    # make final filename
+    @filename = R.paste0(@options.fig__path, @options.label, ".", @options.fig__ext)
+    # @filename = "#{@fig__path}#{@label}.#{@fig__ext}"
+    
+    @options["filename"] = "."
+    
   end
 
   #--------------------------------------------------------------------------------------
-  # @param dev_type [String] name of the device type to open
-  # @param filename [String] filename to store the image.  By default nil for the awt
-  #    device
-  # @param args [Array] other parameters to be passed to device. Right now, there are
-  #   no other parameters that should be passed to the available devices.  Might be
-  #   needed when more devices are available
-  # @param width [Numeric] width of the figure, by default 480
-  # @param height [Numeric] hegiht of the figure, by default 480
-  # @param units [String] string with units definition, by default 'px'.  Could be
-  #   'in', 'cm'
-  # @param res [Numeric] resolution in dpi, if not provided set to 72
-  # @param pointsize [Numeric]
-  # @param bg [String]
+  # 
   #--------------------------------------------------------------------------------------
 
-  def self.device(dev_type, filename = nil, *args, width: 480, height: 480,
-                  units: "px", res: 72, pointsize: 12, bg: "white")
+  def self.device(dev_type, filename, *args, width: 480, height: 480,
+                  units: "px", res: R::NA, pointsize: 12, bg: "white")
+
+    # res is required unless units is 'px'
+    if (units != 'px')
+      if (res == R::NA)
+        puts "Resolution (res) is required when units are different from 'px'"
+        puts "Setting resolution to 72 dpi"
+        res = 72
+      end
+    end
     
     case dev_type
         
@@ -547,6 +561,36 @@ class KnitrEngine
   end
 
   #--------------------------------------------------------------------------------------
+  # 
+  #--------------------------------------------------------------------------------------
+
+  def self.capture_plot
+
+    # gets a plot snapshot.  Uses function plot_snapshot from package 'evaluate'
+    plot = R.evaluate_plot_snapshot
+
+    if (!(plot.is__null << 0))
+
+      dir = @options.fig__path << 0
+
+      unless File.directory?(dir)
+        FileUtils.mkdir_p(dir)
+      end
+
+      @options["filename"] = @filename
+
+      @options.dev.each do |dev_type|
+        device(dev_type << 0, @filename, width: @options.fig__width << 0,
+               height: @options.fig__height << 0, units: units)
+        R.print(plot)
+        R.dev__off
+      end
+
+    end
+
+  end
+  
+  #--------------------------------------------------------------------------------------
   # Adds the new knitr engine to the list of engines
   # @param spec [Hash] hash with only one pair containing the machine key and the engine
   #    function
@@ -554,21 +598,6 @@ class KnitrEngine
   
   def add(spec)
     (~:knit_engines).set.call(spec)
-  end
-
-  
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
-  
-  private
-
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
-
-  def initialize
-    super
   end
   
 end
@@ -578,7 +607,7 @@ end
 module R
 
   class Object
-
+    
     #--------------------------------------------------------------------------------------
     # Redefine to_s in order to capture plots when in knitr
     #--------------------------------------------------------------------------------------
@@ -586,14 +615,16 @@ module R
     def to_s
 
       cap = nil
+      # dev = R::Device.new('png', width: 5, height: 7, dpi: 300, record: true) {
       cap = R::Support.capture.call(r_interop)
+      # cap = R::Support.capture_output.call(r_interop)
+      # }
       str = String.new
       (0...(cap.size - 1)).each do |i|
         str << cap[i] << "\n"
       end
       str << cap[cap.size - 1] if cap.size >= 1
-      re = RubyEngine.instance
-      re.capture_plot
+      KnitrEngine.capture_plot
       str
     end
 

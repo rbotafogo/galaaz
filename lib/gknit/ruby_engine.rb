@@ -21,49 +21,108 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-# Ruby engine for processing Ruby chunks
-eng_ruby = Proc.new do |options|
+require 'singleton'
 
-  begin
-    # read the chunk code
-    # code = R.paste(options.code, collapse: "\n") << 0
-    
-    # process the chunk options. Better to let interested methods process their
-    # options
-    KnitrEngine.process_options(options)
+class RubyEngine < KnitrEngine
+  include Singleton
 
-    tmp_fig = R.tempfile()
-     
-    # opens a device for the current chunk for plot recording. Knitr provides
-    # method chunck_device for that, but it is a non-exported method.  Galaaz
-    # does not yet provide a way to accessing non-exported methods, so, the ck_dv
-    # local method was developed that just calls chunk_device.
-    if (R._ck_dv(options.fig__width[1], options.fig__height[1], options.dev,
-                 options.dev__args, options.dpi, options, tmp_fig, record: true) << 0)
+  attr_reader :eng_ruby
 
-      # chunk requires library 'showtext'.  Install and loads if not present
-      # FIXME: library showtext is giving error when trying to execute showtext beginning
-      if (!options[['fig.showtext']].is__null << 0) &&
-         options[['fig.showtext']] << 0
-        R.install_and_loads('showtext')
-        R.showtext
-      end
-      
-      dv = R.dev__cur
-    end
-    
-    # executes the code
-    res = GalaazUtil.exec_ruby(options)
-    
-    # formats and outputs the code and results
-    R.engine_output(options, out: res)
-
-  ensure
-    R.dev__off(dv)
-  end
+  #--------------------------------------------------------------------------------------
+  # Ruby engine for processing Ruby chunks
+  #--------------------------------------------------------------------------------------
   
+  def initialize
+
+    @eng_ruby = Proc.new do |options|
+      
+      begin
+        # process the chunk options.
+        # KnitrEngine.process_options(options)
+        process_options(options)
+        
+        # verifies if figures should be kept
+        fig_keep
+        
+        # if figures are to be kept, take or guess the file extension
+        file_ext
+        
+        # make final filename
+        @filename = "#{@fig__path}#{@label}.#{@fig__ext}"
+        @options["filename"] = "."
+
+        # create temporary file for storing the plots
+        # TODO: should remove this directory afterwards
+        tmp_fig = (R.tempfile() << 0)
+
+        # opens a device for the current chunk for plot recording
+        KnitrEngine.device(options.dev << 0, tmp_fig)
+
+        # chunk requires library 'showtext'.  Install and loads if not present
+        # FIXME: library showtext is giving error when trying to execute showtext beginning
+        if (!options[['fig.showtext']].is__null << 0) &&
+           options[['fig.showtext']] << 0
+          R.install_and_loads('showtext')
+          R.showtext
+        end
+
+        dv = R.dev__cur
+
+        # executes the code
+        res = GalaazUtil.exec_ruby(options)
+
+        # @TODO: variable 'res' has the code, output, warning and messages... need to
+        # deal with all of them to output only what is required and respect the
+        # flags...
+        # formats and outputs the code and results
+        R.engine_output(options, out: res) if @echo
+
+        if (!((@options[['filename']] == '.') << 0))
+          # include chunk graphics
+          R.knitr_wrap(R.knit_print(R.include_graphics(@options.filename << 0)), @options)
+        end
+      
+      ensure
+        R.dev__off(dv)
+      end
+
+    end # end proc
+
+    add(ruby: @eng_ruby)
+    
+  end
+
+  #--------------------------------------------------------------------------------------
+  # 
+  #--------------------------------------------------------------------------------------
+  
+  def capture_plot
+
+    # gets a plot snapshot.  Uses function plot_snapshot from package 'evaluate'
+    plot = R.evaluate_plot_snapshot
+
+    if (!(plot.is__null << 0))
+
+      # create directory for the graphics files if does not already exists
+      unless File.directory?(@fig__path)
+        FileUtils.mkdir_p(@fig__path)
+      end
+
+      @options["filename"] = @filename
+
+      @options.dev.each do |dev_type|
+        KnitrEngine.device(dev_type << 0, @filename,
+                           width: @options.fig__width << 0,
+                           height: @options.fig__height << 0, units: units)
+        R.print(plot)
+        R.dev__off
+      end
+
+    end
+
+  end
+
 end
 
-ruby_engine = KnitrEngine.new
-ruby_engine.add(ruby: eng_ruby)
+ruby_engine = RubyEngine.instance
 

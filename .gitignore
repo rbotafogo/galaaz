@@ -11,4 +11,7 @@ cran/*
 *.log
 *.dvi
 *.aux
+*.svg
+*.png
+*.md
 

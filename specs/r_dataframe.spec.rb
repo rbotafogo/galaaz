@@ -33,10 +33,12 @@ describe R::DataFrame do
       vec.dim = R.c(2, 3)
       
       # create a DataFrame from a vector
-      df = R.as__data__frame(vec)
+      df = vec.as__data__frame
       expect(df[1, "V1"]).to eq 1
-      expect df[1, 'V2'] == 3
-      expect df[1, :all] == R.c(V1: 1, V2: 3, V3: 5)
+      expect(df[1, 'V2']).to eq 3
+      # When you extract a single row from a data frame you get a one-row data frame.
+      # Convert it to a numeric vector with 'as__numeric'
+      expect(df[1, :all].as__numeric).to eq R.c(V1: 1, V2: 3, V3: 5)
       
     end
 
@@ -75,20 +77,19 @@ describe R::DataFrame do
       mtcars = ~:mtcars
       
       mtcars.each_column do |col, col_name|
-        # col_name is an R::Vector with one string element.
-        # Extract the 'native' value by indexing with '<< 0'
-        case col_name << 0
+        # col_name a Ruby string with the column name
+        case col_name
         when "mpg"
-          expect col[1] == 21
-          expect col[9] == 22.8
-          expect col[32] == 21.4
+          expect(col[1]).to eq 21
+          expect(col[9]).to eq 22.8
+          expect(col[32]).to eq 21.4
         when "cyl"
-          expect col[1] == 6
-          expect col[10] == 6
-          expect col[32] == 4
+          expect(col[1]).to eq 6
+          expect(col[10]).to eq 6
+          expect(col[32]).to eq 4
         when "disp"
-          expect col[1] == 160
-          expect col[32] == 121
+          expect(col[1]).to eq 160
+          expect(col[32]).to eq 121
         end
         
       end
@@ -100,20 +101,23 @@ describe R::DataFrame do
       mtcars = ~:mtcars
       
       mtcars.each_row do |row, row_name|
-        case row_name << 0
+        # row_name a Ruby string with the column name
+        case row_name
         when "Mazda RX4"
-          expect row['mpg'] == 21
-          expect row.qsec == 16.46
+          expect(row[['mpg']]).to eq 21
+          expect(row.mpg). to eq 21
+          expect(row.qsec).to eq 16.46
         when "Hornet Sportabout"
-          expect row['cyl'] == 8
-          expect row['wt'] == 3.44
+          expect(row[['cyl']]).to eq 8
+          expect(row.cyl).to eq 8
+          expect(row[['wt']]).to eq 3.44
         when "Merc 240D"
-          expect row['hp'] == 62
-          expect row.drat == 3.69
+          expect(row[['hp']]).to eq 62
+          expect(row.drat).to eq 3.69
         when "Volvo 142E"
-          expect row.hp == 109
-          expect row.am == 1
-          expect row.carb == 2
+          expect(row.hp).to eq 109
+          expect(row.am).to eq 1
+          expect(row.carb).to eq 2
         end
         
       end

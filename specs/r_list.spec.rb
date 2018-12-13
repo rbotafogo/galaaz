@@ -59,6 +59,39 @@ describe R::List do
   end
 
   #----------------------------------------------------------------------------------------
+  context "When subsetting a list with '<<' (starts at 0)" do
+    
+    before(:all) do
+      @l = R.list(1, a: 2, b: 3, c: R.list(4, 5, 6))
+    end
+
+    it "should return the 'native' (Ruby) element of the list at numeric index" do
+      expect(@l << 0).to eq 1
+      expect(@l << 1).to eq 2
+      expect(@l << 2).to eq 3
+    end
+
+    it "should return the 'native' (Ruby) element of the list at named index" do
+      expect(@l['a'] << 0).to eq 2
+      expect(@l[['a']] << 0).to eq 2
+      expect(@l['b'] << 0).to eq 3
+    end
+
+    it "should raise an exception (IndexError) if index out of bounds" do
+      expect { @l << 4 }.to raise_error(IndexError)
+    end
+
+    it "should raise an exception (Argument error) if indexed element is not a vector" do
+      expect { @l << 3 }.to raise_error(ArgumentError)
+    end
+
+    it "should return nil if named index does not exists" do
+      expect(@l['k'] << 0).to eq nil
+    end
+
+  end
+  
+  #----------------------------------------------------------------------------------------
   context "When subsetting a list" do
     
     before(:all) do
@@ -106,9 +139,9 @@ describe R::List do
       i = 1
       @l.each do |elmt|
         if (i < 4)
-          expect elmt == i
+          expect(elmt).to eq i
         else
-          expect elmt.identical(R.list(4, 5, 6)) == true
+          expect(elmt.identical(R.list(4, 5, 6))).to eq true
         end
         i = i + 1
       end
@@ -117,9 +150,9 @@ describe R::List do
     it "should subset with 'each_with_index'" do
       @l.each_with_index do |elmt, i|
         if (i < 4)
-          expect elmt == i
+          expect(elmt).to eq i
         else
-          expect elmt.identical(R.list(4, 5, 6)) == true
+          expect(elmt.identical(R.list(4, 5, 6))).to eq true
         end
       end
     end

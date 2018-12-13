@@ -39,6 +39,23 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
+    # When indexing with '[' or '[[' an R object is returned.  Sometimes we need to have
+    # access to an umboxed Ruby element, for instance, in an numeric array, we might want
+    # to receive the actual number that can be used in a Ruby method.  In this case, we
+    # use the '<<' operator.
+    # @return the Ruby element at the given index in the vector
+    #--------------------------------------------------------------------------------------
+
+    def <<(index)
+      raise IndexError.new("index #{index} out of list bounds: 0...#{index - 1}") if
+        (index > (length - 1) << 0)
+      raise ArgumentError.new("Indexed element is not a vector") if
+        !self[[index + 1]].is_a? R::Vector
+      return nil if (self[[index + 1]].is__null << 0)
+      self[[index + 1]] << 0
+    end
+
+    #--------------------------------------------------------------------------------------
     # Each cannot return a Enumerator because R is single threaded.  When this restriction
     # is removed, make each return self.to_enum
     #--------------------------------------------------------------------------------------
@@ -60,7 +77,7 @@ module R
     def each_with_index
       
       (1..length << 0).each do |i|
-        yield self[i], i
+        yield self[[i]], i
       end
       
     end

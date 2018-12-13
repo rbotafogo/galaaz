@@ -20,7 +20,10 @@ fontsize: 11pt
 ---
 
 ```{r setup, echo=FALSE}
-
+# set global chunk options.  We want all figures to be 'svg'
+# out.width will control the width of the ouput figure, in this case, we want it
+# to be 50% of the width
+knitr::opts_chunk$set(fig.width=1, fig.height=7, dev="svg", out.width = '50%')
 ```
 
 According to Wikipedia "Ruby is a dynamic, interpreted, reflective, object-oriented, 
@@ -238,19 +241,14 @@ then include the generated 'png' file in the document by adding an rmarkdown dir
 ```{ruby dose_len}
 require 'ggplot'
 
-R.png("figures/dose_len.png")
-
 e = @tooth_growth.ggplot(E.aes(x: :dose, y: :len))
 print e + R.geom_boxplot
-
-R.dev__off
 ```
 
 [//]: # (Including the 'png' file generated above.  In future releases)
 [//]: # (of gKnit, the figures should be automatically saved and the name)
 [//]: # (taken from the chunk 'label' and possibly chunk parameters)
 
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/96db2729e02ced0f9336216d87d14af141c1e81b/dose_len.png)
 
 Great! We've just managed to create and save our first plot in Ruby with only
 four lines of code. We can now easily see with this plot a clear trend: as the
@@ -289,8 +287,6 @@ facet the plot based on the ```supp``` variable and split the plot vertically.  
 the formula to ```+:supp =~ +:all``` would split the plot horizontally.
 
 ```{ruby facet_by_delivery}
-R.png("figures/facet_by_delivery.png")
-
 @base_tooth = @tooth_growth.ggplot(E.aes(x: :dose, y: :len, group: :dose))
 
 @bp = @base_tooth + R.geom_boxplot +
@@ -298,11 +294,7 @@ R.png("figures/facet_by_delivery.png")
       R.facet_grid(+:all =~ +:supp)
       
 puts @bp
-
-R.dev__off
 ```
-
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/96db2729e02ced0f9336216d87d14af141c1e81b/facet_by_delivery.png)
 
 It now becomes clear that although both methods of delivery have a direct
 impact on tooth growth, method (OJ) is non-linear having a higher impact with smaller
@@ -319,15 +311,9 @@ enough to add ```fill: :dose``` to the aesthetic of boxplot.  With this command 
 factor gets its own color.
 
 ```{ruby facets_by_delivery_color}
-R.png("figures/facets_by_delivery_color.png")
-
 @bp = @bp + R.geom_boxplot(E.aes(fill: :dose))
 puts @bp
-
-R.dev__off
 ```
-
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/96db2729e02ced0f9336216d87d14af141c1e81b/facets_by_delivery_color.png)
 
 Facetting helps us compare the general trends for each delivery method.
 Adding color allow us to compare specifically how each dosage impacts the tooth growth.
@@ -359,17 +345,11 @@ each of the 60 pigs in the experiment.  For that, add the function 'R.geom_point
 plot.
 
 ```{ruby facets_with_points}
-R.png("figures/facets_with_points.png")
-
 # Split in vertical direction
 @bp = @bp + R.geom_point
 
 puts @bp
-
-R.dev__off
 ```
-
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/96db2729e02ced0f9336216d87d14af141c1e81b/facets_with_points.png)
 
 Now we can see the actual distribution of all the 60 subjects.  Actually, this is not
 totally true.  We have a hard time seing all 60 subjects. It seems that some points
@@ -383,15 +363,9 @@ prevents data hiding.  We also add
 color and change the shape of the points, making them even easier to see.
 
 ```{ruby facets_with_jitter}
-R.png("figures/facets_with_jitter.png")
-
 # Split in vertical direction
 puts @bp + R.geom_jitter(shape: 23, color: "cyan3", size: 1)
-
-R.dev__off
 ```
-
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/96db2729e02ced0f9336216d87d14af141c1e81b/facets_with_jitter.png)
 
 Now we can see all 60 points in the graph. We have here a much higher information density
 and we can see outliers and subjects distribution.
@@ -427,19 +401,12 @@ This ordering seems more natural and
 matches with the actual order of the colors in the plot.
 
 ```{ruby facets_by_delivery_color2}
-R.png("figures/facets_by_delivery_color2.png")
-
 @bp = @bp +
       R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
                           breaks: R.c("2","1","0.5"))
 
 puts @bp
-
-R.dev__off
 ```
-
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/96db2729e02ced0f9336216d87d14af141c1e81b/facets_by_delivery_color2.png)
-
 
 ## Violin Plot and Jitter
 
@@ -459,8 +426,6 @@ a boxplot known as a _violin plot_ with jittered data.
 > The central dot represents the median average value. 
 
 ```{ruby violin_with_jitter}
-R.png("figures/violin_with_jitter.png")
-
 @violin = @base_tooth + R.geom_violin(E.aes(fill: :dose)) + 
    R.facet_grid(+:all =~ +:supp) +
    R.geom_jitter(shape: 23, color: "cyan3", size: 1) +
@@ -468,11 +433,7 @@ R.png("figures/violin_with_jitter.png")
                        breaks: R.c("2","1","0.5"))
 
 puts @violin
-
-R.dev__off
 ```
-
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/96db2729e02ced0f9336216d87d14af141c1e81b/violin_with_jitter.png)
 
 This plot is an alternative to the original boxplot.  For the final presentation, it is
 important to think which graphics will be best understood by our audience. A violin plot
@@ -492,9 +453,7 @@ The 'labs' function adds the required decoration.  In this example we use 'title
 for information about the plot (for clarity, we defined a caption variable using Ruby's
 Here Doc style).
 
-```{ruby facets_with_decorations}
-R.png("figures/facets_with_decorations.png", width: 540, height: 560)
-
+```{ruby facets_with_decorations, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
 caption = <<-EOT
 Length of odontoblasts in 60 guinea pigs. 
 Each animal received one of three dose levels of vitamin C.
@@ -507,11 +466,7 @@ EOT
          caption: caption)
 
 puts @bp + @decorations
-
-R.dev__off
 ```
-
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/225058450f4e69e5e82a01e22f69725554746893/facets_with_decorations.png)
 
 ## The Corp Theme
 
@@ -592,28 +547,15 @@ the decorations (@decorations), plus the corporate theme.
 Here is our final boxplot, without jitter.
 
 ```{ruby final_box_plot}
-R.png("figures/final_box_plot.png", width: 540, height: 560)
-
 puts @bp + @decorations + CorpTheme.global_theme(faceted: true)
-
-R.dev__off
 ```
-
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/225058450f4e69e5e82a01e22f69725554746893/final_box_plot.png)
 
 And here is the final violin plot, with jitter and the same look and feel of the corporate
 boxplot.
 
 ```{ruby final_violin_plot}
-R.png("figures/final_violin_plot.png", width: 540, height: 560)
-
 puts @violin + @decorations + CorpTheme.global_theme(faceted: true)
-
-R.dev__off
 ```
-
-
-![]https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/225058450f4e69e5e82a01e22f69725554746893/final_violin_plot.png
 
 ## Another View
 
@@ -622,8 +564,6 @@ dose and not by supplement.  This shows how easy it is to create new plots by ju
 changing small statement on the _grammar of graphics_.
 
 ```{ruby facet_by_dose}
-R.png("figures/facet_by_dose.png", width: 540, height: 560)
-
 caption = <<-EOT
 Length of odontoblasts in 60 guinea pigs. 
 Each animal received one of three dose levels of vitamin C.
@@ -638,11 +578,7 @@ EOT
              caption: caption) +
       CorpTheme.global_theme(faceted: true)
 puts @bp
-
-R.dev__off
 ```
-
-![](https://gist.githubusercontent.com/rbotafogo/5538d6c679a59f4d56179b2c030e8d28/raw/96db2729e02ced0f9336216d87d14af141c1e81b/facet_by_dose.png)
 
 # Conclusion
 
