@@ -22,25 +22,67 @@
 ##########################################################################################
 
 require 'galaaz'
-#require 'ggplot'
+require 'ggplot'
 
-lst = R.list(a: 1, b: 2, c: 3)
+df = ~:ToothGrowth
+df.dose = df.dose.as__factor
+# puts df.head
+
+df2 = R.data__frame(
+  R.aggregate(df.len, by: R.list(df.dose), FUN: :mean),
+  R.aggregate(df.len, by: R.list(df.dose), FUN: :sd)[2]
+)
+
+df2.names = R.c("dose", "len", "sd")
+# puts df2.head
+
+# f = df.ggplot(E.aes(x: :dose, y: :len, color: :supp, ymin: 0, ymax: 100)) 
+
+f = df2.ggplot(E.aes(x: :dose, y: :len, 
+                     ymin: :len - :sd,
+                     ymax: :len + :sd))
+
+aes = E.aes(x: :dose, y: :len, 
+            ymin: :len - :sd,
+            ymax: :len + :sd)
+
+f2 = df2.ggplot(aes)
+                              
+# R.awt
+
+R::Support.eval(<<-R)
+rp = function(x) {
+  lst = as.list(x)
+  print(length(lst))
+  print(lst[[1]])
+  print(lst[[2]])
+  print(lst[[3]])
+  print(lst[[4]])
+}
+
+R
+
+R.rp(aes)
+
+
 =begin
-puts lst
-puts lst[1]
-puts lst[[1]]
-puts lst << 0  # should return 1
-puts lst << 1  # should return 2
-puts lst << 2  # should return 3
+[1] 4
+<quosure>
+expr: ^dose
+env:  0xdef000000000f6b
+<quosure>
+expr: ^len
+env:  0xdef000000000f6b
+<quosure>
+expr: ^.Primitive("-")(len, sd)
+env:  0xdef000000000f6b
+<quosure>
+expr: ^.Primitive("+")(len, sd)
+env:  0xdef000000000f6b
 =end
-puts lst << 3  # should raise exception
 
-puts lst['a'] << 0 # should return 1
-
-
-puts lst['k']
-puts lst['k'] << 0 # should return nil
-
+# Default plot
+# puts f # + R.geom_crossbar
 
 =begin
 R::Support.eval(<<-R)
