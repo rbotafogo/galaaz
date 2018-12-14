@@ -105,7 +105,6 @@ module R
       when Truffle::Interop
         arg
       when R::Object
-        # return (Truffle::Interop.null?(arg.r_interop)) ? nil : arg.r_interop
         arg.r_interop
       when NegRange
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last

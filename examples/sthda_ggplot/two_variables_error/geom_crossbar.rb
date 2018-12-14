@@ -51,7 +51,7 @@ puts df3.head
 R.awt
 
 # Default plot
-print f + R.geom_crossbar
+puts f + R.geom_crossbar
 
 sleep(2)
 R.grid__newpage

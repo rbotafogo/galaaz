@@ -547,6 +547,37 @@ class KnitrEngine
   end
 
   #--------------------------------------------------------------------------------------
+  # Captures a plot by calling evaluate::plot_snapshot, which has the latest plotted
+  # graphics.  
+  #--------------------------------------------------------------------------------------
+  
+  def capture_plot
+    
+    # gets a plot snapshot.  Uses function plot_snapshot from package 'evaluate'
+    plot = R.evaluate_plot_snapshot
+    
+    if (!(plot.is__null << 0))
+      
+      # create directory for the graphics files if does not already exists
+      unless File.directory?(@fig__path)
+        FileUtils.mkdir_p(@fig__path)
+      end
+      
+      @options["filename"] = @filename
+
+      @options.dev.each do |dev_type|
+        KnitrEngine.device(dev_type << 0, @filename,
+                           width: @options.fig__width << 0,
+                           height: @options.fig__height << 0, units: units)
+        R.print(plot)
+        R.dev__off
+      end
+      
+    end
+
+  end
+  
+  #--------------------------------------------------------------------------------------
   # Adds the new knitr engine to the list of engines
   # @param spec [Hash] hash with only one pair containing the machine key and the engine
   #    function

@@ -65,7 +65,13 @@ module R
       elsif (R::Support.eval("is.list").call(r_interop) == true)
         List.new(r_interop)
       elsif (R::Support.eval("typeof").call(r_interop) == "language")
+        # @TODO: tests are passing both when we use Language.new
+        # and RExpression.new.  Check what should be and write
+        # discriminating tests.
+        # print "robject buid: language\n"
+        # R::Support.print_foreign(r_interop)
         Language.new(r_interop)
+        # RExpression.new(r_interop)
       elsif (R::Support.eval("typeof").call(r_interop) == "expression")
         RExpression.new(r_interop)
       elsif (R::Support.eval("typeof").call(r_interop) == "name")
@@ -112,7 +118,7 @@ module R
         # the second argument to be an environment.  If the arguments are packed
         # into a list, then there is no second argument and the function fails to
         # use the second argument as environment
-        R::Support.r_evaluate(r_interop, *args)
+        R::Support.r_evaluate(@r_interop, *args)
       when args.length == 0
         # no arguments: 2 options: either a named item of the object or apply the function
         # to the object
@@ -279,7 +285,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def pp
-      R.print(r_interop)
+      R.print(@r_interop)
     end
 
     #--------------------------------------------------------------------------------------
@@ -289,10 +295,7 @@ module R
     def to_s
 
       cap = nil
-      # dev = R::Device.new('png', width: 5, height: 7, dpi: 300, record: true) {
-      cap = R::Support.capture.call(r_interop)
-      # cap = R::Support.capture_output.call(r_interop)
-      # }
+      cap = R::Support.capture.call(@r_interop)
       str = String.new
       (0...(cap.size - 1)).each do |i|
         str << cap[i] << "\n"

@@ -6,12 +6,17 @@ doc
 .yardoc
 src/build/
 cran/*
+
 *.nc
 *.out
 *.log
 *.dvi
 *.aux
+
 *.svg
 *.png
+*.jpeg
+*.jpg
+
 *.md
 

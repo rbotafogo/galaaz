@@ -91,7 +91,7 @@ class RubyEngine < KnitrEngine
     add(ruby: @eng_ruby)
     
   end
-
+=begin
   #--------------------------------------------------------------------------------------
   # 
   #--------------------------------------------------------------------------------------
@@ -121,7 +121,8 @@ class RubyEngine < KnitrEngine
     end
 
   end
-
+=end
+  
 end
 
 ruby_engine = RubyEngine.instance
