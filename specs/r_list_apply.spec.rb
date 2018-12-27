@@ -78,20 +78,20 @@ describe R::List do
 
     it "should allow using sapply and quantile" do
       quant = R.sapply(@x, @q)
-      expect quant.rclass == 'matrix'
-      expect quant[:all, 'a'] == R.c(1, 3.25, 5.50, 7.75, 10)
-      expect quant[3, 'beta'] == 1
+      expect(quant.rclass).to eq 'matrix'
+      expect(quant[:all, 'a']).to eq R.c(1, 3.25, 5.50, 7.75, 10)
+      expect(quant[3, 'beta']).to eq 1
     end
     
     it "should sapply to a sequence" do
       # sapply isn’t content to always return a list: it attempts to simplify
       # the results into a non-list vector if possible.
       i39 = R.sapply((3..9), "seq")
-      expect i39[[1]] == R.c(1, 2, 3)
-      expect i39[[7]] == R.c(1, 2, 3, 4, 5, 6, 7, 8, 9)
+      expect(i39[[1]]).to eq R.c(1, 2, 3)
+      expect(i39[[7]]).to eq R.c(1, 2, 3, 4, 5, 6, 7, 8, 9)
       sap = R.sapply(i39, ~:fivenum)
-      expect sap[1, 1] == 1
-      expect sap[5, 7] == 9
+      expect(sap[1, 1]).to eq 1
+      expect(sap[5, 7]).to eq 9
     end
   
   end
