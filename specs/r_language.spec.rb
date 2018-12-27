@@ -118,6 +118,8 @@ describe R::Language do
       expect((R.substitute(:a / 4)).to_s).to eq "(a/4)"
       expect((R.substitute(:a * 4)).to_s).to eq "(a * 4)"
       expect((R.substitute(:a ** 4)).to_s).to eq "(a^4)"
+      expect(R.substitute(:a % 4).to_s).to eq "(a %% 4)"
+      expect(R.substitute(:a.mod 4).to_s).to eq "(a %% 4)"
     end
 
     it "should coerce algebraic expressions" do
@@ -144,13 +146,24 @@ describe R::Language do
     it "should NOT convert '==' to an expression" do
       # '==' should not be redefined in this context, it checks Ruby equality of
       # symbol :a with a number and should be false
-      expect(R.substitute(:a == 4)).to_not eq "(a == 4)"
+      expect(R.substitute(:a == 4).to_s).to_not eq "(a == 4)"
       expect(:a == 4).to eq false
     end
 
-#    it "should use '.eq' to create an expression with an equality" do
-#      expect(R.substitute(:a.eql 4)).to eq "(a == 4)"
-#    end
+    it "should use '.eql' to create an expression with an equality" do
+      expect(R.substitute(:a.eql 4).to_s).to eq "(a == 4)"
+    end
+
+    it "should convert logical expressions to rexpressions" do
+      expect(R.substitute(:a & 4).to_s).to eq "(a & 4)"
+      expect(R.substitute(:a.and 4).to_s).to eq "(a & 4)"
+      expect(R.substitute(:a | 4).to_s).to eq "(a | 4)"
+      expect(R.substitute(:a.or 4).to_s).to eq "(a | 4)"
+    end
+    
+    it "should convert more complex expressions" do
+      expect(R.substitute((((4 * :a).gt 5) + 8).le 3).to_s).to eq "((((4 * a) > 5) + 8) <= 3)"
+    end
     
   end
 

@@ -86,6 +86,7 @@ module R
         
         infix = "(#{args[0]} #{optr} #{args[2]})"
         prefix = "#{optr} #{pre0} #{pre2}"
+
         Expression.new(infix, prefix, formula)
       else
         raise "Expressions can be build with either 1 or 3 arguments, got #{args.zie}"

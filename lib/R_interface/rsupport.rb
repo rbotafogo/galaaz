@@ -235,7 +235,7 @@ module R
       end
 
       @@exec_counter = @@exec_counter + 1
-      
+
       # function has no arguments, call it directly
       if (args.length == 0)
         res = R::Object.build(function.call)

@@ -78,9 +78,16 @@ module R
     
     def exec_oper(operator, other_object)
       op1 = prep(self)
-      op2 = prep(other_object)
-
+      op2 = prep(other_object)      
       R::Expression.build(op1, operator, op2)
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def eql(other_object)
+      exec_oper("`==`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
