@@ -53,7 +53,7 @@ end
 
 class Symbol
   include R::BinaryOperators
-  include R::CallBinOp
+  include R::ExpBinOp
 
   #--------------------------------------------------------------------------------------
   # Unary '+' converts a Ruby Symbol into an R Symbol
@@ -71,5 +71,5 @@ class Symbol
   def ~@
     R::Object.build(R::Support.eval(to_s))
   end
-  
+    
 end

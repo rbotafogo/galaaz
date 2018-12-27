@@ -21,10 +21,40 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-# require 'pry'
+require 'galaaz'
 
-$LOAD_PATH << File.dirname(File.expand_path('..', __FILE__)) + "/r_requires"
+describe R do
+  
+  #========================================================================================
+  context "Non-standard Evaluation"  do
 
-require_relative 'R_interface/r'
-require_relative 'util/exec_ruby'
-require_relative 'util/inline_file'
+    before(:all) do
+      @sample_df = R.data__frame(a: (1..5), b: (5..1), c: R.c(5, 3, 1, 4, 1))
+    end
+
+    it "should allow functions to receive objects and conditions for evaluation" do
+      
+      def subset(df, condition)
+        # evaluate the condition in the scope of the dataframe
+        r = R.eval(condition, df)
+        df[r, :all]  
+      end
+
+      puts subset(@sample_df, :a >= 4)
+
+      y = 4
+      x = 4
+      condition = 4
+      condition_call = 4
+
+      puts subset(@sample_df, :a == 4)
+      puts subset(@sample_df, :a == y)
+      puts subset(@sample_df, :a == condition)
+      puts subset(@sample_df, :a == condition_call)
+    end
+    
+  end
+
+end
+
+    

@@ -24,11 +24,109 @@
 module R
   
   #--------------------------------------------------------------------------------------
-  #
+  # 
   #--------------------------------------------------------------------------------------
+  
+  class Expression
+    include BinaryOperators
+    include ExpBinOp
+    
+    attr_reader :infix
+    attr_reader :prefix
+    attr_reader :formula
+        
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+    
+    def to_s
+      @infix
+    end
 
-  class RExpression < Object
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def formula?
+      @formula
+    end
+    
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def self.check_operator(op)
+      raise "Operand #{op} should be of type Symbol, Expression or Numeric, but  got #{op.class}" if
+        !((op.is_a? Symbol) || (op.is_a? R::Expression) || (op.is_a? Numeric))
+    end
+    
+    #--------------------------------------------------------------------------------------
+    # Build a new expression from the given argument.
+    # @param args [Array] size of array should be either 1 or 3.  When 3, then it is of
+    #   the form '<operand> <binary operator> <operand>'
+    #--------------------------------------------------------------------------------------
+    
+    def self.build(*args)
+
+      case args.size
+      when 1
+        check_operator(args[0])
+        if ((args[0].is_a? Symbol) || (args[0].is_a? Numeric))
+          return Expression.new(args[0].to_s, args[0].to_s)
+        end
+        Expression.new(args[0].infix, args[0].prefix)
+      when 3
+        check_operator(args[0])
+        check_operator(args[2])
+        
+        pre0 = (args[0].is_a? R::Expression)? args[0].prefix : args[0]
+        pre2 = (args[2].is_a? R::Expression)? args[2].prefix : args[2]
+        optr = args[1].delete("`")
+        formula = (optr == "~")? true : false
+        
+        infix = "(#{args[0]} #{optr} #{args[2]})"
+        prefix = "#{optr} #{pre0} #{pre2}"
+        Expression.new(infix, prefix, formula)
+      else
+        raise "Expressions can be build with either 1 or 3 arguments, got #{args.zie}"
+      end
+        
+    end
+    
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    # private
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+    
+    def initialize(infix, prefix, formula = false)
+      @infix = infix
+      @prefix = prefix
+      @formula = formula
+    end
+    
     
   end
+  
+  #--------------------------------------------------------------------------------------
+  # 
+  #--------------------------------------------------------------------------------------
+  
+  class RExpression < Object
+    
+    #--------------------------------------------------------------------------------------
+    # Builds 
+    #--------------------------------------------------------------------------------------
+
+    def self.build(expression)
+      R.parse(text: expression.to_s)
+    end
+    
+  end
+
   
 end

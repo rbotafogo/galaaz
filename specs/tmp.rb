@@ -22,7 +22,156 @@
 ##########################################################################################
 
 require 'galaaz'
+# require 'ggplot'
 
+puts :a == 4
+
+=begin
+
+# those two are different!!!
+# '==' is used to compare :a with 4 returning FALSE
+# while :a.eq becomes the expression (a == 4)
+puts R.substitute(:a == 4)
+puts R.substitute(:a.eq 4)
+
+puts R.substitute(:a & 4)
+puts R.substitute(:a.and 4)
+puts R.substitute(:a | 4)
+puts R.substitute(:a.or 4)
+
+puts R.substitute(:a % 4)
+puts R.substitute(:a.mod 4)
+
+puts R.substitute((((:a * 4).gt 5) + 8).le 3)
+
+puts R.substitute(:a ^ :cyl + :dep)
+
+
+puts R.eval(:a >= 4, sample_df)
+puts R.eval((:a.eq 4), sample_df)
+
+sample_df = R.data__frame(a: (1..5), b: (5..1), c: R.c(5, 3, 1, 4, 1))
+puts sample_df
+
+# Ruby way of evaluation code in the scope of an object
+r = sample_df.instance_eval {a == 4}
+puts r
+=end
+
+=begin
+def subset(df, condition)
+  r = R.eval(condition, df)
+  df[r, :all]  
+end
+
+puts subset(sample_df, :a >= 4)
+
+puts subset(sample_df, :a == 4)
+=end
+
+
+=begin
+exp = :len + :sd         # (len + sd)
+aes = E.aes(x: :dose, y: :len, 
+            ymin: :len - :sd,
+            ymax: :len + :sd)
+
+# puts aes
+# R::Support.print_str(aes)
+
+lst = aes.as__list
+
+puts "====="
+l = lst[[3]]
+puts l
+puts l.rclass
+puts "====="
+
+# R.f1(lst, lst[[3]])
+
+# puts 5 + :cyl
+=end
+
+=begin
+boston_lm = R.lm(:medv ^ :lstat, data: :Boston)
+
+
+R::Support.eval(<<-R)
+foo <- function(x) {
+  enquo(x)
+}
+
+# print(foo(a + b))
+print(quo(a))
+R
+
+puts R.as_quosure(R.as__formula(". ~ len + sd"))
+#puts R.as_quosure(:len + :sd)
+#puts R.new_quosure(:len + :sd)
+=end
+
+=begin
+
+# those are quosures
+exp = :len + :sd         # (len + sd)
+exp = :len + :sd + 5     # ((len + sd) + 5)
+exp = :len + :sd * 5     # (len + (sd * 5))
+
+# those are formulas: have a '^' operator
+exp = :y ^ :len + :sd    # (y ~ (len + sd))
+
+aes = E.aes(x: :dose, y: :len, 
+            ymin: exp)
+
+R::Support.print_str(aes)
+
+=end
+
+
+=begin
+aes = E.aes(x: :dose, y: :len, 
+            ymin: :len - :sd,
+            ymax: :len + :sd)
+
+puts aes
+=end
+
+#R::Support.print_struct(aes)
+
+=begin
+# creates an expression from a Symbol
+exp = R::Expression.build(:a)
+puts exp
+
+# creates an expression from another expression
+exp2 = R::Expression.build(exp)
+puts exp2
+
+# raise exception
+# exp3 = R::Expression.build("3 + 5")
+# puts exp3
+
+puts :a + :b * :c
+puts :a + :b * :c ** 5
+exp5 = (:a + :b) * :c ** 5.3
+rexp = R.parse(text: exp5.to_s)
+puts rexp
+puts rexp.rclass
+lst = rexp.as__list
+puts lst[[1]]
+
+# puts :a + :b
+
+lang = R::Language.build("`+`", R.as__symbol("cyl"), 5)
+puts lang
+p lang
+p lang.rclass
+
+=end
+
+
+
+=begin
 class ArrayEmul
   attr_reader :array
 
@@ -79,6 +228,7 @@ puts h
 r_obj = make_obj.call(h)
 p Polyglot.eval("R", "print").call(r_obj, 0)[0]
 
+=end
 
 
 

@@ -24,35 +24,180 @@
 require 'galaaz'
 
 describe R::Language do
-
+  
   #========================================================================================
   context "Working with symbols"  do
 
-    it "should convert a Ruby Symbol to an R Symbol with '+'" do
-      a = +:cyl
-      expect(a.is_a? R::RSymbol).to eq true
-      expect a.to_s == "cyl"
-    end
-    
     it "should assign to an R symbol and retrieve from it" do
       R.cyl = 10
-      expect ~:cyl == 10
+      expect(~:cyl).to eq 10
     end
 
     it "should allow calling evaluate on the symbol" do
       R.cyl = 10
-      expect R.eval(~:cyl) == 10
+      expect(R.eval(~:cyl)).to eq 10
+    end
+
+  end
+
+  #========================================================================================
+  context "Working with expressions"  do
+
+    before(:all) do
+      R::Support.eval(<<-R)
+        check_type = function(x) {
+          print(class(x))
+        }
+
+        subs = function(x) {
+          substitute(x)
+        }
+
+        dep = function(x) {
+          deparse(substitute(x))
+        }
+      R
+      
+    end
+    
+    before(:each) do
+      @exp1 = :len + :sd         # (len + sd)
+      @exp2 = :len - :sd + 5     # ((len - sd) + 5)
+      @exp3 = :len + :sd * 5     # (len + (sd * 5))
+      
+      # those are formulas: have a '^' operator
+      @formula1 = :y ^ :len + :sd    # (y ~ (len + sd))
+    end
+
+    it "should create expression from a Numeric" do
+      expect(R::Expression.build(4).to_s).to eq "4"
+      expect(R::Expression.build(4.3).to_s).to eq "4.3"
+    end
+
+    it "should create expression from Symbol" do
+      expect(R::Expression.build(:c).to_s).to eq "c"
+    end
+    
+    it "should create expression in infix notation" do
+      expect(@exp1.infix).to eq "(len + sd)"
+      expect(@exp2.infix).to eq "((len - sd) + 5)"
+      expect(@exp3.infix).to eq "(len + (sd * 5))"
+      expect(@formula1.infix).to eq "(y ~ (len + sd))"
+    end
+
+    it "should create expressions in prefix notation" do
+      expect(@exp1.prefix). to eq "+ len sd"
+      expect(@exp2.prefix).to eq "+ - len sd 5"
+      expect(@exp3.prefix).to eq "+ len * sd 5"
+      expect(@formula1.prefix).to eq "~ y + len sd"
+    end
+
+    it "should identify a formula from an expression" do
+      expect(@exp1.formula?).to eq false
+      expect(@formula1.formula?).to eq true
+    end
+
+    it "should convert an expression (not fornula) to a quosure" do
+      # @TODO: check results!
+    end
+
+    it "should be properly interpreted in 'substitute' and 'deparse'" do
+      expect(R.dep(:x + :y ** 2)).to eq "(x + (y^2))"
     end
 
   end
   
+  #========================================================================================
+  context "Converting expression to rexpression" do
+
+    it "should convert algebraic expressions" do
+      expect((R.substitute(:a + 4)).to_s).to eq "(a + 4)"
+      expect((R.substitute(:a + 4)).to_s).not_to eq "(a + 5)"
+      expect((R.substitute(:a - 4)).to_s).to eq "(a - 4)"
+      expect((R.substitute(:a - 4)).to_s).not_to eq "(a + 6)"
+      expect((R.substitute(:a / 4)).to_s).to eq "(a/4)"
+      expect((R.substitute(:a * 4)).to_s).to eq "(a * 4)"
+      expect((R.substitute(:a ** 4)).to_s).to eq "(a^4)"
+    end
+
+    it "should coerce algebraic expressions" do
+      expect((R.substitute(4 + :a)).to_s).to eq "(4 + a)"
+      expect((R.substitute(4 / :a)).to_s).to eq "(4/a)"
+    end
+
+    it "should convert comparison expressions with binary operators" do
+      expect((R.substitute(:a > 4)).to_s).to eq "(a > 4)"
+      expect((R.substitute(:a >= 4)).to_s).to eq "(a >= 4)"
+      expect((R.substitute(:a < 4)).to_s).to eq "(a < 4)"
+      expect((R.substitute(:a <= 4)).to_s).to eq "(a <= 4)"
+      expect((R.substitute(:a != 4)).to_s).to eq "(a != 4)"
+    end
+
+    it "should convert comparison expressions with binary functions" do
+      expect((R.substitute(:a.gt 4)).to_s).to eq "(a > 4)"
+      expect((R.substitute(:a.ge 4)).to_s).to eq "(a >= 4)"
+      expect((R.substitute(:a.lt 4)).to_s).to eq "(a < 4)"
+      expect((R.substitute(:a.le 4)).to_s).to eq "(a <= 4)"
+      expect((R.substitute(:a.ne 4)).to_s).to eq "(a != 4)"
+    end
+
+    it "should NOT convert '==' to an expression" do
+      # '==' should not be redefined in this context, it checks Ruby equality of
+      # symbol :a with a number and should be false
+      expect(R.substitute(:a == 4)).to_not eq "(a == 4)"
+      expect(:a == 4).to eq false
+    end
+
+#    it "should use '.eq' to create an expression with an equality" do
+#      expect(R.substitute(:a.eql 4)).to eq "(a == 4)"
+#    end
+    
+  end
+
+  #========================================================================================
+  context "Executing R expressions" do
+
+    it "should execute algebraic expressions" do
+      R.a = 10
+      expect((R.substitute(:a + 4)).eval).to eq 14
+      expect((R.substitute(:a - 4)).eval).to eq 6
+      expect((R.substitute(:a / 4)).eval).to eq 2.5
+      expect((R.substitute(:a * 4)).eval).to eq 40
+      expect((R.substitute(:a ** 4)).eval).to eq 10000
+    end
+
+    it "should execute coerced algebraic expressions" do
+      R.a = 10
+      expect((R.substitute(4 + :a)).eval).to eq 14
+      expect((R.substitute(4 - :a)).eval).to eq -6
+      expect((R.substitute(4 / :a)).eval).to eq 0.4
+      expect((R.substitute(4 * :a)).eval).to eq 40
+      expect((R.substitute(4 ** :a)).eval).to eq 1_048_576
+    end
+    
+    it "should eval an R expression in the context of a list" do
+      ct = R.list(a: 10, b: 20, c: 30)
+      exp = :a + :b * :c
+      expect(R.eval(exp, ct)).to eq 610
+    end
+
+    it "should eval an R function in the context of a list" do
+      R.x = 5
+      expect(R.eval(:x + 10)).to eq 15
+      ct = R.list(x: 20)
+      expect(R.eval(:x + 10, ct)).to eq 30
+    end
+    
+  end
+
+=begin  
   #========================================================================================
   context "When creating Calls" do
 
     it "binary operators should apply to symbols" do
       # this behaviour is a bit different from R's.  In R this would raise an error
       # with cyl not found
-      expect (:cyl + 5).to_s == '.Primitive("+")(cyl, 5L)'
+      expect(:cyl + 5).to_s == '.Primitive("+")(cyl, 5L)'
     end
 
     it "should properly coerce to language" do
@@ -79,26 +224,9 @@ describe R::Language do
 
   end
   
-  #========================================================================================
-
-  context "Executing R expressions" do
-
-    it "should eval an R expression in the context of a list" do
-      ct = R.list(a: 10, b: 20, c: 30)
-      exp = :a + :b * :c
-      expect R.eval(exp, ct) == 610
-    end
-
-    it "should eval an R function in the context of a list" do
-      R.x = 5
-      expect R.eval(:x + 10) == 15
-      ct = R.list(x: 20)
-      expect R.eval(:x + 10, ct) == 30
-    end
-    
-  end
-
-
+=end
+  
+=begin
   #========================================================================================
   context "When working with Formulas" do
     # When working with formulas, Ruby symbols such be preceded by the '+' function.
@@ -129,7 +257,6 @@ describe R::Language do
       expect formula.rclass == "formula"
     end
     
-=begin
     
     it "should create a formula without the lhs" do
       pending "formulas need to be reimplemented"
@@ -150,8 +277,9 @@ describe R::Language do
       expect formula.typeof == 'language'
       expect formula.rclass == 'formula'
     end
-=end
-    
-  end
 
+    
+  end 
+=end
+  
 end

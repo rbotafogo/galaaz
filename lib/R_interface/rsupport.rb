@@ -64,10 +64,15 @@ module R
     @@exec_from_ruby = Polyglot.eval("R", <<-R)
       function(build_method, ...) {
         # print(build_method);
-        # print("exec_from_ruby")
+        # print("exec_from_ruby");
         # args = list(...);
         # print(args);
-        res = do.call(...);
+
+        # function 'invoke' from package rlang should do a cleaner than
+        # do.call (this is what the documentation says).
+        # res = do.call(...);
+        res = invoke(...);
+
         # print(res);
         res2 = build_method(res);
         # print(res2);
@@ -81,7 +86,11 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.eval(string)
-      Polyglot.eval("R", string)
+      begin
+        Polyglot.eval("R", string)
+      rescue RuntimeError
+        raise NoMethodError.new("Method #{string} not found in R environment")
+      end
     end
 
     #----------------------------------------------------------------------------------------
@@ -94,18 +103,41 @@ module R
     end
 
     #----------------------------------------------------------------------------------------
+    # Builds a quo or a formula based on the given expression.  If the expression has a
+    # '=~' operator, then a formula should be constructed, if not, then an quo should be
+    # constructed
+    # @param expression [R::Expression]
+    # @return quo or formula
+    #----------------------------------------------------------------------------------------
+
+    def self.quo_or_formula(expression)
+
+      if expression.formula?
+        R.as__formula(expression.infix)
+      else
+        # add a '~' before the expression so we can parse it as an
+        # R expression from a string.  Didn't find a good way of creating an
+        # expression from string.
+        # R.as_quosure(R.as__formula("~ #{expression.infix}"))
+        R.rhs(R.as__formula("~ #{expression.infix}"))
+      end
+      
+    end
+
+
+    #----------------------------------------------------------------------------------------
     # @param arg [Object] A Ruby object to be converted to R to be used by an R function, or
     # whatever needs it
     # @return Object that can be used in R
     #----------------------------------------------------------------------------------------
 
     def self.parse_arg(arg)
-      
+
       case(arg)
-      when Truffle::Interop
+      when -> (arg) { interop(arg) }
         arg
       when R::Object
-        # return (Truffle::Interop.null?(arg.r_interop)) ? nil : arg.r_interop
+        # puts "I'm an R::Object #{arg}"
         arg.r_interop
       when NegRange
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
@@ -119,7 +151,9 @@ module R
         arg = R::Support.eval("as.name").call(arg.to_s)
       when Proc, Method
         R::RubyCallback.build(arg)
-      else
+      when R::Expression
+        R::Support.quo_or_formula(arg).r_interop
+      else # This is already a Ruby argument
         arg
       end
 
@@ -183,15 +217,6 @@ module R
       name.gsub!("rclass", "class")
       name
     end
-
-    #----------------------------------------------------------------------------------------
-    # Executes the given R function with the given arguments.
-    #----------------------------------------------------------------------------------------
-    
-    def self.exec_function_i(function, *args)
-      pl = R::Support.parse2list(*args)
-      R::Support.eval("do.call").call(function, pl)
-    end
     
     #----------------------------------------------------------------------------------------
     # @param function [R function (Interop)] R function to execute
@@ -252,6 +277,15 @@ module R
     end
 
     #----------------------------------------------------------------------------------------
+    # Executes the given R function with the given arguments.
+    #----------------------------------------------------------------------------------------
+    
+    def self.exec_function_i(function, *args)
+      pl = R::Support.parse2list(*args)
+      R::Support.eval("do.call").call(function, pl)
+    end
+
+    #----------------------------------------------------------------------------------------
     # sets the R symbol <name> to the given value
     # @param name [String] String representation of the R symbol that needs to be assigned
     # @param args [Array] Array with one object to be set to the symbol
@@ -304,6 +338,22 @@ module R
     end
     
     #----------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------
+
+
+    def self.print_str(obj)
+      
+      lst = obj.as__list
+      puts lst
+=begin      
+      (1..lst.length << 0).each do |i|
+        puts lst[[i]]
+      end
+=end      
+    end
+
+    #----------------------------------------------------------------------------------------
     # Prints a foreign R interop pointer. Used for debug.
     #----------------------------------------------------------------------------------------
 
@@ -316,11 +366,11 @@ module R
     class << self
       alias :pf :print_foreign
     end
-    
+        
     #----------------------------------------------------------------------------------------
     #
     #----------------------------------------------------------------------------------------
-
+    
   end
   
 end

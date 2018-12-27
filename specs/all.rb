@@ -43,3 +43,6 @@ require_relative 'r_dataframe.spec'
 # Specification for language features
 require_relative 'r_function.spec'
 require_relative 'r_language.spec'
+
+# Testes for NSE
+require_relative 'r_nse.spec'

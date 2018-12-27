@@ -25,7 +25,7 @@ module R
   
   class Language < Object
     include BinaryOperators
-    include FormulaBinOp
+    # include FormulaBinOp
 
     attr_accessor :expression
     
@@ -38,10 +38,15 @@ module R
     end
     
     #--------------------------------------------------------------------------------------
-    #
+    # Builds a call functions with the given arguments. 
+    # @param function_name [String] name of the function to apply: ex: '+'
+    # @param args [Array] two elements array for the binary function: ex [:a, :b]
+    # @return call expression.  With the above paramenters the result would be:
+    #    .Primitive("+")(a, b)
     #--------------------------------------------------------------------------------------
 
     def self.build(function_name, *args)
+      
       res = R::Language.new(
         R::Support.eval("as.call").
           call(R::Support.parse2list(
@@ -49,6 +54,7 @@ module R
               ))
       res.expression = "#{Language.to_expression(args[0])} #{function_name.delete("`")} #{Language.to_expression(args[1])}"
       res
+      
     end
 
     #--------------------------------------------------------------------------------------

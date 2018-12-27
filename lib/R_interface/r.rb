@@ -21,6 +21,10 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
+# Load required R libraries
+dir = File.dirname(File.expand_path('.', __FILE__))
+Polyglot.eval_file("#{dir}/r_libs.R")
+
 require_relative 'robject'
 require_relative 'rsupport'
 

@@ -28,75 +28,68 @@ module R
   #--------------------------------------------------------------------------------------
 
   module ExecBinOp
-    
+        
     #--------------------------------------------------------------------------------------
     # 
     #--------------------------------------------------------------------------------------
 
-    def exec_oper(operator, other_object)
-      R::Support.exec_function_name(operator, @r_interop, other_object)
+    def exec_oper(operator, operand2)      
+      R::Support.exec_function_name(operator, @r_interop, operand2)
+    end
+    
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def ==(other_object)
+      exec_oper("`==`", other_object)
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def coerce(numeric)
+      [R.c(numeric), self]
     end
 
   end
 
   #--------------------------------------------------------------------------------------
-  # Module for binary operators when creating an expression (call)
+  # Module for binary operators when creating working with expressions, things like:
+  # :a + :b, where when send to the R engine should be converted to some language
+  # construct, formula, quosure or similar.
   #--------------------------------------------------------------------------------------
 
-  module CallBinOp
+  module ExpBinOp
+
+    #--------------------------------------------------------------------------------------
+    # In an expression, ':all' is converted to '.'.  '.' is not valid Ruby syntax in an
+    # expression
+    #--------------------------------------------------------------------------------------
+
+    def prep(operand)
+      (operand.eql? :all)? Expression.new('.') : operand
+    end
 
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
     
     def exec_oper(operator, other_object)
-      R::Language.build(operator, self, other_object)
-    end
+      op1 = prep(self)
+      op2 = prep(other_object)
 
-  end
-
-  #--------------------------------------------------------------------------------------
-  # Module for binary operators when creating formulas
-  #--------------------------------------------------------------------------------------
-
-  module FormulaBinOp
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def prep_object(object)
-      
-      case object
-      when :all
-        '.'
-      when R::RSymbol, Symbol
-        object.to_s
-      when R::Language
-        R.deparse(object).substring(2)
-      when String
-        object
-      end
-      
+      R::Expression.build(op1, operator, op2)
     end
 
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
-    
-    def exec_oper(operator, other_object, response = false)
 
-      o1 = prep_object(self)
-      o2 = prep_object(other_object)
-
-      response ? R.reformulate(o2, response: o1) :
-         R.reformulate(R.paste0(o1, operator.delete("`"), o2))
-      
+    def coerce(numeric)
+      [R::Expression.build(numeric), self]
     end
-
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
 
   end
 
@@ -154,14 +147,7 @@ module R
       exec_oper("`%%`", other_object)
     end
 
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def ==(other_object)
-      exec_oper("`==`", other_object)
-    end
-
+    alias_method :mod, :%
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -169,7 +155,9 @@ module R
     def <(other_object)
       exec_oper("`<`", other_object)
     end
-
+ 
+    alias_method :lt, :<
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -177,6 +165,8 @@ module R
     def <=(other_object)
       exec_oper("`<=`", other_object)
     end
+
+    alias_method :le, :<=
 
     #--------------------------------------------------------------------------------------
     #
@@ -186,6 +176,8 @@ module R
       exec_oper("`>`", other_object)
     end
 
+    alias_method :gt, :>
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -194,6 +186,8 @@ module R
       exec_oper("`>=`", other_object)
     end
 
+    alias_method :ge, :>=
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -201,31 +195,37 @@ module R
     def !=(other_object)
       exec_oper("`!=`", other_object)
     end
+
+    alias_method :ne, :!=
     
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
     def &(other_object)
-      R::Support.exec_function_name("`&`", @r_interop, other_object.r_interop)
+      exec_oper("`&`", other_object)
     end
+
+    alias_method :and, :&
     
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
     def |(other_object)
-      R::Support.exec_function_name("`|`", @r_interop, other_object.r_interop)
+      exec_oper("`|`", other_object)
     end
 
+    alias_method :or, :|
+    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
-    def coerce(numeric)
-      [R.c(numeric), self]
+    def ^(other_object)
+      exec_oper("`~`", other_object)
     end
-
+        
   end
 
 end

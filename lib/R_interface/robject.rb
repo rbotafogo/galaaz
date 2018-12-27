@@ -24,7 +24,7 @@
 require_relative 'r_methods'
 
 module R
-
+  
   #--------------------------------------------------------------------------------------
   # 
   #--------------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ module R
     def rclass=(class_name)
       setR_name("`class<-`", class_name)
     end
-
+    
     def rclass
       R::Support.exec_function_name("class", @r_interop)
     end
