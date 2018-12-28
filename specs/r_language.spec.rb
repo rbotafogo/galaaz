@@ -202,7 +202,7 @@ describe R::Language do
     end
     
   end
-
+  
 =begin
   #========================================================================================
   context "When creating Calls" do
@@ -238,61 +238,5 @@ describe R::Language do
   end
   
 =end
-  
-=begin
-  #========================================================================================
-  context "When working with Formulas" do
-    # When working with formulas, Ruby symbols such be preceded by the '+' function.
-    # If you want to make a formula such as 'a ~ b' in R, then this should be written
-    # as '+:a =~ +:b'.  When, in an binary operation, the Ruby symbol will be converted
-    # to an R symbol.  The formula '+:a =~ +:b', can also be written as '+:a =~ :b'.  Be
-    # careful, however, when using the Ruby symbol without the '+' since in a more complex
-    # formula, Ruby's precedence rules might not result in what is expected.  As an example
-    # '+:a =~ :b * +:c' crashes with the error 'b' not found, since '*' has precedence over
-    # '=~' and this is equivalent to '+:a =~ (:b * +:c)' and there is no sense in
-    # multiplying a Ruby symbol. The recomendation is to always use the '+' function
-    # before the Ruby symbol.
     
-    it "should create a RSymbol from a Ruby Symbol using +" do
-      sym = +:sym
-      expect sym.to_s == "sym"
-    end
-
-    it "should create a formula with '.' by using the ':all' keyword" do
-      # this formula is interpreted as 'supp ~ .'
-      formula = +:supp =~ :all
-      expect formula.rclass == "formula"
-    end
-
-    it "should create a formula with '.' by using the ':all' keyword in the lhs" do
-      # this formula is interpreted as '. ~ supp'
-      formula = +:all =~ +:supp
-      expect formula.rclass == "formula"
-    end
-    
-    
-    it "should create a formula without the lhs" do
-      pending "formulas need to be reimplemented"
-      formula = ~(:cyl + :exp)
-      expect formula.to_s == '~.Primitive("+")(cyl, exp)'
-      expect formula.typeof == 'language'
-      expect formula.rclass == 'formula'
-    end
-    
-    it "should create formulas with the '=~' operator" do
-      formula = (:cyl =~ :exp)
-      expect(formula.to_s) == '.Primitive("~")(cyl, exp)'
-      expect formula.typeof == 'language'
-      expect formula.rclass == 'formula'
-      
-      formula2 = (:cyl =~ :exp + :exp2 - :exp3)
-      expect formula2.to_s == 'cyl ~ .Primitive("-")(.Primitive("+")(exp, exp2), exp3)'
-      expect formula.typeof == 'language'
-      expect formula.rclass == 'formula'
-    end
-
-    
-  end 
-=end
-  
 end

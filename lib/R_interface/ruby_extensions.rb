@@ -32,7 +32,11 @@ class Range
   #----------------------------------------------------------------------------------------
   
   def -@
-    NegRange.new(self.begin, self.end)
+    final_value = (exclude_end?)?
+                    (first > last)?
+                      (last + 1) : (last - 1)
+                  : last
+    NegRange.new(self.begin, final_value)
   end
 
 end

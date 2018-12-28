@@ -172,7 +172,7 @@ module R
         if (arg.is_a? Hash)
           arg.each_pair do |key, value|
             k = key.to_s.gsub(/__/,".")
-            # HAS CHANGED IN RC6... FIXME: THIS TO THE NEW API
+            # HAS CHANGED IN RC6... @TODO: THIS TO THE NEW API
             # When evaluating to NA, Interop treats it as FALSE.  This breaks
             # all expectations about NA.  We need to protect NA from Interop
             # unboxing.  Class NotAvailable

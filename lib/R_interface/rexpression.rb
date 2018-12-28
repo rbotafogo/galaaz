@@ -110,7 +110,6 @@ module R
       @formula = formula
     end
     
-    
   end
   
   #--------------------------------------------------------------------------------------
@@ -128,6 +127,58 @@ module R
     end
     
   end
+  
+end
 
+#=========================================================================================
+#
+#=========================================================================================
+
+module Q
+
+  def self.parse_params(*args)
+
+    params = []
+
+    args.each do |arg|
+      case arg
+      when Hash
+        arg.each_pair do |key, value|
+          k = key.to_s.gsub(/__/,".")
+          params << "#{key} = #{value}"
+        end
+      when R::NotAvailable
+        params << "na"
+      when NegRange
+        # final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
+        params << "-(#{arg.first}:#{arg.last})"
+      when Range
+        final_value = (arg.exclude_end?)? (arg.first > arg.last)?
+                        (arg.last + 1) : (arg.last - 1)
+                      : arg.last
+        params << "(#{arg.first}:#{final_value})"
+      when :all
+        params << "."
+      else
+        params << arg.to_s
+      end
+
+    end
+          
+    params.join(", ")
+        
+  end
+  
+  #----------------------------------------------------------------------------------------
+  # @param symbol [Symbol]
+  # @param args [Array] arguments to the missing method
+  #----------------------------------------------------------------------------------------
+  
+  def self.method_missing(symbol, *args)
+    name = R::Support.convert_symbol2r(symbol)
+    rargs = parse_params(*args)
+    exp = "#{name}(#{rargs})"
+    R::Expression.new(exp, exp)
+  end
   
 end
