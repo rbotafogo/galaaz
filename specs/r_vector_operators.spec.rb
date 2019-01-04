@@ -73,7 +73,7 @@ describe R::Vector do
        res = 10 - @vec1
        expect(res == R.c(7, 4.3, 0, -1)).to eq true
        res = 10 / @vec1
-       expect(res == R.c(3.3333333, 1.7543860, 1, 0.8333333)).to eq true
+       expect(res.eql R.c(3.3333333, 1.7543860, 1, 0.8333333)).to eq true
      end
      
    end

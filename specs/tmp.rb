@@ -23,112 +23,50 @@
 
 require 'galaaz'
 
-class ArrayEmul
-  attr_reader :array
-
-  def initialize
-    @array = []
-  end
-
-  def method_missing(symbol, *args)
-    @array.send(symbol, *args)
-  end
-
-  def to_s
-    @array.to_s
-  end
-
-  def pp
-    puts @array.to_s
-  end
-
-  def fetch(index)
-    @array[index[0]]
-  end
+describe R::Vector do
   
+  context "When creating vectors" do
+
+    it "should allow changing an element of a vector attribute" do
+      # pending "Need to implement new function for this"
+      # set names
+      @vect = R.c(1, 2, 3, 4, 5, 6)
+      @vect.names = R.c("a", "b", "c", "d", "e", "f")
+      
+      @vect.names[2] = "hello"
+      puts @vect.names
+      puts @vect.names[2]
+      
+      # expect(@vect.names[2]).to eq R.c("hello")
+    end
+    
+  end
 end
 
-make_obj = Polyglot.eval("R", <<-R)
-  function(ruby_obj) {
-    x = list(ruby_obj);
-    attr(x, "class") = "ruby_obj";
-    x;
-   }
-R
-
-rf = Polyglot.eval("R", <<-R)
-  function(ruby_obj) {
-    # print(ruby_obj);
-    attr(ruby_obj, "class") = "ruby_obj"
-    print(ruby_obj@to_s());
-    print(class(ruby_obj));
-    # df = data.frame(ruby_obj);
-  }
-
-  print.ruby_obj = function(x, index, ...) {
-    print(index);
-    x[[1]]@fetch(index);
-  }
-
-R
-
-h = ArrayEmul.new
-h << 1 << 2 << 3
-puts h
-
-r_obj = make_obj.call(h)
-p Polyglot.eval("R", "print").call(r_obj, 0)[0]
-
-
-
-
 =begin
-sym = +:sym
-# construct a formula without the lhs: ~sym1 + sym2
-puts +:sym1 + +:sym2
-f1 = +:sym1 + :sym2
-puts +:sym1 + +:sym2 - +:sym3
-puts +:sym1 * +:sym2
-=end
+a_env = R.new__env
+puts a_env               # <environment: xxxx>
+puts a_env.typeof
+puts a_env.rclass
 
-#puts :sym3 ** 2
-# p (:sym1 + :sym2 * :sym3 ** 2).expression
-#puts E.log(:y + 1).to_s
+puts a_env.parent__env   # <environment: yyyy>
+puts a_env.ls            # character(0)
 
-# puts :sym1 ** 2
-# puts +:sym1 + (:sym1 ** 2).i
+a_env.set(:a, 25)
+a_env.set(:b, 30)
 
-# puts +:y =~ +:sym1 + +:sym2 * +:sym3 + (:sym1 ** 2).i
-# puts +:y =~ :all
+puts a_env.ls             # [1] "a" "b"
+puts a_env.get("a")       # [1] 25
+puts a_env.get("b")       # [1] 30
+puts a_env.a              # [1] 25
+puts a_env[["a"]]         # [1] 25
+puts a_env.c              # calls method 'c' on a_env
 
+# puts a_env["a"]         # RuntimeError: Not subsettable
+a_env.c = 40              # set the 'c' key to 40 
+puts a_env.c              # No more a call to method 'c': [1] 40
+a_env.d = R.c(1, 2, 3, 4)
+puts a_env.d
 
-# p sym
-# puts sym
-# sym.typeof
-=begin
-f1 = +:sym1 + +:sym2
-puts f1
-puts f1.deparse
-
-puts R.c(1, 2, 3).deparse
-puts R.list(a: 1, b: 2, c: 3).deparse
-=end
-
-=begin
-# Set seed
-R.set__seed(123)
-
-# Data
-x = R.rnorm(5)
-x2 = R.rnorm(5)
-y = R.rnorm(5)
-
-# Model frame
-puts R.model__frame(+:y =~ +:x * +:x2, data: R.data__frame(x: x, y: y, x2: x2))
-
-puts R.model__frame(+:y =~ +:x + +:x2 + (+:x ^ +:x2),
-                    data: R.data__frame(x: x, y: y, x2: x2))
-
-puts R.model__frame(+:y =~ +:x + (:x ** 2).i,
-                    data: R.data__frame(x: R.rnorm(5), y: R.rnorm(5)))
+# puts a_env.d              # RuntimeError: Error: object 'd' not found
 =end

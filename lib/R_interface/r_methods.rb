@@ -88,18 +88,6 @@ module R
       R
     end
 
-    #--------------------------------------------------------------------------------------
-    # @bug Needed to create method row__names because dispatch is not working properly
-    #--------------------------------------------------------------------------------------
-
-    def self.set_row_names
-      Polyglot.eval("R", "function(object, x) row.names(object) <- x")
-    end
-
-    def self.get_row_names
-      Polyglot.eval("R", "function(x) row.names(x)")
-    end
-
   end
   
 end

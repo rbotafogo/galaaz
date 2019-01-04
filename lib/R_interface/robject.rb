@@ -43,11 +43,21 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    #
+    # Checks for equality between two R::Objects.  This method is used by rspec's
+    # expectation. It returns a Ruby true or false and not an R::Vector with [TRUE] or
+    # [FALSE]
     #--------------------------------------------------------------------------------------
 
-    def as__data__frame
-      R.as__data__frame.call(@r_interop)
+    def ==(other_object)
+      exec_oper("`==`", other_object) << 0
+    end
+
+    #--------------------------------------------------------------------------------------
+    # Use eql to check for equality between two objects and receive in return an R::Vector
+    #--------------------------------------------------------------------------------------
+
+    def eql(other_object)
+      exec_oper("`==`", other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -236,16 +246,15 @@ module R
     # @bug Needed to create method R.row__names because dispatch is not working properly
     #--------------------------------------------------------------------------------------
 
-    def row__names
-      R::Support.exec_function(R::Support.get_row_names, @r_interop)
-    end
-
     # since we need to call a method and the method changes the object, then we need to
     # change our internal pointer also @r_interop.  Ideally, just setting the row.names
     # should work.
     def row__names=(names_vector)
-      @r_interop = R::Support.set_row_names.call(@r_interop, names_vector.r_interop)
-      self
+      setR_name("`row.names<-`", names_vector)
+    end
+
+    def row__names
+      R::Support.exec_function_name("row.names", @r_interop)
     end
       
     #--------------------------------------------------------------------------------------
