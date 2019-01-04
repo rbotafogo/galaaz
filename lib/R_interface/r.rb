@@ -114,8 +114,6 @@ require_relative 'rsymbol'
 # Access to package symbols
 require_relative 'rpkg'
 
-# Defines the E module for creating R expressions
-require_relative 'expression'
 # Ruby class extensions.  Extends Symbol to allow the creation of
 # expressions using Symbol: (:x > 10)
 require_relative 'ruby_extensions'

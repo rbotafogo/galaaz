@@ -32,7 +32,7 @@ boston = ~:Boston
 
 puts boston.names
 
-boston_lm = R.lm(+:medv =~ +:lstat, data: :Boston)
+boston_lm = R.lm(:medv ^ :lstat, data: :Boston)
 # puts boston_lm.str
 # puts boston_lm.summary
 puts boston_lm.names
@@ -42,6 +42,9 @@ conf = R.predict(boston_lm, R.data__frame(lstat: (R.c(5, 10, 15))), interval: "c
 puts conf
 pred = R.predict(boston_lm, R.data__frame(lstat: (R.c(5, 10, 15))), interval: "prediction")
 puts pred
+
+puts boston.lstat
+puts boston.medv
 
 R.awt
 
