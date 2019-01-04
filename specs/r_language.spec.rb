@@ -85,13 +85,6 @@ describe R::Language do
       expect(@formula1.infix).to eq "(y ~ (len + sd))"
     end
 
-    it "should create expressions in prefix notation" do
-      expect(@exp1.prefix). to eq "+ len sd"
-      expect(@exp2.prefix).to eq "+ - len sd 5"
-      expect(@exp3.prefix).to eq "+ len * sd 5"
-      expect(@formula1.prefix).to eq "~ y + len sd"
-    end
-
     it "should identify a formula from an expression" do
       expect(@exp1.formula?).to eq false
       expect(@formula1.formula?).to eq true

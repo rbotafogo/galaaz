@@ -22,7 +22,12 @@
 ##########################################################################################
 
 module R
-  
+
+  R::Support.eval(<<-R)
+    enq = function(x, ...) {
+      enquo(x)
+    }
+  R
   #--------------------------------------------------------------------------------------
   # 
   #--------------------------------------------------------------------------------------
@@ -30,10 +35,13 @@ module R
   class Expression
     include BinaryOperators
     include ExpBinOp
+    include UnaryOperators
+    include ExpUniOp
     
     attr_reader :infix
     attr_reader :prefix
     attr_reader :formula
+    attr_accessor :environment
         
     #--------------------------------------------------------------------------------------
     #
@@ -55,9 +63,48 @@ module R
     #
     #--------------------------------------------------------------------------------------
 
-    def self.check_operator(op)
-      raise "Operand #{op} should be of type Symbol, Expression or Numeric, but  got #{op.class}" if
-        !((op.is_a? Symbol) || (op.is_a? R::Expression) || (op.is_a? Numeric))
+    def self.parse_expression(exp)
+
+      case exp
+      when Symbol, Numeric
+        exp.to_s
+      when R::Language
+        R.get_expr(exp)
+      when Expression
+        exp.infix
+      when String
+        "\"#{exp}\""
+      when Hash
+        params = []
+        envs = R.list
+        exp.each_pair do |key, value|
+          k = key.to_s.gsub(/__/,".")
+          # value = "\"#{value}\"" if value.is_a? String
+          value = parse_expression(value)
+          params << "#{key} = #{value}"
+        end
+        params.join(", ")
+      when R::NotAvailable
+        "na"
+      when NegRange
+        "-(#{exp.first}:#{exp.last})"
+      when Range   
+        final_value = (exp.exclude_end?)? (exp.first > exp.last)?
+                        (exp.last + 1) : (exp.last - 1)
+                      : exp.last
+        "(#{exp.first}:#{final_value})"
+      when :all
+        "."
+      when Proc, Method
+        e = R.enq(exp, proc: R::RubyCallback.build(exp))
+        "proc"
+      else
+        # raise "Expression #{exp} is of type #{exp.class} and cannot be part of an expression"
+        puts "in else"
+        puts exp.class
+        exp
+      end
+
     end
     
     #--------------------------------------------------------------------------------------
@@ -65,35 +112,37 @@ module R
     # @param args [Array] size of array should be either 1 or 3.  When 3, then it is of
     #   the form '<operand> <binary operator> <operand>'
     #--------------------------------------------------------------------------------------
-    
+
     def self.build(*args)
 
       case args.size
       when 1
-        check_operator(args[0])
-        if ((args[0].is_a? Symbol) || (args[0].is_a? Numeric))
-          return Expression.new(args[0].to_s, args[0].to_s)
-        end
-        Expression.new(args[0].infix, args[0].prefix)
+        op1 = parse_expression(args[0])
+        infix = "#{op1}"
+        puts infix
+        rhs = R.rhs(R.as__formula("~ #{infix}"))
+        R.enq(rhs)
+        # Expression.new(parse_expression(args[0]))
       when 3
-        check_operator(args[0])
-        check_operator(args[2])
+        op1 = parse_expression(args[0])
+        op2 = parse_expression(args[2])
+        puts op1
+        puts op2
         
-        pre0 = (args[0].is_a? R::Expression)? args[0].prefix : args[0]
-        pre2 = (args[2].is_a? R::Expression)? args[2].prefix : args[2]
         optr = args[1].delete("`")
         formula = (optr == "~")? true : false
+        infix = "#{op1} #{optr} #{op2}"
+        puts infix
         
-        infix = "(#{args[0]} #{optr} #{args[2]})"
-        prefix = "#{optr} #{pre0} #{pre2}"
-
-        Expression.new(infix, prefix, formula)
+        rhs = R.rhs(R.as__formula("~ #{infix}"))
+        R.enq(rhs)
+        # Expression.new(infix, formula)
       else
         raise "Expressions can be build with either 1 or 3 arguments, got #{args.zie}"
       end
         
     end
-    
+
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -104,12 +153,12 @@ module R
     #
     #--------------------------------------------------------------------------------------
     
-    def initialize(infix, prefix, formula = false)
+    def initialize(infix, formula = false)
       @infix = infix
-      @prefix = prefix
       @formula = formula
+      @environment = R.list
     end
-    
+
   end
   
   #--------------------------------------------------------------------------------------
@@ -134,41 +183,8 @@ end
 #
 #=========================================================================================
 
-module Q
+module E
 
-  def self.parse_params(*args)
-
-    params = []
-
-    args.each do |arg|
-      case arg
-      when Hash
-        arg.each_pair do |key, value|
-          k = key.to_s.gsub(/__/,".")
-          params << "#{key} = #{value}"
-        end
-      when R::NotAvailable
-        params << "na"
-      when NegRange
-        # final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-        params << "-(#{arg.first}:#{arg.last})"
-      when Range
-        final_value = (arg.exclude_end?)? (arg.first > arg.last)?
-                        (arg.last + 1) : (arg.last - 1)
-                      : arg.last
-        params << "(#{arg.first}:#{final_value})"
-      when :all
-        params << "."
-      else
-        params << arg.to_s
-      end
-
-    end
-          
-    params.join(", ")
-        
-  end
-  
   #----------------------------------------------------------------------------------------
   # @param symbol [Symbol]
   # @param args [Array] arguments to the missing method
@@ -176,9 +192,37 @@ module Q
   
   def self.method_missing(symbol, *args)
     name = R::Support.convert_symbol2r(symbol)
-    rargs = parse_params(*args)
-    exp = "#{name}(#{rargs})"
-    R::Expression.new(exp, exp)
+    
+    params = []
+    args.each do |arg|
+      params << R::Expression.parse_expression(arg)
+    end
+    exp = "#{name}(#{params.join(", ")})"
+    
+    # rhs = R.rhs(R.as__formula("~ #{exp}"))
+    # R.enq(rhs)
+    
+    R::Expression.new(exp)
   end
   
+=begin
+  #----------------------------------------------------------------------------------------
+  # @param symbol [Symbol]
+  # @param args [Array] arguments to the missing method
+  #----------------------------------------------------------------------------------------
+  
+  def self.method_missing(symbol, *args)
+    name = R::Support.convert_symbol2r(symbol)
+    R::Language.build(name, *args)
+  end
+=end
+  
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+
+  def self.[](executable)
+    R::RubyCallback.build(executable)
+  end
+
 end

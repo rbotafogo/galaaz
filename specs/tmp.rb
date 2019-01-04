@@ -22,27 +22,178 @@
 ##########################################################################################
 
 require 'galaaz'
-# require 'ggplot'
+#require 'ggplot'
 
-puts :a == 4
+R.library('lobstr')
+R.library('rlang')
+
+R::Support.eval(<<-R)
+  ast = function(x) {
+    ex = enexpr(x)
+    lobstr::ast(!!ex)
+  }
+ 
+  bang_bang = function() {
+    print("in bang_bang")
+    x = enquo(obj)
+    # enexpr(class(!!x))
+    print(x)
+    x
+  }
+
+  with_env <- function(f, e=parent.frame()) {
+    stopifnot(is.function(f))
+    environment(f) <- e
+    f()
+  }
+
+  #x = y = seq(-pi, pi, length = 10)
+  #df = data.frame(x = x, y = y)
+  #print(df)
+  
+  #x1 = expr(class(!!df))
+  #print(x1)
+
+  #a_env = new.env()
+  #a_env$obj = df
+  #print(rhs(eval(with_env(bang_bang, a_env))))
+  #print(eval_tidy(with_env(bang_bang, a_env)))
+
+  # print(expr(f(label: !!rownames(mtcars))))
+R
+
+
+#=begin
+x = y = R.seq(-~:pi, ~:pi, length: 10)
+df = R.data__frame(x: x, y: y)
+
+a_env = R.new__env
+a_env.obj = df
+# puts (R.eval_tidy(R.with_env(:bang_bang, a_env
+
+=begin
+proc = lambda { |x, y| R.cos(y) / (1 + x**2) }
+f = E.outer(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })
+puts R.ast(f)
+puts f
+f.environment = R.c(env: f.environment, proc: proc)
+# f.environment = R.c(f.environment, df)
+puts f.environment
+puts R.eval(f, df, R.list2env(f.environment))
+
+# R.filter(df, E.outer(:x, :y))
+
+=end
+
+# puts R.eval_tidy(R.rhs(f), df)
 
 =begin
 
-# those two are different!!!
-# '==' is used to compare :a with 4 returning FALSE
-# while :a.eq becomes the expression (a == 4)
-puts R.substitute(:a == 4)
-puts R.substitute(:a.eq 4)
+R.a = 10
+exp = :a + 1
+# puts R.eval_tidy(exp)
+# puts R.eval_tidy(R.rhs(exp))
 
-puts R.substitute(:a & 4)
-puts R.substitute(:a.and 4)
-puts R.substitute(:a | 4)
-puts R.substitute(:a.or 4)
+exp = :b + (:a + 1)
+R.b = 20
+# puts R.eval_tidy(exp)
+puts exp
+puts R.eval_tidy(R.rhs(exp))
 
-puts R.substitute(:a % 4)
-puts R.substitute(:a.mod 4)
+x = y = R.seq(-~:pi, ~:pi, length: 10)
+df = R.data__frame(x: x, y: y)
+puts df
 
-puts R.substitute((((:a * 4).gt 5) + 8).le 3)
+f = E.outer(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })
+puts f
+puts R.get_env(f)
+
+puts "============="
+
+exp = :a + 1
+p exp
+puts exp
+
+puts R.ast(exp)
+
+R.b = 20
+R.a = 10
+puts R.eval(exp)
+puts R.eval_tidy(exp)
+
+x = y = R.seq(-~:pi, ~:pi, length: 10)
+df = R.data__frame(x: x, y: y)
+puts df
+
+proc = lambda { |x, y| R.cos(y) / (1 + x**2) }
+f = E.outer(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })
+puts R.ast(f)
+puts f
+f.environment = R.c(env: f.environment, proc: proc)
+f.environment = R.c(f.environment, df)
+puts f.environment
+puts R.eval(f, f.environment)
+=end
+
+=begin
+R.a = 10
+
+exp = !!:a + 1
+puts R.ast(exp)
+
+exp = 1 + :a * :b ** 5 + "hello"
+puts exp
+
+exp = E.f(:x + :z, :y, (1..3), (3...1), -(9...4)) + :x + :y * 5 + :all
+puts exp
+
+exp = E.geom_areas(E.aes_string(y: "..density.."), stat: "bin")
+puts exp
+
+exp = E.aes(label: E.rownames(:mtcars))
+puts exp
+
+exp = E.aes(label: E.c(1, 2, 3, 4))
+expr = R.expr(exp)
+puts R.ast(expr)
+
+#mtcars = ~:mtcars
+#exp = E.aes(label: mtcars)
+#puts R.ast(exp)
+
+=end
+
+=begin
+R.install_and_loads('ISLR', 'MASS')
+
+lm_fit5 = R.lm(:medv ^ Q.poly(:lstat, 5), data: :Boston)
+puts lm_fit5.summary
+
+# puts R.as__formula("~ f(x, y)")
+exp = Q.f(:x + :z, :y, (1..3), (3...1), -(9...4)) + :x + :y * 5 + :all - (1..5)
+puts R.substitute(exp)
+
+puts Q.aes(x: :wt, y: :mpg)
+=end
+
+=begin
+R.awt
+
+mtcars = ~:mtcars
+
+# puts mtcars
+
+# Basic scatter plot
+# Rementer that with ggplot, print is necessary to output
+# the plot.
+print mtcars.ggplot(E.aes(x: :wt, y: :mpg)) + 
+      R.geom_point
+
+sleep(2)
+R.grid__newpage
+=end
+
+=begin
 
 puts R.substitute(:a ^ :cyl + :dep)
 
