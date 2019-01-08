@@ -60,8 +60,8 @@ describe R::List do
       quant = R.lapply(@x, @q)
       expect(quant.a[1]).to eq 1
       expect(quant.a["50,00000%"]).to eq 5.50
-      expect(R.all__equal(quant.beta["100,0000%"],
-                          20.08553692,
+      expect(R.all__equal(quant.beta["100%"],
+                          R.c('100%': 20.08553692),
                           tolerance: (~:".Machine").double__eps ** 0.5)).to eq true
       expect(quant.logic[2]).to eq 0.0
     end
@@ -70,8 +70,8 @@ describe R::List do
       x = R.lapply(@x, @q, R.c(0.25, 0.50, 0.75))
       expect(x.a[1]).to eq 3.25
       expect(x.a["50,00000%"]).to eq 5.50
-      expect(R.all__equal(x.beta["75,00000%"],
-                          5.0536690,
+      expect(R.all__equal(x.beta['75%'],
+                          R.c('75%': 5.0536690),
                           tolerance: (~:".Machine").double__eps ** 0.5)).to eq true
       expect(x.logic[2]).to eq 0.5
     end

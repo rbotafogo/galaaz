@@ -35,8 +35,8 @@ describe R::DataFrame do
       # create a DataFrame from a vector
       df = R.as__data__frame(vec)
       expect(df[1, "V1"]).to eq 1
-      expect df[1, 'V2'] == 3
-      expect df[1, :all] == R.c(V1: 1, V2: 3, V3: 5)
+      expect(df[1, 'V2']).to eq 3
+      # expect(df[1, :all] == R.c(V1: 1, V2: 3, V3: 5)).to eq true
       
     end
 
@@ -69,6 +69,10 @@ describe R::DataFrame do
       expect(table2.fail[4]).to eq true
       
     end
+
+  end
+  #----------------------------------------------------------------------------------------
+  context "Ruby 'each'" do
     
     it "should do 'each_column'" do
       
@@ -79,16 +83,18 @@ describe R::DataFrame do
         # Extract the 'native' value by indexing with '<< 0'
         case col_name << 0
         when "mpg"
-          expect col[1] == 21
-          expect col[9] == 22.8
-          expect col[32] == 21.4
+          expect(col[1] == 21).to eq true
+          expect(col[9] == 22.8).to eq true
+          expect(col[9] == 30).to eq false
+          expect(col[32] == 21.4).to eq true
         when "cyl"
-          expect col[1] == 6
-          expect col[10] == 6
-          expect col[32] == 4
+          expect(col[1] == 6).to eq true
+          expect(col[10] == 6).to eq true
+          expect(col[32] == 4).to eq true
         when "disp"
-          expect col[1] == 160
-          expect col[32] == 121
+          expect(col[1] == 160).to eq true
+          expect(col[1] == 200).to eq false
+          expect(col[32] == 121).to eq true
         end
         
       end
@@ -102,18 +108,18 @@ describe R::DataFrame do
       mtcars.each_row do |row, row_name|
         case row_name << 0
         when "Mazda RX4"
-          expect row['mpg'] == 21
-          expect row.qsec == 16.46
+          expect(row['mpg'] == 21).to eq true
+          expect(row.qsec == 16.46).to eq true
         when "Hornet Sportabout"
-          expect row['cyl'] == 8
-          expect row['wt'] == 3.44
+          expect(row['cyl'] == 8).to eq true
+          expect(row['wt'] == 3.44).to eq true
         when "Merc 240D"
-          expect row['hp'] == 62
-          expect row.drat == 3.69
+          expect(row['hp'] == 62).to eq true
+          expect(row.drat).to eq 3.69
         when "Volvo 142E"
-          expect row.hp == 109
-          expect row.am == 1
-          expect row.carb == 2
+          expect(row.hp).to eq 109
+          expect(row.am).to eq 1
+          expect(row.carb).to eq 2
         end
         
       end
@@ -121,7 +127,7 @@ describe R::DataFrame do
     end
     
   end
-  
+
   #----------------------------------------------------------------------------------------
   context "Boostraping" do
     

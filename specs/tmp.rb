@@ -23,10 +23,55 @@
 
 require 'galaaz'
 
+=begin
+r1 = mtcars[1, :all]
+p r1
+puts r1
+
+puts mtcars[[1]]
+puts mtcars[[1, 1]]
+
+lst = R.list(a: R.c(1, 2, 3), b: R.c(10, 20, 30))
+puts lst[[1]]
+# puts lst[1, 1]
+=end
+
+=begin
+mtcars.each_row do |row, row_name|
+  case row_name << 0
+  when "Mazda RX4"
+    # puts row
+    # p row
+    # p row['mpg']
+    # puts row['mpg']
+    row['mpg'] == 21
+    # puts R.rclass((row['mpg'] == 21))
+    # expect(row['mpg'] == 21).to eq true
+  end
+  
+end
+=end
+
+
+=begin
 describe R::Vector do
   
   context "When creating vectors" do
 
+    it "should do 'each_row'" do
+
+      mtcars = ~:mtcars
+      
+      mtcars.each_row do |row, row_name|
+        case row_name << 0
+        when "Mazda RX4"
+          puts row['mpg']
+          expect(row['mpg'] == 21).to eq true
+        end
+      end
+    end
+=end  
+=begin    
     it "should allow changing an element of a vector attribute" do
       # pending "Need to implement new function for this"
       # set names
@@ -39,9 +84,9 @@ describe R::Vector do
       
       # expect(@vect.names[2]).to eq R.c("hello")
     end
+=end
     
-  end
-end
+#end
 
 =begin
 a_env = R.new__env

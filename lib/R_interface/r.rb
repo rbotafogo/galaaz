@@ -89,7 +89,8 @@ require_relative 'rmd_indexed_object'
 require_relative 'rbinary_operators'
 # Unary operators: '!', '@-', etc
 require_relative 'runary_operators'
-# Definition of R Vector
+
+# Definition of R Vector.  Vectors include Unary and Binary operators
 require_relative 'rvector'
 # Definition of R Lists
 require_relative 'rlist'
