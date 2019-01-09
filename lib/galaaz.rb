@@ -21,8 +21,6 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-# require 'pry'
-
 $LOAD_PATH << File.dirname(File.expand_path('..', __FILE__)) + "/r_requires"
 
 require_relative 'R_interface/r'

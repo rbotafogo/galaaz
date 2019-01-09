@@ -39,7 +39,7 @@ describe R::DataFrame do
       # When you extract a single row from a data frame you get a one-row data frame.
       # Convert it to a numeric vector with 'as__numeric'
       expect(df[1, :all].as__numeric).to eq R.c(V1: 1, V2: 3, V3: 5)
-      
+     
     end
 
   end
@@ -71,6 +71,10 @@ describe R::DataFrame do
       expect(table2.fail[4]).to eq true
       
     end
+
+  end
+  #----------------------------------------------------------------------------------------
+  context "Ruby 'each'" do
     
     it "should do 'each_column'" do
       
@@ -83,13 +87,23 @@ describe R::DataFrame do
           expect(col[1]).to eq 21
           expect(col[9]).to eq 22.8
           expect(col[32]).to eq 21.4
+          expect(col[1] == 21).to eq true
+          expect(col[9] == 22.8).to eq true
+          expect(col[9] == 30).to eq false
+          expect(col[32] == 21.4).to eq true
         when "cyl"
+          expect(col[1] == 6).to eq true
+          expect(col[10] == 6).to eq true
+          expect(col[32] == 4).to eq true
           expect(col[1]).to eq 6
           expect(col[10]).to eq 6
           expect(col[32]).to eq 4
         when "disp"
           expect(col[1]).to eq 160
           expect(col[32]).to eq 121
+          expect(col[1] == 160).to eq true
+          expect(col[1] == 200).to eq false
+          expect(col[32] == 121).to eq true
         end
         
       end
@@ -107,12 +121,17 @@ describe R::DataFrame do
           expect(row[['mpg']]).to eq 21
           expect(row.mpg). to eq 21
           expect(row.qsec).to eq 16.46
+          expect(row['mpg'] == 21).to eq true
+          expect(row.qsec == 16.46).to eq true
         when "Hornet Sportabout"
           expect(row[['cyl']]).to eq 8
           expect(row.cyl).to eq 8
           expect(row[['wt']]).to eq 3.44
+          expect(row['cyl'] == 8).to eq true
+          expect(row['wt'] == 3.44).to eq true
         when "Merc 240D"
           expect(row[['hp']]).to eq 62
+          expect(row['hp'] == 62).to eq true
           expect(row.drat).to eq 3.69
         when "Volvo 142E"
           expect(row.hp).to eq 109
@@ -125,7 +144,7 @@ describe R::DataFrame do
     end
     
   end
-  
+
   #----------------------------------------------------------------------------------------
   context "Boostraping" do
     

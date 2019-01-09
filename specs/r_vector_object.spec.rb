@@ -72,7 +72,7 @@ describe R::Vector do
       # set names
       @vect.names = R.c("a", "b", "c", "d", "e", "f")
       @vect.names[2] = "hello"
-      expect(@vect.names[2]).to eq "hello"
+      expect(@vect.names[2]).to eq R.c("hello")
     end
     
   end
