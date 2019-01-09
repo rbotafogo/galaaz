@@ -67,12 +67,12 @@ describe R::Vector do
       expect(@vect.rclass).to eq "newClass"
     end
       
-    it "should allow changing an element of a vector attribute" do
+    it "will copy vectors and changes will not be seen" do
       # pending "Need to implement new function for this"
       # set names
       @vect.names = R.c("a", "b", "c", "d", "e", "f")
       @vect.names[2] = "hello"
-      expect(@vect.names[2]).to eq "hello"
+      expect(@vect.names[2]).to eq R.c("b")
     end
     
   end
