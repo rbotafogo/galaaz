@@ -85,14 +85,18 @@ module R
   
 end
 
-# define methods for accessing indexed object: Vector, Lists
-require_relative 'rindexed_object'
-# define methods for accessing multi dimensional indexed objects: Matrix, DataFrames
-require_relative 'rmd_indexed_object'
 # Binary operators: '+', '-', etc
 require_relative 'rbinary_operators'
 # Unary operators: '!', '@-', etc
 require_relative 'runary_operators'
+# Ruby class extensions.  Extends Symbol to allow the creation of
+# expressions using Symbol: (:x > 10)
+require_relative 'ruby_extensions'
+
+# define methods for accessing indexed object: Vector, Lists
+require_relative 'rindexed_object'
+# define methods for accessing multi dimensional indexed objects: Matrix, DataFrames
+require_relative 'rmd_indexed_object'
 
 # Definition of R Vector.  Vectors include Unary and Binary operators
 require_relative 'rvector'
@@ -115,9 +119,6 @@ require_relative 'rsymbol'
 # Access to package symbols
 require_relative 'rpkg'
 
-# Ruby class extensions.  Extends Symbol to allow the creation of
-# expressions using Symbol: (:x > 10)
-require_relative 'ruby_extensions'
 # Class to allow R calling back into Ruby
 require_relative 'ruby_callback'
 

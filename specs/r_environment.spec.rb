@@ -27,7 +27,7 @@ describe R::Environment do
   
   context "Using environment" do
 
-    before(:all) do
+    before(:each) do
       # create two environments
       @a_env = R.new__env
       @b_env = R.new__env
@@ -59,10 +59,11 @@ describe R::Environment do
       expect(@a_env.ls.length).to eq 0
       @a_env.a = 30
       expect(@a_env.ls.length).to eq 1
-      expect(@a_env.a).to eq R.c("a")
+      expect(@a_env.a).to eq 30
 
       @b_env.vec = R.c(1, 2, 3, 4)
-      expect(@b_env.ls).to eq 1
+      expect(@b_env.ls).to eq "vec"
+      expect(@b_env.ls.length).to eq 1
       expect(@b_env.vec).to eq R.c(1, 2, 3, 4)
     end
 
@@ -74,21 +75,38 @@ describe R::Environment do
 
     it "should call methods on the environment as every other R::Object" do
       # we have already seen that we can apply 'ls' to an environment
-      expect(@a_env.ls).to eq 0
-      expect(R.ls(@a_env)).to eq 0
+      expect(@a_env.ls.length).to eq 0
+      expect(R.ls(@a_env).length).to eq 0
     end
 
     it "allows multiple names to point to the same object" do
       @a_env.a = false
       @a_env.b = "a"
-      @a_env.c = 2.3
+      @a_env.c = (2..3)
       @a_env.d = (1..3)
       
-      expect(@a_env.b).to eq R.c(1, 2, 3)
+      expect(@a_env.b).to eq "a"
       expect(@a_env.d).to eq R.c(1, 2, 3)
 
       @a_env.a = @a_env.d
       expect(@a_env.a).to eq R.c(1, 2, 3)
+    end
+
+    it "should allow removing elements from an environment" do
+      @a_env.a = false
+      @a_env.b = "a"
+      @a_env.c = (2..3)
+      @a_env.d = (1..3)
+
+      expect(@a_env.a).to eq false
+      expect(@a_env.b).to eq "a"
+      R.rm("a", envir: @a_env)
+      expect { @a_env.a }.to raise_error(NoMethodError)
+    end
+
+    it "should not be able to subset the environment with '['" do
+      @a_env.a = false
+      expect { @a_env['a'] }.to raise_error(RuntimeError)
     end
     
   end

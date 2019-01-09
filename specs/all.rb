@@ -44,8 +44,9 @@ require_relative 'r_dataframe.spec'
 require_relative 'r_environment.spec'
 
 # Specification for language features
-#require_relative 'r_function.spec'
 #require_relative 'r_language.spec'
+
+#require_relative 'r_function.spec'
 #require_relative 'r_formula.spec'
 
 # Testes for NSE

@@ -24,9 +24,6 @@
 require 'galaaz'
 #require 'ggplot'
 
-R.library('lobstr')
-R.library('rlang')
-
 R::Support.eval(<<-R)
   ast = function(x) {
     ex = enexpr(x)
@@ -60,16 +57,81 @@ R::Support.eval(<<-R)
   #print(eval_tidy(with_env(bang_bang, a_env)))
 
   # print(expr(f(label: !!rownames(mtcars))))
+
+  lsd = function() {
+    quo(len + sd)
+  }
+
+  # quosure = lsd()
+  # print(eval(quosure))
 R
 
+R.len = R.c(1, 2, 3)
+R.sd = R.c(10, 20, 30)
+R.cmp = R.c(8, 22, 25)
 
-#=begin
+exp0 = R::RubyExpression.build(:len)
+puts exp0
+puts exp0.eval
+
+num_exp = R::RubyExpression.build(5)
+puts num_exp
+puts num_exp.eval
+
+str_exp = R::RubyExpression.build("hello")
+puts str_exp
+puts str_exp.eval
+
+na_exp = R::RubyExpression.build(R::NA)
+puts na_exp
+puts na_exp.eval
+
+range_exp = R::RubyExpression.build(1..5)
+puts range_exp
+puts range_exp.eval
+
+neg_range = R::RubyExpression.build(-(1...5))
+puts neg_range
+puts neg_range.eval
+
+exp1 = :len + :sd         # (len + sd)
+puts exp1
+puts exp1.class
+p exp1
+puts exp1.get_expr
+
+# Error: RuntimeError - object 'len' not found
+puts R.eval(exp1)
+
+lst = R.list(len: 1, sd: 2)
+puts R.eval(exp1, lst)
+
+exp2 = :len + :sd + 5
+puts R.eval(exp2)
+
+exp3 = :len + :sd ** 2
+puts R.eval(exp3, lst)
+puts exp3.eval(lst)
+puts exp3.eval
+
+exp4 = :sd >= :cmp
+puts exp4.eval
+
+# coerce operation
+# exp5 = 5 + :sd
+# puts exp5
+# puts exp5.eval
+
+
+=begin
 x = y = R.seq(-~:pi, ~:pi, length: 10)
 df = R.data__frame(x: x, y: y)
 
 a_env = R.new__env
 a_env.obj = df
+
 # puts (R.eval_tidy(R.with_env(:bang_bang, a_env
+=end
 
 =begin
 proc = lambda { |x, y| R.cos(y) / (1 + x**2) }
@@ -291,15 +353,15 @@ puts aes
 
 =begin
 # creates an expression from a Symbol
-exp = R::Expression.build(:a)
+exp = R::RubyExpression.build(:a)
 puts exp
 
 # creates an expression from another expression
-exp2 = R::Expression.build(exp)
+exp2 = R::RubyExpression.build(exp)
 puts exp2
 
 # raise exception
-# exp3 = R::Expression.build("3 + 5")
+# exp3 = R::RubyExpression.build("3 + 5")
 # puts exp3
 
 puts :a + :b * :c
@@ -333,6 +395,7 @@ class ArrayEmul
   def method_missing(symbol, *args)
     @array.send(symbol, *args)
   end
+=end
 =begin
 r1 = mtcars[1, :all]
 p r1
@@ -443,30 +506,16 @@ describe R::Vector do
     
 #end
 
+
+
+#=begin
+
 =begin
-a_env = R.new__env
-puts a_env               # <environment: xxxx>
-puts a_env.typeof
-puts a_env.rclass
+quosure = Polyglot.eval("R", "lsd()")
+R::Support.print_foreign(quosure)
 
-puts a_env.parent__env   # <environment: yyyy>
-puts a_env.ls            # character(0)
+ret = Polyglot.eval("R", "eval").call(quosure)
+R::Support.print_foreign(ret)
 
-a_env.set(:a, 25)
-a_env.set(:b, 30)
-
-puts a_env.ls             # [1] "a" "b"
-puts a_env.get("a")       # [1] 25
-puts a_env.get("b")       # [1] 30
-puts a_env.a              # [1] 25
-puts a_env[["a"]]         # [1] 25
-puts a_env.c              # calls method 'c' on a_env
-
-# puts a_env["a"]         # RuntimeError: Not subsettable
-a_env.c = 40              # set the 'c' key to 40 
-puts a_env.c              # No more a call to method 'c': [1] 40
-a_env.d = R.c(1, 2, 3, 4)
-puts a_env.d
-
-# puts a_env.d              # RuntimeError: Error: object 'd' not found
+R.eval(quosure)
 =end

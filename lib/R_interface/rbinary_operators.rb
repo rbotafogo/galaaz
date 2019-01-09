@@ -64,51 +64,6 @@ module R
   end
 
   #--------------------------------------------------------------------------------------
-  # Module for binary operators when creating working with expressions, things like:
-  # :a + :b, where when send to the R engine should be converted to some language
-  # construct, formula, quosure or similar.
-  #--------------------------------------------------------------------------------------
-
-  module ExpBinOp
-
-    #--------------------------------------------------------------------------------------
-    # In an expression, ':all' is converted to '.'.  '.' is not valid Ruby syntax in an
-    # expression
-    #--------------------------------------------------------------------------------------
-
-    def prep(operand)
-      (operand.eql? :all)? Expression.new('.', '.') : operand
-    end
-
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-    
-    def exec_bin_oper(operator, other_object)
-      op1 = prep(self)
-      op2 = prep(other_object)      
-      R::Expression.build(op1, operator, op2)
-    end
-
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def eql(other_object)
-      exec_oper("`==`", other_object)
-    end
-
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def coerce(numeric)
-      [R::Expression.build(numeric), self]
-    end
-
-  end
-
-  #--------------------------------------------------------------------------------------
   # Note that binary operators work on vectors and matrices as well as scalars. 
   #--------------------------------------------------------------------------------------
   

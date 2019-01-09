@@ -78,13 +78,6 @@ describe R::Language do
       expect(R::Expression.build(:c).to_s).to eq "c"
     end
     
-    it "should create expression in infix notation" do
-      expect(@exp1.infix).to eq "(len + sd)"
-      expect(@exp2.infix).to eq "((len - sd) + 5)"
-      expect(@exp3.infix).to eq "(len + (sd * 5))"
-      expect(@formula1.infix).to eq "(y ~ (len + sd))"
-    end
-
     it "should identify a formula from an expression" do
       expect(@exp1.formula?).to eq false
       expect(@formula1.formula?).to eq true

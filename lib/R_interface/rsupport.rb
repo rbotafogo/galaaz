@@ -101,7 +101,8 @@ module R
     def self.interop(object)
       Truffle::Interop.foreign?(object)
     end
-
+    
+=begin
     #----------------------------------------------------------------------------------------
     # Builds a quo or a formula based on the given expression.  If the expression has a
     # '=~' operator, then a formula should be constructed, if not, then an quo should be
@@ -123,8 +124,8 @@ module R
       end
       
     end
-
-
+=end
+    
     #----------------------------------------------------------------------------------------
     # @param arg [Object] A Ruby object to be converted to R to be used by an R function, or
     # whatever needs it
@@ -137,7 +138,6 @@ module R
       when -> (arg) { interop(arg) }
         arg
       when R::Object
-        # puts "I'm an R::Object #{arg}"
         arg.r_interop
       when NegRange
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
@@ -151,8 +151,8 @@ module R
         arg = R::Support.eval("as.name").call(arg.to_s)
       when Proc, Method
         R::RubyCallback.build(arg)
-      when R::Expression
-        R::Support.quo_or_formula(arg).r_interop
+      # when R::Expression
+      #  R::Support.quo_or_formula(arg).r_interop
       else # This is already a Ruby argument
         arg
       end
@@ -306,7 +306,7 @@ module R
 
     def self.r_evaluate(*args)
       r_args = args.map { |arg| R::Support.parse_arg(arg) }
-      R::Object.build(eval("eval").call(*r_args))
+      R::Object.build(R::Support.eval("eval_tidy").call(*r_args))
     end
 
     #----------------------------------------------------------------------------------------
