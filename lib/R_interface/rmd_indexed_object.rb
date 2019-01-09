@@ -35,7 +35,11 @@ module R
     #--------------------------------------------------------------------------------------
 
     def [](*index)
-      R::Support.exec_function(R::Support.md_index, @r_interop, *index)
+      if (index.size > 1)
+        R::Support.exec_function(R::Support.md_index, @r_interop, *index)
+      else
+        super(*index)
+      end
     end
 
   end

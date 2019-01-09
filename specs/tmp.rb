@@ -23,112 +23,95 @@
 
 require 'galaaz'
 
-class ArrayEmul
-  attr_reader :array
+=begin
+r1 = mtcars[1, :all]
+p r1
+puts r1
 
-  def initialize
-    @array = []
-  end
+puts mtcars[[1]]
+puts mtcars[[1, 1]]
 
-  def method_missing(symbol, *args)
-    @array.send(symbol, *args)
-  end
+lst = R.list(a: R.c(1, 2, 3), b: R.c(10, 20, 30))
+puts lst[[1]]
+# puts lst[1, 1]
+=end
 
-  def to_s
-    @array.to_s
-  end
-
-  def pp
-    puts @array.to_s
-  end
-
-  def fetch(index)
-    @array[index[0]]
+=begin
+mtcars.each_row do |row, row_name|
+  case row_name << 0
+  when "Mazda RX4"
+    # puts row
+    # p row
+    # p row['mpg']
+    # puts row['mpg']
+    row['mpg'] == 21
+    # puts R.rclass((row['mpg'] == 21))
+    # expect(row['mpg'] == 21).to eq true
   end
   
 end
-
-make_obj = Polyglot.eval("R", <<-R)
-  function(ruby_obj) {
-    x = list(ruby_obj);
-    attr(x, "class") = "ruby_obj";
-    x;
-   }
-R
-
-rf = Polyglot.eval("R", <<-R)
-  function(ruby_obj) {
-    # print(ruby_obj);
-    attr(ruby_obj, "class") = "ruby_obj"
-    print(ruby_obj@to_s());
-    print(class(ruby_obj));
-    # df = data.frame(ruby_obj);
-  }
-
-  print.ruby_obj = function(x, index, ...) {
-    print(index);
-    x[[1]]@fetch(index);
-  }
-
-R
-
-h = ArrayEmul.new
-h << 1 << 2 << 3
-puts h
-
-r_obj = make_obj.call(h)
-p Polyglot.eval("R", "print").call(r_obj, 0)[0]
-
-
-
-
-=begin
-sym = +:sym
-# construct a formula without the lhs: ~sym1 + sym2
-puts +:sym1 + +:sym2
-f1 = +:sym1 + :sym2
-puts +:sym1 + +:sym2 - +:sym3
-puts +:sym1 * +:sym2
 =end
 
-#puts :sym3 ** 2
-# p (:sym1 + :sym2 * :sym3 ** 2).expression
-#puts E.log(:y + 1).to_s
 
-# puts :sym1 ** 2
-# puts +:sym1 + (:sym1 ** 2).i
-
-# puts +:y =~ +:sym1 + +:sym2 * +:sym3 + (:sym1 ** 2).i
-# puts +:y =~ :all
-
-
-# p sym
-# puts sym
-# sym.typeof
 =begin
-f1 = +:sym1 + +:sym2
-puts f1
-puts f1.deparse
+describe R::Vector do
+  
+  context "When creating vectors" do
 
-puts R.c(1, 2, 3).deparse
-puts R.list(a: 1, b: 2, c: 3).deparse
+    it "should do 'each_row'" do
+
+      mtcars = ~:mtcars
+      
+      mtcars.each_row do |row, row_name|
+        case row_name << 0
+        when "Mazda RX4"
+          puts row['mpg']
+          expect(row['mpg'] == 21).to eq true
+        end
+      end
+    end
+=end  
+=begin    
+    it "should allow changing an element of a vector attribute" do
+      # pending "Need to implement new function for this"
+      # set names
+      @vect = R.c(1, 2, 3, 4, 5, 6)
+      @vect.names = R.c("a", "b", "c", "d", "e", "f")
+      
+      @vect.names[2] = "hello"
+      puts @vect.names
+      puts @vect.names[2]
+      
+      # expect(@vect.names[2]).to eq R.c("hello")
+    end
 =end
+    
+#end
 
 =begin
-# Set seed
-R.set__seed(123)
+a_env = R.new__env
+puts a_env               # <environment: xxxx>
+puts a_env.typeof
+puts a_env.rclass
 
-# Data
-x = R.rnorm(5)
-x2 = R.rnorm(5)
-y = R.rnorm(5)
+puts a_env.parent__env   # <environment: yyyy>
+puts a_env.ls            # character(0)
 
-# Model frame
-puts R.model__frame(+:y =~ +:x * +:x2, data: R.data__frame(x: x, y: y, x2: x2))
+a_env.set(:a, 25)
+a_env.set(:b, 30)
 
-puts R.model__frame(+:y =~ +:x + +:x2 + (+:x ^ +:x2),
-                    data: R.data__frame(x: x, y: y, x2: x2))
+puts a_env.ls             # [1] "a" "b"
+puts a_env.get("a")       # [1] 25
+puts a_env.get("b")       # [1] 30
+puts a_env.a              # [1] 25
+puts a_env[["a"]]         # [1] 25
+puts a_env.c              # calls method 'c' on a_env
 
-puts R.model__frame(+:y =~ +:x + (:x ** 2).i,
-                    data: R.data__frame(x: R.rnorm(5), y: R.rnorm(5)))
+# puts a_env["a"]         # RuntimeError: Not subsettable
+a_env.c = 40              # set the 'c' key to 40 
+puts a_env.c              # No more a call to method 'c': [1] 40
+a_env.d = R.c(1, 2, 3, 4)
+puts a_env.d
+
+# puts a_env.d              # RuntimeError: Error: object 'd' not found
 =end

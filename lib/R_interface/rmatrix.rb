@@ -32,6 +32,20 @@ module R
     include BinaryOperators
     include ExecBinOp
     include UnaryOperators
+    include ExecUniOp
+
+    #--------------------------------------------------------------------------------------
+    # When indexing with '[' or '[[' an R object is returned.  Sometimes we need to have
+    # access to an umboxed Ruby element, for instance, in an numeric array, we might want
+    # to receive the actual number that can be used in a Ruby method.  In this case, we
+    # use the '<<' operator.
+    # @return the Ruby element at the given index in the vector
+    #--------------------------------------------------------------------------------------
+
+    def <<(index)
+      @r_interop[index]
+    end
+
   end
   
 end

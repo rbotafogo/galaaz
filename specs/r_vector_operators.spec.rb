@@ -73,7 +73,7 @@ describe R::Vector do
        res = 10 - @vec1
        expect(res == R.c(7, 4.3, 0, -1)).to eq true
        res = 10 / @vec1
-       expect(res == R.c(3.3333333, 1.7543860, 1, 0.8333333)).to eq true
+       expect(res.all__equal R.c(3.333333333, 1.754385964, 1, 0.833333333)).to eq true
      end
      
    end
@@ -86,9 +86,9 @@ describe R::Vector do
        vec2 = R.c(1, 2)
        vec3 = R.c(0, 2)
 
-       expect((vec1 == vec2).all__equal(R.c(true, true))).to eq true
+       expect((vec1.eql vec2).all__equal(R.c(true, true))).to eq true
        expect((vec1 != vec2).all__equal(R.c(false, false))).to eq true
-       expect((vec1 == vec3).all__equal(R.c(false, true))).to eq true
+       expect((vec1.eql vec3).all__equal(R.c(false, true))).to eq true
      end
 
      it "should check vectors for <, <=, >, >=" do

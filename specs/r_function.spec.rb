@@ -55,8 +55,8 @@ describe R do
       f = R.outer(@x, @y,
                   lambda { |x, y|
                     R.cos(y) / (x**2 + 1)})
-      expect(f[1, 1] == -0.09199967).to eq true
-      expect(f[7, 6] == -0.04599983).to eq true
+      expect(f[1, 1].all__equal -0.091999668).to eq true
+      expect(f[7, 6].all__equal 0.448193475).to eq true
     end
 
     it "should accept a Method as parameter" do
@@ -70,10 +70,9 @@ describe R do
         end
       end
 
-      f = R.outer(@x, @y, Calculation.method(:func))
-      expect(f[1, 1] == -0.09199967).to eq true
-      expect(f[7, 6] == -0.04599983).to eq true
-      
+      f = R.outer(@x, @y, Calculation.method(:func)) 
+      expect(f[1, 1].all__equal -0.091999668).to eq true
+      expect(f[7, 6].all__equal 0.448193475).to eq true
     end
     
     it "should accept Procs in Expressions" do
@@ -85,8 +84,8 @@ describe R do
       
       # now lets evaluate f in the scope of df, where :x and :y are defined
       res = f.eval(df)
-      expect(res[1, 1] == -0.09199967).to eq true
-      expect(res[10, 10] == -0.09199967).to eq true
+      expect(res[1, 1].all__equal -0.091999668).to eq true
+      expect(res[10, 9].all__equal -0.0704758347).to eq true
     end
 
     it "Should be able to 'eval' a Proc in expression" do
