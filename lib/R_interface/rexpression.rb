@@ -23,12 +23,6 @@
 
 module R
 
-  R::Support.eval(<<-R)
-    enq = function(x, ...) {
-      enquo(x)
-    }
-  R
-
   #--------------------------------------------------------------------------------------
   # 
   #--------------------------------------------------------------------------------------
@@ -59,81 +53,7 @@ module R
     def formula?
       @formula
     end
-=begin    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
 
-    def self.parse_expression(exp)
-
-      case exp
-      when Symbol, Numeric
-        exp.to_s
-      when R::Language
-        R.get_expr(exp)
-      when String
-        "\"#{exp}\""
-      when R::NotAvailable
-        "NA"
-      when Range   
-        final_value = (exp.exclude_end?)? (exp.first > exp.last)?
-                        (exp.last + 1) : (exp.last - 1)
-                      : exp.last
-        "(#{exp.first}:#{final_value})"
-      when NegRange
-        "-(#{exp.first}:#{exp.last})"
-      when Hash
-        params = []
-        envs = R.list
-        exp.each_pair do |key, value|
-          k = key.to_s.gsub(/__/,".")
-          # value = "\"#{value}\"" if value.is_a? String
-          value = parse_expression(value)
-          params << "#{key} = #{value}"
-        end
-        params.join(", ")
-      when :all
-        "."
-      when Proc, Method
-        e = R.enq(exp, proc: R::RubyCallback.build(exp))
-        "proc"
-      else
-        # raise "Expression #{exp} is of type #{exp.class} and cannot be part of an expression"
-        puts "in else"
-        puts exp.class
-        exp
-      end
-
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # Build a new expression from the given argument.
-    # @param args [Array] size of array should be either 1 or 3.  When 3, then it is of
-    #   the form '<operand> <binary operator> <operand>'
-    #--------------------------------------------------------------------------------------
-
-    def self.build(*args)
-
-      case args.size
-      when 1
-        op1 = parse_expression(args[0])
-        rhs = R.rhs(R.as__formula("~ #{op1}"))
-        R.enq(rhs)
-      when 3
-        op1 = parse_expression(args[0])
-        op2 = parse_expression(args[2])
-        optr = args[1].delete("`")
-        # @TODO: when there is a '^' in the expression, it should be treated as a
-        # formula. 
-        formula = (optr == "~")? true : false
-        rhs = R.rhs(R.as__formula("~ #{op1} #{optr} #{op2}"))
-        R.enq(rhs)
-      else
-        raise "Expressions can be build with either 1 or 3 arguments, got #{args.zie}"
-      end
-        
-    end
-=end
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------

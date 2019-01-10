@@ -28,6 +28,32 @@
 
 module R
   
+  R::Support.eval(<<-R)
+    enq = function(x, ...) {
+      enquo(x)
+    }
+
+    bang_bang = function() {
+      print("in bang_bang")
+      x = enquo(obj)
+      # enexpr(class(!!x))
+      print(x)
+      x
+    }
+
+    with_env <- function(f, e=parent.frame()) {
+      stopifnot(is.function(f))
+      environment(f) <- e
+      f()
+    }
+
+    ast = function(x) {
+      ex = enexpr(x)
+      lobstr::ast(!!ex)
+    }
+
+  R
+
   module RubyExpression
     
     #--------------------------------------------------------------------------------------
@@ -37,10 +63,11 @@ module R
     def self.parse_expression(exp)
       
       case exp
-      when Symbol, Numeric
+      when Symbol, Numeric, R::Language
         exp.to_s
-      when R::Language
-        R.get_expr(exp)
+      # when R::Language
+      # R.get_expr(exp)
+      # exp.to_s
       when String
         "\"#{exp}\""
       when R::NotAvailable
@@ -52,6 +79,12 @@ module R
         "(#{exp.first}:#{final_value})"
       when NegRange
         "-(#{exp.first}:#{exp.last})"
+      when :all
+        "."
+      when Proc, Method
+        # R::Support.enquo(exp, proc: R::RubyCallback.build(exp))
+        e = R.enq(exp, proc: R::RubyCallback.build(exp))
+        "proc"
       when Hash
         params = []
         envs = R.list
@@ -62,16 +95,13 @@ module R
           params << "#{key} = #{value}"
         end
         params.join(", ")
-      when :all
-        "."
-      when Proc, Method
-        e = R.enq(exp, proc: R::RubyCallback.build(exp))
-        "proc"
       else
         # raise "Expression #{exp} is of type #{exp.class} and cannot be part of an expression"
         puts "in else"
         puts exp.class
-        exp
+        # exp
+        R.new_object = exp
+        "!!new_object"
       end
       
     end
@@ -88,7 +118,8 @@ module R
       when 1
         op1 = parse_expression(args[0])
         rhs = R.rhs(R.as__formula("~ #{op1}"))
-        R.enq(rhs)
+        R.substitute(rhs)
+        # R.enq(rhs)
       when 3
         op1 = parse_expression(args[0])
         op2 = parse_expression(args[2])
@@ -97,7 +128,8 @@ module R
         # formula. 
         formula = (optr == "~")? true : false
         rhs = R.rhs(R.as__formula("~ #{op1} #{optr} #{op2}"))
-        R.enq(rhs)
+        R.substitute(rhs)
+        # R.enq(rhs)
       else
         raise "Expressions can be build with either 1 or 3 arguments, got #{args.zie}"
       end
@@ -131,6 +163,32 @@ module R
       [R::RubyExpression.build(numeric), self]
     end
 
+  end
+  
+end
+
+#=========================================================================================
+#
+#=========================================================================================
+
+module Q
+
+  #----------------------------------------------------------------------------------------
+  # @param symbol [Symbol]
+  # @param args [Array] arguments to the missing method
+  #----------------------------------------------------------------------------------------
+  
+  def self.method_missing(symbol, *args)
+    name = R::Support.convert_symbol2r(symbol)
+    
+    params = []
+    args.each do |arg|
+      params << R::RubyExpression.parse_expression(arg)
+    end
+
+    exp = "#{name}(#{params.join(", ")})"
+    # R.substitute(R.rhs(R.as__formula("~ #{name}(#{params.join(", ")})")))
+    R.expr(R.substitute(R.rhs(R.as__formula("~ #{name}(#{params.join(", ")})"))))
   end
   
 end

@@ -25,23 +25,9 @@ require 'galaaz'
 #require 'ggplot'
 
 R::Support.eval(<<-R)
-  ast = function(x) {
-    ex = enexpr(x)
-    lobstr::ast(!!ex)
-  }
  
-  bang_bang = function() {
-    print("in bang_bang")
-    x = enquo(obj)
-    # enexpr(class(!!x))
-    print(x)
-    x
-  }
-
-  with_env <- function(f, e=parent.frame()) {
-    stopifnot(is.function(f))
-    environment(f) <- e
-    f()
+  to_expr = function(expression) {
+    enexpr(expression)
   }
 
   #x = y = seq(-pi, pi, length = 10)
@@ -56,16 +42,42 @@ R::Support.eval(<<-R)
   #print(rhs(eval(with_env(bang_bang, a_env))))
   #print(eval_tidy(with_env(bang_bang, a_env)))
 
-  # print(expr(f(label: !!rownames(mtcars))))
+  #print(expr(f(!!rownames(mtcars))))
+  #print(to_enex(f(!!rownames(mtcars))))
 
-  lsd = function() {
-    quo(len + sd)
-  }
+  #print(expr(f(label = !!rownames(mtcars))))
 
-  # quosure = lsd()
-  # print(eval(quosure))
 R
 
+
+# R.new_object = R.rownames(:mtcars)
+# rhs = R.rhs(R.as__formula("~ f(!!new_object)"))
+# puts R.to_expr(rhs)
+
+#a_env = R.env
+#a_env.new_object = R.rownames(:mtcars)
+
+#=begin
+# puts R.expr(rhs)
+
+# res = Q.f(R.rownames(:mtcars))
+# puts R.expr(res)
+#=end
+
+=begin
+vec = R.c(1, 2, 3)
+a_env = R.new__env
+a_env.obj = vec
+
+expr = R.with_env(:bang_bang, a_env)
+puts expr
+
+f(x: !!vec)
+=end
+
+# puts R.lsd(R.c(1, 2, 3, 4))
+
+#=begin
 R.len = R.c(1, 2, 3)
 R.sd = R.c(10, 20, 30)
 R.cmp = R.c(8, 22, 25)
@@ -117,11 +129,29 @@ puts exp3.eval
 exp4 = :sd >= :cmp
 puts exp4.eval
 
+exp5 = Q.f
+puts exp5
+
+exp6 = Q.sum(:len, :sd)
+puts exp6
+puts exp6.eval
+
+exp7 = Q.c(:len, ~:sd)
+puts exp7
+puts R.ast(exp7)
+puts exp7.eval
+
+exp8 = Q.c(:len, R.rownames(:mtcars))
+puts exp8
+puts R.ast(exp8)
+puts exp8.eval
+
 # coerce operation
 # exp5 = 5 + :sd
 # puts exp5
 # puts exp5.eval
 
+#=end
 
 =begin
 x = y = R.seq(-~:pi, ~:pi, length: 10)
@@ -130,7 +160,10 @@ df = R.data__frame(x: x, y: y)
 a_env = R.new__env
 a_env.obj = df
 
-# puts (R.eval_tidy(R.with_env(:bang_bang, a_env
+expr = R.with_env(:bang_bang, a_env)
+puts R.get_expr(expr)
+
+# puts (R.eval(R.with_env(:bang_bang, a_env)))
 =end
 
 =begin
