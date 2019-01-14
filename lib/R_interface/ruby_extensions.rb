@@ -27,12 +27,8 @@
 
 
 module R
-  
+=begin
   R::Support.eval(<<-R)
-    enq = function(x, ...) {
-      enquo(x)
-    }
-
     bang_bang = function() {
       print("in bang_bang")
       x = enquo(obj)
@@ -45,6 +41,10 @@ module R
       stopifnot(is.function(f))
       environment(f) <- e
       f()
+    }
+
+    expr = function(x) {
+      enexpr(x)
     }
 
     ast = function(x) {
@@ -72,6 +72,10 @@ module R
         "\"#{exp}\""
       when R::NotAvailable
         "NA"
+      when TrueClass
+        "TRUE"
+      when FalseClass
+        "FALSE"
       when Range   
         final_value = (exp.exclude_end?)? (exp.first > exp.last)?
                         (exp.last + 1) : (exp.last - 1)
@@ -83,11 +87,12 @@ module R
         "."
       when Proc, Method
         # R::Support.enquo(exp, proc: R::RubyCallback.build(exp))
-        e = R.enq(exp, proc: R::RubyCallback.build(exp))
-        "proc"
+        # e = R.enq(exp, proc: R::RubyCallback.build(exp))
+        R.new_object = R::RubyCallback.build(exp)
+        "!!new_object"
       when Hash
         params = []
-        envs = R.list
+        # envs = R.list
         exp.each_pair do |key, value|
           k = key.to_s.gsub(/__/,".")
           # value = "\"#{value}\"" if value.is_a? String
@@ -95,47 +100,49 @@ module R
           params << "#{key} = #{value}"
         end
         params.join(", ")
-      else
-        # raise "Expression #{exp} is of type #{exp.class} and cannot be part of an expression"
-        puts "in else"
-        puts exp.class
-        # exp
+      when R::Object
+        # @TODO: I don't like setting a value on R's global environment, but this was the
+        # only way to get the '!!new_object' to become an expression. Should be careful
+        # with this and could have problems if this runs in multiple threads.
         R.new_object = exp
         "!!new_object"
-      end
-      
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # Build a new expression from the given argument.
-    # @param args [Array] size of array should be either 1 or 3.  When 3, then it is of
-    #   the form '<operand> <binary operator> <operand>'
-    #--------------------------------------------------------------------------------------
-    
-    def self.build(*args)
-      
-      case args.size
-      when 1
-        op1 = parse_expression(args[0])
-        rhs = R.rhs(R.as__formula("~ #{op1}"))
-        R.substitute(rhs)
-        # R.enq(rhs)
-      when 3
-        op1 = parse_expression(args[0])
-        op2 = parse_expression(args[2])
-        optr = args[1].delete("`")
-        # @TODO: when there is a '^' in the expression, it should be treated as a
-        # formula. 
-        formula = (optr == "~")? true : false
-        rhs = R.rhs(R.as__formula("~ #{op1} #{optr} #{op2}"))
-        R.substitute(rhs)
-        # R.enq(rhs)
       else
-        raise "Expressions can be build with either 1 or 3 arguments, got #{args.zie}"
+        raise "Expression #{exp} is of type #{exp.class} and cannot be part of an expression"
+        # puts "in else"
+        # puts exp.class
+        # exp
       end
       
     end
 
+    #--------------------------------------------------------------------------------------
+    # Build a new expression from the given argument.
+    #--------------------------------------------------------------------------------------
+
+    def self.build_uni_exp(exp)
+      op1 = parse_expression(exp)
+      # R.expr(exp)
+      rhs = R.rhs(R.as__formula("~ #{op1}"))
+      R.substitute(rhs)
+    end
+    
+    #--------------------------------------------------------------------------------------
+    # Build a new expression from the given argument.
+    #--------------------------------------------------------------------------------------
+    
+    def self.build_bin_exp(oper1, func, oper2)
+      op1 = parse_expression(oper1)
+      op2 = parse_expression(oper2)
+      optr = func.delete("`")
+      # @TODO: when there is a '^' in the expression, it should be treated as a
+      # formula. 
+      formula = (optr == "~")? true : false
+      
+      rhs = R.rhs(R.as__formula("~ #{op1} #{optr} #{op2}"))
+      R.substitute(rhs)
+      # R.enq(rhs)
+    end
+    
   end
   
   #--------------------------------------------------------------------------------------
@@ -143,24 +150,40 @@ module R
   # :a + :b, where when send to the R engine should be converted to some language
   # construct, formula, quosure or similar.
   #--------------------------------------------------------------------------------------
-  
+=end  
   module ExpBinOp
-    
+
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
-    
+
     def exec_bin_oper(operator, other_object)
-      # R::Expression.build(self, operator, other_object)
-      R::RubyExpression.build(self, operator, other_object)
+      f = R::Support.eval(<<-R)
+        function(op1, op2) {
+          o1 = enexpr(op1)
+          o2 = enexpr(op2)
+          expr(#{operator}(!!o1, !!o2))
+        }
+        R
+      R::Support.exec_function(f, self, other_object)
     end
 
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
+=begin    
+    def exec_bin_oper(operator, other_object)
+      # R::Expression.build(self, operator, other_object)
+      # R::RubyExpression.build(self, operator, other_object)
+      R::RubyExpression.build_bin_exp(self, operator, other_object)
+    end
+=end
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
 
     def coerce(numeric)
-      [R::RubyExpression.build(numeric), self]
+      [R::RubyExpression.build_bin_exp(numeric), self]
     end
 
   end
@@ -170,8 +193,8 @@ end
 #=========================================================================================
 #
 #=========================================================================================
-
-module Q
+=begin
+module E
 
   #----------------------------------------------------------------------------------------
   # @param symbol [Symbol]
@@ -180,15 +203,33 @@ module Q
   
   def self.method_missing(symbol, *args)
     name = R::Support.convert_symbol2r(symbol)
-    
+
     params = []
     args.each do |arg|
+      # puts arg
       params << R::RubyExpression.parse_expression(arg)
+      # params << R::RubyExpression.build(arg)
     end
 
     exp = "#{name}(#{params.join(", ")})"
     # R.substitute(R.rhs(R.as__formula("~ #{name}(#{params.join(", ")})")))
     R.expr(R.substitute(R.rhs(R.as__formula("~ #{name}(#{params.join(", ")})"))))
+  end
+  
+end
+=end
+
+module E
+
+  #----------------------------------------------------------------------------------------
+  # @param symbol [Symbol]
+  # @param args [Array] arguments to the missing method
+  #----------------------------------------------------------------------------------------
+  
+  def self.method_missing(symbol, *args)
+    name = R::Support.convert_symbol2r(symbol)
+    rargs = R.exprs(name.to_sym, *args)
+    R.as__call(rargs)
   end
   
 end
@@ -230,14 +271,17 @@ end
 class Symbol
   include R::BinaryOperators
   include R::ExpBinOp
+  # include R::CallBinOp
 
   #--------------------------------------------------------------------------------------
   # Unary '+' converts a Ruby Symbol into an R Symbol
   #--------------------------------------------------------------------------------------
 
   def +@
-    var = (self == :all)? '.' : to_s
-    R::Object.build(R::Support.eval("as.name").call(var))
+    # var = (self == :all)? '.' : to_s
+    # R::Object.build(R::Support.eval("as.name").call(var))
+    # R::RubyExpression.build_uni_exp(self)
+    R.expr(self)
   end
 
   #--------------------------------------------------------------------------------------

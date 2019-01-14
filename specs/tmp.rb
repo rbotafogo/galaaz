@@ -22,95 +22,313 @@
 ##########################################################################################
 
 require 'galaaz'
-#require 'ggplot'
+require 'ggplot'
+
 
 R::Support.eval(<<-R)
- 
-  to_expr = function(expression) {
-    enexpr(expression)
+  ene = function(x) {
+    enexpr(x)
   }
-
-  #x = y = seq(-pi, pi, length = 10)
-  #df = data.frame(x = x, y = y)
-  #print(df)
-  
-  #x1 = expr(class(!!df))
-  #print(x1)
-
-  #a_env = new.env()
-  #a_env$obj = df
-  #print(rhs(eval(with_env(bang_bang, a_env))))
-  #print(eval_tidy(with_env(bang_bang, a_env)))
-
-  #print(expr(f(!!rownames(mtcars))))
-  #print(to_enex(f(!!rownames(mtcars))))
-
-  #print(expr(f(label = !!rownames(mtcars))))
-
 R
 
+R.len = 10
+R.sd = 20
+vec = R.c(1, 2, 3, 4)
 
-# R.new_object = R.rownames(:mtcars)
-# rhs = R.rhs(R.as__formula("~ f(!!new_object)"))
-# puts R.to_expr(rhs)
 
-#a_env = R.env
-#a_env.new_object = R.rownames(:mtcars)
+e1 = R.expr(:len)
+puts e1
+puts e1.ast
+puts e1.eval
+
+e2 = :len + vec
+puts e2
+puts e2.ast
+puts e2.eval
+
+e3 = e2 - :sd
+puts e3
+puts e3.ast
+puts e3.eval
+
+=begin
+e4 = oper_add("`+`", e1, vec)
+puts e4
+puts e4.ast
+puts e4.eval
+
+e2 = R.add(e1, vec)
+puts e2
+puts e2.ast
+puts e2.eval
+
+e3 = R.minus(e2, :sd)
+puts e3
+puts e3.ast
+puts e3.eval
+=end
+
 
 #=begin
-# puts R.expr(rhs)
+R.awt
 
-# res = Q.f(R.rownames(:mtcars))
-# puts R.expr(res)
+df = ~:ToothGrowth
+df.dose = df.dose.as__factor
+puts df.head
+
+df2 = R.data__frame(
+  R.aggregate(df.len, by: R.list(df.dose), FUN: :mean),
+  R.aggregate(df.len, by: R.list(df.dose), FUN: :sd)[2]
+)
+
+df2.names = R.c("dose", "len", "sd")
+puts df2.head
+
+#f1 = R.minus(:len, :sd)
+#f2 = R.add(:len, :sd)
+
+exp = (E.aes(x: :dose, y: :len, 
+             ymin: :len - :sd,
+             ymax: :len + :sd))
+
+puts exp
+
+f = df2.ggplot(E.aes(x: :dose, y: :len, 
+                     ymin: :len - :sd,
+                     ymax: :len + :sd))
+
+puts f + R.geom_crossbar
+sleep(2)
 #=end
 
 =begin
-vec = R.c(1, 2, 3)
-a_env = R.new__env
-a_env.obj = vec
+myenv = R.env
+myenv.e1 = R.expr(:len)
+myenv.e2 = R.expr(:sd)
+myenv.e3 = R.expr(R.c(1, 2, 3, 4))
 
-expr = R.with_env(:bang_bang, a_env)
-puts expr
+puts myenv.e1
+puts myenv.e1.ast
 
-f(x: !!vec)
+puts myenv.e2
+puts myenv.e2.ast
+
+puts myenv.e3
+puts myenv.e3.ast
+
+e4 = R.expr(:e1 + :e2 + :e3)
+puts e4
+puts e4.ast
+puts e4.eval(myenv.new_data_mask)
+
+=end
+#f = df2.ggplot(E.aes(x: :dose, y: :len, 
+#                     ymin: :len - :sd,
+#                     ymax: :len + :sd))
+
+
+
+=begin
+exp = +:x
+puts exp
+puts exp.ast
+
+exp = exp + 5
+puts exp
+puts exp.ast
+
+exp2 = :x + :y + 5
+puts exp2
+puts exp2.ast
+puts exp2.eval
+
+exp = :x + vec
+puts exp
+puts exp.ast
 =end
 
-# puts R.lsd(R.c(1, 2, 3, 4))
+=begin
+R.len = R.c(1, 2, 3)
 
-#=begin
+
+f = R.expr(E.c(2, 3))
+puts f
+puts R.ast(f)
+puts f.eval
+
+f = R.expr(E.c(:len, R.rownames(:mtcars)))
+puts f
+puts f.ast
+puts f.eval
+
+f = E.c(:len, R.rownames(:mtcars))
+puts f
+puts f.ast
+puts f.eval
+
+
+x = y = R.seq(-~:pi, ~:pi, length: 10)
+df = R.data__frame(x: x, y: y)
+#puts df
+
+exp18 = E.outer(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })
+puts exp18
+puts R.ast(exp18)
+puts exp18.eval(df)
+
+#R.x = 10
+#R.y = 15
+
+exp0 = :x + :y
+puts exp0
+puts exp0.ast
+puts exp0.eval(df)
+
+exp = R::Language.build("`+`", :x, :y)
+puts exp
+puts exp.ast
+puts exp.eval(df)
+
+#exp = R.exprs("`+`", :x, :y).as__call
+#puts exp
+#puts exp.ast
+#puts exp.eval
+
+# exp2 = R.exprs("+", exp, 5).as__call
+exp2 = R::Language.build("`+`", exp, 5)
+puts exp2
+puts exp2.ast
+puts exp2.eval(df)
+=end
+
+=begin
+exp15 = R.exprs("outer", :x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })
+puts exp15
+puts R.ast(exp15)
+
+func = R.as__call(exp15)
+puts func
+puts R.ast(func)
+=end
+
+=begin
+args = R.exprs(:len, R.rownames(:mtcars))
+puts args
+puts R.ast(args)
+puts R.do__call("c", args)
+#puts R.exec("c", R.exec("c", R::Support.eval("splice").call(args.r_interop)))
+
+
+#f = R.exec("c", arg)
+#puts f
+#puts R.ast(f)
+#puts f.eval
+=end
+
+=begin
+R.len = R.c(1, 2, 3)
+exp0 = +:len
+puts exp0
+puts R.ast(exp0)
+puts R.eval(exp0)
+
+
+exp0_1 = R.quo(:len)
+puts exp0_1
+puts R.ast(exp0_1)
+puts R.eval(exp0_1)
+
+
+exp0_2 = R.expr(:len)
+puts exp0_2
+puts R.ast(exp0_2)
+puts R.eval(exp0_2)
+
+num_exp = R.expr(5)
+puts num_exp
+puts R.ast(num_exp)
+puts num_exp.eval
+
+str_exp = R.expr("hello")
+puts str_exp
+puts R.ast(str_exp)
+puts str_exp.eval
+
+range_exp = R.expr(1..5)
+puts range_exp
+puts R.ast(range_exp)
+puts range_exp.eval
+
+expsqr = R.quo(:a)
+puts expsqr
+puts R.ast(expsqr)
+
+exps = R.exprs("mean", x: R.quo(:x), na__rm: true)
+puts exps
+puts R.ast(exps)
+
+exp8_0 = R.exprs(:len, R.rownames(:mtcars))
+puts exp8_0
+puts R.ast(exp8_0)
+
+exp8 = E.c(:len, R.rownames(:mtcars))
+puts exp8
+puts R.ast(exp8)
+# puts exp8.eval
+
+# exp13 = E.call2("mean", x: R.quo(:x), na__rm: true)
+# puts exp13
+# puts R.ast(exp13)
+
+# Not working... making a range a not a neg range
+# neg_range = R.expr(-(1...5))
+# puts neg_range
+# puts R.ast(neg_range)
+# puts neg_range.eval
+=end
+
+=begin
 R.len = R.c(1, 2, 3)
 R.sd = R.c(10, 20, 30)
 R.cmp = R.c(8, 22, 25)
 
-exp0 = R::RubyExpression.build(:len)
+exp0 = +:len
 puts exp0
 puts exp0.eval
 
-num_exp = R::RubyExpression.build(5)
+num_exp = R::RubyExpression.build_uni_exp(5)
 puts num_exp
 puts num_exp.eval
 
-str_exp = R::RubyExpression.build("hello")
+str_exp = R::RubyExpression.build_uni_exp("hello")
 puts str_exp
 puts str_exp.eval
 
-na_exp = R::RubyExpression.build(R::NA)
+na_exp = R::RubyExpression.build_uni_exp(R::NA)
 puts na_exp
 puts na_exp.eval
 
-range_exp = R::RubyExpression.build(1..5)
+range_exp = R::RubyExpression.build_uni_exp(1..5)
 puts range_exp
 puts range_exp.eval
 
-neg_range = R::RubyExpression.build(-(1...5))
+neg_range = R::RubyExpression.build_uni_exp(-(1...5))
 puts neg_range
 puts neg_range.eval
 
+puts "======"
 exp1 = :len + :sd         # (len + sd)
 puts exp1
+puts R.ast(exp1)
 puts exp1.class
 p exp1
 puts exp1.get_expr
+puts "======"
+
+puts exp1_1 = +:len + :sd
+puts exp1_1
+puts R.ast(exp1_1)
+puts "======"
 
 # Error: RuntimeError - object 'len' not found
 puts R.eval(exp1)
@@ -129,29 +347,57 @@ puts exp3.eval
 exp4 = :sd >= :cmp
 puts exp4.eval
 
-exp5 = Q.f
+exp5 = E.f
 puts exp5
 
-exp6 = Q.sum(:len, :sd)
+exp6 = E.sum(:len, :sd)
 puts exp6
 puts exp6.eval
 
-exp7 = Q.c(:len, ~:sd)
+exp7 = E.c(:len, ~:sd)
 puts exp7
 puts R.ast(exp7)
 puts exp7.eval
 
-exp8 = Q.c(:len, R.rownames(:mtcars))
+exp8 = E.c(:len, R.rownames(:mtcars))
 puts exp8
 puts R.ast(exp8)
 puts exp8.eval
+
+exp9 = E.c(:len, label: R.rownames(:mtcars))
+puts exp9
+puts R.ast(exp9)
+
+exp10 = E.c(:len, label: "hello there")
+puts exp10
+puts R.ast(exp10)
+
+exp11 = E.c(:len, label: ~:mtcars)
+puts exp11
+puts R.ast(exp11)
+
+exp12 = E.f(E.g(1, 2), E.h(3, 4, E.i))
+puts exp12
+puts R.ast(exp12)
+
+# This does not work... using 'R.' goes through do.call and the value of 'x'
+# is not defined... will need to rethink the way we use do.call to make it
+# completely compatible with tidy evaluation
+exp13 = E.call2("mean", x: :x, na__rm: true)
+puts exp13
+puts R.ast(exp13)
+
+exp14 = E.outer(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })
+puts exp14
+puts R.ast(exp14)
+
 
 # coerce operation
 # exp5 = 5 + :sd
 # puts exp5
 # puts exp5.eval
 
-#=end
+=end
 
 =begin
 x = y = R.seq(-~:pi, ~:pi, length: 10)
@@ -261,14 +507,14 @@ puts R.ast(expr)
 =begin
 R.install_and_loads('ISLR', 'MASS')
 
-lm_fit5 = R.lm(:medv ^ Q.poly(:lstat, 5), data: :Boston)
+lm_fit5 = R.lm(:medv ^ E.poly(:lstat, 5), data: :Boston)
 puts lm_fit5.summary
 
 # puts R.as__formula("~ f(x, y)")
-exp = Q.f(:x + :z, :y, (1..3), (3...1), -(9...4)) + :x + :y * 5 + :all - (1..5)
+exp = E.f(:x + :z, :y, (1..3), (3...1), -(9...4)) + :x + :y * 5 + :all - (1..5)
 puts R.substitute(exp)
 
-puts Q.aes(x: :wt, y: :mpg)
+puts E.aes(x: :wt, y: :mpg)
 =end
 
 =begin
@@ -386,15 +632,15 @@ puts aes
 
 =begin
 # creates an expression from a Symbol
-exp = R::RubyExpression.build(:a)
+exp = R::RubyExpression.build_uni_exp(:a)
 puts exp
 
 # creates an expression from another expression
-exp2 = R::RubyExpression.build(exp)
+exp2 = R::RubyExpression.build_uni_exp(exp)
 puts exp2
 
 # raise exception
-# exp3 = R::RubyExpression.build("3 + 5")
+# exp3 = R::RubyExpression.build_uni_exp("3 + 5")
 # puts exp3
 
 puts :a + :b * :c
@@ -539,6 +785,30 @@ describe R::Vector do
     
 #end
 
+# R.new_object = R.rownames(:mtcars)
+# rhs = R.rhs(R.as__formula("~ f(!!new_object)"))
+# puts R.to_expr(rhs)
+
+#a_env = R.env
+#a_env.new_object = R.rownames(:mtcars)
+
+#=begin
+# puts R.expr(rhs)
+
+# res = Q.f(R.rownames(:mtcars))
+# puts R.expr(res)
+#=end
+
+=begin
+vec = R.c(1, 2, 3)
+a_env = R.new__env
+a_env.obj = vec
+
+expr = R.with_env(:bang_bang, a_env)
+puts expr
+
+f(x: !!vec)
+=end
 
 
 #=begin
@@ -551,4 +821,32 @@ ret = Polyglot.eval("R", "eval").call(quosure)
 R::Support.print_foreign(ret)
 
 R.eval(quosure)
+=end
+
+
+=begin
+df = ~:ToothGrowth
+df.dose = df.dose.as__factor
+puts df.head
+
+df2 = R.data__frame(
+  R.aggregate(df.len, by: R.list(df.dose), FUN: :mean),
+  R.aggregate(df.len, by: R.list(df.dose), FUN: :sd)[2]
+)
+
+df2.names = R.c("dose", "len", "sd")
+puts df2.head
+
+exp = (E.aes(x: :dose, y: :len, 
+             ymin: :len - :sd,
+             ymax: :len + :sd))
+
+puts exp
+
+puts R.ggplot(df2, exp).as__list
+
+#f = df2.ggplot(E.aes(x: :dose, y: :len, 
+#                     ymin: :len - :sd,
+#                     ymax: :len + :sd))
+
 =end
