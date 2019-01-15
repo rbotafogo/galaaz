@@ -40,7 +40,7 @@ describe R::Expression do
       @exp3 = :len + :sd * 5     # (len + (sd * 5))
       
       # those are formulas: have a '^' operator
-      @formula1 = :y ^ :len + :sd    # (y ~ (len + sd))
+      # @formula1 = :y ^ :len + :sd    # (y ~ (len + sd))
     end
 
     it "should create expression in infix notation" do
