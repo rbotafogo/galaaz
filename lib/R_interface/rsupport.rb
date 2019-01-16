@@ -306,7 +306,7 @@ module R
 
     def self.r_evaluate(*args)
       r_args = args.map { |arg| R::Support.parse_arg(arg) }
-      R::Object.build(R::Support.eval("eval_tidy").call(*r_args))
+      R::Object.build(R::Support.eval("eval").call(*r_args))
     end
 
     #----------------------------------------------------------------------------------------

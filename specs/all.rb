@@ -43,6 +43,9 @@ require_relative 'r_dataframe.spec'
 # Specification for R::Environment
 require_relative 'r_environment.spec'
 
+# Specification for Ruby expressions
+require_relative 'ruby_expression.spec'
+
 # Specification for language features
 #require_relative 'r_language.spec'
 

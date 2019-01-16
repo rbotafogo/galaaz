@@ -26,6 +26,7 @@ module R
   class Language < Object
     include BinaryOperators
     include ExpBinOp
+    include IndexedObject
     # include CallBinOp
 
     attr_accessor :expression

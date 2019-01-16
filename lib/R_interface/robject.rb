@@ -49,7 +49,18 @@ module R
     #--------------------------------------------------------------------------------------
 
     def ==(other_object)
-      R::Support.exec_function_name("`==`", @r_interop, other_object) << 0
+      res = R::Support.exec_function_name("`==`", @r_interop, other_object)
+      return nil if (res.length << 0) == 0
+      res << 0
+    end
+
+    #--------------------------------------------------------------------------------------
+    # Use eql to check for equality between two objects and receive in return an R::Vector
+    #--------------------------------------------------------------------------------------
+
+    def eql(other_object)
+      # exec_bin_oper("`==`", other_object)
+      R::Support.exec_function_name("`==`", @r_interop, other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -62,15 +73,6 @@ module R
       [1]
     end
     
-    #--------------------------------------------------------------------------------------
-    # Use eql to check for equality between two objects and receive in return an R::Vector
-    #--------------------------------------------------------------------------------------
-
-    def eql(other_object)
-      # exec_bin_oper("`==`", other_object)
-      R::Support.exec_function_name("`==`", @r_interop, other_object)
-    end
-
     #--------------------------------------------------------------------------------------
     # @param r_interop [Interop] pointer to an R object
     # @return the R object wrapped in a Ruby class

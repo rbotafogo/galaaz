@@ -21,6 +21,8 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
+# naturgy soluções
+
 require 'galaaz'
 # require 'ggplot'
 
@@ -31,45 +33,27 @@ R::Support.eval(<<-R)
   }
 R
 
-R.len = 10
-R.sd = 20
-vec = R.c(1, 2, 3, 4)
-
-
-e1 = R.expr(:len)
-puts e1
-puts e1.ast
-puts e1.eval
-
-e2 = :len + vec
-puts e2
-puts e2.ast
-puts e2.eval
-
-e3 = e2 - :sd
-puts e3
-puts e3.ast
-puts e3.eval
+#R.len = 10
+#R.sd = 20
+#vec = R.c(1, 2, 3, 4)
+# R.x = R.c(1, 2, 3, 4)
 
 =begin
-e4 = oper_add("`+`", e1, vec)
-puts e4
-puts e4.ast
-puts e4.eval
 
-e2 = R.add(e1, vec)
-puts e2
-puts e2.ast
-puts e2.eval
+puts R.substitute(:a ^ :cyl + :dep)
 
-e3 = R.minus(e2, :sd)
-puts e3
-puts e3.ast
-puts e3.eval
+puts R.eval(:a >= 4, sample_df)
+puts R.eval((:a.eq 4), sample_df)
+
+sample_df = R.data__frame(a: (1..5), b: (5..1), c: R.c(5, 3, 1, 4, 1))
+puts sample_df
+
+# Ruby way of evaluation code in the scope of an object
+r = sample_df.instance_eval {a == 4}
+puts r
 =end
 
-
-#=begin
+=begin
 R.awt
 
 df = ~:ToothGrowth
@@ -99,7 +83,7 @@ f = df2.ggplot(E.aes(x: :dose, y: :len,
 
 puts f + R.geom_crossbar
 sleep(2)
-#=end
+=end
 
 =begin
 myenv = R.env
@@ -122,30 +106,6 @@ puts e4.ast
 puts e4.eval(myenv.new_data_mask)
 
 =end
-#f = df2.ggplot(E.aes(x: :dose, y: :len, 
-#                     ymin: :len - :sd,
-#                     ymax: :len + :sd))
-
-
-
-=begin
-exp = +:x
-puts exp
-puts exp.ast
-
-exp = exp + 5
-puts exp
-puts exp.ast
-
-exp2 = :x + :y + 5
-puts exp2
-puts exp2.ast
-puts exp2.eval
-
-exp = :x + vec
-puts exp
-puts exp.ast
-=end
 
 =begin
 R.len = R.c(1, 2, 3)
@@ -166,15 +126,6 @@ puts f
 puts f.ast
 puts f.eval
 
-
-x = y = R.seq(-~:pi, ~:pi, length: 10)
-df = R.data__frame(x: x, y: y)
-#puts df
-
-exp18 = E.outer(:x, :y, lambda { |x, y| R.cos(y) / (1 + x**2) })
-puts exp18
-puts R.ast(exp18)
-puts exp18.eval(df)
 
 #R.x = 10
 #R.y = 15
@@ -295,26 +246,6 @@ R.cmp = R.c(8, 22, 25)
 exp0 = +:len
 puts exp0
 puts exp0.eval
-
-num_exp = R::RubyExpression.build_uni_exp(5)
-puts num_exp
-puts num_exp.eval
-
-str_exp = R::RubyExpression.build_uni_exp("hello")
-puts str_exp
-puts str_exp.eval
-
-na_exp = R::RubyExpression.build_uni_exp(R::NA)
-puts na_exp
-puts na_exp.eval
-
-range_exp = R::RubyExpression.build_uni_exp(1..5)
-puts range_exp
-puts range_exp.eval
-
-neg_range = R::RubyExpression.build_uni_exp(-(1...5))
-puts neg_range
-puts neg_range.eval
 
 puts "======"
 exp1 = :len + :sd         # (len + sd)
@@ -534,33 +465,6 @@ sleep(2)
 R.grid__newpage
 =end
 
-=begin
-
-puts R.substitute(:a ^ :cyl + :dep)
-
-
-puts R.eval(:a >= 4, sample_df)
-puts R.eval((:a.eq 4), sample_df)
-
-sample_df = R.data__frame(a: (1..5), b: (5..1), c: R.c(5, 3, 1, 4, 1))
-puts sample_df
-
-# Ruby way of evaluation code in the scope of an object
-r = sample_df.instance_eval {a == 4}
-puts r
-=end
-
-=begin
-def subset(df, condition)
-  r = R.eval(condition, df)
-  df[r, :all]  
-end
-
-puts subset(sample_df, :a >= 4)
-
-puts subset(sample_df, :a == 4)
-=end
-
 
 =begin
 exp = :len + :sd         # (len + sd)
@@ -602,251 +506,5 @@ puts R.as_quosure(R.as__formula(". ~ len + sd"))
 #puts R.new_quosure(:len + :sd)
 =end
 
-=begin
-
-# those are quosures
-exp = :len + :sd         # (len + sd)
-exp = :len + :sd + 5     # ((len + sd) + 5)
-exp = :len + :sd * 5     # (len + (sd * 5))
-
-# those are formulas: have a '^' operator
-exp = :y ^ :len + :sd    # (y ~ (len + sd))
-
-aes = E.aes(x: :dose, y: :len, 
-            ymin: exp)
-
-R::Support.print_str(aes)
-
-=end
 
 
-=begin
-aes = E.aes(x: :dose, y: :len, 
-            ymin: :len - :sd,
-            ymax: :len + :sd)
-
-puts aes
-=end
-
-#R::Support.print_struct(aes)
-
-=begin
-# creates an expression from a Symbol
-exp = R::RubyExpression.build_uni_exp(:a)
-puts exp
-
-# creates an expression from another expression
-exp2 = R::RubyExpression.build_uni_exp(exp)
-puts exp2
-
-# raise exception
-# exp3 = R::RubyExpression.build_uni_exp("3 + 5")
-# puts exp3
-
-puts :a + :b * :c
-puts :a + :b * :c ** 5
-exp5 = (:a + :b) * :c ** 5.3
-rexp = R.parse(text: exp5.to_s)
-puts rexp
-puts rexp.rclass
-lst = rexp.as__list
-puts lst[[1]]
-
-# puts :a + :b
-
-lang = R::Language.build("`+`", R.as__symbol("cyl"), 5)
-puts lang
-p lang
-p lang.rclass
-
-=end
-
-
-
-=begin
-class ArrayEmul
-  attr_reader :array
-
-  def initialize
-    @array = []
-  end
-
-  def method_missing(symbol, *args)
-    @array.send(symbol, *args)
-  end
-=end
-=begin
-r1 = mtcars[1, :all]
-p r1
-puts r1
-
-
-puts mtcars[[1]]
-puts mtcars[[1, 1]]
-
-lst = R.list(a: R.c(1, 2, 3), b: R.c(10, 20, 30))
-puts lst[[1]]
-# puts lst[1, 1]
-=end
-
-=begin
-mtcars.each_row do |row, row_name|
-  case row_name << 0
-  when "Mazda RX4"
-    # puts row
-    # p row
-    # p row['mpg']
-    # puts row['mpg']
-    row['mpg'] == 21
-    # puts R.rclass((row['mpg'] == 21))
-    # expect(row['mpg'] == 21).to eq true
-  end
-  
-end
-
-make_obj = Polyglot.eval("R", <<-R)
-  function(ruby_obj) {
-    x = list(ruby_obj);
-    attr(x, "class") = "ruby_obj";
-    x;
-   }
-R
-
-rf = Polyglot.eval("R", <<-R)
-  function(ruby_obj) {
-    # print(ruby_obj);
-    attr(ruby_obj, "class") = "ruby_obj"
-    print(ruby_obj@to_s());
-    print(class(ruby_obj));
-    # df = data.frame(ruby_obj);
-  }
-
-  print.ruby_obj = function(x, index, ...) {
-    print(index);
-    x[[1]]@fetch(index);
-  }
-
-R
-
-h = ArrayEmul.new
-h << 1 << 2 << 3
-puts h
-
-r_obj = make_obj.call(h)
-p Polyglot.eval("R", "print").call(r_obj, 0)[0]
-
-=end
-
-
-
-=begin
-sym = +:sym
-# construct a formula without the lhs: ~sym1 + sym2
-puts +:sym1 + +:sym2
-f1 = +:sym1 + :sym2
-puts +:sym1 + +:sym2 - +:sym3
-puts +:sym1 * +:sym2
-
-=end
-
-
-=begin
-describe R::Vector do
-  
-  context "When creating vectors" do
-
-    it "should do 'each_row'" do
-
-      mtcars = ~:mtcars
-      
-      mtcars.each_row do |row, row_name|
-        case row_name << 0
-        when "Mazda RX4"
-          puts row['mpg']
-          expect(row['mpg'] == 21).to eq true
-        end
-      end
-    end
-=end  
-=begin    
-    it "should allow changing an element of a vector attribute" do
-      # pending "Need to implement new function for this"
-      # set names
-      @vect = R.c(1, 2, 3, 4, 5, 6)
-      @vect.names = R.c("a", "b", "c", "d", "e", "f")
-      
-      @vect.names[2] = "hello"
-      puts @vect.names
-      puts @vect.names[2]
-      
-      # expect(@vect.names[2]).to eq R.c("hello")
-    end
-=end
-    
-#end
-
-# R.new_object = R.rownames(:mtcars)
-# rhs = R.rhs(R.as__formula("~ f(!!new_object)"))
-# puts R.to_expr(rhs)
-
-#a_env = R.env
-#a_env.new_object = R.rownames(:mtcars)
-
-#=begin
-# puts R.expr(rhs)
-
-# res = Q.f(R.rownames(:mtcars))
-# puts R.expr(res)
-#=end
-
-=begin
-vec = R.c(1, 2, 3)
-a_env = R.new__env
-a_env.obj = vec
-
-expr = R.with_env(:bang_bang, a_env)
-puts expr
-
-f(x: !!vec)
-=end
-
-
-#=begin
-
-=begin
-quosure = Polyglot.eval("R", "lsd()")
-R::Support.print_foreign(quosure)
-
-ret = Polyglot.eval("R", "eval").call(quosure)
-R::Support.print_foreign(ret)
-
-R.eval(quosure)
-=end
-
-
-=begin
-df = ~:ToothGrowth
-df.dose = df.dose.as__factor
-puts df.head
-
-df2 = R.data__frame(
-  R.aggregate(df.len, by: R.list(df.dose), FUN: :mean),
-  R.aggregate(df.len, by: R.list(df.dose), FUN: :sd)[2]
-)
-
-df2.names = R.c("dose", "len", "sd")
-puts df2.head
-
-exp = (E.aes(x: :dose, y: :len, 
-             ymin: :len - :sd,
-             ymax: :len + :sd))
-
-puts exp
-
-puts R.ggplot(df2, exp).as__list
-
-#f = df2.ggplot(E.aes(x: :dose, y: :len, 
-#                     ymin: :len - :sd,
-#                     ymax: :len + :sd))
-
-=end
