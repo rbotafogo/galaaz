@@ -23,6 +23,15 @@
 
 require_relative 'r_eval.spec'
 
+# Specification for Functions
+require_relative 'r_function.spec'
+
+# Specification for Ruby expressions
+require_relative 'ruby_expression.spec'
+
+# Specification for R::Environment
+require_relative 'r_environment.spec'
+
 # Specification for R::Vector
 require_relative 'r_vector_creation.spec'
 require_relative 'r_vector_object.spec'
@@ -40,13 +49,6 @@ require_relative 'r_matrix.spec'
 # Specification for R::Dataframes
 require_relative 'r_dataframe.spec'
 
-# Specification for R::Environment
-require_relative 'r_environment.spec'
-
-# Specification for Ruby expressions
-require_relative 'ruby_expression.spec'
-
-#require_relative 'r_function.spec'
 #require_relative 'r_formula.spec'
 
 # Testes for NSE

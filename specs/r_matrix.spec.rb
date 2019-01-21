@@ -23,7 +23,7 @@
 
 require 'galaaz'
 
-describe R do
+describe R::Matrix do
 
   #----------------------------------------------------------------------------------------
   context "Matrices" do

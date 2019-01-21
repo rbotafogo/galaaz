@@ -218,6 +218,11 @@ describe Symbol do
       expect(R.exec("mean", *params, x: (1..10))).to eq 5.5
     end
     
+  end
+
+  #========================================================================================
+  context "Expressions inside functions" do
+
     it "should allow the use of expression in quoted functions" do
       x = y = R.seq(-~:pi, ~:pi, length: 10)
       df = R.data__frame(x: x, y: y)
@@ -230,11 +235,6 @@ describe Symbol do
       expect(res.rclass).to eq "matrix"
       expect(res[1, 1].all__equal -0.091999668).to eq true
     end
-
-  end
-
-  #========================================================================================
-  context "Expressions inside functions" do
 
     it "should be able to pass an expression to a 'subset'" do
       df = R.data__frame(a: (1..5), b: (5..1), c: R.c(5, 3, 1, 4, 1))
@@ -252,5 +252,34 @@ describe Symbol do
     end
     
   end
-  
+
+  #========================================================================================
+  context "Evaluate data in the context of the ruby instance" do
+
+    before(:each) do
+      @df = R.data__frame(a: (1..5), b: (5..1), c: R.c(5, 3, 1, 4, 1))
+    end
+
+    it "should access columns of the data frame by name" do
+      # Note that we use {a} and not {:a}.  In the context of the @df
+      # object 'a' is a call to the method that returns column 'a'
+      expect(@df.instance_eval {a}).to eq R.c(1, 2, 3, 4, 5)
+      expect(@df.instance_eval {b}).to eq R.c(5, 4, 3, 2, 1)
+      expect(@df.instance_eval {c}).to eq R.c(5, 3, 1, 4, 1)
+    end
+    
+    it "should evaluate the expression in the given instance" do
+      # Ruby way of evaluation code in the scope of an object.
+      val = @df.instance_eval {a.eql 4}
+      expect(val).to eq R.c(false, false, false, true, false)
+
+      val = @df.instance_eval {a >= 3}
+      expect(val).to eq R.c(false, false, true, true, true)
+
+      val = @df.instance_eval {a.eql b}
+      expect(val).to eq R.c(false, false, true, false, false)
+    end
+    
+  end
+
 end

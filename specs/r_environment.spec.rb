@@ -25,6 +25,7 @@ require 'galaaz'
 
 describe R::Environment do
   
+  #----------------------------------------------------------------------------------------
   context "Using environment" do
 
     before(:each) do
@@ -111,5 +112,29 @@ describe R::Environment do
     
   end
 
+  #----------------------------------------------------------------------------------------
+  context "Evaluating expressions" do
+
+    before(:each) do
+      R.len = 10
+      R.sd = 20
+      vec = R.c(1, 2, 3, 4)
+      R.x = R.c(1, 2, 3, 4)
+    end
+
+    it "should evaluate an expression in the context of a data maks" do
+      myenv = R.env
+      myenv.e1 = R.expr(:len)
+      myenv.e2 = R.expr(:sd)
+      myenv.e3 = R.expr(R.c(1, 2, 3, 4))
+      
+      e4 = R.expr(:e1 + :e2 + :e3)
+      expect(e4.to_s).to eq "e1 + e2 + e3"
+      expect(e4.eval(myenv.new_data_mask)).to eq R.c(31, 32, 33, 34)
+
+    end
+    
+  end
+    
 end
 
