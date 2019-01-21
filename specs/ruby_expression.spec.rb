@@ -29,7 +29,7 @@ require 'galaaz'
 # expressions will then be converted to R expressions when necessary.
 #========================================================================================
 
-describe R::Expression do
+describe Symbol do
 
   #========================================================================================
   context "Working with Ruby expressions"  do

@@ -79,7 +79,7 @@ module R
         res2
       }
     R
-    
+        
     #----------------------------------------------------------------------------------------
     # Evaluates an R code
     # @param string [String] A string of R code that can be correctly parsed by R
@@ -375,4 +375,5 @@ module R
   
 end
 
+require_relative 'r_module_s'
 require_relative 'rsupport_scope'

@@ -25,13 +25,20 @@
 
 require 'galaaz'
 # require 'ggplot'
+R.library('dplyr')
+R.library('nycflights13')
 
+
+#=begin
 
 R::Support.eval(<<-R)
   ene = function(x) {
     enexpr(x)
   }
 R
+#=end
+
+# puts
 
 #R.len = 10
 #R.sd = 20

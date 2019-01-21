@@ -70,7 +70,7 @@ module E
   
   def self.method_missing(symbol, *args)
     name = R::Support.convert_symbol2r(symbol)
-    rargs = R.exprs(name.to_sym, *args)
+    rargs = R.exprs(name.to_sym, *args)    
     R.as__call(rargs)
   end
   
@@ -137,8 +137,51 @@ class Symbol
   #
   #--------------------------------------------------------------------------------------
 
+  def succ
+    self.to_s.succ.to_sym
+  end
+  
+  #----------------------------------------------------------------------------------------
+  # We use the following notation to access binary R functions such as %in%:
+  # R.vec_ "in", list.
+  # @param args [Array] The first element of the array is an R infix function, the other
+  # arguments are the list of arguments for the function.
+  #----------------------------------------------------------------------------------------
+  
+  def _(*args)
+    name = "%#{args.shift.to_s}%"
+    args.unshift(self)
+    rargs = R.exprs(name, *args)
+    R.as__call(rargs)
+  end
+  
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+
   def assign(expression)
     exec_bin_oper("`<-`", expression)
+  end
+
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+
+  def method_missing(symbol, *args, &block)
+    R.send(symbol.to_s, self, *args)
+  end
+
+  #--------------------------------------------------------------------------------------
+  # If method_missing is implemented, then we also need to implement method 'to_ary'.
+  # This is because starting from ruby 1.9 the code for Array#flatten has changed,
+  # calling 'to_ary' blindly (even if the method is not implemented).  This causes
+  # the method to be caught by 'method_missing' and here sending a 'to_ary' no found
+  # error.  If we create to_ary, then no error is issued.
+  # @TODO: make sure that implementing 'to_ary' as bellow will not create problems
+  #--------------------------------------------------------------------------------------
+
+  def to_ary
+    [self.to_s]
   end
   
 end
