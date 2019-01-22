@@ -26,7 +26,6 @@
 require 'galaaz'
 # require 'ggplot'
 
-
 e = E.poly(:lstat, 5)
 
 =begin
