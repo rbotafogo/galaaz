@@ -209,7 +209,7 @@ module R
     #
     #--------------------------------------------------------------------------------------
 
-    def ^(other_object)
+    def =~(other_object)
       exec_bin_oper("`~`", other_object)
     end
         

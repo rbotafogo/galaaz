@@ -282,4 +282,47 @@ describe Symbol do
     
   end
 
+
+  #========================================================================================
+  context "Tidyverse evaluation" do
+
+    it "should allow passing expressions to ggplot" do
+      require 'ggplot'
+
+      # df is a Ruby symbol and ToothGrowth is an R dataframe.  But at this point
+      # there is no relationship between the two
+      df = :ToothGrowth
+      
+      # we now call a method on a Ruby symbol.  This will try to identify if this
+      # method exists in the R dataframe.  This is one of the columns of the R
+      # dataframe, so 'dose' is now an R expression
+      dose = df.dose
+      expect(dose.to_s).to eq "ToothGrowth[[\"dose\"]]"
+
+      # dose.assign is an R expression, equivalent to 'ToothGrowth[["dose"]] <-'
+      # an the whole expression becomes:
+      # 'ToothGrowth[["dose"]] <- as.factor(ToothGrowth[["dose"]])'
+      dose.assign dose.as__factor
+      
+      df2 = R.data__frame(
+        R.aggregate(df.len, by: R.list(dose), FUN: :mean),
+        R.aggregate(df.len, by: R.list(dose), FUN: :sd)[2]
+      )
+      
+      df2.names = R.c("dose", "len", "sd")
+
+      # pass the expressions ':len - :sd' and ':len + :sd' to the aes function
+      f = df2.ggplot(E.aes(x: :dose, y: :len, 
+                           ymin: :len - :sd,
+                           ymax: :len + :sd))
+
+      # create the graphics and saves it
+      R.png("specs/figures/dose_len.png")
+      puts f + R.geom_crossbar
+      R.dev__off
+      
+    end
+
+  end
+
 end
