@@ -27,9 +27,9 @@ require 'ggplot'
 R.install_and_loads('ISLR', 'MASS')
 
 # Multiple linear regression from ISLR book.  Chapter 3 Lab, pg 113
-lm_fit = R.lm(:medv ^ :lstat + :age, data: :Boston)
+lm_fit = R.lm((:medv.til :lstat + :age), data: :Boston)
 puts lm_fit.summary
 
 #   Non-linear Transformations of the Predictors
-lm_fit5 = R.lm(:medv ^ Q.poly(:lstat, 5), data: :Boston)
+lm_fit5 = R.lm((:medv.til E.poly(:lstat, 5)), data: :Boston)
 puts lm_fit5.summary

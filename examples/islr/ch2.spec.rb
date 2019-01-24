@@ -61,36 +61,39 @@ context "ISLR" do
     it "should apply a function to all elements of the matrix: ex: sqrt" do
       x = R.matrix(data: R.c(1, 2, 3, 4), nrow: 2, ncol: 2, byrow: true)
       z = x.sqrt
-      expect(z[1, 2] == 1.73).to eq true
-      expect(z[2, 1] == 1.41).to eq true
+      expect(z[1, 2].all__equal(1.41421356)).to eq true
+      expect(z[2, 1].all__equal(1.73205080)).to eq true
     end      
 
     it "should generate a vector of random normal variables using rnorm" do
+      R.set__seed(3)
       x = R.rnorm(50)
       y = x + R.rnorm(50, mean: 40, sd: 0.1)
-      expect(R.cor(x, y) == 0.995).to eq true
+      expect(R.cor(x, y).all__equal(0.995717314227608)).to eq true
+      expect(x.cor(y).all__equal(0.995717314227608)).to eq true
     end
 
     it "should allow to setting the seed" do
       R.set__seed(1303)
       x = R.rnorm(50)
-      expect(x[1] == -1.1440).to eq true
-      expect(x[2] == 1.3421).to eq true
-      expect(x[4] == 0.5364).to eq true
+      expect(x[1].all__equal(-1.14397631)).to eq true
+      expect(x[2].all__equal(1.34212936)).to eq true
+      expect(x[4].all__equal(0.53639251)).to eq true
     end
 
     it "should calculate the mean" do
       R.set__seed(3)
       y = R.rnorm(100)
-      expect(y.mean == 0.0110).to eq true
+      expect(y.mean.all__equal(0.0110355710)).to eq true
     end
 
     it "should calculate the variance" do
       R.set__seed(3)
       y = R.rnorm(100)
-      expect(y.var == 0.7329).to eq true
-      expect(y.var.sqrt == 0.8561).to eq true
-      expect(y.sd == 0.8561).to eq true
+      
+      expect(y.var.all__equal(0.732867501277449)).to eq true
+      expect(y.var.sqrt.all__equal(0.856076808047881)).to eq true
+      expect(y.sd.all__equal(0.856076808047881)).to eq true
     end
 
   end
@@ -115,12 +118,10 @@ context "ISLR" do
       sleep(3)
     end
 
-    # does not print anything... open issue!
     it "should create a jpeg file" do
-      R.jpeg("/home/rbotafogo/desenv/galaaz/examples/islr/Figure.jpg")
-      x = R.rnorm(100)
-      y = R.rnorm(100)
-      plot = R.qplot(x, y, col: "green")
+      R.jpeg("/home/rbotafogo/desenv/galaaz/examples/islr/x_y_rnorm.jpg")
+      R.df = R.data__frame(x: R.rnorm(100), y: R.rnorm(100))
+      puts R.qplot(:df.x, :df.y, col: "green")
       R.dev__off
     end
 
@@ -128,10 +129,11 @@ context "ISLR" do
       x = R.seq(1, 10)
       expect(x[5] == 5).to eq true
       y = R.seq(-~:pi, ~:pi, length: 50)
-      expect(y[1] == -3.14159265).to eq true
-      expect(y[7] == -2.37222302).to eq true
-      expect(y[26] == 0.06411414).to eq true
+      expect(y[1].all__equal(-3.1415926535)).to eq true
+      expect(y[7].all__equal(-2.3722230241)).to eq true
+      expect(y[26].all__equal(0.0641141357875465)).to eq true
     end
+    
 =begin
     it "creates contour plots with ggplot" do
       x = y = R.seq(-R.pi, R.pi, length: 50)
@@ -140,6 +142,7 @@ context "ISLR" do
       
       R.awt
       print R.ggplot(df, E.aes(:x, :y, z: f))      
+      R.dev__off
     end
 =end    
   end

@@ -22,7 +22,6 @@
 ##########################################################################################
 
 require 'galaaz'
-
 R.install_and_loads('ISLR', 'MASS')
 
 describe R::Language do
@@ -30,9 +29,9 @@ describe R::Language do
   #========================================================================================
   context "When working with Formulas" do
     
-    it "should create formulas with the '^' operator" do
-      formula = (:cyl ^ :exp)
-      expect(formula.to_s).to eq "(cyl ~ exp)"
+    it "should create formulas with the '=~' operator" do
+      formula = (:cyl.til :exp)
+      expect(formula.to_s).to eq "cyl ~ exp"
       rform = R.identity(formula)
       expect(rform.typeof).to eq 'language'
       expect(rform.rclass).to eq 'formula'
@@ -41,21 +40,18 @@ describe R::Language do
     it "should create a formula with '.' by using the ':all' keyword in the rhs" do
       # this formula is interpreted as 'supp ~ .' In this statement formula
       # is an R::Expression which has infix and prefix notation
-      formula = :supp ^ :all
-      expect(formula.to_s).to eq "(supp ~ .)"
-      # This is now an R::RExpression
-      rform = R.identity(formula) 
-      expect(rform.rclass).to eq "formula"
-      expect(rform.typeof).to eq "language"
+      formula = :supp.til :__
+      expect(formula.to_s).to eq "supp ~ ."
+      expect(formula.rclass).to eq "formula"
+      expect(formula.typeof).to eq "language"
     end
     
     it "should create a formula with '.' by using the ':all' keyword in the lhs" do
       # this formula is interpreted as '. ~ supp'
-      formula = :all ^ :supp
-      expect(formula.to_s).to eq "(. ~ supp)"
-      rform = R.identity(formula) 
-      expect(rform.rclass).to eq "formula"
-      expect(rform.typeof).to eq "language"
+      formula = :__.til :supp
+      expect(formula.to_s).to eq ". ~ supp"
+      expect(formula.rclass).to eq "formula"
+      expect(formula.typeof).to eq "language"
     end
 
   end
@@ -64,12 +60,12 @@ describe R::Language do
   context "When modeling with formulas" do
 
     before(:each) do
-      @boston_lm = R.lm(:medv ^ :lstat, data: :Boston)
+      @boston_lm = R.lm((:medv.til :lstat), data: :Boston)
     end
 
     it "should obtain data from the model" do
-      expect(@boston_lm.coefficients[[1]]).to eq 34.55384
-      expect(@boston_lm.coefficients[[2]]).to eq -0.9500494
+      expect(@boston_lm.coefficients[[1]].all__equal(34.5538408)).to eq true
+      expect(@boston_lm.coefficients[[2]].all__equal(-0.950049353)).to eq true
 
       expect(@boston_lm.names[[1]]).to eq "coefficients"
       expect(@boston_lm.names[[2]]).to eq "residuals"
@@ -80,26 +76,26 @@ describe R::Language do
       # predict the confidence interval
       conf = R.predict(@boston_lm, R.data__frame(lstat: (R.c(5, 10, 15))),
                        interval: "confidence")
-      expect(conf[1, :all][['fit']]).to eq 29.80359
-      expect(conf[2, :all][['lwr']]).to eq 24.47413
-      expect(conf[3, :all][['upr']]).to eq 20.87461
+      expect(conf[1, :all][['fit']].all__equal(29.8035941)).to eq true
+      expect(conf[2, :all][['lwr']].all__equal(24.4741320)).to eq true
+      expect(conf[3, :all][['upr']].all__equal(20.8746129)).to eq true
     end
 
     it "should do prediction (prediction) based on the model" do
       pred = R.predict(@boston_lm, R.data__frame(lstat: (R.c(5, 10, 15))),
                        interval: "prediction")
-      expect(pred[1, :all][['fit']]).to eq 29.80359
-      expect(pred[2, :all][['lwr']]).to eq 12.827626
-      expect(pred[3, :all][['upr']]).to eq 32.52846
+      expect(pred[1, :all][['fit']].all__equal(29.8035941)).to eq true
+      expect(pred[2, :all][['lwr']].all__equal(12.82762634)).to eq true
+      expect(pred[3, :all][['upr']].all__equal(32.5284590)).to eq true
     end
 
     it "should do multiple linear regression" do
       # Multiple linear regression from ISLR book.  Chapter 3 Lab, pg 113
-      lm_fit = R.lm(:medv ^ :lstat + :age, data: :Boston)
+      lm_fit = R.lm((:medv.til :lstat + :age), data: :Boston)
       puts lm_fit.summary
 
-      # lm_fit5 = R.lm(:medv ^ E.poly(:lstat, 5), data: :Boston)
-      # puts lm_fit5
+      lm_fit5 = R.lm((:medv.til E.poly(:lstat, 5)), data: :Boston)
+      puts lm_fit5
     end
 
   end

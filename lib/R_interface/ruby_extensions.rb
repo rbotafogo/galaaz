@@ -39,6 +39,12 @@ module R
         function(op1, op2) {
           o1 = enexpr(op1)
           o2 = enexpr(op2)
+          if (o1 == expr(`__`)) {
+            o1 = expr(.)
+          }
+          if (o2 == expr(`__`)) {
+            o2 = expr(.)
+          }
           expr(#{operator}(!!o1, !!o2))
         }
         R

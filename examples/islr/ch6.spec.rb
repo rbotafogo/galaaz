@@ -50,7 +50,7 @@ context "ISLR" do
       # every element and check if they are na or not.  Note that the return os
       # is__na is an R::Vector, so we need to 'pop' the value to a Ruby value in
       # ordet to apply the '?' method
-      expect(@hitters.Salary.sum { |e| ((e.is__na == true).pop) ? 1 : 0 }).to eq 59
+      expect(@hitters.Salary.sum { |e| (e.is__na == true)? 1 : 0 }).to eq 59
     end
 
     it "should remove missing values with na__omit" do

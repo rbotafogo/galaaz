@@ -26,22 +26,40 @@
 require 'galaaz'
 # require 'ggplot'
 
-e = E.poly(:lstat, 5)
+x = R.seq(1, 10)
+puts x[5] << 0
+
+# expect(x[5] == 5).to eq true
+y = R.seq(-~:pi, ~:pi, length: 50)
+puts y[1] << 0
+puts y[7] << 0
+puts y[26] << 0
+
+#expect(y[1].all__equal(-3.14159265)).to eq true
+#expect(y[7].all__equal(-2.37222302)).to eq true
+#expect(y[26].all__equal(0.06411414)).to eq true
+
+
+R.set__seed(3)
+x = R.rnorm(50)
+y = x + R.rnorm(50, mean: 40, sd: 0.1)
+
+puts R.cor(x, y) << 0
+
+
+
 
 =begin
-puts R.substitute(:a =~ :cyl + :dep)
-=end
+formula = :cyl.til :exp
+puts formula
+puts formula.to_s
 
-=begin
-R.install_and_loads('ISLR', 'MASS')
+formula = E.log(:y).til :a + E.log(:x)
+puts formula
+puts formula.to_s
 
-lm_fit5 = R.lm(:medv =~ E.poly(:lstat, 5), data: :Boston)
+
+lm_fit5 = R.lm((:medv.til E.poly(:lstat, 5.0)), data: :Boston)
 puts lm_fit5.summary
-
-# puts R.as__formula("~ f(x, y)")
-=end
-
-=begin
-boston_lm = R.lm(:medv =~ :lstat, data: :Boston)
 
 =end
