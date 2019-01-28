@@ -29,7 +29,7 @@ describe R::Language do
   #========================================================================================
   context "When working with Formulas" do
     
-    it "should create formulas with the '=~' operator" do
+    it "should create formulas with the '.til' function" do
       formula = (:cyl.til :exp)
       expect(formula.to_s).to eq "cyl ~ exp"
       rform = R.identity(formula)
@@ -46,7 +46,7 @@ describe R::Language do
       expect(formula.typeof).to eq "language"
     end
     
-    it "should create a formula with '.' by using the ':all' keyword in the lhs" do
+    it "should create a formula with '.' by using the ':__' keyword in the lhs" do
       # this formula is interpreted as '. ~ supp'
       formula = :__.til :supp
       expect(formula.to_s).to eq ". ~ supp"
@@ -54,10 +54,66 @@ describe R::Language do
       expect(formula.typeof).to eq "language"
     end
 
+    it "should create a formula starting with '~' with the ':all' symbol in the lhs" do
+      formula = :all.til :supp
+      expect(formula.to_s).to eq " ~ supp"
+      expect(formula.rclass).to eq "formula"
+      expect(formula.typeof).to eq "language"
+    end
+
+    it "should allow formulas with conditional" do
+      formula = :Sepal__Width.til :Petal__Width | :Species
+      expect(formula.to_s).to eq "Sepal.Width ~ Petal.Width | Species"
+    end
+
+    it "should allow creating formulas with functions in the lhs" do
+      formula = E.log(:y).til :a + E.log(:x)
+      puts formula
+      puts formula.to_s
+    end
+    
   end
 
   #========================================================================================
-  context "When modeling with formulas" do
+  context "Formula operators" do
+
+    it "should add multiple independent variables to a formula with '+'" do
+      # Use multiple independent variables
+      formula = :y.til :x1 + :x2
+      expect(formula.to_s).to eq "y ~ x1 + x2"
+    end
+
+    it "should ignore objects in an analysis with '-'" do
+      # Ignore objects in an analysis
+      formula = :y.til :x1 - :x2
+      expect(formula.to_s).to eq "y ~ x1 - x2"
+    end
+    
+    it "should create interaction between objects with '*'" do
+      # Ignore objects in an analysis
+      formula = :y.til :x * :x2
+      expect(formula.to_s).to eq "y ~ x * x2"
+
+      # Set seed
+      R.set__seed(123)
+      
+      # Data
+      R.x = R.rnorm(5)
+      R.x2 = R.rnorm(5)
+      R.y = R.rnorm(5)
+      
+      # Model frame
+      model = R.model__frame(formula, data: R.data__frame(x: :x, y: :y, x2: :x2))
+      expect(model[1, 1].all__equal(1.22408179743946)).to eq true
+      expect(model[1, 3].all__equal(1.71506498688328)).to eq true
+      expect(model[3, 2].all__equal(1.55870831414912)).to eq true
+      expect(model[5, 1].all__equal(-0.555841134754075)).to eq true
+    end
+
+  end
+
+  #========================================================================================
+  context "When modeling with formulas - Simple linear regression" do
 
     before(:each) do
       @boston_lm = R.lm((:medv.til :lstat), data: :Boston)
@@ -89,15 +145,37 @@ describe R::Language do
       expect(pred[3, :all][['upr']].all__equal(32.5284590)).to eq true
     end
 
+  end
+
+  #========================================================================================
+  context "Multiple linear regression" do
+
     it "should do multiple linear regression" do
       # Multiple linear regression from ISLR book.  Chapter 3 Lab, pg 113
       lm_fit = R.lm((:medv.til :lstat + :age), data: :Boston)
-      puts lm_fit.summary
-
-      lm_fit5 = R.lm((:medv.til E.poly(:lstat, 5)), data: :Boston)
-      puts lm_fit5
+      
+      # Intercept
+      expect(lm_fit.coefficients[[1]].all__equal(33.2227605317)).to eq true
+      # lstat
+      expect(lm_fit.coefficients[[2]].all__equal(-1.0320685641)).to eq true
+      expect(lm_fit.coefficients[['lstat']].all__equal(-1.0320685641)).to eq true
+      # age
+      expect(lm_fit.coefficients[[3]].all__equal(0.0345443385)).to eq true
     end
 
-  end
+    it "should do multiple linear regression with polynomials" do
+      lm_fit5 = R.lm((:medv.til E.poly(:lstat, 5)), data: :Boston)
 
+      # Intercept
+      expect(lm_fit5.coefficients[[1]].all__equal(22.53280632411)).to eq true
+      # Poly 1
+      expect(lm_fit5.coefficients[[2]].all__equal(-152.4595487225)).to eq true
+      # Poly 3
+      expect(lm_fit5.coefficients[[4]].all__equal(-27.0510978864097)).to eq true
+      # Poly 5
+      expect(lm_fit5.coefficients[[6]].all__equal(-19.2524177100554)).to eq true
+    end
+    
+  end
+  
 end

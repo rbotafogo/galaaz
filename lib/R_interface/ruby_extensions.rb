@@ -25,7 +25,6 @@
 #
 #==========================================================================================
 
-
 module R
 
   module ExpBinOp
@@ -35,20 +34,8 @@ module R
     #--------------------------------------------------------------------------------------
 
     def exec_bin_oper(operator, other_object)
-      f = R::Support.eval(<<-R)
-        function(op1, op2) {
-          o1 = enexpr(op1)
-          o2 = enexpr(op2)
-          if (o1 == expr(`__`)) {
-            o1 = expr(.)
-          }
-          if (o2 == expr(`__`)) {
-            o2 = expr(.)
-          }
-          expr(#{operator}(!!o1, !!o2))
-        }
-        R
-      R::Support.exec_function(f, self, other_object)
+      R::Support.exec_function(R::Support.create_bin_expr(operator), self,
+                               other_object)
     end
 
     #--------------------------------------------------------------------------------------
@@ -125,9 +112,6 @@ class Symbol
   #--------------------------------------------------------------------------------------
 
   def +@
-    # var = (self == :all)? '.' : to_s
-    # R::Object.build(R::Support.eval("as.name").call(var))
-    # R::RubyExpression.build_uni_exp(self)
     R.expr(self)
   end
 
@@ -193,6 +177,14 @@ class Symbol
     
   end
 
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+  
+  def inter(var2)
+    R::Support.exec_function(R::Support.range, self, var2)
+  end
+  
   #--------------------------------------------------------------------------------------
   # If method_missing is implemented, then we also need to implement method 'to_ary'.
   # This is because starting from ruby 1.9 the code for Array#flatten has changed,

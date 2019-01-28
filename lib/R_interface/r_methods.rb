@@ -112,6 +112,44 @@ module R
       R
     end
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def self.range
+      Polyglot.eval("R", <<-R)
+        function(x, y, neg = FALSE) {
+          e1 = enexpr(x)
+          e2 = enexpr(y)
+          if (neg) {
+            expr(-(!!e1:!!e2))
+          } else {
+            expr(!!e1:!!e2)
+          }
+        }
+      R
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def self.create_bin_expr(operator)
+      Polyglot.eval("R", <<-R)
+        function(op1, op2) {
+          o1 = enexpr(op1)
+          o2 = enexpr(op2)
+          if (typeof(o1) == 'symbol' && o1 == expr(`__`)) {
+            o1 = expr(.)
+          }
+          if (typeof(o2) == 'symbol' && o2 == expr(`__`)) {
+            o2 = expr(.)
+          }
+          expr(#{operator}(!!o1, !!o2))
+        }
+        R
+    end
+
   end
   
 end

@@ -38,9 +38,6 @@ describe Symbol do
       R.len = 10
       R.sd = 20
       R.vec = R.c(1, 2, 3, 4)
-      
-      # those are formulas: have a '^' operator
-      # @formula1 = :y ^ :len + :sd    # (y ~ (len + sd))
     end
     
     it "should convert a Ruby symbol into an R symbol with unary '+'" do
@@ -190,7 +187,7 @@ describe Symbol do
     end
 
     it "should allow constructing calls with 'call2'" do
-      e = R.call2("mean", x: E.expr(:x), na__rm: TRUE)
+      e = R.call2("mean", x: E.expr(:x), na__rm: true)
       expect(e.to_s).to eq "mean(x = x, na.rm = TRUE)"
       
       #> mean(x = x, na.rm = TRUE)
@@ -320,7 +317,6 @@ describe Symbol do
       R.png("specs/figures/dose_len.png")
       puts f + R.geom_crossbar
       R.dev__off
-      
     end
 
   end

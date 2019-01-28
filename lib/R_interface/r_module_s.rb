@@ -30,20 +30,12 @@ module R
 
   module S
     
-    @@columns = Polyglot.eval("R", <<-R)
-      function(x, y, neg = FALSE) {
-        e1 = enexpr(x)
-        e2 = enexpr(y)
-        if (neg) {
-          expr(-(!!e1:!!e2))
-        } else {
-          expr(!!e1:!!e2)
-        }
-      }
-    R
-
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+    
     def self.columns(col_ini, col_end, remove: false)
-      R::Support.exec_function(@@columns, col_ini, col_end, remove)
+      R::Support.exec_function(R::Support.range, col_ini, col_end, remove)
     end
     
   end

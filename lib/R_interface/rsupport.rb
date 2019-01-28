@@ -23,7 +23,7 @@
 
 
 module R
-
+  
   #--------------------------------------------------------------------------------------
   # The empty_symbol is necessary to represent indexing with a missing argument such
   # as [x, ].  What follows the ',' is an empty_symbol.  Whenever we use in Ruby the
@@ -148,7 +148,7 @@ module R
       when :all
         R.empty_symbol
       when Symbol
-        arg = R::Support.eval("as.name").call(arg.to_s)
+        arg = R::Support.eval("as.name").call(arg.to_s.gsub(/__/,"."))
       when Proc, Method
         R::RubyCallback.build(arg)
       # when R::Expression

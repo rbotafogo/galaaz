@@ -49,7 +49,7 @@ require_relative 'r_matrix.spec'
 # Specification for R::Dataframes
 require_relative 'r_dataframe.spec'
 
-#require_relative 'r_formula.spec'
+require_relative 'r_formula.spec'
 
 # Testes for NSE
 # require_relative 'r_nse.spec'
