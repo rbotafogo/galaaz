@@ -41,6 +41,21 @@ module R
       R
     end
 
+    def self.capture2
+      Polyglot.eval("R", <<-R)
+        function(obj, ...) {
+          tryCatch({
+            sink(tt <- textConnection("results","w"), split=FALSE, type = c("output", "message"));
+            print(obj, ...);
+            sink();
+            results
+          }, finally = {
+            close(tt);
+          })
+        }
+      R
+    end
+    
     def self.start_capture
       Polyglot.eval("R", <<-R)
         function(cap_variable) {

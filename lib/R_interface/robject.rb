@@ -318,19 +318,23 @@ module R
 
     def to_s
 
-      cap = nil
-      # dev = R::Device.new('png', width: 5, height: 7, dpi: 300, record: true) {
-      cap = R::Support.capture.call(r_interop)
-      # cap = R::Support.capture_output.call(r_interop)
-      # }
-      str = String.new
-      (0...(cap.size - 1)).each do |i|
-        str << cap[i] << "\n"
+      begin
+        
+        cap = nil
+        cap = R::Support.capture2.call(r_interop)
+        str = String.new
+        (0...(cap.size - 1)).each do |i|
+          str << cap[i] << "\n"
+        end
+        str << cap[cap.size - 1] if cap.size >= 1
+        str
+        
+      rescue StandardError => e
+        puts e
       end
-      str << cap[cap.size - 1] if cap.size >= 1
-      str
+      
     end
-
+    
   end
   
 end
