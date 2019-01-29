@@ -29,47 +29,70 @@ describe R::Language do
   #========================================================================================
   context "When working with Formulas" do
     
+    it "should create formulas with the 'formula' function" do
+      formula = R.formula("log(y) ~ a + log(x)")
+      # formulas also capture their environment.  When printing the
+      # formula, two lines are printed: the first one with the formula
+      # and the second one with the environmnet. We are keeping only the
+      # first line for comparing with the expected formula
+      expect(formula.to_s.lines.first.chomp).to eq "log(y) ~ a + log(x)"
+    end
+
     it "should create formulas with the '.til' function" do
+      formula = R.formula("cyl ~ exp")
+      expect(formula.to_s.lines.first.chomp).to eq "cyl ~ exp"
+      
       formula = (:cyl.til :exp)
-      expect(formula.to_s).to eq "cyl ~ exp"
+      expect(formula.to_s.lines.first.chomp).to eq "cyl ~ exp"
       rform = R.identity(formula)
       expect(rform.typeof).to eq 'language'
       expect(rform.rclass).to eq 'formula'
     end
 
     it "should create a formula with '.' by using the ':all' keyword in the rhs" do
+      formula = R.formula("supp ~ .")
+      expect(formula.to_s.lines.first.chomp).to eq "supp ~ ."
+      
       # this formula is interpreted as 'supp ~ .' In this statement formula
       # is an R::Expression which has infix and prefix notation
       formula = :supp.til :__
-      expect(formula.to_s).to eq "supp ~ ."
+      expect(formula.to_s.lines.first.chomp).to eq "supp ~ ."
       expect(formula.rclass).to eq "formula"
       expect(formula.typeof).to eq "language"
     end
     
     it "should create a formula with '.' by using the ':__' keyword in the lhs" do
+      formula = R.formula(". ~ supp")
+      expect(formula.to_s.lines.first.chomp).to eq ". ~ supp"
+
       # this formula is interpreted as '. ~ supp'
       formula = :__.til :supp
-      expect(formula.to_s).to eq ". ~ supp"
+      expect(formula.to_s.lines.first.chomp).to eq ". ~ supp"
       expect(formula.rclass).to eq "formula"
       expect(formula.typeof).to eq "language"
     end
 
     it "should create a formula starting with '~' with the ':all' symbol in the lhs" do
+      formula = R.formula("~ supp")
+      expect(formula.to_s.lines.first.chomp).to eq "~supp"
+      
       formula = :all.til :supp
-      expect(formula.to_s).to eq " ~ supp"
+      expect(formula.to_s.lines.first.chomp).to eq " ~ supp"
       expect(formula.rclass).to eq "formula"
       expect(formula.typeof).to eq "language"
     end
 
     it "should allow formulas with conditional" do
+      formula = R.formula("Sepal.Width ~ Petal.Width | Species")
+      expect(formula.to_s.lines.first.chomp).to eq "Sepal.Width ~ Petal.Width | Species"
+      
       formula = :Sepal__Width.til :Petal__Width | :Species
-      expect(formula.to_s).to eq "Sepal.Width ~ Petal.Width | Species"
+      expect(formula.to_s.lines.first.chomp).to eq "Sepal.Width ~ Petal.Width | Species"
     end
 
     it "should allow creating formulas with functions in the lhs" do
       formula = E.log(:y).til :a + E.log(:x)
-      puts formula
-      puts formula.to_s
+      expect(formula.to_s.lines.first.chomp).to eq "log(y) ~ a + log(x)"
     end
     
   end
@@ -80,19 +103,19 @@ describe R::Language do
     it "should add multiple independent variables to a formula with '+'" do
       # Use multiple independent variables
       formula = :y.til :x1 + :x2
-      expect(formula.to_s).to eq "y ~ x1 + x2"
+      expect(formula.to_s.lines.first.chomp).to eq "y ~ x1 + x2"
     end
 
     it "should ignore objects in an analysis with '-'" do
       # Ignore objects in an analysis
       formula = :y.til :x1 - :x2
-      expect(formula.to_s).to eq "y ~ x1 - x2"
+      expect(formula.to_s.lines.first.chomp).to eq "y ~ x1 - x2"
     end
     
     it "should create interaction between objects with '*'" do
       # Ignore objects in an analysis
       formula = :y.til :x * :x2
-      expect(formula.to_s).to eq "y ~ x * x2"
+      expect(formula.to_s.lines.first.chomp).to eq "y ~ x * x2"
 
       # Set seed
       R.set__seed(123)
@@ -108,6 +131,34 @@ describe R::Language do
       expect(model[1, 3].all__equal(1.71506498688328)).to eq true
       expect(model[3, 2].all__equal(1.55870831414912)).to eq true
       expect(model[5, 1].all__equal(-0.555841134754075)).to eq true
+    end
+
+    it "should allow creating formulas with interaction between variables with 'inter'" do
+      formula = :y.til :x + :x2 + (:x.inter :x2)
+      expect(formula.to_s.lines.first.chomp).to eq "y ~ x + x2 + x:x2"
+
+      # Set seed
+      R.set__seed(123)
+      
+      # Data
+      R.x = R.rnorm(5)
+      R.x2 = R.rnorm(5)
+      R.y = R.rnorm(5)
+      
+      # Model frame
+      model = R.model__frame(formula, data: R.data__frame(x: :x, y: :y, x2: :x2))
+      expect(model[1, 1].all__equal(1.22408179743946)).to eq true
+      expect(model[1, 3].all__equal(1.71506498688328)).to eq true
+      expect(model[3, 2].all__equal(1.55870831414912)).to eq true
+      expect(model[5, 1].all__equal(-0.555841134754075)).to eq true
+    end
+
+    it "should allow creating formulas with interaction with ':in'" do
+      # note that '_' is a method with two arguments ':in' and ':a' and
+      # that it is necessary to put the whole expression in parenthesis or
+      # add parenthesis on the arguments
+      formula = :y.til :a + (:b._ :in, :a)
+      expect(formula.to_s.lines.first.chomp).to eq "y ~ a + b %in% a"
     end
 
   end

@@ -26,8 +26,13 @@
 require 'galaaz'
 # require 'ggplot'
 
-formula = :y.til :x1 + :x2 + (:x1.inter :x2)
+formula = :y.til :x + E.I(:x**2)
 puts formula
+puts formula.ast
+
+formula = :y.til :x + :x**2
+puts formula
+puts formula.ast
 
 =begin
 formula = :cyl.til :exp

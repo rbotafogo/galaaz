@@ -135,6 +135,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def self.create_bin_expr(operator)
+      is_formula = (operator == "`~`")? 'TRUE' : 'FALSE'
       Polyglot.eval("R", <<-R)
         function(op1, op2) {
           o1 = enexpr(op1)
@@ -145,7 +146,12 @@ module R
           if (typeof(o2) == 'symbol' && o2 == expr(`__`)) {
             o2 = expr(.)
           }
-          expr(#{operator}(!!o1, !!o2))
+          exp = expr(#{operator}(!!o1, !!o2))
+          if (#{is_formula}) {
+            as.formula(exp)
+          } else {
+            exp
+          }
         }
         R
     end
