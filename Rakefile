@@ -176,6 +176,14 @@ task :make_r do
   (sh %{ gu install r })
 end
 
+#===========================================================================================
+# Makes a gem for publishing in RubyGems
+#===========================================================================================
+
+desc 'Makes a Gem'
+task :make_gem do
+  (sh %{ gem build #{$gem_name}.gemspec })
+end
 
 =begin
 name = "#{$gem_name}-#{$version}.gem"

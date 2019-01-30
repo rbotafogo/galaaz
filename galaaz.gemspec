@@ -46,11 +46,13 @@ EOF
   # gem.add_development_dependency('rake', '~> 12.0')
 
   # ensure the gem is built out of versioned files
+  # Collect all files that do not end with '~'
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
-            'lib/**/*', 'specs/**/*', 'examples/**/*', 'r_requires/**/*',
-            'bin/**/*', 'blogs/**/*', 'sty/**/*']
+            'lib/**/*[!~]', 'specs/**/*[!~]', 'examples/**/*[!~]',
+            'r_requires/**/*[!~]', 'bin/**/*[!~]',
+            'blogs/**/*[!~]', 'sty/**/*[!~]']
   gem.files = fls
-
+  
   gem.metadata["yard.run"] = "yri" # use "yard" to build full HTML docs
   
 end
