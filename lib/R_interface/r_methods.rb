@@ -22,7 +22,7 @@
 ##########################################################################################
 
 module R
-
+  
   module Support
     
     #--------------------------------------------------------------------------------------
@@ -41,6 +41,21 @@ module R
       R
     end
 
+    def self.capture2
+      Polyglot.eval("R", <<-R)
+        function(obj, ...) {
+          tryCatch({
+            sink(tt <- textConnection("results","w"), split=FALSE, type = c("output", "message"));
+            print(obj, ...);
+            sink();
+            results
+          }, finally = {
+            close(tt);
+          })
+        }
+      R
+    end
+    
     def self.start_capture
       Polyglot.eval("R", <<-R)
         function(cap_variable) {
@@ -59,6 +74,18 @@ module R
       R
     end
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def self.dbk_index
+      Polyglot.eval("R", <<-R)
+        function(obj, index) {
+          obj[[index]]
+        }
+      R
+    end
+    
     #--------------------------------------------------------------------------------------
     # multi-dimensional indexing
     #--------------------------------------------------------------------------------------
@@ -89,15 +116,59 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    # @bug Needed to create method row__names because dispatch is not working properly
+    #
     #--------------------------------------------------------------------------------------
-
-    def self.set_row_names
-      Polyglot.eval("R", "function(object, x) row.names(object) <- x")
+    
+    def self.enquo
+      Polyglot.eval("R", <<-R)
+        function(x, ...) {
+          enquo(x)          
+        } 
+      R
     end
 
-    def self.get_row_names
-      Polyglot.eval("R", "function(x) row.names(x)")
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def self.range
+      Polyglot.eval("R", <<-R)
+        function(x, y, neg = FALSE) {
+          e1 = enexpr(x)
+          e2 = enexpr(y)
+          if (neg) {
+            expr(-(!!e1:!!e2))
+          } else {
+            expr(!!e1:!!e2)
+          }
+        }
+      R
+    end
+
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def self.create_bin_expr(operator)
+      is_formula = (operator == "`~`")? 'TRUE' : 'FALSE'
+      Polyglot.eval("R", <<-R)
+        function(op1, op2) {
+          o1 = enexpr(op1)
+          o2 = enexpr(op2)
+          if (typeof(o1) == 'symbol' && o1 == expr(`__`)) {
+            o1 = expr(.)
+          }
+          if (typeof(o2) == 'symbol' && o2 == expr(`__`)) {
+            o2 = expr(.)
+          }
+          exp = expr(#{operator}(!!o1, !!o2))
+          if (#{is_formula}) {
+            as.formula(exp)
+          } else {
+            exp
+          }
+        }
+        R
     end
 
   end

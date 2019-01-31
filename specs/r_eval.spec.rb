@@ -110,7 +110,13 @@ describe R do
       # one element of the vector is a 'float'
       double = R.c(1.0, 2, 3)
       expect((~:x).identical double).to eq true
-      expect(R.hyp(3, 4)).to eq 5
+      expect(R.hyp(3, 4).all__equal(5)).to eq true
+      # @TODO: this should work but raises the following error:
+      # TypeError:
+      #  Truffle doesn't have a case for the org.truffleruby.interop.InteropNodesFactory$HasSizeNodeFactory$HasSizeNodeGen node with values of type  java.lang.Double=5.0
+      # I think this is a bug with TruffleRuby that hopefully will be fixed in RC12
+      # If not fixed in RC12 open issue
+      # expect(R.hyp(3, 4)).to eq 5
     end
 
     it "should box R functions in R::Closure Ruby class" do
@@ -136,8 +142,9 @@ describe R do
       # retrieve x and hyp from R and attribute it to local Ruby variables
       x = ~:x
 
-      expect(x[1] == 1).to eq true
-      expect(x[2] == 1).to eq false
+      expect(x[1].all__equal(1)).to eq true
+      expect(x[2].identical(1)).to eq false
+      expect((x << 0) == 1).to eq true
     end
     
     it "should have NA" do
@@ -146,19 +153,4 @@ describe R do
     
   end
 
-  context "Call Non-standard Evaluation methods" do
-
-    it "should pass delayed evaluation parameters to methods" do
-      # call the subset method filtering by 'cyl == 8 & carb > 3'
-      # In order to convert a Ruby symbol to an R symbol we use the '.r' method on the
-      # Ruby symbol.  Ruby bitwise operators '&' and '|' are overloaded and used as 
-      # the equivalent R operators and not as bitwise operators.
-      mt_subset = (~:mtcars).subset((:cyl == 8) & (:carb > 3))
-      expect(mt_subset.mpg == R.c(14.3, 10.4, 10.4, 14.7, 13.3, 15.8, 15.0)).to eq true
-      expect((mt_subset.cyl == 8).all).to eq true
-      expect((mt_subset.carb > 3).all).to eq true
-    end
-    
-  end
-  
 end

@@ -176,17 +176,27 @@ task :make_r do
   (sh %{ gu install r })
 end
 
-
-=begin
-name = "#{$gem_name}-#{$version}.gem"
-
-desc 'default task'
-task :default => [:install_gem]
+#===========================================================================================
+# Makes a gem for publishing in RubyGems
+#===========================================================================================
 
 desc 'Makes a Gem'
 task :make_gem do
-  sh "gem build #{$gem_name}.gemspec"
+  (sh %{ gem build #{$gem_name}.gemspec })
 end
+
+#===========================================================================================
+# Publishes the gem at Rubygems
+#===========================================================================================
+
+desc 'Publish gem to rubygems'
+task :publish_gem do
+  (sh %{ gem push #{$gem_name}-#{$version}.gem })
+end
+
+=begin
+desc 'default task'
+task :default => [:install_gem]
 
 desc 'Install the gem in the standard location'
 task :install_gem => [:make_gem] do
@@ -196,16 +206,6 @@ end
 desc 'Make documentation'
 task :make_doc do
   sh "yard doc lib/*.rb lib/**/*.rb"
-end
-
-desc 'Push project to github'
-task :push do
-  sh "git push origin master"
-end
-
-desc 'Push gem to rubygem'
-task :push_gem do
-  sh "push #{name} -p $http_proxy"
 end
 
 Rake::TestTask.new do |t|

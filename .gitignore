@@ -12,6 +12,9 @@ cran/*
 *.log
 *.dvi
 *.aux
+*.svg
+*.png
+
 
 *.svg
 *.png

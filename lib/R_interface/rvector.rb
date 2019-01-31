@@ -28,6 +28,7 @@ module R
     include BinaryOperators
     include ExecBinOp
     include UnaryOperators
+    include ExecUniOp
     include Enumerable
     
     #--------------------------------------------------------------------------------------

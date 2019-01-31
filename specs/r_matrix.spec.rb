@@ -23,7 +23,7 @@
 
 require 'galaaz'
 
-describe R do
+describe R::Matrix do
 
   #----------------------------------------------------------------------------------------
   context "Matrices" do
@@ -74,8 +74,8 @@ describe R do
     it "should apply a function to all elements of the matrix: ex: sqrt" do
       x = R.matrix(data: R.c(1, 2, 3, 4), nrow: 2, ncol: 2, byrow: true)
       z = x.sqrt
-      expect(z[1, 2] == 1.73).to eq true
-      expect(z[2, 1] == 1.41).to eq true
+      expect(z[1, 2].all__equal(1.41421356)).to eq true
+      expect(z[2, 1].all__equal(1.73205080)).to eq true
     end      
 
   end

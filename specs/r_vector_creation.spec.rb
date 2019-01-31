@@ -35,6 +35,12 @@ describe R::Vector do
       expect(log_vect.mode).to eq "logical"
       expect(log_vect.storage__mode).to eq "logical"
     end
+
+    it "should create a vector from a scalar" do
+      vec = R.c(1)
+      expect(vec.length).to eq 1
+      expect(vec.class).to eq R::Vector
+    end
     
     it "should create integer Vectors" do
       # in R, numbers are converted to double.  To get an int one needs to add L after the

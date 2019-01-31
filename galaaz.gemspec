@@ -38,7 +38,7 @@ EOF
   # This gem targets TruffleRuby only
   # gem.platform='java'
 
-  gem.add_runtime_dependency 'pry', '~> 0.10'
+  # gem.add_runtime_dependency 'pry', '~> 0.10'
   
   gem.add_development_dependency('rspec', "~> 3.8")
   gem.add_development_dependency('simplecov', "~> 0.16")
@@ -46,11 +46,13 @@ EOF
   # gem.add_development_dependency('rake', '~> 12.0')
 
   # ensure the gem is built out of versioned files
+  # Collect all files that do not end with '~'
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
-            'lib/**/*', 'specs/**/*', 'examples/**/*', 'r_requires/**/*',
-            'bin/**/*', 'blogs/**/*', 'sty/**/*']
+            'lib/**/*[!~]', 'specs/**/*[!~]', 'examples/**/*[!~]',
+            'r_requires/**/*[!~]', 'bin/**/*[!~]',
+            'blogs/**/*[!~]', 'sty/**/*[!~]']
   gem.files = fls
-
+  
   gem.metadata["yard.run"] = "yri" # use "yard" to build full HTML docs
   
 end

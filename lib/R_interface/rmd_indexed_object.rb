@@ -35,10 +35,10 @@ module R
     #--------------------------------------------------------------------------------------
 
     def [](*index)
-      if (index[0].is_a? Array)
-        R::Support.exec_function_name("`[[`", @r_interop, R.internal_eval(:c, *index))
-      else
+      if (index.size > 1)
         R::Support.exec_function(R::Support.md_index, @r_interop, *index)
+      else
+        super(*index)
       end
     end
 

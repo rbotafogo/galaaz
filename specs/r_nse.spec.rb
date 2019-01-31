@@ -21,25 +21,40 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-module E
+require 'galaaz'
 
-  #----------------------------------------------------------------------------------------
-  # @param symbol [Symbol]
-  # @param args [Array] arguments to the missing method
-  #----------------------------------------------------------------------------------------
+describe R do
   
-  def self.method_missing(symbol, *args)
-    name = R::Support.convert_symbol2r(symbol)
-    R::Language.build(name, *args)
-  end
+  #========================================================================================
+  context "Non-standard Evaluation"  do
 
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
+    before(:all) do
+      @sample_df = R.data__frame(a: (1..5), b: (5..1), c: R.c(5, 3, 1, 4, 1))
+    end
 
-  def self.[](executable)
-    R::RubyCallback.build(executable)
+    it "should allow functions to receive objects and conditions for evaluation" do
+      
+      def subset(df, condition)
+        # evaluate the condition in the scope of the dataframe
+        r = R.eval(condition, df)
+        df[r, :all]  
+      end
+
+      puts subset(@sample_df, :a >= 4)
+
+      y = 4
+      x = 4
+      condition = 4
+      condition_call = 4
+
+      puts subset(@sample_df, :a == 4)
+      puts subset(@sample_df, :a == y)
+      puts subset(@sample_df, :a == condition)
+      puts subset(@sample_df, :a == condition_call)
+    end
+    
   end
 
 end
 
+    

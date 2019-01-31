@@ -26,13 +26,15 @@ require 'ggplot'
 R.install_and_loads('ISLR', 'MASS')
 
 # Simple linear regression from ISLR book.  Chapter 3 Lab
+# We are using qplot for plotting.  It would be better to use
+# ggplot2, but this is just to show simple ploting.
 
 # load boston data frame on variable boston
 boston = ~:Boston
 
 puts boston.names
 
-boston_lm = R.lm(+:medv =~ +:lstat, data: :Boston)
+boston_lm = R.lm((:medv.til :lstat), data: :Boston)
 # puts boston_lm.str
 # puts boston_lm.summary
 puts boston_lm.names
@@ -40,12 +42,16 @@ puts boston_lm.coef
 puts boston_lm.confint
 conf = R.predict(boston_lm, R.data__frame(lstat: (R.c(5, 10, 15))), interval: "confidence")
 puts conf
+
 pred = R.predict(boston_lm, R.data__frame(lstat: (R.c(5, 10, 15))), interval: "prediction")
 puts pred
 
+puts boston.lstat
+puts boston.medv
+
 R.awt
 
-puts R.qplot(boston.lstat, boston.medv, col: "red") +
+puts R.qplot(:Boston.lstat, :Boston.medv, col: "red") +
      R.geom_abline(intercept: boston_lm.coef[1],
                    slope: boston_lm.coef[2],
                    color: "blue",
@@ -59,19 +65,22 @@ puts R.qplot(boston.lstat, boston.medv, col: "red") +
 sleep(2)
 R.grid__newpage
 
-puts R.qplot(R.predict(boston_lm), R.residuals(boston_lm))
+R.my_data = R.data__frame(pred: R.predict(boston_lm), res: R.residuals(boston_lm))
+puts R.qplot(:my_data.pred, :my_data.res)
 
 sleep(2)
 R.grid__newpage
 
-puts R.qplot(R.predict(boston_lm), R.rstudent(boston_lm))
+R.my_data = R.data__frame(pred: R.predict(boston_lm), res: R.rstudent(boston_lm))
+puts R.qplot(:my_data.pred, :my_data.res)
 
 sleep(2)
 R.grid__newpage
 
 vals = R.hatvalues(boston_lm)
+R.my_data = R.data__frame(size: (1..vals.size), values: vals)
 # method size returns a Numeric... size is equivalent to 'length << 0'
-puts R.qplot((1..vals.size), vals)
+puts R.qplot(:my_data.size, :my_data.values)
 
 sleep(2)
 R.grid__newpage

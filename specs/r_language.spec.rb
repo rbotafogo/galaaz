@@ -47,40 +47,6 @@ describe R::Language do
   end
   
   #========================================================================================
-  context "When creating Calls" do
-
-    
-    it "binary operators should apply to symbols" do
-      # this behaviour is a bit different from R's.  In R this would raise an error
-      # with cyl not found
-      expect((:cyl + 5).to_s).to eq '.Primitive("+")(cyl, 5L)'
-    end
-
-    it "convert evaluate Ruby symbol to R symbol in function argument" do
-      expect(5 + :cyl).to eq R.c(15)
-    end
-
-    # Formula objects are special and are very similar to quoted expressions, but
-    # they are not really quoted since trying to call R.typeof(<formula>) will
-    # evaluate the formula.  We add methods .typeof and .rclass in the Ruby class
-    it "formula have typeof and rclass" do
-      call = :cyl + 5
-      expect(call.typeof).to eq "language"
-      expect(call.rclass).to eq "call"
-    end
-
-    it "during calls creation, only symbols are unevaluated" do
-      # 5 * 10 evaluate to 50 in the call
-      expect((:cyl + 5 * 10).to_s).to eq '.Primitive("+")(cyl, 50L)'
-      # define a variable x
-      x = 20
-      # x is not quoted in the expression
-      expect((:cyl + 5 * x).to_s).to eq '.Primitive("+")(cyl, 100L)'
-    end
-
-  end
-  
-  #========================================================================================
 
   context "Executing R expressions" do
 
@@ -118,18 +84,6 @@ describe R::Language do
       expect(sym.to_s).to eq "sym"
     end
 
-    it "should create a formula with '.' by using the ':all' keyword" do
-      # this formula is interpreted as 'supp ~ .'
-      formula = +:supp =~ :all
-      expect(formula.rclass).to eq "formula"
-    end
-
-    it "should create a formula with '.' by using the ':all' keyword in the lhs" do
-      # this formula is interpreted as '. ~ supp'
-      formula = +:all =~ +:supp
-      expect(formula.rclass).to eq "formula"
-    end
-    
 =begin
     
     it "should create a formula without the lhs" do

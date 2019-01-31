@@ -29,23 +29,25 @@ module R
 
   class RSymbol < R::Object
     include BinaryOperators
-    include FormulaBinOp
-    
+    include ExecBinOp
+    # include FormulaBinOp
+=begin    
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
     
     def =~(other_object)
       # puts "doing #{self} =~ #{other_object}"
-      exec_oper("`~`", other_object, true)
+      exec_bin_oper("`~`", other_object, true)
     end
+=end
 
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
     
     def ^(other_object)
-      exec_oper("`:`", other_object)
+      exec_bin_oper("`:`", other_object)
     end
     
     #--------------------------------------------------------------------------------------
@@ -54,5 +56,4 @@ module R
 
   end
   
-
 end

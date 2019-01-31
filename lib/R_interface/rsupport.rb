@@ -23,7 +23,7 @@
 
 
 module R
-
+  
   #--------------------------------------------------------------------------------------
   # The empty_symbol is necessary to represent indexing with a missing argument such
   # as [x, ].  What follows the ',' is an empty_symbol.  Whenever we use in Ruby the
@@ -64,24 +64,33 @@ module R
     @@exec_from_ruby = Polyglot.eval("R", <<-R)
       function(build_method, ...) {
         # print(build_method);
-        # print("exec_from_ruby")
+        # print("exec_from_ruby");
         # args = list(...);
         # print(args);
-        res = do.call(...);
+
+        # function 'invoke' from package rlang should do a cleaner than
+        # do.call (this is what the documentation says).
+        # res = do.call(...);
+        res = invoke(...);
+
         # print(res);
         res2 = build_method(res);
         # print(res2);
         res2
       }
     R
-    
+        
     #----------------------------------------------------------------------------------------
     # Evaluates an R code
     # @param string [String] A string of R code that can be correctly parsed by R
     #----------------------------------------------------------------------------------------
     
     def self.eval(string)
-      Polyglot.eval("R", string)
+      begin
+        Polyglot.eval("R", string)
+      rescue RuntimeError
+        raise NoMethodError.new("Method #{string} not found in R environment")
+      end
     end
 
     #----------------------------------------------------------------------------------------
@@ -92,7 +101,31 @@ module R
     def self.interop(object)
       Truffle::Interop.foreign?(object)
     end
+    
+=begin
+    #----------------------------------------------------------------------------------------
+    # Builds a quo or a formula based on the given expression.  If the expression has a
+    # '=~' operator, then a formula should be constructed, if not, then an quo should be
+    # constructed
+    # @param expression [R::Expression]
+    # @return quo or formula
+    #----------------------------------------------------------------------------------------
 
+    def self.quo_or_formula(expression)
+
+      if expression.formula?
+        R.as__formula(expression.infix)
+      else
+        # add a '~' before the expression so we can parse it as an
+        # R expression from a string.  Didn't find a good way of creating an
+        # expression from string.
+        # R.as_quosure(R.as__formula("~ #{expression.infix}"))
+        R.rhs(R.as__formula("~ #{expression.infix}"))
+      end
+      
+    end
+=end
+    
     #----------------------------------------------------------------------------------------
     # @param arg [Object] A Ruby object to be converted to R to be used by an R function, or
     # whatever needs it
@@ -100,9 +133,9 @@ module R
     #----------------------------------------------------------------------------------------
 
     def self.parse_arg(arg)
-      
+
       case(arg)
-      when Truffle::Interop
+      when -> (arg) { interop(arg) }
         arg
       when R::Object
         arg.r_interop
@@ -115,10 +148,12 @@ module R
       when :all
         R.empty_symbol
       when Symbol
-        arg = R::Support.eval("as.name").call(arg.to_s)
+        arg = R::Support.eval("as.name").call(arg.to_s.gsub(/__/,"."))
       when Proc, Method
         R::RubyCallback.build(arg)
-      else
+      # when R::Expression
+      #  R::Support.quo_or_formula(arg).r_interop
+      else # This is already a Ruby argument
         arg
       end
 
@@ -137,7 +172,7 @@ module R
         if (arg.is_a? Hash)
           arg.each_pair do |key, value|
             k = key.to_s.gsub(/__/,".")
-            # HAS CHANGED IN RC6... FIXME: THIS TO THE NEW API
+            # HAS CHANGED IN RC6... @TODO: THIS TO THE NEW API
             # When evaluating to NA, Interop treats it as FALSE.  This breaks
             # all expectations about NA.  We need to protect NA from Interop
             # unboxing.  Class NotAvailable
@@ -182,15 +217,6 @@ module R
       name.gsub!("rclass", "class")
       name
     end
-
-    #----------------------------------------------------------------------------------------
-    # Executes the given R function with the given arguments.
-    #----------------------------------------------------------------------------------------
-    
-    def self.exec_function_i(function, *args)
-      pl = R::Support.parse2list(*args)
-      R::Support.eval("do.call").call(function, pl)
-    end
     
     #----------------------------------------------------------------------------------------
     # @param function [R function (Interop)] R function to execute
@@ -201,42 +227,49 @@ module R
     
     def self.exec_function(function, *args)
 
-      # If the execution counter is 0, function was not recursively called
-      # Starts capturing output
-      if (@@exec_counter == 0)
-        R::Support.eval("unlockBinding('r_capture', globalenv())")
-        @@con = R::Support.start_capture.call("r_capture")
-      end
-
-      @@exec_counter = @@exec_counter + 1
-      
-      # function has no arguments, call it directly
-      if (args.length == 0)
-        res = R::Object.build(function.call)
-      else
-        pl = R::Support.parse2list(*args)
-        res = @@exec_from_ruby.call(R::Object.method(:build), function, pl)
-        # R::Object.build(R::Support.eval("do.call").call(function, pl))
-      end
-
-      @@exec_counter = @@exec_counter - 1
-
-      # When execution counter back to 0, print the captured output if the lenght
-      # of the output is greater than 0
-      if (@@exec_counter == 0)
-        R::Support.stop_capture.call(@@con)
+      begin
         
-        if (R::Support.eval("length(r_capture) > 0")[0])
-          cap = R::Object.build(R::Support.eval("r_capture"))
-          # puts ~:r_capture if (R::Support.eval("length(r_capture) > 0")[0])
-          (0...cap.size).each do |i|
-            puts cap << i
-          end
+        # If the execution counter is 0, function was not recursively called
+        # Starts capturing output
+        if (@@exec_counter == 0)
+          R::Support.eval("unlockBinding('r_capture', globalenv())")
+          @@con = R::Support.start_capture.call("r_capture")
         end
         
+        @@exec_counter = @@exec_counter + 1
+        
+        # function has no arguments, call it directly
+        if (args.length == 0)
+          res = R::Object.build(function.call)
+        else
+          pl = R::Support.parse2list(*args)
+          res = @@exec_from_ruby.call(R::Object.method(:build), function, pl)
+          # R::Object.build(R::Support.eval("do.call").call(function, pl))
+        end
+        
+        @@exec_counter = @@exec_counter - 1
+        
+        # When execution counter back to 0, print the captured output if the length
+        # of the output is greater than 0
+        if (@@exec_counter == 0)
+          R::Support.stop_capture.call(@@con)
+          
+          if (R::Support.eval("length(r_capture) > 0")[0])
+            cap = R::Object.build(R::Support.eval("r_capture"))
+            (0...cap.size).each do |i|
+              puts cap << i
+            end
+          end
+          
+        end
+        
+      rescue StandardError => e
+        R::Support.stop_capture.call(@@con)
+        raise e
       end
-
+      
       res
+      
     end
     
     #----------------------------------------------------------------------------------------
@@ -249,6 +282,15 @@ module R
       # raise the proper exception
       f = R::Support.eval(function_name)
       R::Support.exec_function(f, *args)
+    end
+
+    #----------------------------------------------------------------------------------------
+    # Executes the given R function with the given arguments.
+    #----------------------------------------------------------------------------------------
+    
+    def self.exec_function_i(function, *args)
+      pl = R::Support.parse2list(*args)
+      R::Support.eval("do.call").call(function, pl)
     end
 
     #----------------------------------------------------------------------------------------
@@ -272,7 +314,7 @@ module R
 
     def self.r_evaluate(*args)
       r_args = args.map { |arg| R::Support.parse_arg(arg) }
-      R::Object.build(eval("eval").call(*r_args))
+      R::Object.build(R::Support.eval("eval").call(*r_args))
     end
 
     #----------------------------------------------------------------------------------------
@@ -304,6 +346,22 @@ module R
     end
     
     #----------------------------------------------------------------------------------------
+    #
+    #----------------------------------------------------------------------------------------
+
+
+    def self.print_str(obj)
+      
+      lst = obj.as__list
+      puts lst
+=begin      
+      (1..lst.length << 0).each do |i|
+        puts lst[[i]]
+      end
+=end      
+    end
+
+    #----------------------------------------------------------------------------------------
     # Prints a foreign R interop pointer. Used for debug.
     #----------------------------------------------------------------------------------------
 
@@ -316,13 +374,14 @@ module R
     class << self
       alias :pf :print_foreign
     end
-    
+        
     #----------------------------------------------------------------------------------------
     #
     #----------------------------------------------------------------------------------------
-
+    
   end
   
 end
 
+require_relative 'r_module_s'
 require_relative 'rsupport_scope'

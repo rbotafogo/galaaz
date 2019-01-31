@@ -114,6 +114,10 @@ describe R::List do
       expect(@l[R.c(4, 1)].identical(R.list(R.list(4, 5, 6), 1))).to eq true
     end
 
+    it "should raise an exception when index dimension is wrong" do
+      expect { @l[4, 1] }.to raise_error(ArgumentError)
+    end
+
     it "should subset with [[]] and positive integer. Returns the actual element of the list" do
       # to extract an element of a list we need double square (dbk) indexing
       expect(@l[[1]]).to eq 1
