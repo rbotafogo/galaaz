@@ -24,6 +24,8 @@
 require 'galaaz'
 require 'ggplot'
 
+R.install_and_loads('Hmisc')
+
 tooth_growth = ~:ToothGrowth
 tooth_growth.dose = tooth_growth.dose.as__factor
 puts tooth_growth
@@ -39,11 +41,9 @@ sleep(2)
 R.grid__newpage
 
 # Dot plot with mean points (+/- SD)
-# stat_summary requires library Hmisc that does not yet install in
-# graalvm
-# print e + R.geom_dotplot(binaxis: "y", stackdir: "center") + 
-#      R.stat_summary(fun__data: "mean_sdl",  fun__args: E.list(mult: 1), 
-#                     geom: "pointrange", color: "red")
+print e + R.geom_dotplot(binaxis: "y", stackdir: "center") + 
+      R.stat_summary(fun__data: "mean_sdl",  fun__args: E.list(mult: 1), 
+                     geom: "pointrange", color: "red")
 
 sleep(2)
 R.grid__newpage

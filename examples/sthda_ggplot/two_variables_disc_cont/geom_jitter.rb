@@ -23,6 +23,7 @@
 
 require 'galaaz'
 require 'ggplot'
+R.install_and_loads('Hmisc')
 
 tooth_growth = ~:ToothGrowth
 tooth_growth.dose = tooth_growth.dose.as__factor

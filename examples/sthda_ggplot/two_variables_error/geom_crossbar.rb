@@ -24,6 +24,8 @@
 require 'galaaz'
 require 'ggplot'
 
+R.install_and_loads('Hmisc')
+
 df = ~:ToothGrowth
 df.dose = df.dose.as__factor
 puts df.head

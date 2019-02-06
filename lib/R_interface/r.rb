@@ -67,7 +67,16 @@ module R
     packages = R.c(libs)
 
     new_packages = packages[!(packages._ :in, R.installed__packages[:all, "Package"])]
+    
     if(new_packages.size > 0)
+      
+      # package 'data_table' cannot be installed by install.packages.  FastR implements
+      # install.fastr.packages for installing 'data_table'
+      if ((R.c('data.table')._ :in, new_packages) << 0)
+        new_packages = new_packages[!'data_table']
+        R.install__fastr__packages('data_table')
+      end
+      
       puts "The following packages are missing and will be installed:\n #{new_packages}"
       R.install__packages(new_packages)
     end
