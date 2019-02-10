@@ -21,17 +21,59 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-require 'galaaz'
+# require 'galaaz'
 # require 'ggplot'
+require 'stringio'
 
-@x = R.list(a: (1..10), beta: R.exp(-3..3), logic: R.c(true, false, false, true))
-R.library("stats")
-# Make @q the function R quantile
-@q = ~:quantile
+class StringIO
+  
+  def puts(*args)
+    
+    if args.empty?
+      write(DEFAULT_RECORD_SEPARATOR)
+    else
+      args.each do |arg|
+        if arg.nil?
+          line = ''
+        elsif Thread.guarding? arg
+          line = '[...]'
+        else
+          begin
+            arg = Truffle::Type.coerce_to(arg, Array, :to_ary)
+            Thread.recursion_guard arg do
+              arg.each { |a| puts a }
+            end
+            next
+          rescue
+            line = arg.to_s
+          end
+        end
 
-quant = R.lapply(@x, @q)
+        write(line)
+        write(DEFAULT_RECORD_SEPARATOR) # unless line[-1] == ?\n
+      end
+    end
 
-puts quant
-puts "==="
-puts quant.a[1].all__equal(R.c('0%': 1))
+    nil
+  end
 
+end
+
+class Test
+
+  def to_s
+    puts "hello there second line"
+    puts "this is the second line"
+  end
+  
+end
+
+$stdout = StringIO.new
+
+t = Test.new
+puts t
+out = $stdout.string
+
+$stdout = STDOUT
+
+puts out

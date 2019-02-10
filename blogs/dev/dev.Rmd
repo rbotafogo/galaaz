@@ -68,3 +68,10 @@ gg = mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
 print gg
 ```
 
+![Diverging Barcharts](dev_files/figure-html/diverging_bar.png){width=70%}
+
+
+```{ruby vec}
+@vec = R.c(1, 2, 3)
+puts @vec
+```

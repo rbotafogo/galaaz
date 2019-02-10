@@ -22,4 +22,6 @@ cran/*
 *.jpg
 
 *.md
+*.html
+*.tex
 

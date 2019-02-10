@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'singleton'
+require 'fileutils'
 
 class RubyEngine < KnitrEngine
   include Singleton
@@ -31,97 +32,57 @@ class RubyEngine < KnitrEngine
   #--------------------------------------------------------------------------------------
   # Ruby engine for processing Ruby chunks
   #--------------------------------------------------------------------------------------
-  
-  def initialize
 
+  def initialize
+    
     @eng_ruby = Proc.new do |options|
-      
+
       begin
+
         # process the chunk options.
-        # KnitrEngine.process_options(options)
         process_options(options)
         
-        # verifies if figures should be kept
-        fig_keep
-        
-        # if figures are to be kept, take or guess the file extension
-        file_ext
-        
-        # make final filename
-        @filename = "#{@fig__path}#{@label}.#{@fig__ext}"
-        @options["filename"] = "."
-
-        # create temporary file for storing the plots
-        # TODO: should remove this directory afterwards
-        tmp_fig = (R.tempfile() << 0)
-
         # opens a device for the current chunk for plot recording
-        KnitrEngine.device(options.dev << 0, tmp_fig)
+        KnitrEngine.device(options.dev << 0, @tmp_fig)
 
-        # chunk requires library 'showtext'.  Install and loads if not present
-        # FIXME: library showtext is giving error when trying to execute showtext beginning
-        if (!options[['fig.showtext']].is__null << 0) &&
-           options[['fig.showtext']] << 0
-          R.install_and_loads('showtext')
-          R.showtext
-        end
-
+        # dv gets the current device
         dv = R.dev__cur
 
-        # executes the code
+        # executes the code chunk with the given options
+        # the returned value is a list properly formatted to be given to engine_output
+        # exec_ruby catches StandardError, so no execution errors on the block will
+        # reach here, they are formatted in the return list to be printed
         res = GalaazUtil.exec_ruby(options)
+        
+        # function engine_output will format whatever is in out inside a white box
+        out = R.engine_output(options, out: res) if @echo
 
-        # @TODO: variable 'res' has the code, output, warning and messages... need to
-        # deal with all of them to output only what is required and respect the
-        # flags...
-        # formats and outputs the code and results
-        R.engine_output(options, out: res) if @echo
+        # @TODO: allow capturing many plots in the block.  For now, only the last
+        # plot will be captured.  Not a very serious problem for now.
+        # Captures the last plot in the Ruby block. 
+        if (capture_plot)
+          plot = R.knitr_wrap(R.knit_print(R.include_graphics(@filename)), @options)
 
-        if (!((@options[['filename']] == '.') << 0))
-          # include chunk graphics
-          R.knitr_wrap(R.knit_print(R.include_graphics(@options.filename << 0)), @options)
+          # add to the output the result of plot.  Whatever is included after the
+          # engine_output output will appear 'as.is' in the report.  The 'plot'
+          # variable is a command that in rmarkdown includes the image in the
+          # report
+          out = R.c(out, plot)
         end
-      
+
+        out
+
       ensure
-        R.dev__off(dv)
+        # closes the current device
+        # R.dev__off(dv)
       end
-
-    end # end proc
-
-    add(ruby: @eng_ruby)
-    
-  end
-=begin
-  #--------------------------------------------------------------------------------------
-  # 
-  #--------------------------------------------------------------------------------------
-  
-  def capture_plot
-
-    # gets a plot snapshot.  Uses function plot_snapshot from package 'evaluate'
-    plot = R.evaluate_plot_snapshot
-
-    if (!(plot.is__null << 0))
-
-      # create directory for the graphics files if does not already exists
-      unless File.directory?(@fig__path)
-        FileUtils.mkdir_p(@fig__path)
-      end
-
-      @options["filename"] = @filename
-
-      @options.dev.each do |dev_type|
-        KnitrEngine.device(dev_type << 0, @filename,
-                           width: @options.fig__width << 0,
-                           height: @options.fig__height << 0, units: units)
-        R.print(plot)
-        R.dev__off
-      end
-
+      
     end
 
+    # Add the ruby engine function for processing the ruby block
+    add(ruby: @eng_ruby)
+
   end
-=end
   
 end
 

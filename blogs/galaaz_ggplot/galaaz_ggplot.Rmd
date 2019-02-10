@@ -5,6 +5,9 @@ author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
 date: "16 October 2018"
 output:
+  html_document:
+    self_contained: true
+    keep_md: true
   pdf_document:
     includes:
       in_header: "../../sty/galaaz.sty"
@@ -12,7 +15,6 @@ output:
     number_sections: yes
     toc: true
     toc_depth: 2
-  html_document:
   md_document:
     variant: markdown_github
 fontsize: 11pt
@@ -349,9 +351,7 @@ sp.group_by(color: :state, size: :popdensity)    # try sp.group_by(color: :state
 # available methods: "lm", "glm", "loess", "gam"
 sp.add_smoothing_line(method: "glm") 
 sp.plot('svg')
-
-# require input from the user so that the script does not end removing the plot from
-# the screen
+# puts sp
 ```
 
 ![Midwest Plot with 'glm' function and modified theme](scatter_plot.png){width=70%}

@@ -410,7 +410,7 @@ class KnitrEngine
   #   be one of the following: 
   #   * high: only keep high-level plots (merge low-level changes into high-level plots);
   #   * none: discard all plots;
-  #   *  all: keep all plots (low-level plot changes may produce new plots)
+  #   * all: keep all plots (low-level plot changes may produce new plots)
   #   * first: only keep the first plot
   #   * last: only keep the last plot
   #   if set to a numeric vector: interpret value as index of (low-level) plots to keep
@@ -507,7 +507,21 @@ class KnitrEngine
     @fig__showtext = options['fig.showtext'] 
     @external = options['external'] 
     @sanitize = options['sanitize'] 
-        
+
+    # verifies if figures should be kept
+    fig_keep
+
+    # if figures are to be kept, take or guess the file extension
+    file_ext
+    
+    # make final filename
+    @filename = "#{@fig__path}#{@label}.#{@fig__ext}"
+    @options["filename"] = "."
+
+    # create temporary file for storing plots
+    # TODO: should remove this directory afterwards
+    @tmp_fig = (R.tempfile() << 0)
+    
   end
 
   #--------------------------------------------------------------------------------------
@@ -552,10 +566,10 @@ class KnitrEngine
   #--------------------------------------------------------------------------------------
   
   def capture_plot
-    
+
     # gets a plot snapshot.  Uses function plot_snapshot from package 'evaluate'
     plot = R.evaluate_plot_snapshot
-    
+
     if (!(plot.is__null << 0))
       
       # create directory for the graphics files if does not already exists
@@ -563,17 +577,18 @@ class KnitrEngine
         FileUtils.mkdir_p(@fig__path)
       end
       
-      @options["filename"] = @filename
-
       @options.dev.each do |dev_type|
         KnitrEngine.device(dev_type << 0, @filename,
                            width: @options.fig__width << 0,
                            height: @options.fig__height << 0, units: units)
         R.print(plot)
         R.dev__off
+        return plot
       end
       
     end
+
+    false
 
   end
   
@@ -587,6 +602,13 @@ class KnitrEngine
     (~:knit_engines).set.call(spec)
   end
 
+  #--------------------------------------------------------------------------------------
+  #
+  #--------------------------------------------------------------------------------------
+
+  def add_hook(spec)
+
+  end
   
   #--------------------------------------------------------------------------------------
   #
@@ -604,8 +626,7 @@ class KnitrEngine
   
 end
 
-
-
+=begin
 module R
 
   class Object
@@ -616,6 +637,10 @@ module R
     
     def to_s
 
+      STDERR.puts "+++++++++++++++++++++++++++"
+      STDERR.puts "in to_s"
+      STDERR.puts "+++++++++++++++++++++++++++"
+      
       cap = nil
       cap = R::Support.capture.call(r_interop)
       str = String.new
@@ -631,3 +656,5 @@ module R
   end
   
 end
+
+=end

@@ -109,11 +109,13 @@ chunk_device = function(
 
 showtext = function(show) if (isTRUE(show)) showtext::showtext_begin()
 
+#########################################################################################
+
 # define the ruby engine for processing Ruby chunks in
 # rmarkdown
 eng_ruby = function(options) {
   block_code = paste(options$code, collapse = "\\n");
-  code = paste0("GalaazUtil.exec_ruby(", 
+  code = paste0("GalaazUtil.exec_ruby_tor(", 
                    shQuote(block_code),
                   ")
                 ");
@@ -174,10 +176,12 @@ eng_ruby = function(options) {
 #                  warning = "Warning from Galaaz", error = "Error from Galaaz",
 #                  value = "Value from Galaaz")
 #  engine_output(options, out = out_list)
-#  engine_output(options, block_code, res)
+   # engine_output(options, block_code, res)
 }
 
 knit_engines$set(ruby = eng_ruby)
+
+#########################################################################################
 
 # define the rb engine for inline Ruby code
 eng_rb = function(options) {
