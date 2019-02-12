@@ -21,44 +21,39 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-# require 'galaaz'
+require 'galaaz'
 # require 'ggplot'
-require 'stringio'
+R.library('kableExtra')
+R.library('knitr')
 
-class StringIO
-  
-  def puts(*args)
-    
-    if args.empty?
-      write(DEFAULT_RECORD_SEPARATOR)
-    else
-      args.each do |arg|
-        if arg.nil?
-          line = ''
-        elsif Thread.guarding? arg
-          line = '[...]'
-        else
-          begin
-            arg = Truffle::Type.coerce_to(arg, Array, :to_ary)
-            Thread.recursion_guard arg do
-              arg.each { |a| puts a }
-            end
-            next
-          rescue
-            line = arg.to_s
-          end
-        end
+script = <<-Rb
+  vec = R.c(a: 1, b: 2, c: 3)
+  puts vec
+  outputs vec.kable
+  outputs (~:mtcars).kable
+Rb
 
-        write(line)
-        write(DEFAULT_RECORD_SEPARATOR) # unless line[-1] == ?\n
-      end
-    end
+options = R.list()
+options[["code"]] = script
+options[["include"]] = true
+options[['message']] = true
+options[['warning']] = true
+options[['eval']] = true
 
-    nil
-  end
+out = GalaazUtil.exec_ruby(options)
+puts out
+puts RubyChunk.get_outputs
 
-end
+# puts out.class
 
+=begin
+vec = R.c(1, 2, 3)
+html = vec.kable
+puts "++++++"
+puts html.knit_print
+=end
+
+=begin
 class Test
 
   def to_s
@@ -77,3 +72,4 @@ out = $stdout.string
 $stdout = STDOUT
 
 puts out
+=end

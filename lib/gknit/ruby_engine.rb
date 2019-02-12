@@ -57,6 +57,9 @@ class RubyEngine < KnitrEngine
         # function engine_output will format whatever is in out inside a white box
         out = R.engine_output(options, out: res) if @echo
 
+        # 
+        out = R.c(out, RubyChunk.get_outputs)
+        
         # @TODO: allow capturing many plots in the block.  For now, only the last
         # plot will be captured.  Not a very serious problem for now.
         # Captures the last plot in the Ruby block. 

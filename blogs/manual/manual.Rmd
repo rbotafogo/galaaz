@@ -149,7 +149,7 @@ puts @vec
 
 ```{ruby typeof_float}
 df = R.data__frame(typeof: @vec.typeof, mode: @vec.mode, storage__mode: @vec.storage__mode)
-puts df.kable
+outputs df.kable.kable_styling
 ```
 
 In this next example we try to create a vector with a variable 'hello' that has not yet
@@ -160,6 +160,11 @@ of the error.
 ```{ruby r_exception}
 vec = R.c(1, hello, 5)
 ```
+
+```{ruby view_kable}
+outputs (~:mtcars).kable.kable_styling
+```
+
 
 ## Graphics with ggplot
 

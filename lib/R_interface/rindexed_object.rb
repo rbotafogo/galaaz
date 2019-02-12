@@ -35,8 +35,9 @@ module R
     #--------------------------------------------------------------------------------------
 
     def [](index)
+
+      # dealing with double indexing function '[['
       if (index.is_a? Array)
-      # R::Support.exec_function_name("`[[`", @r_interop, R.internal_eval(:c, *index))
         R::Support.exec_function(R::Support.dbk_index, @r_interop,
                                  R.internal_eval(:c, *index))
       else
@@ -53,8 +54,15 @@ module R
     #--------------------------------------------------------------------------------------
 
     def []=(index, values)
-      setR_name("`[<-`", index, values)
-      self
+
+      # dealing with double indexing function '[['
+      if (index.is_a? Array)
+        setR_name("`[[<-`", *index, values)
+      else
+        setR_name("`[<-`", index, values)
+        self
+      end
+      
     end
 
     #--------------------------------------------------------------------------------------

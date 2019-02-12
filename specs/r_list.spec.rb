@@ -92,7 +92,7 @@ describe R::List do
   end
   
   #----------------------------------------------------------------------------------------
-  context "When subsetting a list" do
+  context "When subsetting a list with '['" do
     
     before(:all) do
       @l = R.list(1, 2, 3, R.list(4, 5, 6))
@@ -118,6 +118,15 @@ describe R::List do
       expect { @l[4, 1] }.to raise_error(ArgumentError)
     end
 
+  end
+
+  #----------------------------------------------------------------------------------------
+  context "When subsetting a list with '[['" do
+    
+    before(:all) do
+      @l = R.list(1, 2, 3, R.list(4, 5, 6))
+    end
+
     it "should subset with [[]] and positive integer. Returns the actual element of the list" do
       # to extract an element of a list we need double square (dbk) indexing
       expect(@l[[1]]).to eq 1
@@ -137,6 +146,15 @@ describe R::List do
       # selected component, the selected component of that component, and so on.
       # The result is still a single element.
       expect(@l[[4, 1]]).to eq 4
+    end
+
+  end
+
+  #----------------------------------------------------------------------------------------
+  context "When subsetting a list with 'each' and 'each_with_index'" do
+
+    before(:all) do
+      @l = R.list(1, 2, 3, R.list(4, 5, 6))
     end
 
     it "should subset with 'each' returning every element as if subsetting with '[['" do
@@ -163,4 +181,26 @@ describe R::List do
 
   end
 
+  #----------------------------------------------------------------------------------------
+  context "When modifying a list" do
+
+    before(:all) do
+      @l = R.list(a: 1, b: 2, c: 3, d: R.list(i: 4, j: 5, k: 6))
+    end
+
+    it "should be possible to modify a list by index" do
+      @l[[1]] = 10
+      expect(@l[[1]]).to eq 10
+    end
+
+    it "should be possible to modify a list by element name" do
+      @l[['a']] = 10
+      expect(@l[['a']]).to eq 10
+
+      # @l.b = 20
+      # expect(@l[['b']]).to eq 20
+    end
+    
+  end
+  
 end
