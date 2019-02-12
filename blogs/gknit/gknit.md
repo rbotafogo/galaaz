@@ -1,8 +1,10 @@
 ---
-title: "gKnit - Ruby and R Knitting with Galaaz in GraalVM"
-author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr]
-date: "19 October 2018"
+title: "How to do reproducible research in Ruby with gKnit"
+author:
+    - "Rodrigo Botafogo"
+    - "Daniel Mossé - University of Pittsburgh"
+tags: [Tech, Data Science, Ruby, R, GraalVM]
+date: "20/02/2019"
 output:
   html_document:
     self_contained: true
@@ -53,7 +55,7 @@ is somehow stored in a data file that is read by the next chunk.
 Being able to persist data
 between chunks is critical for literate programming otherwise the flow of the narrative is lost
 by all the effort of having to save data and then reload it. Probably, because of this impossibility,
-it is very rare to see any R markdown document document in the Ruby community.  
+it is very rare to see any R markdown document in the Ruby community.
 
 In the Python community, the same effort to have code and text in an integrated environment
 started also on the first decade of 2000. In 2006 iPython 0.7.2 was released.  In 2014,
@@ -66,17 +68,22 @@ in a Jupyter notebook.
 
 This document describes gKnit.  gKnit uses Knitr and R markdown to knit a document in Ruby or R
 and output it in any of the
-available formats for R markdown.  The only difference between gKnit and normal Knitr documents
-is that gKnit runs atop of GraalVM, and Galaaz (an integration library between Ruby and R).
-Another blog post on Galaaz and its integration with ggplot2 can be found at:
-https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021.  With Galaaz, gKnit can knit documents in Ruby and R and both
-Ruby and R execute on the same process and memory, variables, classes, etc.
-will be preserved between chunks of code.
+available formats for R markdown.  gKnit runs atop of GraalVM, and Galaaz (an integration 
+library between Ruby and R).  In gKnit, Ruby variables are persisted between chunks, making 
+it an ideal solution for literate programming in this language.  Also, since it is based on 
+Galaaz, Ruby chunks can have access to R variables and Polyglot Programming with Ruby and R
+is quite natural.
 
-This is not a blog post on rmarkdown, and the interested user is directed to
+Galaaz has been describe already in the following posts:
+
+* https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021.  
+* https://medium.freecodecamp.org/how-to-make-beautiful-ruby-plots-with-galaaz-320848058857
+
+This is not a blog post on rmarkdown, and the interested user is directed to the following links
+for detailed information on its capabilities and use.
 
 * https://rmarkdown.rstudio.com/ or
-* https://bookdown.org/yihui/rmarkdown/ for detailed information on its capabilities and use.
+* https://bookdown.org/yihui/rmarkdown/ 
 
 Here, we will describe quickly the main aspects of R markdown, so the user can start gKnitting
 Ruby and R documents quickly.
@@ -88,7 +95,7 @@ This document has the following header for gKitting an HTML document.
 
 ```
 ---
-title: "gKnit - Ruby and R Knitting with Galaaz in GraalVM"
+title: "How to do reproducible research in Ruby with gKnit"
 author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr, gknit]
 date: "29 October 2018"
@@ -150,8 +157,9 @@ options, as shown bellow:
 ```
 ````
 
-for instance, let's add an R chunk to the document labeled 'first_r_chunk'.  In this case, the
-code should not be shown in the document, so the option 'echo=FALSE' was added.
+for instance, let's add an R chunk to the document labeled 'first_r_chunk'.  In this 
+example, we do not want the code to be shown in the document, so the option 
+'echo=FALSE' is added.
 
 ````
 ```{r first_r_chunk, echo = FALSE}
@@ -168,19 +176,19 @@ For including a Ruby chunk, just change the name of the engine to ruby as follow
 ````
 
 In this example, the ruby chunk is called 'first_ruby_chunk'.  One important aspect of chunk
-labels is that they cannot be duplicate.  If a chunk label is duplicate, the knitting will
+labels is that they cannot be duplicated.  If a chunk label is duplicated, knitting will
 stop with an error.
 
 ### R chunks
 
 Let's now add an R chunk to this document.  In this example, a vector 'r_vec' is created and
-a new function 'redef_sum' is defined.  The chunk specification is
+a new function 'reduce_sum' is defined.  The chunk specification is
 
 ````
 ```{r data_creation}
 r_vec <- c(1, 2, 3, 4, 5)
 
-redef_sum <- function(...) {
+reduce_sum <- function(...) {
   Reduce(sum, as.list(...))
 }
 ```
@@ -194,7 +202,7 @@ definition any longer.
 ```r
 r_vec <- c(1, 2, 3, 4, 5)
 
-redef_sum <- function(...) {
+reduce_sum <- function(...) {
   Reduce(sum, as.list(...))
 }
 ```
@@ -211,12 +219,16 @@ print(r_vec)
 ```
 
 ```r
-print(redef_sum(r_vec))
+print(reduce_sum(r_vec))
 ```
 
 ```
 ## [1] 15
 ```
+### R Graphics with ggplot
+
+In the following chunk, we create a bubble chart in R and include it in this document.  The
+data comes from the 'mpg' dataset that is natively available in R.
 
 
 ```r
@@ -241,32 +253,33 @@ g + geom_jitter(aes(col=manufacturer, size=hwy)) +
 
 ### Ruby chunks
 
-In the same way that an R chunk was created, let's now create a Ruby chunk.  One important aspect
+In the same way that an R chunk is created, let's now create a Ruby chunk.  One important aspect
 of Ruby is that in Ruby every evaluation of a chunk occurs on its own local scope, so, creating
 a variable in a chunk will be out of scope in the next chunk.  To make sure that variables are
-available between chunks, they should be made global.
+available between chunks, they should be made as instance variables for the chunk.
 
-In this chunk, variable '\$a', '\$b' and '\$c' are standard Ruby variables and '\$vec' and '\$vec2'
-are two vectors created by a call to FastR.  It should be clear that there is no requirement
-in gknit to call or use R functions.  gKnit will knit standard Ruby code, or even general
-text without code.
+In this chunk, variable '\@a', '\@b' and '\@c' are standard Ruby variables and 
+'\@vec' and '\@vec2' are two vectors created by calling the 'c' method on the R module.  
+In Galalaaz, the R module allows us to access R functions transparently.  It should be clear 
+that there is no requirement in gknit to call or use any R functions.  gKnit will 
+knit standard Ruby code, or even general text without any code.
 
 
 ```ruby
-$a = [1, 2, 3]
-$b = "US$ 250.000"
-$c = "Inline text in a Heading"
+@a = [1, 2, 3]
+@b = "US$ 250.000"
+@c = "Inline text in a Heading"
 
-$vec = R.c(1, 2, 3)
-$vec2 = R.c(10, 20, 30)
+@vec = R.c(1, 2, 3)
+@vec2 = R.c(10, 20, 30)
 ```
 
-In this next block, variables '\$a', '\$vec' and '\$vec2' are used and printed.
+In this next block, variables '\@a', '\@vec' and '\@vec2' are used and printed.
 
 
 ```ruby
-puts $a
-puts $vec * $vec2
+puts @a
+puts @vec * @vec2
 ```
 
 ```
@@ -279,7 +292,7 @@ puts $vec * $vec2
 ### Accessing R from Ruby
 
 One of the nice aspects of Galaaz on GraalVM, is that variables and functions defined in R, can
-be easily accessed from Ruby.  This next chunk, reads data from R and uses the 'redef_fun'
+be easily accessed from Ruby.  This next chunk, reads data from R and uses the 'reduce_sum'
 function defined previously.  To access an R variable from Ruby the '~' function should be
 applied to the Ruby symbol representing the R variable.  Since the R variable is called 'r_vec',
 in Ruby, the symbol to acess it is ':r_vec' and thus '~:r_vec' retrieves the value of the
@@ -298,24 +311,26 @@ In order to call an R function, the 'R.' module is used as follows
 
 
 ```ruby
-puts R.redef_sum($vec)
+puts R.reduce_sum(~:r_vec)
 ```
 
 ```
-## [1] 6
+## [1] 15
 ```
 
 ### Inline Ruby code
 
 Knitr allows inserting R inline by adding
-&#96;r code&#96;
+
 . Unfortunately, this is not possible with Ruby code as there is no provision in knitr for
 adding this kind of inline engine.  However, gKnit allows adding inline Ruby code with the
 'rb' engine.  The following text will create and inline Ruby text:
 
 ````
-This is some text with inline Ruby accessing variable \$b which has value:
-```{rb puts $b}
+This is some text with inline Ruby accessing variable \@b which has value:
+
+```rb
+
 ```
 and is followed by some other text!
 ````
@@ -325,8 +340,11 @@ The result of executing the above chunk is the following sentence with inline Ru
 <div style="margin-bottom:50px;">
 </div>
 
-This is some text with inline Ruby accessing variable \$b which has value:
-US$ 250.000
+This is some text with inline Ruby accessing variable \@b which has value:
+
+```rb
+
+```
 and is followed by some other text!
 
 <div style="margin-bottom:50px;">
@@ -337,7 +355,9 @@ between them:
 
 ````
 Multiple statements in the 'rb' engine use semicolon:
-```{rb puts $a, puts $b}
+
+```rb
+
 ```
 ````
 
@@ -346,27 +366,32 @@ Multiple statements in the 'rb' engine use semicolon:
 
 
 Multiple statements in the 'rb' engine use semicolon:
-1
-2
-3
-US$ 250.000
+
+```rb
+
+```
 
 <div style="margin-bottom:50px;">
 </div>
 
 
-### Inline text in a Heading
+
+```rb
+
+```
 
 Sometimes one wants to add an inline text in a heading.  To do that in Ruby the whole heading
 needs to be returned by the inline Ruby engine.  For example the heading above, was created by
 the following chunk:
 
 ````
-```{rb puts "### #{$c}"}
+
+```rb
+
 ```
 ````
 
-Remember that variable '$\c' was defined in a previous Ruby chunk and is now being used to
+Remember that variable '@\c' was defined in a previous Ruby chunk and is now being used to
 create the section heading for this section.
 
 
@@ -403,6 +428,8 @@ print gg
 # R.include_graphics("Rplot001.png")
 ```
 
+![](/home/rbotafogo/desenv/galaaz/blogs/gknit/gknit_files/figure-html/diverging_bar.png)<!-- -->
+
 ### Including Ruby files
 
 R is a language that was created to be easy and fast for statisticians to use.  It was not a
@@ -437,51 +464,7 @@ uses R 'caret' package to split a dataset in a train and test sets.
 
 
 ```include
-require 'galaaz'
 
-# Loads the R 'caret' package.  If not present, installs it 
-R.install_and_loads 'caret'
-
-class Model
-  
-  attr_reader :data
-  attr_reader :test
-  attr_reader :train
-
-  #==========================================================
-  #
-  #==========================================================
-  
-  def initialize(data, percent_train:, seed: 123)
-
-    R.set__seed(seed)
-    @data = data
-    @percent_train = percent_train
-    @seed = seed
-    
-  end
-
-  #==========================================================
-  #
-  #==========================================================
-
-  def partition(field)
-
-    train_index =
-      R.createDataPartition(@data.send(field), p: @percet_train,
-                            list: false, times: 1)
-    @train = @data[train_index, :all]
-    @test = @data[-train_index, :all]
-    
-  end
-  
-end
-
-```
-
-```
-## The following packages are missing and will be installed:
-##  [1] "caret"
 ```
 
 
@@ -494,20 +477,32 @@ puts model.test.head
 ```
 
 ```
-##                    mpg cyl  disp  hp drat    wt  qsec vs am gear carb
-## Datsun 710        22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
-## Hornet 4 Drive    21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
-## Hornet Sportabout 18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
-## Merc 240D         24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
-## Merc 280          19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
-## Merc 280C         17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
-##                mpg cyl  disp  hp drat    wt  qsec vs am gear carb
-## Mazda RX4     21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
-## Mazda RX4 Wag 21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
-## Valiant       18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
-## Duster 360    14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
-## Merc 230      22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
-## Merc 450SE    16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## Message:
+##  uninitialized constant GalaazUtil::Model
+## Did you mean?  Module
+```
+
+```
+## Message:
+##  (eval):2:in `const_missing'
+## (eval):2:in `exec_ruby'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:137:in `instance_eval'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:137:in `exec_ruby'
+## /home/rbotafogo/desenv/galaaz/lib/gknit/ruby_engine.rb:55:in `block in initialize'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `call'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `callback'
+## (eval):3:in `function(...) {\n          rb_method(...)'
+## unknown.r:1:in `<promise>1841929680'
+## unknown.r:1:in `block_exec'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc12/jre/languages/R/library/knitr/R/block.R:91:in `call_block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc12/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc12/jre/languages/R/library/knitr/R/block.R:3:in `<no source>'
+## unknown.r:1:in `withCallingHandlers'
+## unknown.r:1:in `process_file'
+## unknown.r:1:in `<no source>'
+## unknown.r:1:in `<no source>'
+## <REPL>:4:in `<repl wrapper>'
+## <REPL>:1
 ```
 
 ### Documenting Gems
@@ -526,35 +521,6 @@ Here is an example of loading the 'continuation.rb' file from TruffleRuby.
 
 
 ```include
-# Copyright (c) 2017 Oracle and/or its affiliates. All rights reserved. This
-# code is released under a tri EPL/GPL/LGPL license. You can use it,
-# redistribute it and/or modify it under the terms of the:
-#
-# Eclipse Public License version 1.0, or
-# GNU General Public License version 2, or
-# GNU Lesser General Public License version 2.1.
-
-warn "#{File.basename(__FILE__)}: warning: callcc is obsolete; use Fiber instead"
-
-class Continuation
-  def initialize
-    @fiber = Fiber.current
-  end
-
-  def call
-    if Fiber.current != @fiber
-      raise 'continuation called across fiber'
-    end
-    raise 'Continuations are unsupported on TruffleRuby'
-  end
-end
-
-module Kernel
-  def callcc
-    yield Continuation.new
-  end
-  module_function :callcc
-end
 
 ```
 

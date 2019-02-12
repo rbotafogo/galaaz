@@ -57,7 +57,10 @@ class RubyEngine < KnitrEngine
         # function engine_output will format whatever is in out inside a white box
         out = R.engine_output(options, out: res) if @echo
 
-        # 
+        # ouputs the data in RubyChunk '@@outputs' variable. Everything that should
+        # be processed by 'pandoc' and not appear in the output block from
+        # engine_output, should be outputed with the 'outputs' function and will be
+        # stored in the @@outputs variable
         out = R.c(out, RubyChunk.get_outputs)
         
         # @TODO: allow capturing many plots in the block.  For now, only the last
