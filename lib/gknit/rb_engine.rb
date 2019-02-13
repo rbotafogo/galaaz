@@ -24,7 +24,7 @@
 require 'singleton'
 require 'fileutils'
 
-class RubyEngine < KnitrEngine
+class RbEngine < KnitrEngine
   include Singleton
 
   attr_reader :engine
@@ -37,40 +37,17 @@ class RubyEngine < KnitrEngine
     
     @engine = Proc.new do |options|
 
+      # puts options
+      
       begin
 
-        # process the chunk options.
-        process_options(options)
+        # the 'rb' engine has the code to be executed in the options.label
+        # argument
+        puts options[['code']]
+        puts options[['label']]
         
-        # opens a device for the current chunk for plot recording
-        KnitrEngine.device(options.dev << 0, @tmp_fig)
-
-        # dv gets the current device
-        dv = R.dev__cur
-
-        # executes the code chunk with the given options
-        # the returned value is a list properly formatted to be given to engine_output
-        # exec_ruby catches StandardError, so no execution errors on the block will
-        # reach here, they are formatted in the return list to be printed
-        res = GalaazUtil.exec_ruby(options)
-        
-        # function engine_output will format whatever is in out inside a white box
-        out = R.engine_output(options, out: res) if @echo
-
-        # @TODO: allow capturing many plots in the block.  For now, only the last
-        # plot will be captured.  Not a very serious problem for now.
-        # Captures the last plot in the Ruby block. 
-        if (capture_plot)
-          plot = R.knitr_wrap(R.knit_print(R.include_graphics(@filename)), @options)
-
-          # add to the output the result of plot.  Whatever is included after the
-          # engine_output output will appear 'as.is' in the report.  The 'plot'
-          # variable is a command that in rmarkdown includes the image in the
-          # report
-          out = R.c(out, plot)
-        end
-
-        out
+        options[['code']] = options[['label']]
+        GalaazUtil.exec_ruby(options)
 
       ensure
         # closes the current device
@@ -79,12 +56,12 @@ class RubyEngine < KnitrEngine
       
     end
 
-    # Add the ruby engine function for processing the ruby block
-    add(ruby: @engine)
+    # Add the rb engine function for processing the rb block
+    add(rb: @engine)
 
   end
   
 end
 
-ruby_engine = RubyEngine.instance
+rb_engine = RbEngine.instance
 

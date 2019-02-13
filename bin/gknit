@@ -195,6 +195,8 @@ eng_rb = function(options) {
 
 knit_engines$set(rb = eng_rb)
 
+#########################################################################################
+
 # define the include engine for including Ruby files
 # in place
 
