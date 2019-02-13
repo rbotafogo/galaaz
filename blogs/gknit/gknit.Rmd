@@ -328,7 +328,11 @@ Multiple statements in the 'rb' engine use semicolon:
 
 
 Multiple statements in the 'rb' engine use semicolon:
+<<<<<<< HEAD
 ```{rb puts @a; puts @vec}
+=======
+```{rb puts @a; puts @b}
+>>>>>>> master
 ```
 
 <div style="margin-bottom:50px;">

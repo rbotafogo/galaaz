@@ -26,7 +26,7 @@ require 'stringio'
 #----------------------------------------------------------------------------------------
 # Path StringIO puts... Already opened an issue in RC12
 #----------------------------------------------------------------------------------------
-
+#=begin
 class StringIO
   
   def puts(*args)
@@ -67,6 +67,7 @@ class StringIO
   end
 
 end
+#=end
 
 #----------------------------------------------------------------------------------------
 # Class RubyChunk is used only as a context for all ruby chunks in the rmarkdown file.
@@ -75,6 +76,18 @@ end
 
 class RubyChunk
 
+  def self.init
+    @@outputs = R.list
+  end
+  
+  def self.get_outputs
+    @@outputs
+  end
+  
+  def self.outputs(obj)
+    @@outputs = R.c(@@outputs, obj)
+  end
+  
 end
 
 #----------------------------------------------------------------------------------------
@@ -98,6 +111,64 @@ module GalaazUtil
   # options[["eval"]], this is because eval is a Ruby function and doing options.eval
   # will call the eval method on options, which is not what we want
   #----------------------------------------------------------------------------------------
+
+  def self.exec_ruby(options)
+
+    RubyChunk.init
+    
+    # read the chunk code
+    code = R.paste(options.code, collapse: "\n") << 0
+
+    # the output should be a list with the proper structure to pass to
+    # function engine_output.  We first add the souce code from the block to
+    # the list
+    out_list = R.list(R.structure(R.list(src: code), class: 'source'))
+
+    begin
+
+      # set $stdout to a new StringIO object so that everything that is
+      # output from instance_eval is captured and can be sent to the
+      # report
+      $stdout = StringIO.new
+
+      # Execute the Ruby code in the scope of class RubyChunk. This is done
+      # so that instance variables created in one chunk can be used again on
+      # another chunk
+      RubyChunk.instance_eval(code) if (options[["eval"]] << 0)
+      
+      # add the returned value to the list
+      # this should have captured everything in the evaluation code
+      # it is not working since at least RC10.
+      out = $stdout.string
+      
+      out_list = R.c(out_list, out)
+      
+    rescue StandardError => e
+
+      # print the error message
+      if (options.message << 0)
+        message = R.list(R.structure(R.list(message: e.message), class: 'message'))
+        out_list = R.c(out_list, message)
+      end
+
+      # Print the backtrace of the error message
+      if (options.warning << 0)
+        bt = ""
+        e.backtrace.each { |line| bt << line + "\n"}
+        warning = R.list(R.structure(R.list(message: bt), class: 'message'))
+        out_list = R.c(out_list, warning)
+      end
+      
+    ensure
+      # return $stdout to standard output
+      $stdout = STDOUT
+    end
+    
+    (options.include << 0)? out_list : nil
+    
+  end
+
+=begin  
 
   def self.exec_ruby(options)
 
@@ -125,9 +196,6 @@ module GalaazUtil
       # this should have captured everything in the evaluation code
       # it is not working since at least RC10.
       out = $stdout.string
-      #STDERR.puts "==================="
-      #STDERR.puts out
-      #STDERR.puts "==================="
       
       # @TODO: this line should be removed and the out variable should be the
       # one from $stdout.string as above
@@ -159,7 +227,8 @@ module GalaazUtil
     (options.include << 0)? out_list : nil
     
   end
-    
+=end
+  
   #----------------------------------------------------------------------------------------
   # Used by old gknit.  Will eventually be replaced by exe_ruby
   #----------------------------------------------------------------------------------------
@@ -177,12 +246,7 @@ module GalaazUtil
     # this should have captured everything in the evaluation code
     # it is not working since at least RC10.
     out = $stdout.string
-    STDERR.puts "==================="
-    STDERR.puts out
-    STDERR.puts "==================="
-    
-    out = "This is a fake return value"
-    
+
     out_list = R.c(out_list, out)
     
     # return $stdout to standard output

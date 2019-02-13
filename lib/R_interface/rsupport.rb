@@ -101,31 +101,7 @@ module R
     def self.interop(object)
       Truffle::Interop.foreign?(object)
     end
-    
-=begin
-    #----------------------------------------------------------------------------------------
-    # Builds a quo or a formula based on the given expression.  If the expression has a
-    # '=~' operator, then a formula should be constructed, if not, then an quo should be
-    # constructed
-    # @param expression [R::Expression]
-    # @return quo or formula
-    #----------------------------------------------------------------------------------------
-
-    def self.quo_or_formula(expression)
-
-      if expression.formula?
-        R.as__formula(expression.infix)
-      else
-        # add a '~' before the expression so we can parse it as an
-        # R expression from a string.  Didn't find a good way of creating an
-        # expression from string.
-        # R.as_quosure(R.as__formula("~ #{expression.infix}"))
-        R.rhs(R.as__formula("~ #{expression.infix}"))
-      end
-      
-    end
-=end
-    
+        
     #----------------------------------------------------------------------------------------
     # @param arg [Object] A Ruby object to be converted to R to be used by an R function, or
     # whatever needs it
@@ -349,7 +325,6 @@ module R
     #
     #----------------------------------------------------------------------------------------
 
-
     def self.print_str(obj)
       
       lst = obj.as__list
@@ -385,3 +360,28 @@ end
 
 require_relative 'r_module_s'
 require_relative 'rsupport_scope'
+
+
+=begin
+    #----------------------------------------------------------------------------------------
+    # Builds a quo or a formula based on the given expression.  If the expression has a
+    # '=~' operator, then a formula should be constructed, if not, then an quo should be
+    # constructed
+    # @param expression [R::Expression]
+    # @return quo or formula
+    #----------------------------------------------------------------------------------------
+
+    def self.quo_or_formula(expression)
+
+      if expression.formula?
+        R.as__formula(expression.infix)
+      else
+        # add a '~' before the expression so we can parse it as an
+        # R expression from a string.  Didn't find a good way of creating an
+        # expression from string.
+        # R.as_quosure(R.as__formula("~ #{expression.infix}"))
+        R.rhs(R.as__formula("~ #{expression.infix}"))
+      end
+      
+    end
+=end
