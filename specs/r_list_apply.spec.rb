@@ -58,30 +58,36 @@ describe R::List do
       # lapply applies a function to each element of a list or vector, returning a list.
       # median and quartiles for each list element
       quant = R.lapply(@x, @q)
-      expect(quant.a[1]).to eq 1
-      expect(quant.a[1]).to eq R.c('0%': 1)
-      expect(quant.a["50,00000%"]).to eq 5.50
+      expect(quant.a[1] == R.c('0%': 1.0)).to eq true
+      expect(quant.a[1]).to eq R.c('0%': 1.0)
+      expect(quant.a[[1]]).to eq 1.0
+             
+      expect(quant.a[["50%"]]).to eq 5.50
+      expect(quant.a['50%']).to eq R.c('50%': 5.50)
       expect(R.all__equal(quant.beta["100%"],
                           R.c('100%': 20.08553692),
                           tolerance: (~:".Machine").double__eps ** 0.5)).to eq true
-      expect(quant.logic[2]).to eq 0.0
+      expect(quant.logic[[2]]).to eq 0.0
     end
     
     it "should allow using method lapply with quantile" do
       x = R.lapply(@x, @q, R.c(0.25, 0.50, 0.75))
-      expect(x.a[1]).to eq 3.25
-      expect(x.a["50,00000%"]).to eq 5.50
+      expect(x.a[[1]]).to eq 3.25
+      expect(x.a[["50%"]]).to eq 5.50
       expect(R.all__equal(x.beta['75%'],
                           R.c('75%': 5.0536690),
                           tolerance: (~:".Machine").double__eps ** 0.5)).to eq true
-      expect(x.logic[2]).to eq 0.5
+      expect(x.logic[[2]]).to eq 0.5
     end
 
     it "should allow using sapply and quantile" do
+      # sapply will return a matrix
       quant = R.sapply(@x, @q)
       expect(quant.rclass).to eq 'matrix'
-      expect(quant[:all, 'a']).to eq R.c(1, 3.25, 5.50, 7.75, 10)
-      expect(quant[3, 'beta']).to eq 1
+      
+      expect(quant[:all, 'a']).to eq R.c('0%': 1, '25%': 3.25, '50%': 5.50, '75%': 7.75, '100%': 10)
+      
+      expect(quant[3, 'beta']).to eq 1.0
     end
     
     it "should sapply to a sequence" do
@@ -91,8 +97,8 @@ describe R::List do
       expect(i39[[1]]).to eq R.c(1, 2, 3)
       expect(i39[[7]]).to eq R.c(1, 2, 3, 4, 5, 6, 7, 8, 9)
       sap = R.sapply(i39, ~:fivenum)
-      expect(sap[1, 1]).to eq 1
-      expect(sap[5, 7]).to eq 9
+      expect(sap[1, 1]).to eq 1.0
+      expect(sap[5, 7]).to eq 9.0
     end
   
   end

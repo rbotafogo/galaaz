@@ -115,16 +115,18 @@ module R
         arg
       when R::Object
         arg.r_interop
+      when Numeric
+        R::Support.eval('c').call(arg)
       when NegRange
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-        R::Support.eval("seq").call(arg.first, final_value)
+        R::Support.eval('seq').call(arg.first, final_value)
       when Range
         final_value = (arg.exclude_end?)? (arg.last - 1) : arg.last
-        R::Support.eval("seq").call(arg.first, final_value)
+        R::Support.eval('seq').call(arg.first, final_value)
       when :all
         R.empty_symbol
       when Symbol
-        arg = R::Support.eval("as.name").call(arg.to_s.gsub(/__/,"."))
+        arg = R::Support.eval('as.name').call(arg.to_s.gsub(/__/,"."))
       when Proc, Method
         R::RubyCallback.build(arg)
       # when R::Expression
@@ -154,10 +156,22 @@ module R
             # unboxing.  Class NotAvailable
             # puts a list around NA, so that no unboxing occurs.  We need to treat this
             # list here
+            
+            # add the key as the name of the NA
             if (value.is_a? NotAvailable)
-              # add the key as the name of the NA
               na_named = R::Support.eval("`names<-`").call(value.r_interop, k)
               params = R::Support.eval("c").call(params, na_named)
+              
+            # the 'all' keywork means 'empty', so this is a list of the form
+            # list(a = 1, b = 2, list(c = 3))... note that the 3rd element of the
+            # list has no name.  In Ruby, doing R.list(a: 1, b: 2, R.list(c: 3)) is
+            # a syntax error, since named parameters need to come at the end of the
+            # parameter list.  To fix that we do: R.list(a: 1, b: 2, all: R.list(c: 3))
+            elsif (k == 'all')
+              params = R::Support.eval("`[[<-`").
+                         call(params, R::Support.eval('`+`').
+                                        call(R::Support.eval('length').call(params), 1),
+                              R::Support.parse_arg(value))
             else
               params = R::Support.eval("`[[<-`").
                          call(params, k, R::Support.parse_arg(value))

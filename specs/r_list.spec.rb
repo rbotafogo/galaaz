@@ -95,29 +95,59 @@ describe R::List do
   context "When subsetting a list with '['" do
     
     before(:all) do
-      @l = R.list(1, 2, 3, R.list(4, 5, 6))
+      # the 'all' keywork means 'empty', so this is a list of the form
+      # list(a = 1, b = 2, list(c = 3))... note that the 3rd element of the
+      # list has no name.  In Ruby, doing R.list(a: 1, b: 2, R.list(c: 3)) is
+      # a syntax error, since named parameters need to come at the end of the
+      # parameter list.  To fix that we do: R.list(a: 1, b: 2, all: R.list(c: 3))
+      # However, note that we cannot have two identical named parameters in a
+      # function call, as Ruby will detect it as an error and pass only one of
+      # the named parameters and not both.
+      
+      # The following list has only 3 elements and not 4 since the 'all' parameter
+      # was used twice.  This is a limitation of Ruby
+      @l = R.list(a: 1, b: 2, all: 3, all: R.list(i: 4, j: 5, all: 6))
+
+      # This list has 4 elements.
+      @l1 = R.list(a: 1, b: 2, all: 3, d: R.list(i: 4, j: 5, all: 6))
+
+      # if possible, change the order of the list with unamed parameters first.
+      # Although clearly those lists are different, named parameters can still
+      # be recovered by name
+      @l2 = R.list(3, R.list(6, i:4, j: 5), a: 1, b: 2)
+    end
+
+    it "should allow accessing parameters named with 'all' by position" do
+      expect(@l.length).to eq 3
+      # Note that the first 'all' parameter was droped.  Don't know if this
+      # is implementation dependend, but in TruffleRuby that's the way it is
+      # (at least for now).
+      expect(@l[[3]]).to eq R.list(i:4, j: 5, all: 6)
     end
 
     it "should subset with [] and positve integer.  Returns a list" do
-      expect(@l.length).to eq 4
+      expect(@l1.length).to eq 4
       # Subsetting a list with [] returns a list 
-      expect(@l[1].identical(R.list(1))).to eq true
-      # the 4th element of the list is a list of a list
-      expect(@l[4].identical(R.list(R.list(4, 5, 6)))).to eq true
+      expect(@l1[1]).to eq R.list(a: 1)
+      expect(@l1[1] == R.c(a: 1)).to eq false
+      expect(@l1[1]).not_to eq R.c(a: 1)
+      
+      # the 4th element of the list is another list
+      expect(@l1[4]).to eq R.list(d: R.list(i: 4, j: 5, all: 6))
     end
 
     it "should subset with [] and negative integer.  Returns a list" do
-      expect(@l[-4].identical(R.list(1, 2, 3))).to eq true
+      expect(@l1[-4] == R.list(a: 1, b: 2, all: 3)).to eq true
     end
 
     it "should subset with [] and a vector as index" do
-      expect(@l[R.c(4, 1)].identical(R.list(R.list(4, 5, 6), 1))).to eq true
+      expect(@l1[R.c(4, 1)] == R.list(d: R.list(i: 4, j: 5, all: 6), a: 1)).to eq true
     end
-
+    
     it "should raise an exception when index dimension is wrong" do
       expect { @l[4, 1] }.to raise_error(ArgumentError)
     end
-
+    
   end
 
   #----------------------------------------------------------------------------------------
@@ -150,6 +180,24 @@ describe R::List do
 
   end
 
+  #----------------------------------------------------------------------------------------
+  context "When subsetting a list with '.'" do
+
+    before(:all) do
+      # This list has 4 elements.
+      @l1 = R.list(a: 1, b: 2, all: 3, d: R.list(i: 4, j: 5, all: 6))
+    end
+
+    it "should access named elements with '.<name>'" do
+      # access with '.' is equivalent to access with '[[
+      expect(@l1.a == R.c(1)).to eq true
+      expect(@l1.a).to eq 1
+      expect(@l1.b).to eq 2
+      expect(@l1.d == R.list(i: 4, j: 5, all: 6)).to eq true
+    end
+    
+  end
+  
   #----------------------------------------------------------------------------------------
   context "When subsetting a list with 'each' and 'each_with_index'" do
 

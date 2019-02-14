@@ -32,14 +32,14 @@ describe R::Matrix do
       x = R.matrix(data: R.c(1, 2, 3, 4), nrow: 2, ncol: 2)
       expect(x[1, 1] == 1).to eq true
       expect(x[1, 2] == 3).to eq true
-      expect(x.dim == 2).to eq true
+      expect(x.dim == R.c(2, 2)).to eq true
     end
     
     it "Should create a matrix by row" do
       x = R.matrix(data: R.c(1, 2, 3, 4), nrow: 2, ncol: 2, byrow: true)
       expect(x[1, 1] == 1).to eq true
       expect(x[1, 2] == 2).to eq true
-      expect(x.dim == 2).to eq true
+      expect(x.dim == R.c(2, 2)).to eq true
     end
 
     it "Should add matrices" do
@@ -68,7 +68,7 @@ describe R::Matrix do
     it "should divide a scalar by a matrix" do
       y = R.matrix(data: R.c(2, 4, 6, 8), nrow: 2, ncol: 2)
       z = 10/y
-      expect(z == R.c(10/2, 10/4, 10/6, 10/8)).to eq true
+      expect(z).to eq R.matrix(data: R.c(10/2.0, 10/4.0, 10/6.0, 10/8.0), nrow: 2, ncol: 2)
     end
 
     it "should apply a function to all elements of the matrix: ex: sqrt" do

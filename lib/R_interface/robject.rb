@@ -49,7 +49,9 @@ module R
     #--------------------------------------------------------------------------------------
 
     def ==(other_object)
-      res = R::Support.exec_function_name("`==`", @r_interop, other_object)
+      res =
+        R::Support.exec_function_name('identical', @r_interop,
+                                      R::Support.parse_arg(other_object))
       return nil if (res.length << 0) == 0
       res << 0
     end
@@ -60,7 +62,8 @@ module R
 
     def eql(other_object)
       # exec_bin_oper("`==`", other_object)
-      R::Support.exec_function_name("`==`", @r_interop, other_object)
+      R::Support.exec_function_name("`==`", @r_interop,
+                                    R::Support.parse_arg(other_object))
     end
 
     #--------------------------------------------------------------------------------------
