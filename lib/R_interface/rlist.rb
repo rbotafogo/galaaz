@@ -39,6 +39,16 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def method_missing_assign(elmt_name, arg)
+      puts elmt_name
+      puts arg
+      setR_name("`[[<-`", elmt_name, arg)
+    end
+
+    #--------------------------------------------------------------------------------------
     # When indexing with '[' or '[[' an R object is returned.  Sometimes we need to have
     # access to an umboxed Ruby element, for instance, in an numeric array, we might want
     # to receive the actual number that can be used in a Ruby method.  In this case, we

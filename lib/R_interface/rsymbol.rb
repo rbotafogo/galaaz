@@ -30,7 +30,7 @@ module R
   class RSymbol < R::Object
     include BinaryOperators
     include ExecBinOp
-    # include FormulaBinOp
+
 =begin    
     #--------------------------------------------------------------------------------------
     #

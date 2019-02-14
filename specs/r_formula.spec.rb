@@ -49,7 +49,7 @@ describe R::Language do
       expect(rform.rclass).to eq 'formula'
     end
 
-    it "should create a formula with '.' by using the ':all' keyword in the rhs" do
+    it "should create a formula with '.' in the rhs" do
       formula = R.formula("supp ~ .")
       expect(formula.to_s.lines.first.chomp).to eq "supp ~ ."
       
@@ -77,7 +77,7 @@ describe R::Language do
       expect(formula.to_s.lines.first.chomp).to eq "~supp"
       
       formula = :all.til :supp
-      expect(formula.to_s.lines.first.chomp).to eq " ~ supp"
+      expect(formula.to_s.lines.first.chomp).to eq "~supp"
       expect(formula.rclass).to eq "formula"
       expect(formula.typeof).to eq "language"
     end

@@ -238,15 +238,42 @@ describe R::List do
 
     it "should be possible to modify a list by index" do
       @l[[1]] = 10
+      expect(@l.length).to eq 4
       expect(@l[[1]]).to eq 10
     end
 
-    it "should be possible to modify a list by element name" do
+    it "should be possible to modify a list by element name in '[[" do
       @l[['a']] = 10
       expect(@l[['a']]).to eq 10
+      expect(@l.a).to eq 10
+    end
+    
+    it "should be possible to modify a list by element name with '.'" do
+      @l.b = 20
+      expect(@l[['b']]).to eq 20
+      expect(@l.b).to eq 20
+    end
 
-      # @l.b = 20
-      # expect(@l[['b']]).to eq 20
+    it "should be possible to add an element to the list with '[[" do
+      @l[['married']] = true
+      expect(@l.length).to eq 5
+      expect(@l[['married']]).to eq true
+      expect(@l.married).to eq true
+    end
+
+    it "should be possible to add an element to the list with '.'" do
+      @l.married = true
+      expect(@l.length).to eq 5
+      expect(@l[['married']]).to eq true
+      expect(@l.married).to eq true
+      
+      @l.number = 5.345
+      @l.lst = R.list(100, 200)
+      @l.vec = R.c(500, 600)
+
+      expect(@l.length).to eq 8
+      expect(@l.vec).to eq R.c(500, 600)
+      expect(@l.vec).not_to eq R.c(1000)
     end
     
   end

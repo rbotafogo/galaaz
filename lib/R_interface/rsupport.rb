@@ -129,9 +129,9 @@ module R
         arg = R::Support.eval('as.name').call(arg.to_s.gsub(/__/,"."))
       when Proc, Method
         R::RubyCallback.build(arg)
-      # when R::Expression
-      #  R::Support.quo_or_formula(arg).r_interop
-      else # This is already a Ruby argument
+      # This is a Ruby argument that will be automatically converted
+      # by the low level Polyglot interface to R
+      else 
         arg
       end
 

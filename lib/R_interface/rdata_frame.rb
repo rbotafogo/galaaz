@@ -36,6 +36,14 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    def method_missing_assign(column_name, arg)
+      setR_name("`[<-`", R.empty_symbol, column_name, arg)
+    end
+
+    #--------------------------------------------------------------------------------------
     # Goes through each row of the dataframe and return the whole row as the first element
     # and the row name (Ruby string) as the second
     #--------------------------------------------------------------------------------------
