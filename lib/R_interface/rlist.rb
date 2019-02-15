@@ -43,8 +43,6 @@ module R
     #--------------------------------------------------------------------------------------
 
     def method_missing_assign(elmt_name, arg)
-      puts elmt_name
-      puts arg
       setR_name("`[[<-`", elmt_name, arg)
     end
 

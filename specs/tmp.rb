@@ -24,11 +24,3 @@
 require 'galaaz'
 # require 'ggplot'
 
-l = R::Support.eval("list(a = 1, b = 2)")
-puts R::Support.eval("`[[`").call(l, 'a')
-l = R::Support.eval("`[[<-`").call(l, 'a', 5)
-puts R::Support.eval("`[[`").call(l, 'a')
-
-puts l = R::Support.eval("`[[<-`").call(l, 'a', nil)
-puts R::Support.eval("`[[`").call(l, 'a')
-puts R::Support.eval("print").call(l)

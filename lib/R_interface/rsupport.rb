@@ -136,6 +136,34 @@ module R
       end
 
     end
+
+    #----------------------------------------------------------------------------------------
+    # Given a hash, convert it to an R argument list
+    #----------------------------------------------------------------------------------------
+
+    def self.parse_hash(hsh, lst)
+
+      hsh.each_pair do |key, value|
+        k = key.to_s.gsub(/__/,".")
+        
+        case 
+        when (value.is_a? NotAvailable)
+          na_named = R::Support.eval("`names<-`").call(value.r_interop, k)
+          lst = R::Support.eval("c").call(lst, na_named)
+        when (k == 'all')
+          lst = R::Support.eval("`[[<-`").
+                  call(lst, R::Support.eval('`+`').
+                              call(R::Support.eval('length').call(lst), 1),
+                       R::Support.parse_arg(value))
+        else
+          lst = R::Support.eval("`[[<-`").
+                  call(lst, k, R::Support.parse_arg(value))
+        end
+      end
+      
+      lst
+      
+    end
     
     #----------------------------------------------------------------------------------------
     # Parses the Ruby arguments into a R list of R objects
@@ -143,52 +171,25 @@ module R
     #----------------------------------------------------------------------------------------
     
     def self.parse2list(*args)
-
+      
       params = Polyglot.eval("R", "list()")
       
       args.each_with_index do |arg, i|
         if (arg.is_a? Hash)
-          arg.each_pair do |key, value|
-            k = key.to_s.gsub(/__/,".")
-            # HAS CHANGED IN RC6... @TODO: THIS TO THE NEW API
-            # When evaluating to NA, Interop treats it as FALSE.  This breaks
-            # all expectations about NA.  We need to protect NA from Interop
-            # unboxing.  Class NotAvailable
-            # puts a list around NA, so that no unboxing occurs.  We need to treat this
-            # list here
-            
-            # add the key as the name of the NA
-            if (value.is_a? NotAvailable)
-              na_named = R::Support.eval("`names<-`").call(value.r_interop, k)
-              params = R::Support.eval("c").call(params, na_named)
-              
-            # the 'all' keywork means 'empty', so this is a list of the form
-            # list(a = 1, b = 2, list(c = 3))... note that the 3rd element of the
-            # list has no name.  In Ruby, doing R.list(a: 1, b: 2, R.list(c: 3)) is
-            # a syntax error, since named parameters need to come at the end of the
-            # parameter list.  To fix that we do: R.list(a: 1, b: 2, all: R.list(c: 3))
-            elsif (k == 'all')
-              params = R::Support.eval("`[[<-`").
-                         call(params, R::Support.eval('`+`').
-                                        call(R::Support.eval('length').call(params), 1),
-                              R::Support.parse_arg(value))
-            else
-              params = R::Support.eval("`[[<-`").
-                         call(params, k, R::Support.parse_arg(value))
-            end
-          end
+          params = parse_hash(arg, params)
         elsif (arg.is_a? NotAvailable)
           params = R::Support.eval("c").call(params, arg.r_interop)
+        elsif (arg.is_a? NilClass)
+          params = R::Support.eval("`length<-`").call(params, i+1)
         else
           params = R::Support.eval("`[[<-`").
                      call(params, i+1, R::Support.parse_arg(arg))
         end
       end
-
+      
       # if the parameter is an empty list, then add the element NULL to the list
       (Polyglot.eval("R", "length").call(params) == 0) ?
         Polyglot.eval("R", "list").call(nil) : params
-      # params
       
     end
     
@@ -280,7 +281,7 @@ module R
     
     def self.exec_function_i(function, *args)
       pl = R::Support.parse2list(*args)
-      R::Support.eval("do.call").call(function, pl)
+      R::Support.eval("invoke").call(function, pl)
     end
 
     #----------------------------------------------------------------------------------------

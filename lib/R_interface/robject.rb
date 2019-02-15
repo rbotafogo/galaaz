@@ -133,9 +133,11 @@ module R
       end
 
     end
+    
 =begin
     #--------------------------------------------------------------------------------------
-    # This method was moved to DataFrame
+    # This method was moved to DataFrame.  Need to check which other objects can have
+    # values assigned to them
     #--------------------------------------------------------------------------------------
 
     def method_missing_assign(column_name, arg)

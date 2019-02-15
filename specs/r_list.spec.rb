@@ -61,7 +61,7 @@ describe R::List do
   #----------------------------------------------------------------------------------------
   context "When subsetting a list with '<<' (starts at 0)" do
     
-    before(:all) do
+    before(:each) do
       @l = R.list(1, a: 2, b: 3, c: R.list(4, 5, 6))
     end
 
@@ -94,7 +94,7 @@ describe R::List do
   #----------------------------------------------------------------------------------------
   context "When subsetting a list with '['" do
     
-    before(:all) do
+    before(:each) do
       # the 'all' keywork means 'empty', so this is a list of the form
       # list(a = 1, b = 2, list(c = 3))... note that the 3rd element of the
       # list has no name.  In Ruby, doing R.list(a: 1, b: 2, R.list(c: 3)) is
@@ -153,7 +153,7 @@ describe R::List do
   #----------------------------------------------------------------------------------------
   context "When subsetting a list with '[['" do
     
-    before(:all) do
+    before(:each) do
       @l = R.list(1, 2, 3, R.list(4, 5, 6))
     end
 
@@ -183,7 +183,7 @@ describe R::List do
   #----------------------------------------------------------------------------------------
   context "When subsetting a list with '.'" do
 
-    before(:all) do
+    before(:each) do
       # This list has 4 elements.
       @l1 = R.list(a: 1, b: 2, all: 3, d: R.list(i: 4, j: 5, all: 6))
     end
@@ -201,7 +201,7 @@ describe R::List do
   #----------------------------------------------------------------------------------------
   context "When subsetting a list with 'each' and 'each_with_index'" do
 
-    before(:all) do
+    before(:each) do
       @l = R.list(1, 2, 3, R.list(4, 5, 6))
     end
 
@@ -232,7 +232,7 @@ describe R::List do
   #----------------------------------------------------------------------------------------
   context "When modifying a list" do
 
-    before(:all) do
+    before(:each) do
       @l = R.list(a: 1, b: 2, c: 3, d: R.list(i: 4, j: 5, k: 6))
     end
 
@@ -275,7 +275,19 @@ describe R::List do
       expect(@l.vec).to eq R.c(500, 600)
       expect(@l.vec).not_to eq R.c(1000)
     end
+
+    it "should be possible to remove an element from a list by assigning 'nil' to it" do
+      @l[['d']] = nil
+      expect(@l.length).to eq 3
+      expect(@l).to eq R.list(a: 1, b: 2, c: 3)
+    end
     
+    it "should be possible to remove an element from a list by assigning 'nil' with '.'" do
+      @l.d = nil
+      expect(@l.length).to eq 3
+      expect(@l).to eq R.list(a: 1, b: 2, c: 3)
+    end
+
   end
   
 end
