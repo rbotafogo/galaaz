@@ -72,7 +72,7 @@ module R
       
       # package 'data_table' cannot be installed by install.packages.  FastR implements
       # install.fastr.packages for installing 'data_table'
-      if ((R.c('data.table')._ :in, new_packages) << 0)
+      if ((R.c('data.table')._ :in, new_packages) >> 0)
         new_packages = new_packages[!'data_table']
         R.install__fastr__packages('data_table')
       end
@@ -98,6 +98,9 @@ end
 require_relative 'rbinary_operators'
 # Unary operators: '!', '@-', etc
 require_relative 'runary_operators'
+# Logical operators
+require_relative 'rlogical_operators'
+
 # Ruby class extensions.  Extends Symbol to allow the creation of
 # expressions using Symbol: (:x > 10)
 require_relative 'ruby_extensions'

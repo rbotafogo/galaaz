@@ -106,7 +106,8 @@ end
 class Symbol
   include R::BinaryOperators
   include R::ExpBinOp
-
+  include R::LogicalOperators
+  
   #--------------------------------------------------------------------------------------
   # Unary '+' converts a Ruby Symbol into an R Symbol
   #--------------------------------------------------------------------------------------
@@ -177,7 +178,7 @@ class Symbol
 
     if (symbol =~ /(.*)=$/)
       # method_missing_assign($1, args[0])
-    elsif (args.length == 0 && ((R.c(symbol.to_s)._ :in, R.names(self)) << 0))
+    elsif (args.length == 0 && ((R.c(symbol.to_s)._ :in, R.names(self)) >> 0))
       return self[symbol.to_s]
     end
     

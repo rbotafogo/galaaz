@@ -21,6 +21,7 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
+require 'singleton'
 require 'fileutils'
 
 R.install_and_loads('knitr', 'rmarkdown')
@@ -401,7 +402,7 @@ class KnitrEngine
 
   def units
     opt_units = (@options[["units"]])
-    (opt_units.is__null << 0) ? "in" : opt_units
+    (opt_units.is__null >> 0) ? "in" : opt_units
   end
 
   #--------------------------------------------------------------------------------------
@@ -422,7 +423,7 @@ class KnitrEngine
     @keep = @options.fig__keep
     @keep_idx = nil
     
-    if (@keep.is__numeric << 0)
+    if (@keep.is__numeric >> 0)
       @keep_idx = @keep
       @keep = "index"
     end
@@ -435,8 +436,8 @@ class KnitrEngine
 
   def file_ext
     # guess plot file type if it is NULL
-    if (((@keep != 'none') << 0) && (@options.fig__ext.is__null << 0))
-      @fig__ext = (R.knitr_dev2ext(@options.dev) << 0)
+    if (((@keep != 'none') >> 0) && (@options.fig__ext.is__null >> 0))
+      @fig__ext = (R.knitr_dev2ext(@options.dev) >> 0)
     end
     
   end
@@ -450,11 +451,11 @@ class KnitrEngine
     @options = options
 
     # Chunk options
-    @label = (options['label'] << 0)
+    @label = (options['label'] >> 0)
     
     # Text results
     @eval = options['eval'] 
-    @echo = (options['echo'] << 0)
+    @echo = (options['echo'] >> 0)
     @results = options['results'] 
     @collapse = options['collapse'] 
     @warning = options['warning'] 
@@ -477,12 +478,12 @@ class KnitrEngine
     @class__source = options['class_source'] 
     
     # Plots
-    @fig__path = (options['fig.path'] << 0)
+    @fig__path = (options['fig.path'] >> 0)
     # @fig__keep = options['fig.keep'] # can be a vector
     @fig__show = options['fig.show'] 
     @dev = options['dev'] 
     # @dev__args = options['dev.args'] # can be a vector
-    @fig__ext = (options['fig.ext'] << 0)
+    @fig__ext = (options['fig.ext'] >> 0)
     @dpi = options['dpi'] 
     @fig__width = options['fig.width'] 
     @fig__height = options['fig.height'] 
@@ -520,7 +521,7 @@ class KnitrEngine
 
     # create temporary file for storing plots
     # TODO: should remove this directory afterwards
-    @tmp_fig = (R.tempfile() << 0)
+    @tmp_fig = (R.tempfile() >> 0)
     
   end
 
@@ -542,15 +543,15 @@ class KnitrEngine
 
   def self.device(dev_type, filename = nil, *args, width: 480, height: 480,
                   units: "px", res: 72, pointsize: 12, bg: "white")
-    
+
     case dev_type
         
     when "awt"
     when "svg"
       R.svg(filename)
-    when "png"
+    when "png", "pdf"
       R.png(filename, width, height, units, pointsize, bg, res, *args)
-    when "jpg" | "jpeg"
+    when "jpg", "jpeg"
       R.jpeg(filename, width, height, units, pointsize, bg, res, *args)
     when "bmp" 
       R.bmp(filename, width, height, units, pointsize, bg, res, *args)
@@ -570,17 +571,17 @@ class KnitrEngine
     # gets a plot snapshot.  Uses function plot_snapshot from package 'evaluate'
     plot = R.evaluate_plot_snapshot
 
-    if (!(plot.is__null << 0))
+    if (!(plot.is__null >> 0))
       
       # create directory for the graphics files if does not already exists
       unless File.directory?(@fig__path)
         FileUtils.mkdir_p(@fig__path)
       end
-      
+
       @options.dev.each do |dev_type|
-        KnitrEngine.device(dev_type << 0, @filename,
-                           width: @options.fig__width << 0,
-                           height: @options.fig__height << 0, units: units)
+        KnitrEngine.device(dev_type >> 0, @filename,
+                           width: @options.fig__width,
+                           height: @options.fig__height, units: units)
         R.print(plot)
         R.dev__off
         return plot
@@ -610,6 +611,7 @@ class KnitrEngine
 
   end
   
+  
   #--------------------------------------------------------------------------------------
   #
   #--------------------------------------------------------------------------------------
@@ -621,7 +623,65 @@ class KnitrEngine
   #--------------------------------------------------------------------------------------
 
   def initialize
+    
+  #--------------------------------------------------------------------------------------
+  # Basic engine for processing a chunk
+  #--------------------------------------------------------------------------------------
+
+    @base_engine = Proc.new do |options|
+      
+      begin
+
+        out = R.list
+
+        # process the chunk options.
+        process_options(options)
+        
+        # opens a device for the current chunk for plot recording
+        KnitrEngine.device(@options.dev >> 0, @tmp_fig)
+        
+        # dv gets the current device
+        dv = R.dev__cur
+        
+        # executes the code chunk with the given options
+        # the returned value is a list properly formatted to be given to engine_output
+        # exec_ruby catches StandardError, so no execution errors on the block will
+        # reach here, they are formatted in the return list to be printed
+        res = GalaazUtil.exec_ruby(@options)
+        
+        # function engine_output will format whatever is in out inside a white box
+        out = R.engine_output(@options, out: res) if @echo
+        
+        # ouputs the data in RubyChunk '@@outputs' variable. Everything that should
+        # be processed by 'pandoc' and not appear in the output block from
+        # engine_output, should be outputed with the 'outputs' function and will be
+        # stored in the @@outputs variable
+        out = R.c(out, RubyChunk.get_outputs)
+        
+        # @TODO: allow capturing many plots in the block.  For now, only the last
+        # plot will be captured.  Not a very serious problem for now.
+        # Captures the last plot in the Ruby block. 
+        if (capture_plot)
+          plot = R.knitr_wrap(R.knit_print(R.include_graphics(@filename)), @options)
+          
+          # add to the output the result of plot.  Whatever is included after the
+          # engine_output output will appear 'as.is' in the report.  The 'plot'
+          # variable is a command that in rmarkdown includes the image in the
+          # report
+          out = R.c(out, plot)
+        end
+
+        out
+        
+      ensure
+        # closes the current device
+        # R.dev__off(dv)
+      end
+      
+    end
+    
     super
+    
   end
   
 end

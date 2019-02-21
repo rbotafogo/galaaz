@@ -44,6 +44,27 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
+    # subset assign a vector with an index to a value
+    # @param index [Array] The vector index
+    # @param values [R::Object] The values to assign to the index.  Note that
+    # index can span multiple
+    # values, for ex., R.c(2, 3, 5)
+    #--------------------------------------------------------------------------------------
+
+    def []=(index, values)
+
+      # dealing with double indexing function '[['
+      if (index.is_a? Array)
+        setR_name("`[[<-`", R.empty_symbol, *index, values)
+      else
+        setR_name("`[<-`", R.empty_symbol, index, values)
+      end
+      
+      self
+      
+    end
+    
+    #--------------------------------------------------------------------------------------
     # Goes through each row of the dataframe and return the whole row as the first element
     # and the row name (Ruby string) as the second
     #--------------------------------------------------------------------------------------
@@ -52,8 +73,8 @@ module R
 
       # nrow is the R function that return the number of rows in the dataset.  This
       # function returns a R::Vector, so we need to extract its first element (<< 0)
-      (1..nrow << 0).each do |i|
-        yield self[i, :all], self.rownames[i] << 0
+      (1..nrow >> 0).each do |i|
+        yield self[i, :all], self.rownames[i] >> 0
       end
 
     end
@@ -67,8 +88,8 @@ module R
       
       # ncol is the R function that return the number of columns in the dataset.  This
       # function returns a R::Vector, so we need to extract its first element (<< 0)
-      (1..ncol << 0).each do |i|
-        yield self[:all, i], self.names[i] << 0
+      (1..ncol >> 0).each do |i|
+        yield self[:all, i], self.names[i] >> 0
       end
       
     end

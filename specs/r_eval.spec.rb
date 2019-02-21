@@ -144,7 +144,7 @@ describe R do
 
       expect(x[1].all__equal(1)).to eq true
       expect(x[2].identical(1)).to eq false
-      expect((x << 0) == 1).to eq true
+      expect((x >> 0) == 1).to eq true
     end
     
     it "should have NA" do

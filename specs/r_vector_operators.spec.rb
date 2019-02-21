@@ -137,21 +137,21 @@ describe R::Vector do
        # Use the '<<' operator to retrieve an element of the R::Vector as a Numeric
        # object
        expect(@vec1[1].is_a? R::Vector).to eq true
-       expect((@vec1 << 0).is_a? Numeric).to eq true
+       expect((@vec1 >> 0).is_a? Numeric).to eq true
 
        # Note, however, that indexing starts at 0
-       expect((@vec1 << 0)).to eq 3
-       expect((@vec1 << 2)).to eq 10
+       expect((@vec1 >> 0)).to eq 3
+       expect((@vec1 >> 2)).to eq 10
      end
 
      it "Should raise an exeption if '<<' out of bounds" do
-       expect { @vec1 << 5 }.to raise_error(IndexError)
+       expect { @vec1 >> 5 }.to raise_error(IndexError)
      end
 
      it "should treat R::Vector as an Enumerable" do
        # each 'value' is an R::Vector, with only 1 element.  In order to use Ruby 'sum'
-       # we need to extract the value as a Ruby Numeric with << 1
-       expect(@vec1.sum { |value| value << 0 }).to eq 30.7
+       # we need to extract the value as a Ruby Numeric with >> 1
+       expect(@vec1.sum { |value| value >> 0 }).to eq 30.7
      end
 
      it "should implement 'pop' to extract the first element of an R::Vector" do

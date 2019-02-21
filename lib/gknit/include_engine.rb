@@ -21,36 +21,37 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-class RbEngine < KnitrEngine
+class IncludeEngine < KnitrEngine
   include Singleton
 
   attr_reader :engine
 
   #--------------------------------------------------------------------------------------
-  # Ruby engine for processing Ruby chunks
+  # Ruby engine for processing 'include' chunks
   #--------------------------------------------------------------------------------------
 
   def initialize
-    
+
+    # call super to make @base_engine available
+    super
+         
     @engine = Proc.new do |options|
 
-      # the 'rb' engine has the code to be executed in the options.label
-      # argument
-      # options[['code']] = options[['label']]
-      options.code = options.label
-      # we do not want the code to be returned
-      options.echo = false
+      # check if require should be relative or not
+      req = (options[['relative']].is__null | options[['relative']].isTRUE) >> 0
       
-      GalaazUtil.exec_ruby(options)
-      
+      # load the content of the file in options.code
+      options.code = GalaazUtil.inline_file(options.label >> 0, req)
+
+      @base_engine.call(options)
     end
-
-    # Add the rb engine function for processing the rb block
-    add(rb: @engine)
-
+    
+    # Add the include engine function for processing the rb block
+    add(include: @engine)
+    
   end
   
 end
 
-rb_engine = RbEngine.instance
+include_engine = IncludeEngine.instance
 

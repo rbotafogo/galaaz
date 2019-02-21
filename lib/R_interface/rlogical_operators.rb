@@ -21,36 +21,30 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-class RbEngine < KnitrEngine
-  include Singleton
+module R
 
-  attr_reader :engine
+  module LogicalOperators
 
-  #--------------------------------------------------------------------------------------
-  # Ruby engine for processing Ruby chunks
-  #--------------------------------------------------------------------------------------
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
 
-  def initialize
-    
-    @engine = Proc.new do |options|
-
-      # the 'rb' engine has the code to be executed in the options.label
-      # argument
-      # options[['code']] = options[['label']]
-      options.code = options.label
-      # we do not want the code to be returned
-      options.echo = false
-      
-      GalaazUtil.exec_ruby(options)
-      
+    def &(other_object)
+      exec_bin_oper("`&`", other_object)
     end
 
-    # Add the rb engine function for processing the rb block
-    add(rb: @engine)
+    alias_method :and, :&
+    
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
 
+    def |(other_object)
+      exec_bin_oper("`|`", other_object)
+    end
+
+    alias_method :or, :|
+    
   end
-  
+
 end
-
-rb_engine = RbEngine.instance
-

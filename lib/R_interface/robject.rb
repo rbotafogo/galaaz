@@ -52,8 +52,8 @@ module R
       res =
         R::Support.exec_function_name('identical', @r_interop,
                                       R::Support.parse_arg(other_object))
-      return nil if (res.length << 0) == 0
-      res << 0
+      return nil if (res.length >> 0) == 0
+      res >> 0
     end
 
     #--------------------------------------------------------------------------------------

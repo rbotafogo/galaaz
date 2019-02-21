@@ -60,8 +60,9 @@ module R
         setR_name("`[[<-`", *index, values)
       else
         setR_name("`[<-`", index, values)
-        self
       end
+      
+      self
       
     end
 
@@ -70,7 +71,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def size
-      length << 0
+      length >> 0
     end
     
   end

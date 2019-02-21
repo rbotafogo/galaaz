@@ -160,11 +160,6 @@ blogs.each do |dir|
     (sh %{ bin/gknit #{blog_rmd} })
   end
 
-  desc "run gknit2 to build #{dir} blog post"
-  task "blog2:#{dir}" do
-    (sh %{ bin/gknit2 #{blog_rmd} })
-  end
-  
 end
   
 #===========================================================================================

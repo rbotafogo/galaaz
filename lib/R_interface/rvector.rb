@@ -29,6 +29,7 @@ module R
     include ExecBinOp
     include UnaryOperators
     include ExecUniOp
+    include LogicalOperators
     include Enumerable
     
     #--------------------------------------------------------------------------------------
@@ -47,7 +48,7 @@ module R
     # @return the Ruby element at the given index in the vector
     #--------------------------------------------------------------------------------------
 
-    def <<(index)
+    def >>(index)
       raise IndexError.new("index #{index} out of array bounds: -#{index - 1}...#{index - 1}") if
         (index >= @r_interop.size) 
       @r_interop[index]
@@ -58,7 +59,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def pop
-      self << 0
+      self >> 0
     end
     
     #--------------------------------------------------------------------------------------
@@ -72,13 +73,13 @@ module R
       case result
       when :vec
         # length is a R::Vector, in order to extract its size as a Numeric we need to
-        # use the << operator
-        (1..length << 0).each do |i|
+        # use the >> operator
+        (1..length >> 0).each do |i|
           yield self[i]
         end
       when :native
-        (0...length << 0).each do |i|
-          yield self << i
+        (0...length >> 0).each do |i|
+          yield self >> i
         end
       else
         raise "Type #{result} is unknown for method :each"
@@ -93,12 +94,12 @@ module R
     def each_with_index(result = :vec)
       case result
       when :vec
-        (1..length << 0).each do |i|
+        (1..length >> 0).each do |i|
           yield self[i], i
         end
       when :native
-        (0...length << 0).each do |i|
-          yield self << i, i
+        (0...length >> 0).each do |i|
+          yield self >> i, i
         end
       else
         raise "Type #{result} is unknown for method :each"

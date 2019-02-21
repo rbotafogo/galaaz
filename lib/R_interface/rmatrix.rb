@@ -29,10 +29,16 @@ module R
 
   class Matrix < Object
     include MDIndexedObject
+    # binary operators
     include BinaryOperators
     include ExecBinOp
+
+    # unary operators
     include UnaryOperators
     include ExecUniOp
+
+    # logical operators. Can either be binary or unary
+    include LogicalOperators
 
     #--------------------------------------------------------------------------------------
     # When indexing with '[' or '[[' an R object is returned.  Sometimes we need to have
@@ -42,7 +48,7 @@ module R
     # @return the Ruby element at the given index in the vector
     #--------------------------------------------------------------------------------------
 
-    def <<(index)
+    def >>(index)
       @r_interop[index]
     end
 

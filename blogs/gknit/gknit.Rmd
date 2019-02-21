@@ -6,13 +6,13 @@ author:
 tags: [Tech, Data Science, Ruby, R, GraalVM]
 date: "20/02/2019"
 output:
-  html_document:
-    self_contained: true
-    keep_md: true
   pdf_document:
     includes:
       in_header: ["../../sty/galaaz.sty"]
     number_sections: yes
+  html_document:
+    self_contained: true
+    keep_md: true
 ---
 
 ```{r setup, echo=FALSE}
@@ -23,7 +23,8 @@ output:
 
 The idea of "literate programming" was first introduced by Donald Knuth in the 1980's.
 The main intention of this approach was to develop software interspersing macro snippets,
-traditional source code, and a natural language such as English that could be compiled into
+traditional source code, and a natural language such as English in a document 
+that could be compiled into
 executable code and at the same time easily read by a human developer. According to Knuth
 "The practitioner of 
 literate programming can be regarded as an essayist, whose main concern is with exposition 
@@ -43,11 +44,11 @@ contained the whole narrative to reproduce the research.  But Sweave had many pr
 problems from Sweave and including in one single package many extensions and add-on packages that
 were necessary for Sweave.
 
-With Knitr, R markdown was also developed, an extension the the
+With Knitr, R markdown was also developed, an extension to the
 Markdown format.  With R markdown and Knitr it is possible to generate reports in a multitude
 of formats such as HTML, markdown, Latex, PDF, dvi, etc.  R markdown also allows the use of
 multiple programming languages in the same document.  In R markdown text is interspersed with
-code chunks that can be executed and both the code as the result of executing the code can become
+code chunks that can be executed and both the code and its results can become
 part of the final report.  Although R markdown allows multiple programming languages in the
 same document, only R and Python (with
 the reticulate package) can persist variables between chunks.  For other languages, such as
@@ -56,21 +57,24 @@ is somehow stored in a data file that is read by the next chunk.
 
 Being able to persist data
 between chunks is critical for literate programming otherwise the flow of the narrative is lost
-by all the effort of having to save data and then reload it. Probably, because of this impossibility,
-it is very rare to see any R markdown document in the Ruby community.
+by all the effort of having to save data and then reload it. Probably, because of 
+this impossibility,
+it is very rare to see any R markdown document in the Ruby community.  Also, the use of 
+R markdown for the Ruby community would also require the Ruby developer to download R and 
+have some minimal knowledge of Knitr.
 
 In the Python community, the same effort to have code and text in an integrated environment
-started also on the first decade of 2000. In 2006 iPython 0.7.2 was released.  In 2014,
+started around the first decade of 2000. In 2006 iPython 0.7.2 was released.  In 2014,
 Fernando Pérez, spun off project Jupyter from iPython creating a web-based interactive
 computation environment.  Jupyter can now be used with many languages, including Ruby with the
 iruby gem (https://github.com/SciRuby/iruby).  I am not sure if multiple languages can be used
-in a Jupyter notebook.
+in a Jupyter notebook and if variables can persist between chunks.
 
 # gKnitting a Document
 
 This document describes gKnit.  gKnit uses Knitr and R markdown to knit a document in Ruby or R
-and output it in any of the
-available formats for R markdown.  gKnit runs atop of GraalVM, and Galaaz (an integration 
+and output it in any of the available formats for R markdown.  
+gKnit runs atop of GraalVM, and Galaaz (an integration 
 library between Ruby and R).  In gKnit, Ruby variables are persisted between chunks, making 
 it an ideal solution for literate programming in this language.  Also, since it is based on 
 Galaaz, Ruby chunks can have access to R variables and Polyglot Programming with Ruby and R
@@ -81,7 +85,7 @@ Galaaz has been describe already in the following posts:
 * https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021.  
 * https://medium.freecodecamp.org/how-to-make-beautiful-ruby-plots-with-galaaz-320848058857
 
-This is not a blog post on rmarkdown, and the interested user is directed to the following links
+This is not a blog post on R markdown, and the interested user is directed to the following links
 for detailed information on its capabilities and use.
 
 * https://rmarkdown.rstudio.com/ or
@@ -92,18 +96,25 @@ Ruby and R documents quickly.
 
 ## The Yaml header
 
-An R markdown document should start with a Yaml header and be stored in a file with '.Rmd' extension.
-This document has the following header for gKitting an HTML document.
+An R markdown document should start with a Yaml header and be stored in a file with 
+'.Rmd' extension. This document has the following header for gKitting an HTML document.
 
 ```
 ---
 title: "How to do reproducible research in Ruby with gKnit"
-author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr, gknit]
-date: "29 October 2018"
+author: 
+    - "Rodrigo Botafogo"
+    - "Daniel Mossé - University of Pittsburgh"
+tags: [Tech, Data Science, Ruby, R, GraalVM]
+date: "20/02/2019"
 output:
   html_document:
+    self_contained: true
     keep_md: true
+  pdf_document:
+    includes:
+      in_header: ["../../sty/galaaz.sty"]
+    number_sections: yes
 ---
 ```
 
@@ -147,43 +158,60 @@ Ordered Lists
 
 Please, go to https://rmarkdown.rstudio.com/authoring_basics.html, for more R markdown formatting.
 
-## Code Chunks
+### R chunks
 
-Running and executing Ruby and R code is actually what really interests us is this blog.  Inserting
-a code chunk is done by adding code in a block delimited by three back ticks followed by a
-block with the engine name (r, ruby, rb, include, others), an optional chunk_label and optional
-options, as shown bellow:
+Running and executing Ruby and R code is actually what really interests us is this blog.  
+Inserting a code chunk is done by adding code in a block delimited by three back ticks 
+followed by an open
+curly brace ('{') followed with the engine name (r, ruby, rb, include, ...), an 
+any optional chunk_label and options, as shown bellow:
 
 ````
 ```{engine_name [chunk_label], [chunk_options]}`r ''`
 ```
 ````
 
-for instance, let's add an R chunk to the document labeled 'first_r_chunk'.  In this 
-example, we do not want the code to be shown in the document, so the option 
-'echo=FALSE' is added.
+for instance, let's add an R chunk to the document labeled 'first_r_chunk'.  This is
+a very simple code just to create a variable and print it out.  The code block should
+be defined as follows:
 
 ````
-```{r first_r_chunk, echo = FALSE}`r ''`
+```{r first_r_chunk}`r ''`
+vec <- c(1, 2, 3)
+print(vec)
 ```
 ````
+
+If this block is added to an R markdown document and gKnitted the result will be:
+
+```{r first_r_chunk}
+vec <- c(1, 2, 3)
+print(vec)
+```
+
+Now let's say that we want to do some analysis in the code, but just print the result and not the
+code itself.  For this, we need to add the option 'echo = FALSE'.
+
+````
+```{r second_r_chunk, echo = FALSE}`r ''`
+vec2 <- c(10, 20, 30)
+vec3 <- vec * vec2
+print(vec3)     
+```
+````
+Here is how this block will show up in the document. Observe that the code is not shown
+and we only see the execution result in a white box
+
+```{r second_r_chunk, echo = FALSE}
+vec2 <- c(10, 20, 30)
+vec3 <- vec * vec2
+print(vec3)     
+```
 
 A description of the available chunk options can be found in the documentation cited above.
 
-For including a Ruby chunk, just change the name of the engine to ruby as follows:
-
-````
-```{ruby first_ruby_chunk}`r ''`
-```
-````
-
-In this example, the ruby chunk is called 'first_ruby_chunk'.  One important aspect of chunk
-labels is that they cannot be duplicated.  If a chunk label is duplicated, knitting will
-stop with an error.
-
-### R chunks
-
-Let's now add an R chunk to this document.  In this example, a vector 'r_vec' is created and
+Let's add another R chunkd with a function definition.  In this example, a vector 
+'r_vec' is created and
 a new function 'reduce_sum' is defined.  The chunk specification is
 
 ````
@@ -196,8 +224,8 @@ reduce_sum <- function(...) {
 ```
 ````
 
-and this is how it will look like once executed.  From now on, we will not show the chunk
-definition any longer.
+and this is how it will look like once executed.  From now on, we will not 
+show the chunk definition any longer.
 
 
 ```{r data_creation}
@@ -216,14 +244,15 @@ print(reduce_sum(r_vec))
 ```
 ### R Graphics with ggplot
 
-In the following chunk, we create a bubble chart in R and include it in this document.  The
-data comes from the 'mpg' dataset that is natively available in R.
+In the following chunk, we create a bubble chart in R using ggplot and include it in 
+this document.  Note that there is no directive in the code to include the image, this
+occurs automatically.  The 'mpg' dataframe is natively available to R and to Galaaz as
+well.
 
-```{r bubble}
+```{r bubble, dev='png'}
 # load package and data
 library(ggplot2)
 data(mpg, package="ggplot2")
-# mpg <- read.csv("http://goo.gl/uEeRGu")
 
 mpg_select <- mpg[mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"), ]
 
@@ -233,27 +262,44 @@ g <- ggplot(mpg_select, aes(displ, cty)) +
   labs(subtitle="mpg: Displacement vs City Mileage",
        title="Bubble chart")
 
-g + geom_jitter(aes(col=manufacturer, size=hwy)) + 
-  geom_smooth(aes(col=manufacturer), method="lm", se=F)
+g <- g + geom_jitter(aes(col=manufacturer, size=hwy)) + 
+     geom_smooth(aes(col=manufacturer), method="lm", se=F)
+
 ```
 
 ### Ruby chunks
 
-In the same way that an R chunk is created, let's now create a Ruby chunk.  One important aspect
-of Ruby is that in Ruby every evaluation of a chunk occurs on its own local scope, so, creating
-a variable in a chunk will be out of scope in the next chunk.  To make sure that variables are
-available between chunks, they should be made as instance variables for the chunk.
 
-In this chunk, variable '\@a', '\@b' and '\@c' are standard Ruby variables and 
-'\@vec' and '\@vec2' are two vectors created by calling the 'c' method on the R module.  
-In Galalaaz, the R module allows us to access R functions transparently.  It should be clear 
-that there is no requirement in gknit to call or use any R functions.  gKnit will 
-knit standard Ruby code, or even general text without any code.
+Including a Ruby chunk is just as easy as including an R chunk in the document: just 
+change the name of the engine to 'ruby'.  It is also possible to pass chunk options
+to the Ruby engine; however, this version does not accept all the options that are
+available to R chunks.  Future versions will add those options.
+
+````
+```{ruby first_ruby_chunk}`r ''`
+```
+````
+
+In this example, the ruby chunk is called 'first_ruby_chunk'.  One important 
+aspect of chunk labels is that they cannot be duplicated.  If a chunk label is 
+duplicated, gKnitting will stop with an error.
+
+Another relevant point with Ruby chunks is that they are evaluated in the scope
+of a class called RubyChunk.  To make sure that variables are
+available between chunks, they should be made as instance variables of the 
+RubyChunk class.  In the following chunk, variable '\@a', '\@b' and '\@c' 
+are standard Ruby variables and '\@vec' and '\@vec2' are two vectors created 
+by calling the 'c' method on the R module.
+
+In Galalaaz, the R module allows us to access R functions transparently.  It 
+should be clear that there is no requirement in gknit to call or use any R 
+functions.  gKnit will knit standard Ruby code, or even general text without 
+any code.
 
 ```{ruby split_data}
 @a = [1, 2, 3]
 @b = "US$ 250.000"
-@c = "Inline text in a Heading"
+@c = "The 'outputs' function"
 
 @vec = R.c(1, 2, 3)
 @vec2 = R.c(10, 20, 30)
@@ -265,6 +311,10 @@ In this next block, variables '\@a', '\@vec' and '\@vec2' are used and printed.
 puts @a
 puts @vec * @vec2
 ```
+
+Note that @a is a standard Ruby Array and @vec and @vec2 are vectors that behave accordingly,
+where multiplication works as expected.
+
 
 ### Accessing R from Ruby
 
@@ -285,14 +335,39 @@ In order to call an R function, the 'R.' module is used as follows
 puts R.reduce_sum(~:r_vec)
 ```
 
+### Ruby Plotting
+
+We have seen an example of plotting with R.  Plotting with Ruby does not require
+anything different from plotting with R:
+
+```{ruby diverging_bar, fig.width = 9.1, fig.height = 6.5}
+require 'ggplot'
+
+mtcars = ~:mtcars
+
+mtcars.car_name = mtcars.rownames  # create new column for car names
+mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean) / mtcars.mpg.sd).round 2
+mtcars.mpg_type = (mtcars.mpg_z < 0).ifelse('below', 'above')
+mtcars = mtcars[mtcars.mpg_z.order, :all]
+mtcars.car_name = R.factor(mtcars.car_name, levels: mtcars.car_name)
+
+puts mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
+     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
+     R.scale_fill_manual(name: 'Mileage',
+                         labels: R.c('Above Average', 'Below Average'),
+                         values: R.c('above': '#00ba38', 'below': '#f8766d')) +
+     R.labs(subtitle: "Normalised mileage from 'mtcars'",
+            title: "Diverging Bars") + 
+     R.coord_flip
+```
+
 ### Inline Ruby code
 
-Knitr allows inserting R inline by adding
-```{r puts "&#96;r code&#96;"}
-```
-. Unfortunately, this is not possible with Ruby code as there is no provision in knitr for
-adding this kind of inline engine.  However, gKnit allows adding inline Ruby code with the
-'rb' engine.  The following text will create and inline Ruby text:
+When using a Ruby chunk, the code and the output are formated in blocks as seen above.
+This formatting is not always desired.  Sometimes, one wants to have the result of the
+Ruby evalutaion included in the middle of a phrase. gKnit allows adding inline Ruby code 
+with the 'rb' engine.  The following text will 
+create and inline Ruby text:
 
 ````
 This is some text with inline Ruby accessing variable \@b which has value:
@@ -301,9 +376,11 @@ This is some text with inline Ruby accessing variable \@b which has value:
 and is followed by some other text!
 ````
 
-The result of executing the above chunk is the following sentence with inline Ruby code
+Note that it is important not to add any new line before of after the code
+block if we want everything to be in only one line, resulting in the following sentence 
+with inline Ruby code
 
-<div style="margin-bottom:50px;">
+<div style="margin-bottom:30px;">
 </div>
 
 This is some text with inline Ruby accessing variable \@b which has value:
@@ -311,99 +388,120 @@ This is some text with inline Ruby accessing variable \@b which has value:
 ```
 and is followed by some other text!
 
-<div style="margin-bottom:50px;">
-</div>
-
-In an inline block, it is possible to execute multiple Ruby statements by adding a semicolon
-between them:
-
-````
-Multiple statements in the 'rb' engine use semicolon:
-```{rb puts "```{rb puts @a, puts @b}\n```"}
-```
-````
-
-<div style="margin-bottom:50px;">
+<div style="margin-bottom:30px;">
 </div>
 
 
-Multiple statements in the 'rb' engine use semicolon:
-<<<<<<< HEAD
-```{rb puts @a; puts @vec}
-=======
-```{rb puts @a; puts @b}
->>>>>>> master
+```{ruby heading, echo = FALSE}
+outputs "### #{@c}"
 ```
 
-<div style="margin-bottom:50px;">
+He have previously used the standard 'puts' method in Ruby chunks in order to get some
+output.  As can be seen, the result of a 'puts' is formatted inside a white box that 
+follows the code block. Many times however, we would like to do some processing in the 
+Ruby chunk and have the result of this processing generate and output that is 
+'included' in the document as if we had typed it in R markdown.  
+
+For example, suppose we want to create a new 'heading' in our document, but the heading 
+phrase is the result of some code processing: maybe it's the first line of a file we are
+going to read.  Method 'outputs' adds its output as if typed in the R markdown document. 
+
+Take now a look at variable '@c' (it was defined in a previous block above) as 
+'@c = "The 'outputs' function".  "The 'outputs' function" is actually the name of this
+section and it was created using the 'outputs' function inside a Ruby chunk.
+
+The ruby chunk to generate this heading is:
+
+````
+```{ruby heading}`r ''`
+outputs "### #{@c}"
+```
+````
+
+The three '###' are the way we add a Heading 3 in R markdown.
+
+
+### HTML Output from Ruby Chunks
+
+We've just seen the use of method 'outputs' to add text to the the R markdown 
+document.  This technique can also be used to add HTML code to the document. In R 
+markdown any html code typed directly in the document will be properly rendered.  
+Here, for instance, is a table definition in HTML and its output in the document:
+
+```
+<table style="width:100%">
+  <tr>
+    <th>Firstname</th>
+    <th>Lastname</th> 
+    <th>Age</th>
+  </tr>
+  <tr>
+    <td>Jill</td>
+    <td>Smith</td> 
+    <td>50</td>
+  </tr>
+  <tr>
+    <td>Eve</td>
+    <td>Jackson</td> 
+    <td>94</td>
+  </tr>
+</table>
+```
+<div style="margin-bottom:30px;">
 </div>
 
+<table style="width:100%">
+  <tr>
+    <th>Firstname</th>
+    <th>Lastname</th> 
+    <th>Age</th>
+  </tr>
+  <tr>
+    <td>Jill</td>
+    <td>Smith</td> 
+    <td>50</td>
+  </tr>
+  <tr>
+    <td>Eve</td>
+    <td>Jackson</td> 
+    <td>94</td>
+  </tr>
+</table>
 
-```{rb puts "### #{@c}"}
-```
+<div style="margin-bottom:30px;">
+</div>
 
-Sometimes one wants to add an inline text in a heading.  To do that in Ruby the whole heading
-needs to be returned by the inline Ruby engine.  For example the heading above, was created by
-the following chunk:
+But manually creating HTML output is not always easy or desirable. The above 
+table certainly looks ugly.  The 'kableExtra' library is a great library for 
+creating beautiful tables. Take a look at https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
 
-````
-```{rb puts %q(```{rb puts "### #{@c}"}\n```)}
-```
-````
+In the next chunk, we output the 'mtcars' dataframe from R in a nicely formatted 
+table.  Note that we retrieve the mtcars dataframe by using '~:mtcars'.
 
-Remember that variable '@\c' was defined in a previous Ruby chunk and is now being used to
-create the section heading for this section.
-
-
-### Plotting
-
-```{ruby diverging_bar}
-require 'ggplot'
-
-R.theme_set R.theme_bw
-
-# Data Prep
-mtcars = ~:mtcars
-mtcars.car_name = R.rownames(:mtcars)
-# compute normalized mpg 
-mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean)/mtcars.mpg.sd).round 2
-mtcars.mpg_type = mtcars.mpg_z < 0 ? "below" : "above"
-mtcars = mtcars[mtcars.mpg_z.order, :all]
-# convert to factor to retain sorted order in plot
-mtcars.car_name = mtcars.car_name.factor levels: mtcars.car_name
-
-# Diverging Barcharts
-# R.png
-gg = mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) + 
-     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity',  width: 0.5) +
-     R.scale_fill_manual(name: "Mileage", 
-                         labels: R.c("Above Average", "Below Average"), 
-                         values: R.c("above": "#00ba38", "below": "#f8766d")) + 
-     R.labs(subtitle: "Normalised mileage from 'mtcars'", 
-            title: "Diverging Bars") + 
-     R.coord_flip()
-print gg
-# R.dev__off
-# R.include_graphics("Rplot001.png")
+```{ruby nice_table}
+R.library('kableExtra')
+outputs (~:mtcars).kable.kable_styling
 ```
 
 ### Including Ruby files
 
-R is a language that was created to be easy and fast for statisticians to use.  It was not a
+R is a language that was created to be easy and fast for statisticians to use.  As far
+as I know (and please correct me if you think otherwise), tt was not a
 language to be used for developing large systems.  Of course, there are large systems and
 libraries in R, but the focus of the language is for developing statistical models and
 distribute that to peers.
 
 Ruby on the other hand, is a language for large software development.  Systems written in
-Ruby will have dozens or hundreds of files.  In order to document a large system with
+Ruby will have dozens, hundreds or even thousands of files.  In order to document a 
+large system with
 literate programming we cannot expect the developer to add all the files in a single '.Rmd'
 file.  gKnit provides the 'include' chunk engine to include a Ruby file as if it had being
 typed in the '.Rmd' file.
 
-To include a file the following chunk should be created, where <filename> is the name of
+To include a file, the following chunk should be created, where <filename> is the name of
 the file to be include and where the extension, if it is '.rb', does not need to be added.
 If the 'relative' option is not included, then it is treated as TRUE.  When 'relative' is
-true, 'require_relative' semantics is used to load the file, when false, Ruby's $LOAD_PATH
+true, 'require_relative' semantics is used to load the file, when false, Ruby's \$LOAD_PATH
 is searched to find the file and it is 'require'd.
 
 ````
@@ -411,8 +509,17 @@ is searched to find the file and it is 'require'd.
 ```
 ````
 
-Here we include file 'model.rb' which is in the same directory of this blog.  This code
-uses R 'caret' package to split a dataset in a train and test sets.
+Here we include file 'model.rb' which is in the same directory of this blog.  
+This code uses R 'caret' package to split a dataset in a train and test sets.
+The 'caret' package is a very important a useful package for doing Data Analysis,
+it has hundreds of functions for all steps of the Data Analysis workflow.  To
+just split a dataset it is using the proverbial cannon to kill the fly.  We use
+it here only to show that integrating Ruby and R and using even a very comples
+package as 'caret' is trivial with Galaaz.
+
+A word of advice: the 'caret' package has lots of dependencies and installing
+it in a Linux system is a time consuming operation.  Method 'R.install_and_loads'
+will install the package if it is not already installed and can take a while.
 
 ````
 ```{include model}`r ''`
@@ -436,15 +543,14 @@ gKnit also allows developers to document and load files that are not in the same
 of the '.Rmd' file.  When using 'relative = FALSE' in a chunk header, gKnit will look for the
 file in Ruby's \$LOAD_PATH and load it if found.
 
-Here is an example of loading the 'continuation.rb' file from TruffleRuby.
+Here is an example of loading the 'find.rb' file from TruffleRuby.
 
 ````
-```{include continuation, relative = FALSE}`r ''`
+```{include find, relative = FALSE}`r ''`
 ```
 ````
 
-
-```{include continuation, relative = FALSE}
+```{include find, relative = FALSE}
 ```
 
 ## Converting to PDF
@@ -514,4 +620,4 @@ the gnu compiler and tools should be enough.  I am not sure what is needed on th
 
 ## Usage
 
-* gknit <filename>
+* gknit \<filename\>

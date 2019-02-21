@@ -66,27 +66,27 @@ describe R::List do
     end
 
     it "should return the 'native' (Ruby) element of the list at numeric index" do
-      expect(@l << 0).to eq 1
-      expect(@l << 1).to eq 2
-      expect(@l << 2).to eq 3
+      expect(@l >> 0).to eq 1
+      expect(@l >> 1).to eq 2
+      expect(@l >> 2).to eq 3
     end
 
     it "should return the 'native' (Ruby) element of the list at named index" do
-      expect(@l['a'] << 0).to eq 2
-      expect(@l[['a']] << 0).to eq 2
-      expect(@l['b'] << 0).to eq 3
+      expect(@l['a'] >> 0).to eq 2
+      expect(@l[['a']] >> 0).to eq 2
+      expect(@l['b'] >> 0).to eq 3
     end
 
     it "should raise an exception (IndexError) if index out of bounds" do
-      expect { @l << 4 }.to raise_error(IndexError)
+      expect { @l >> 4 }.to raise_error(IndexError)
     end
 
     it "should raise an exception (Argument error) if indexed element is not a vector" do
-      expect { @l << 3 }.to raise_error(ArgumentError)
+      expect { @l >> 3 }.to raise_error(ArgumentError)
     end
 
     it "should return nil if named index does not exists" do
-      expect(@l['k'] << 0).to eq nil
+      expect(@l['k'] >> 0).to eq nil
     end
 
   end

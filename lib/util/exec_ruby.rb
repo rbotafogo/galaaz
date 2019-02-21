@@ -117,12 +117,13 @@ module GalaazUtil
     RubyChunk.init
     
     # read the chunk code
-    code = R.paste(options.code, collapse: "\n") << 0
+    code = R.paste(options.code, collapse: "\n") >> 0
 
     # the output should be a list with the proper structure to pass to
     # function engine_output.  We first add the souce code from the block to
     # the list
-    out_list = R.list(R.structure(R.list(src: code), class: 'source'))
+    out_list = R.list(R.structure(R.list(src: code), class: 'source')) if
+      options.echo >> 0
 
     begin
 
@@ -134,7 +135,7 @@ module GalaazUtil
       # Execute the Ruby code in the scope of class RubyChunk. This is done
       # so that instance variables created in one chunk can be used again on
       # another chunk
-      RubyChunk.instance_eval(code) if (options[["eval"]] << 0)
+      RubyChunk.instance_eval(code) if (options[["eval"]] >> 0)
       
       # add the returned value to the list
       # this should have captured everything in the evaluation code
@@ -146,25 +147,29 @@ module GalaazUtil
     rescue StandardError => e
 
       # print the error message
-      if (options.message << 0)
+      if (options.message >> 0)
         message = R.list(R.structure(R.list(message: e.message), class: 'message'))
         out_list = R.c(out_list, message)
       end
 
       # Print the backtrace of the error message
-      if (options.warning << 0)
+      if (options.warning >> 0)
         bt = ""
         e.backtrace.each { |line| bt << line + "\n"}
         warning = R.list(R.structure(R.list(message: bt), class: 'message'))
         out_list = R.c(out_list, warning)
       end
+
+    rescue SyntaxError => e
+      STDERR.puts "A syntax error occured in ruby block '#{options.label >> 0}'"
+      raise SyntaxError.new(e)
       
     ensure
       # return $stdout to standard output
       $stdout = STDOUT
     end
     
-    (options.include << 0)? out_list : nil
+    (options.include >> 0)? out_list : R.list
     
   end
   

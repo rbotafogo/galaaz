@@ -345,7 +345,7 @@ module R
       lst = obj.as__list
       puts lst
 =begin      
-      (1..lst.length << 0).each do |i|
+      (1..lst.length >> 0).each do |i|
         puts lst[[i]]
       end
 =end      

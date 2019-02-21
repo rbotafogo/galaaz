@@ -38,8 +38,8 @@ module GalaazUtil
 
     filename << ".rb" if File.extname(filename) == ""
     file = "#{pwd}/#{filename}"
-    
-    if (relative == 'require ')
+
+    if (relative == false)
       $LOAD_PATH.each do |path|
         begin
           files = Dir.entries(path)
@@ -47,13 +47,13 @@ module GalaazUtil
           next
         end
 
-        if files != nil && files.include?("bigdecimal.rb")
+        if files != nil
           file = "#{path}/#{filename}"
-          break
+          break if File.exist?(file)
         end
       end
     end
-
+    
     if File.exist?(file)
       code = ""
       File.open(file, "r") do |fileObj|
@@ -61,10 +61,12 @@ module GalaazUtil
           code << line
         end
       end
-      code
+      
     else
-      raise Errno::ENOENT, "file #{filename} not found"
+      raise Errno::ENOENT, "file #{filename} not found in #{$LOAD_PATH}"
     end
+    
+    code
   end
   
 end
