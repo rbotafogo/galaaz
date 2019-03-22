@@ -31,6 +31,10 @@ class StringIO
   
   def puts(*args)
 
+    print "========================\n"
+    print "Inside puts\n"
+    print "========================\n"
+    
     if args.empty?
       write(DEFAULT_RECORD_SEPARATOR)
     else
@@ -67,7 +71,6 @@ class StringIO
   end
 
 end
-
 
 #----------------------------------------------------------------------------------------
 # Class RubyChunk is used only as a context for all ruby chunks in the rmarkdown file.

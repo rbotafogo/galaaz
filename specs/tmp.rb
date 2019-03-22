@@ -22,51 +22,55 @@
 ##########################################################################################
 
 require 'galaaz'
-require 'ggplot'
+R.require 'stats'
+
+# require 'ggplot'
 
 # Need to fix function 'str'... not printing anything
 # anymore
 # puts R.str(mtcars)
 # shouls allow mtcars[['car name']] = mtcars.rownames
 
-# Data Prep
-mtcars = ~:mtcars
+# (~:mtcars).str
 
-mtcars.car_name = mtcars.rownames  # create new column for car names
-mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean) / mtcars.mpg.sd).round 2
-mtcars.mpg_type = (mtcars.mpg_z < 0).ifelse('below', 'above')
-mtcars = mtcars[mtcars.mpg_z.order, :all]
-mtcars.car_name = R.factor(mtcars.car_name, levels: mtcars.car_name)
+describe R::List do
+  
+  context "The apply family of functions with lists" do
 
-puts mtcars.car_name
 
-R.awt
+    x = R.list(a: (1..10), beta: R.exp(-3..3), logic: R.c(true, false, false, true))
+#puts x
 
-puts mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
-     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
-     R.scale_fill_manual(name: 'Mileage',
-                         labels: R.c('Above Average', 'Below Average'),
-                         values: R.c('above': '#00ba38', 'below': '#f8766d')) +
-     R.labs(subtitle: "Normalised mileage from 'mtcars'",
-            title: "Diverging Bars") + 
-     R.coord_flip
+    quant = R.lapply(x, ~:quantile)
+#puts quant
+#puts quant.a[['50,00000%']]
 
-sleep(3)
+# puts quant.beta['100%']
+
+    it "ss" do
+      
+      ret = R.all__equal(quant.beta["100%"],
+                         R.c('100%': 20.08553692),
+                         tolerance: (~:".Machine").double__eps ** 0.5)
+      expect(R.c(1, 2, 3)).to eq false
+      # expect(5 == 10).to eq true
+    end
+  end
+end
+
+=begin
+# Make @q the function R quantile
+
+#puts quant.a
+
+# puts quant.a[["50%"]]
+=end
 
 
 =begin
-
-mtcars$`car name` <- factor(mtcars$`car name`, levels = mtcars$`car name`)  # convert to factor to retain sorted order in plot.
-
-# Diverging Barcharts
-R.theme_set(R.theme_bw)  
-
-ggplot(mtcars, aes(x=`car name`, y=mpg_z, label=mpg_z)) + 
-  geom_bar(stat='identity', aes(fill=mpg_type), width=.5)  +
-  scale_fill_manual(name="Mileage", 
-                    labels = c("Above Average", "Below Average"), 
-                    values = c("above"="#00ba38", "below"="#f8766d")) + 
-  labs(subtitle="Normalised mileage from 'mtcars'", 
-       title= "Diverging Bars") + 
-  coord_flip()
+R::Support.eval(<<R)
+  x = list(a = (1:10), beta = exp(-3:3), logic = c(TRUE, FALSE, FALSE, TRUE))
+  quant = lapply(x, quantile)
+  print(quant)
+R
 =end

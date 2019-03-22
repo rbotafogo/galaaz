@@ -244,18 +244,16 @@ module R
         # of the output is greater than 0
         if (@@exec_counter == 0)
           R::Support.stop_capture.call(@@con)
-=begin          
           if (R::Support.eval("length(r_capture) > 0")[0])
             cap = R::Object.build(R::Support.eval("r_capture"))
             (0...cap.size).each do |i|
-              puts cap << i
+              puts cap >> i
             end
           end
-=end          
         end
         
       rescue StandardError => e
-        R::Support.stop_capture.call(@@con)
+        R::Support.stop_capture.call(@@con) if (@@exec_counter == 0)
         raise e
       end
       

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 require 'rubygems/platform'
 require './version'
+require 'date'
 
 Gem::Specification.new do |gem|
 

@@ -33,7 +33,7 @@ require_relative 'version'
 class MakeTask < Rake::TaskLib
 
   # Create class variables for the polyglot options and libs
-  @@polyglot_options = "--polyglot --jvm -Xsingle_threaded"
+  @@polyglot_options = "--polyglot --jvm --single_threaded"
   @@libs = "-Ilib/" # -Ir_requires/"
 
   #----------------------------------------------------------------------------------------

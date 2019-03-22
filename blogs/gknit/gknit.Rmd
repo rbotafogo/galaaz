@@ -6,13 +6,13 @@ author:
 tags: [Tech, Data Science, Ruby, R, GraalVM]
 date: "20/02/2019"
 output:
+  html_document:
+    self_contained: true
+    keep_md: true
   pdf_document:
     includes:
       in_header: ["../../sty/galaaz.sty"]
     number_sections: yes
-  html_document:
-    self_contained: true
-    keep_md: true
 ---
 
 ```{r setup, echo=FALSE}
@@ -253,6 +253,7 @@ well.
 # load package and data
 library(ggplot2)
 data(mpg, package="ggplot2")
+# mpg <- read.csv("http://goo.gl/uEeRGu")
 
 mpg_select <- mpg[mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"), ]
 
@@ -262,9 +263,8 @@ g <- ggplot(mpg_select, aes(displ, cty)) +
   labs(subtitle="mpg: Displacement vs City Mileage",
        title="Bubble chart")
 
-g <- g + geom_jitter(aes(col=manufacturer, size=hwy)) + 
-     geom_smooth(aes(col=manufacturer), method="lm", se=F)
-
+g + geom_jitter(aes(col=manufacturer, size=hwy)) + 
+  geom_smooth(aes(col=manufacturer), method="lm", se=F)
 ```
 
 ### Ruby chunks
@@ -291,7 +291,13 @@ RubyChunk class.  In the following chunk, variable '\@a', '\@b' and '\@c'
 are standard Ruby variables and '\@vec' and '\@vec2' are two vectors created 
 by calling the 'c' method on the R module.
 
-In Galalaaz, the R module allows us to access R functions transparently.  It 
+In Galaaz, the R module allows us to access R functions transparently.  The 'c'
+function in R, is a function that concatenates its arguments making a vector.
+Calling the 'c' method in the R module is automatically converted to calling the
+'c' function in R, that, through Galaaz and the Truffle interface creates the
+vector.
+
+It 
 should be clear that there is no requirement in gknit to call or use any R 
 functions.  gKnit will knit standard Ruby code, or even general text without 
 any code.
@@ -338,7 +344,24 @@ puts R.reduce_sum(~:r_vec)
 ### Ruby Plotting
 
 We have seen an example of plotting with R.  Plotting with Ruby does not require
-anything different from plotting with R:
+anything different from plotting with R.  In the following example we plot a 
+diverging bar graph using the 'mtcars' dataframe from R.  This data was extracted 
+from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects 
+of automobile design and performance for 32 automobiles (1973–74 models).  The 
+ten aspects are:
+
+* mpg:	Miles/(US) gallon
+* cyl:	Number of cylinders
+* disp:	Displacement (cu.in.)
+* hp:	Gross horsepower
+* drat:	Rear axle ratio
+* wt:	Weight (1000 lbs)
+* qsec:	1/4 mile time
+* vs:	Engine (0 = V-shaped, 1 = straight)
+* am:	Transmission (0 = automatic, 1 = manual)
+* gear:	Number of forward gears
+* carb:	Number of carburetors
+
 
 ```{ruby diverging_bar, fig.width = 9.1, fig.height = 6.5}
 require 'ggplot'
@@ -363,10 +386,10 @@ puts mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
 
 ### Inline Ruby code
 
-When using a Ruby chunk, the code and the output are formated in blocks as seen above.
-This formatting is not always desired.  Sometimes, one wants to have the result of the
-Ruby evalutaion included in the middle of a phrase. gKnit allows adding inline Ruby code 
-with the 'rb' engine.  The following text will 
+When using a Ruby chunk, the code and the output are formatted in blocks as seen above.
+This formatting is not always desired.  Sometimes, we want to have the results of the
+Ruby evaluation included in the middle of a phrase. gKnit allows adding inline Ruby code 
+with the 'rb' engine.  The following chunk specification will 
 create and inline Ruby text:
 
 ````
@@ -479,7 +502,7 @@ In the next chunk, we output the 'mtcars' dataframe from R in a nicely formatted
 table.  Note that we retrieve the mtcars dataframe by using '~:mtcars'.
 
 ```{ruby nice_table}
-R.library('kableExtra')
+R.install_and_loads('kableExtra')
 outputs (~:mtcars).kable.kable_styling
 ```
 

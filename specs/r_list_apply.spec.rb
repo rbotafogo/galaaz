@@ -62,20 +62,20 @@ describe R::List do
       expect(quant.a[1]).to eq R.c('0%': 1.0)
       expect(quant.a[[1]]).to eq 1.0
              
-      expect(quant.a[["50%"]]).to eq 5.50
-      expect(quant.a['50%']).to eq R.c('50%': 5.50)
-      expect(R.all__equal(quant.beta["100%"],
-                          R.c('100%': 20.08553692),
+      expect(quant.a[['50,00000%']]).to eq 5.50
+      expect(quant.a['50,00000%']).to eq R.c('50,00000%': 5.50)
+      expect(R.all__equal(quant.beta['100,0000%'],
+                          R.c('100,0000%': 20.08553692),
                           tolerance: (~:".Machine").double__eps ** 0.5)).to eq true
       expect(quant.logic[[2]]).to eq 0.0
     end
-    
+
     it "should allow using method lapply with quantile" do
       x = R.lapply(@x, @q, R.c(0.25, 0.50, 0.75))
       expect(x.a[[1]]).to eq 3.25
-      expect(x.a[["50%"]]).to eq 5.50
-      expect(R.all__equal(x.beta['75%'],
-                          R.c('75%': 5.0536690),
+      expect(x.a[['50,00000%']]).to eq 5.50
+      expect(R.all__equal(x.beta['75,00000%'],
+                          R.c('75,00000%': 5.0536690),
                           tolerance: (~:".Machine").double__eps ** 0.5)).to eq true
       expect(x.logic[[2]]).to eq 0.5
     end
@@ -84,8 +84,9 @@ describe R::List do
       # sapply will return a matrix
       quant = R.sapply(@x, @q)
       expect(quant.rclass).to eq 'matrix'
-      
-      expect(quant[:all, 'a']).to eq R.c('0%': 1, '25%': 3.25, '50%': 5.50, '75%': 7.75, '100%': 10)
+      expect(quant[:all, 'a']).to eq R.c('0%': 1, '25,00000%': 3.25,
+                                         '50,00000%': 5.50, '75,00000%': 7.75,
+                                         '100,0000%': 10)
       
       expect(quant[3, 'beta']).to eq 1.0
     end
