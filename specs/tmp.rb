@@ -22,55 +22,83 @@
 ##########################################################################################
 
 require 'galaaz'
-R.require 'stats'
-
 # require 'ggplot'
 
-# Need to fix function 'str'... not printing anything
-# anymore
-# puts R.str(mtcars)
-# shouls allow mtcars[['car name']] = mtcars.rownames
 
-# (~:mtcars).str
+#=begin
+mtcars = ~:mtcars
+# puts mtcars
 
-describe R::List do
-  
-  context "The apply family of functions with lists" do
+# Assignment with '[<-'
+mtcars["new column"] = R.c((1..32))
+puts mtcars
 
 
-    x = R.list(a: (1..10), beta: R.exp(-3..3), logic: R.c(true, false, false, true))
-#puts x
-
-    quant = R.lapply(x, ~:quantile)
-#puts quant
-#puts quant.a[['50,00000%']]
-
-# puts quant.beta['100%']
-
-    it "ss" do
-      
-      ret = R.all__equal(quant.beta["100%"],
-                         R.c('100%': 20.08553692),
-                         tolerance: (~:".Machine").double__eps ** 0.5)
-      expect(R.c(1, 2, 3)).to eq false
-      # expect(5 == 10).to eq true
-    end
-  end
-end
 
 =begin
-# Make @q the function R quantile
-
-#puts quant.a
-
-# puts quant.a[["50%"]]
+# should allow mtcars[['car name']] = mtcars.rownames
 =end
 
 
+
+
+
+#===========================================================
 =begin
-R::Support.eval(<<R)
-  x = list(a = (1:10), beta = exp(-3:3), logic = c(TRUE, FALSE, FALSE, TRUE))
-  quant = lapply(x, quantile)
-  print(quant)
+# Add NULL to an element of the list
+# Not implemented yet.  Need to assing the
+# list(NULL) element.
+R::Support.eval(<<-R)
+y <- list(a = 1, b = 2)
+y["b"] <- list(NULL)
+str(y)
+
+print(list(NULL))
 R
 =end
+
+
+=begin
+Polyglot.eval("R", <<-R)
+  fidx = function(idx) {
+      print(typeof(idx))
+      print(class(idx))
+      print(idx)
+      print(is_missing(idx))
+  }
+
+  ma = missing_arg()
+  f = fidx
+  params = list()
+  params = `[[<-`(params, 1, ma)
+  invoke(f, params)
+
+  print("======")
+  fidx(ma)
+
+R
+=end
+
+=begin
+ma = Polyglot.eval("R", "missing_arg()")
+
+puts "======"
+
+f = Polyglot.eval("R", "fidx")
+params = Polyglot.eval("R", "list()")
+params = Polyglot.eval("R", "`[[<-`").call(params, 1, ma)
+Polyglot.eval("R", "invoke").call(f, params)
+
+puts "======"
+
+Polyglot.eval("R", "fidx").call(ma)
+=end
+
+# Polyglot.eval("R", "print").call(pl)
+# ma2 = Polyglot.eval("R", "`[[`").call(pl, 1)
+# Polyglot.eval("R", "fidx").call(ma2)
+
+#R.fidx(ma)
+
+# R.fidx(Polyglot.eval("R", "missing_arg()"))
+# R.fidx(R.empty_symbol)

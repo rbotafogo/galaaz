@@ -51,13 +51,16 @@ module R
     # values, for ex., R.c(2, 3, 5)
     #--------------------------------------------------------------------------------------
 
-    def []=(index, values)
-
+    def []=(index, *args)
+      values = args[-1]
+      idx2 = (args.size > 1)? args[-2] : false
+      
       # dealing with double indexing function '[['
       if (index.is_a? Array)
         setR_name("`[[<-`", R.empty_symbol, *index, values)
       else
-        setR_name("`[<-`", R.empty_symbol, index, values)
+        idx2 ? setR_name("`[<-`", index, idx2, values) :
+          setR_name("`[<-`", R.empty_symbol, index, values)
       end
       
       self

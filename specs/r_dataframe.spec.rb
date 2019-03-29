@@ -72,6 +72,179 @@ describe R::DataFrame do
     end
 
   end
+
+  #----------------------------------------------------------------------------------------
+  context "Subsetting with '['" do
+
+    before(:each) do
+      @mtcars = ~:mtcars
+    end
+
+    it "should subset with [ with only the column index" do
+      slice = @mtcars[1]
+      expect(slice.typeof).to eq "list"
+      expect(slice.rclass).to eq "data.frame"
+      expect(slice.length).to eq 1
+      expect(slice[[1]][1]).to eq 21.0
+      expect(slice[[1, 1]]).to eq 21.0
+      # undefined columns selected (RError)
+      expect { slice['Mazda RX4'] }.to raise_error(RuntimeError)
+      expect(slice[['Mazda RX4']]).to eq nil
+    end
+    
+    it "should subset with [ with a column range" do
+      slice = @mtcars[(1..3)]
+      expect(slice.typeof).to eq "list"
+      expect(slice.rclass).to eq "data.frame"
+      expect(slice.length).to eq 3
+      expect(slice[[2]][10]).to eq 6.0
+      expect(slice[10, 2]).to eq 6.0
+    end
+
+    it "should subset with [ by row and column indices" do
+      expect(@mtcars[1, 1]).to eq 21.0
+      expect(@mtcars[6, 5]).to eq 2.76
+    end
+
+    it "do not use R style missing value idexing with [" do
+      # This array bellow is equivalent to [6]. This can bring some surprises for
+      # R people that are used to this indexing notation, as in this case the ','
+      # is ignored
+      arr = [6, ]
+      expect(arr).to eq [6]
+      
+      # This will output the sixth column of the mtcars dataframe
+      slice = @mtcars[6, ]
+      expect(slice.typeof).to eq "list"
+      expect(slice.rclass).to eq "data.frame"
+      expect(slice.length).to eq 1
+      expect(slice[[1]][1]).to eq 2.62
+    end
+
+    it "should subset with [ by row index and :all" do
+      # Hornet Sportabout 18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2      
+      slice = @mtcars[5, :all]
+      expect(slice.rclass).to eq "data.frame"
+      expect(slice[1, 1]).to eq 18.7
+      expect(slice[1, 1]).not_to eq 360.0
+      expect(slice.names).to eq R.c("mpg", "cyl", "disp", "hp", "drat",
+                                    "wt", "qsec", "vs", "am", "gear", "carb")
+    end
+
+    it "should subset with [ by row index, :all and allowing for drop parameter" do
+      # will transform the data into a list
+      lst = @mtcars[1, :all, drop: true]
+      expect(lst.typeof).to eq "list"
+      expect(lst[[1]]).to eq 21.0
+      expect(lst[1]).to eq R.list(mpg: 21.0)
+    end
+
+    it "should subset with [ by :all and column index" do
+      # [1] 110 110  93 110 175 105 245  62  95 123 123 180 180 180 205 215 230  66  52
+      # [20]  65  97 150 150 245 175  66  91 113 264 175 335 109
+      slice = @mtcars[:all, 4]
+      expect(slice.rclass).to eq "numeric"
+      expect(slice.typeof).to eq "double"
+      expect(slice[10]).to eq 123.0
+    end
+
+    it "should subset with [ by :all, column index and allowing for 'drop' parameter" do
+      expect(@mtcars[:all, 1]).to eq @mtcars[:all, 1, drop: true]
+    end
+
+    it "should subset with [ and column name" do
+      slice = @mtcars['drat']
+      expect(slice.typeof).to eq "list"
+      expect(slice.rclass).to eq "data.frame"
+      expect(slice.length).to eq 1
+      expect(slice[[1]][1]).to eq 3.90
+      expect(slice[[1, 1]]).to eq 3.90
+      # undefined columns selected (RError)
+      expect { slice['Mazda RX4'] }.to raise_error(RuntimeError)
+      expect(slice[['Mazda RX4']]).to eq nil
+    end
+
+    it "should subset with [ and row name" do
+      slice = @mtcars['Merc 450SE', :all]
+      expect(slice[[1]]).to eq 16.4
+      expect(slice[['hp']]).to eq 180.0
+    end
+
+    it "should subset with [ and row and column name" do
+      slice = @mtcars['Merc 450SL', 'drat']
+      expect(slice).to eq 3.07
+    end
+    
+  end
+  
+  #----------------------------------------------------------------------------------------
+  context "Subsetting with '[['" do
+
+    before(:each) do
+      @mtcars = ~:mtcars
+    end
+
+    it "should subset with [[ and a column index" do
+      slice = @mtcars[[1]]
+      expect(slice.typeof).to eq "double"
+      expect(slice.rclass).to eq "numeric"
+      expect(slice[1]).to eq 21.0
+      expect(slice[16]).to eq 10.4
+    end
+
+    it "should subset with [[ and a row index" do
+      slice = @mtcars
+    end
+
+    it "should subset with [[ and row and column indices" do
+      expect(@mtcars[[6, 1]]).to eq 18.1
+      expect(@mtcars[[6, 5]]).to eq 2.76
+      expect(@mtcars[[15, 1]]).to eq 10.4
+      expect(@mtcars[[15, 7]]).to eq 17.98
+    end
+
+    it "should subset with [[ and row and column names" do
+      expect(@mtcars[['Valiant', 'mpg']]).to eq 18.1
+      expect(@mtcars[['Valiant', 'drat']]).to eq 2.76
+      expect(@mtcars[['Cadillac Fleetwood', 'mpg']]).to eq 10.4
+      expect(@mtcars[['Cadillac Fleetwood', 'qsec']]).to eq 17.98
+    end
+
+  end
+  
+  #----------------------------------------------------------------------------------------
+  context "Assigning with '[<-'" do
+
+    before(:each) do
+      @mtcars = ~:mtcars
+    end
+
+    it "should add a column to a dataframe indexing by column" do
+      @mtcars["New Column"] = R.c((1..32))
+      expect(@mtcars[[1, 12]]).to eq 1
+      expect(@mtcars[['Mazda RX4', 'New Column']]).to eq 1
+    end
+
+    it "should add a column to a dataframe indexing with :all in the row" do
+      @mtcars[:all, 'New Column'] = R.c((1..32))
+      expect(@mtcars[[1, 12]]).to eq 1
+      expect(@mtcars[['Mazda RX4', 'New Column']]).to eq 1
+    end
+    
+    it "should assign to an element of a dataframe indexing with row and column by number" do
+      @mtcars[17, 6] = 1000
+      expect(@mtcars[[17, 6]]).to eq 1000.0
+      expect(@mtcars[['Chrysler Imperial', 'wt']]).to eq 1000.0
+    end
+
+    it "should assign to a range" do
+      @mtcars[(10..12)] = R.list((1..32), nil, "New Col": R.c(32..1))
+      expect(@mtcars[['Fiat 128', 'gear']]).to eq 18
+      expect(@mtcars[['Chrysler Imperial', 'New Col']]).to eq 16
+    end
+
+  end
+  
   #----------------------------------------------------------------------------------------
   context "Ruby 'each'" do
     

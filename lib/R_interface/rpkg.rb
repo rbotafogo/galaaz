@@ -28,16 +28,25 @@ module R
   # 
   #----------------------------------------------------------------------------------------
 
-  class Pkg
+  class Package
 
-    def initialize(pkg_name)
-      @pkg_name = pkg_name
+    @@packages = {}
+    
+    def self.[](package_name)
+      return @@packages[package_name] if @@packages.has_key?(package_name)
+      @@packages[package_name] = new(package_name)
     end
 
+    def initialize(package_name)
+      @package_name = package_name
+    end
+    
     def method_missing(symbol, *args)
-      p "execute #{@pkg_name}.#{symbol}(#{args})"
+      R::Support.exec_function_name("#{@package_name}::#{symbol}", *args)
     end
 
+    private_class_method :new
+    
   end
   
   #----------------------------------------------------------------------------------------
@@ -45,8 +54,7 @@ module R
   #----------------------------------------------------------------------------------------
 
   def self.const_missing(name)
-    p name
-    Pkg.new(name)
+    R::Package[name.to_s.downcase]
   end
 
 end

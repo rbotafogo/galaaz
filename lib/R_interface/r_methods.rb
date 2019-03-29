@@ -80,8 +80,8 @@ module R
 
     def self.dbk_index
       Polyglot.eval("R", <<-R)
-        function(obj, index) {
-          obj[[index]]
+        function(obj, ...) {
+          obj[[...]]
         }
       R
     end

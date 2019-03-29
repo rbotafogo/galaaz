@@ -59,7 +59,7 @@ describe R::List do
   end
 
   #----------------------------------------------------------------------------------------
-  context "When subsetting a list with '<<' (starts at 0)" do
+  context "When subsetting a list with '>>' (starts at 0)" do
     
     before(:each) do
       @l = R.list(1, a: 2, b: 3, c: R.list(4, 5, 6))
@@ -170,12 +170,12 @@ describe R::List do
       expect(@l[[4]][[1]]).to eq 4
     end
     
-    it "should subset with [[]] with multiple indexes" do
+    it "should subset with [[]] with a vector" do
       # Note that for a list or other recursive object, the index can be a vector
       # and each element of the vector is applied in turn to the list, the
       # selected component, the selected component of that component, and so on.
       # The result is still a single element.
-      expect(@l[[4, 1]]).to eq 4
+      expect(@l[[R.c(4, 1)]]).to eq 4
     end
 
   end
@@ -230,7 +230,7 @@ describe R::List do
   end
 
   #----------------------------------------------------------------------------------------
-  context "When modifying a list" do
+  context "When assigning to a list subset" do
 
     before(:each) do
       @l = R.list(a: 1, b: 2, c: 3, d: R.list(i: 4, j: 5, k: 6))
