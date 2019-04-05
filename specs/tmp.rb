@@ -22,18 +22,56 @@
 ##########################################################################################
 
 require 'galaaz'
+R.library 'dplyr'
+
 # require 'ggplot'
 
+df = R.data__frame(
+  g1: R.c(1, 1, 2, 2, 2),
+  g2: R.c(1, 2, 1, 2, 1),
+  a: R.sample(5),
+  b: R.sample(5),
+)
+
+puts df
+
+def my_mutate(df, expr)
+  puts expr
+  
+  mean_name = "mean_#{expr.to_s}"
+  sum_name = "sum_#{expr.to_s}"
+
+  puts mean_name
+  puts sum_name
+
+  df.mutate(mean_name => E.mean(expr),
+            sum_name => E.sum(expr))
+end
+
+puts my_mutate(df, :a)
+puts my_mutate(df, :b)
+
+=begin
+
+def mutate_y(df)
+  df.mutate(:y.assign :a + :x)
+end
+
+a = 10
+puts mutate_y(df1)
+
+form = :y.assign :a + :x
+=end
+
+=begin
+df1 = Polyglot.eval("R", "data.frame(x = 1:3)")
+form = Polyglot.eval("R", "quo(y <- a + x)")
+Polyglot.eval("R", "mutate").call(df1, form)
+=end
 
 #=begin
-mtcars = ~:mtcars
+# mtcars = ~:mtcars
 # puts mtcars
-
-# Assignment with '[<-'
-mtcars["new column"] = R.c((1..32))
-puts mtcars
-
-
 
 =begin
 # should allow mtcars[['car name']] = mtcars.rownames

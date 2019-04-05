@@ -23,9 +23,9 @@
 
 module R
 
-  class DataFrame < List
+  class DataFrame < Object
+    include IndexedObject
     include MDIndexedObject
-    include Enumerable
 
     #--------------------------------------------------------------------------------------
     # Calls the R.qplot adding the data: parameter

@@ -29,6 +29,7 @@ module R
 
   class List < Object
     include IndexedObject
+    include Enumerable
     
     #--------------------------------------------------------------------------------------
     #
