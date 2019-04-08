@@ -22,7 +22,7 @@
 ##########################################################################################
 
 require 'galaaz'
-R.library 'dplyr'
+R.install_and_loads 'dplyr'
 
 # require 'ggplot'
 

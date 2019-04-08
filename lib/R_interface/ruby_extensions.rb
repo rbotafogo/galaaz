@@ -20,7 +20,7 @@
 # RODRIGO BOTAFOGO HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, 
 # OR MODIFICATIONS.
 ##########################################################################################
-
+#=begin
 module Kernel
 
   def puts(*args)
@@ -29,7 +29,7 @@ module Kernel
   end
 
 end
-
+#=end
 #==========================================================================================
 #
 #==========================================================================================
