@@ -22,7 +22,7 @@
 ##########################################################################################
 
 require 'stringio'
-
+=begin
 #----------------------------------------------------------------------------------------
 # Path StringIO puts... Already opened an issue in RC12
 #----------------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ class StringIO
   end
 
 end
-
+=end
 #----------------------------------------------------------------------------------------
 # Class RubyChunk is used only as a context for all ruby chunks in the rmarkdown file.
 # This allows for chunks to access instance_variables (@)

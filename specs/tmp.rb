@@ -24,32 +24,29 @@
 require 'galaaz'
 R.install_and_loads 'dplyr'
 
-# require 'ggplot'
+Polyglot.eval("R", <<-R)
+  funcs = funs(c('mean_mass', 'mean_birth_year'))
+  print(funcs)
+R
 
-df = R.data__frame(
-  g1: R.c(1, 1, 2, 2, 2),
-  g2: R.c(1, 2, 1, 2, 1),
-  a: R.sample(5),
-  b: R.sample(5),
-)
+#par = Polyglot.eval("R", "c('mean_mass', 'mean_birth_year')")
+#funcs = Polyglot.eval("R", "funs").call(par)
 
-puts df
+#=begin
+def grouped_mean(data, grouping_variables, value_variables)
+  puts R.paste0("mean_", value_variables)
+  puts R.funs(E.paste0("mean_", value_variables))
 
-def my_mutate(df, expr)
-  puts expr
-  
-  mean_name = "mean_#{expr.to_s}"
-  sum_name = "sum_#{expr.to_s}"
+  data.
+    group_by_at(grouping_variables).
+    mutate(count: E.n).
+    summarise_at(E.c(value_variables, "count"), ~:mean, na__rm: true).
+    rename_at(value_variables, R.funs(E.paste0("mean_", value_variables)))
 
-  puts mean_name
-  puts sum_name
-
-  df.mutate(mean_name => E.mean(expr),
-            sum_name => E.sum(expr))
 end
 
-puts my_mutate(df, :a)
-puts my_mutate(df, :b)
+puts grouped_mean((~:starwars), "eye_color", R.c("mass", "birth_year"))
+#=end
 
 =begin
 
