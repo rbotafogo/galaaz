@@ -22,7 +22,6 @@ fontsize: 11pt
 
 
 
-
 # Introduction
 
 Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language, with a large 
@@ -96,9 +95,20 @@ Panda, SciPy, SciKit-Learn and a couple more.
   
   > galaaz master_list:scatter_plot
 
-# Basic Types
+# gKnitting a Document
 
-## Vectors
+This manual has been formatted usign gKnit.  gKnit uses Knitr and R markdown to knit 
+a document in Ruby or R and output it in any of the available formats for R markdown.  
+gKnit runs atop of GraalVM, and Galaaz.  In gKnit, Ruby variables are persisted between 
+chunks, making it an ideal solution for literate programming.  
+Also, since it is based on Galaaz, Ruby chunks can have access to R variables and Polyglot 
+Programming with Ruby and R is quite natural.
+
+gknit was describe in more depth in:
+
+* xxx.xxxx.xxx
+
+# Vector
 
 Vectors can be thought of as contiguous cells containing data. Cells are accessed through
 indexing operations such as x[5]. Galaaz has six basic (‘atomic’) vector types: logical, 
@@ -134,11 +144,13 @@ puts @vec
 
 Lets take a look at the type, mode and storage.mode of our vector @vec.  In order to print
 this out, we are creating a data frame 'df' and printing it out.  A data frame, for those
-not familiar with it, it basically a table.  Here we create the data frame and add the 
+not familiar with it, is basically a table.  Here we create the data frame and add the 
 column name by passing named parameters for each column, such as 'typeof:', 'mode:' and
-'storage__mode'.  You should also note here that the double underscore is converted to a '.'.
+'storage__mode?'.  You should also note here that the double underscore is converted to a '.'.
+So, when printed 'storage\_\_mode' will actually print as 'storage.mode'.
 
-In R, the method used to create a data frame is 'data.frame', in Galaaz we use 'data__frame'.
+Data frames will later be more carefully described.  In R, the method used to create a 
+data frame is 'data.frame', in Galaaz we use 'data\_\_frame'.
 
 
 ```ruby
@@ -207,24 +219,234 @@ vec = R.c(1, hello, 5)
 ```
 ## Message:
 ##  (eval):1:in `exec_ruby'
-## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:137:in `instance_eval'
-## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:137:in `exec_ruby'
-## /home/rbotafogo/desenv/galaaz/lib/gknit/ruby_engine.rb:55:in `block in initialize'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:141:in `instance_eval'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:141:in `exec_ruby'
+## /home/rbotafogo/desenv/galaaz/lib/gknit/knitr_engine.rb:650:in `block in initialize'
 ## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `call'
 ## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `callback'
 ## (eval):3:in `function(...) {\n          rb_method(...)'
 ## unknown.r:1:in `in_dir'
-## unknown.r:1:in `block_exec'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc12/jre/languages/R/library/knitr/R/block.R:91:in `call_block'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc12/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc12/jre/languages/R/library/knitr/R/block.R:3:in `<no source>'
+## unknown.r:1:in `block_exec:BLOCK0'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:102:in `block_exec'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:92:in `call_block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:3:in `<no source>'
 ## unknown.r:1:in `withCallingHandlers'
 ## unknown.r:1:in `process_file'
-## unknown.r:1:in `<no source>'
-## unknown.r:1:in `<no source>'
-## <REPL>:4:in `<repl wrapper>'
+## unknown.r:1:in `<no source>:BLOCK1'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/output.R:129:in `<no source>'
+## unknown.r:1:in `<no source>:BLOCK1'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/rmarkdown/R/render.R:162:in `<no source>'
+## <REPL>:5:in `<repl wrapper>'
 ## <REPL>:1
 ```
+
+Here is a vector with logical values
+
+
+```ruby
+@vec = R.c(true, true, false, false, true)
+puts @vec
+```
+
+```
+## [1]  TRUE  TRUE FALSE FALSE  TRUE
+```
+
+## Combining Vectors
+
+The 'c' functions used to create vectors can also be used to combine two vectors:
+
+
+```ruby
+@vec1 = R.c(10.0, 20.0, 30.0)
+@vec2 = R.c(4.0, 5.0, 6.0)
+@vec = R.c(@vec1, @vec2)
+puts @vec
+```
+
+```
+## [1] 10 20 30  4  5  6
+```
+In galaaz, methods can be chainned (somewhat like the pipe operator in R %>%, but more generic).
+In this next example, method 'c' is chainned after '@vec1'.  This also looks like 'c' is a 
+method of the vector, but in reallity, this is actually closer to the pipe operator.  When
+Galaaz identifies that 'c' is not a method of 'vec' it actually tries to call 'R.c' with 
+'@vec1' as the first argument concatenated with all the other available arguments.  The code
+bellow is automatically converted to the code above.
+
+
+```ruby
+@vec = @vec1.c(@vec2)
+puts @vec
+```
+
+```
+## [1] 10 20 30  4  5  6
+```
+
+## Vector Arithmetic
+
+Arithmetic operations on vectors are performed element by element:
+
+
+```ruby
+puts @vec1 + @vec2
+```
+
+```
+## [1] 14 25 36
+```
+
+
+```ruby
+puts @vec1 * 5
+```
+
+```
+## [1]  50 100 150
+```
+
+When vectors have different length, a recycling rule is applied to the shorter vector:
+
+
+```ruby
+@vec3 = R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)
+puts @vec4 = @vec1 + @vec3
+```
+
+```
+## [1] 11 22 33 14 25 36 17 28 39
+```
+
+## Vector Indexing
+
+Vectors can be indexed by using the '[]' operator:
+
+
+```ruby
+puts @vec4[3]
+```
+
+```
+## [1] 33
+```
+
+We can also index a vector with another vector.  For example, in the code bellow, we take elements
+1, 3, 5, and 7 from @vec3:
+
+
+```ruby
+puts @vec4[R.c(1, 3, 5, 7)]
+```
+
+```
+## [1] 11 33 25 17
+```
+
+Repeating an index and having indices out of order is valid code:
+
+
+```ruby
+puts @vec4[R.c(1, 3, 3, 1)]
+```
+
+```
+## [1] 11 33 33 11
+```
+
+It is also possible to index a vector with a negative number or negative vector.  In these cases
+the indexed values are not returned:
+
+
+```ruby
+puts @vec4[-3]
+puts @vec4[-R.c(1, 3, 5, 7)]
+```
+
+```
+## [1] 11 22 14 25 36 17 28 39
+## [1] 22 14 36 28 39
+```
+
+If an index is out of range, a missing value (NA) will be reported.
+
+
+```ruby
+puts @vec4[30]
+```
+
+```
+## [1] NA
+```
+
+It is also possible to index a vector by range:
+
+
+```ruby
+puts @vec4[(2..5)]
+```
+
+```
+## [1] 22 33 14 25
+```
+
+Elements in a vector can be named using the 'names' attribute of a vector: 
+
+
+```ruby
+full_name = R.c("Rodrigo", "A", "Botafogo")
+full_name.names = R.c("First", "Middle", "Last")
+puts full_name
+```
+
+```
+##      First     Middle       Last 
+##  "Rodrigo"        "A" "Botafogo"
+```
+
+Or it can also be named by using the 'c' function with named paramenters:
+
+
+```ruby
+full_name = R.c(First: "Rodrigo", Middle: "A", Last: "Botafogo")
+puts full_name
+```
+
+```
+##      First     Middle       Last 
+##  "Rodrigo"        "A" "Botafogo"
+```
+
+## Extracting Native Ruby Types from a Vector
+
+Vectors created with 'R.c' are of class R::Vector.  You might have noticed that when indexing a
+vector, a new vector is returned, even if this vector has one single element. In order to use
+R::Vector with other ruby classes it might be necessary to extract the actual Ruby native type
+from the vector. In order to do this extraction the '>>' operator is used.
+
+
+```ruby
+puts @vec4
+puts @vec4 >> 0
+puts @vec4 >> 4
+```
+
+```
+## [1] 11 22 33 14 25 36 17 28 39
+## 11.0
+## 25.0
+```
+
+Note that indexing with '>>' starts at 0 and not at 1, also, we cannot do negative indexing.
+
+# Accessing R variables
+
+Galaaz allows Ruby to access variables created in R.  For example, the 'mtcars' data set is 
+available in R and can be accessed from Ruby by using the 'tilda' operator followed by the
+symbol for the variable, in this case ':mtcar'.  In the code bellow method 'outputs' is 
+used to output the 'mtcars' data set nicely formatted in HTML by use of the 'kable' and
+'kable_styling' functions. Method 'outputs' is only available when used with 'gknit'.
 
 
 ```ruby
@@ -700,40 +922,177 @@ outputs (~:mtcars).kable.kable_styling
 </tbody>
 </table>
 
+# Matrix
 
-## Graphics with ggplot
+A matrix is a collection of elements organized as a two dimensional table.  A matrix can be 
+created by the 'matrix' function:
 
 
 ```ruby
-require 'ggplot'
+@mat = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
+                nrow: 3,
+                ncol: 3)
 
-R.theme_set R.theme_bw
-
-# Data Prep
-mtcars = ~:mtcars
-mtcars.car_name = R.rownames(:mtcars)
-# compute normalized mpg 
-mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean)/mtcars.mpg.sd).round 2
-mtcars.mpg_type = mtcars.mpg_z < 0 ? "below" : "above"
-mtcars = mtcars[mtcars.mpg_z.order, :all]
-# convert to factor to retain sorted order in plot
-mtcars.car_name = mtcars.car_name.factor levels: mtcars.car_name
-
-# Diverging Barcharts
-gg = mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) + 
-     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity',  width: 0.5) +
-     R.scale_fill_manual(name: "Mileage", 
-                         labels: R.c("Above Average", "Below Average"), 
-                         values: R.c("above": "#00ba38", "below": "#f8766d")) + 
-     R.labs(subtitle: "Normalised mileage from 'mtcars'", 
-            title: "Diverging Bars") + 
-     R.coord_flip()
-
-puts gg
+puts @mat
 ```
 
+```
+##      [,1] [,2] [,3]
+## [1,]    1    4    7
+## [2,]    2    5    8
+## [3,]    3    6    9
+```
+Note that matrices data is organized by column first. It is possible to organize the matrix
+memory by row first passing an extra argument to the 'matrix' function:
 
-![](/home/rbotafogo/desenv/galaaz/blogs/manual/manual_files/figure-html/diverging_bar.png)<!-- -->
+
+```ruby
+@mat_row = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
+                nrow: 3,
+                ncol: 3,
+                byrow: true)
+
+puts @mat_row
+```
+
+```
+##      [,1] [,2] [,3]
+## [1,]    1    2    3
+## [2,]    4    5    6
+## [3,]    7    8    9
+```
+
+## Indexing a Matrix
+
+A matrix can be indexed by [row, column]:
+
+
+```ruby
+puts @mat_row[1, 1]
+puts @mat_row[2, 3]
+```
+
+```
+## [1] 1
+## [1] 6
+```
+It is possible to index an entire row or column with the ':all' keyword
+
+
+```ruby
+puts @mat_row[1, :all]
+puts @mat_row[:all, 2]
+```
+
+```
+## [1] 1 2 3
+## [1] 2 5 8
+```
+
+Indexing with a vector is also possible for matrices. In the following example we want
+rows 1 and 3 and columns 2 and 3 building a 2 x 2 matrix.
+
+
+```ruby
+puts @mat_row[R.c(1, 3), R.c(2, 3)]
+```
+
+```
+##      [,1] [,2]
+## [1,]    2    3
+## [2,]    8    9
+```
+
+Matrices can be combined with functions 'rbind' and 'cbind'
+
+
+```ruby
+puts @mat_row.rbind(@mat)
+puts @mat_row.cbind(@mat)
+```
+
+```
+##      [,1] [,2] [,3]
+## [1,]    1    2    3
+## [2,]    4    5    6
+## [3,]    7    8    9
+## [4,]    1    4    7
+## [5,]    2    5    8
+## [6,]    3    6    9
+##      [,1] [,2] [,3] [,4] [,5] [,6]
+## [1,]    1    2    3    1    4    7
+## [2,]    4    5    6    2    5    8
+## [3,]    7    8    9    3    6    9
+```
+
+# List
+
+A list is a data structure that can contain sublists of different types, while vector and matrix
+can only hold one type of element.
+
+
+```ruby
+nums = R.c(1.0, 2.0, 3.0)
+strs = R.c("a", "b", "c", "d")
+bool = R.c(true, true, false)
+@lst = R.list(nums: nums, strs: strs, bool: bool)
+puts @lst
+```
+
+```
+## $nums
+## [1] 1 2 3
+## 
+## $strs
+## [1] "a" "b" "c" "d"
+## 
+## $bool
+## [1]  TRUE  TRUE FALSE
+```
+
+Note that '@lst' elements are named elements.
+
+
+## List Indexing
+
+List indexing, also called slicing, is done using the '[]' operator and the '[[]]' operator. Let's
+first start with the '[]' operator. The list above has three sublist indexing with '[]' will 
+return one of the sublists.
+
+
+```ruby
+puts @lst[1]
+```
+
+```
+## $nums
+## [1] 1 2 3
+```
+
+Note that when using '[]' a new list is returned.  When using the double square bracket operator
+the value returned is the actual element of the list in the given position and not a slice of
+the original list
+
+
+
+```ruby
+puts @lst[[1]]
+```
+
+```
+## [1] 1 2 3
+```
+
+When elements are named, as dones with @lst, indexing can be done by name:
+
+
+```ruby
+puts @lst[['bool']][[1]] >> 0
+```
+
+```
+## true
+```
 
 
 [TO BE CONTINUED...]
