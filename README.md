@@ -22,7 +22,6 @@ fontsize: 11pt
 
 
 
-
 # Introduction
 
 Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language, with a large 
@@ -96,9 +95,20 @@ Panda, SciPy, SciKit-Learn and a couple more.
   
   > galaaz master_list:scatter_plot
 
-# Basic Types
+# gKnitting a Document
 
-## Vectors
+This manual has been formatted usign gKnit.  gKnit uses Knitr and R markdown to knit 
+a document in Ruby or R and output it in any of the available formats for R markdown.  
+gKnit runs atop of GraalVM, and Galaaz.  In gKnit, Ruby variables are persisted between 
+chunks, making it an ideal solution for literate programming.  
+Also, since it is based on Galaaz, Ruby chunks can have access to R variables and Polyglot 
+Programming with Ruby and R is quite natural.
+
+gknit was describe in more depth in:
+
+* xxx.xxxx.xxx
+
+# Vector
 
 Vectors can be thought of as contiguous cells containing data. Cells are accessed through
 indexing operations such as x[5]. Galaaz has six basic (‘atomic’) vector types: logical, 
@@ -134,11 +144,13 @@ puts @vec
 
 Lets take a look at the type, mode and storage.mode of our vector @vec.  In order to print
 this out, we are creating a data frame 'df' and printing it out.  A data frame, for those
-not familiar with it, it basically a table.  Here we create the data frame and add the 
+not familiar with it, is basically a table.  Here we create the data frame and add the 
 column name by passing named parameters for each column, such as 'typeof:', 'mode:' and
-'storage__mode'.  You should also note here that the double underscore is converted to a '.'.
+'storage__mode?'.  You should also note here that the double underscore is converted to a '.'.
+So, when printed 'storage\_\_mode' will actually print as 'storage.mode'.
 
-In R, the method used to create a data frame is 'data.frame', in Galaaz we use 'data__frame'.
+Data frames will later be more carefully described.  In R, the method used to create a 
+data frame is 'data.frame', in Galaaz we use 'data\_\_frame'.
 
 
 ```ruby
@@ -207,24 +219,234 @@ vec = R.c(1, hello, 5)
 ```
 ## Message:
 ##  (eval):1:in `exec_ruby'
-## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:137:in `instance_eval'
-## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:137:in `exec_ruby'
-## /home/rbotafogo/desenv/galaaz/lib/gknit/ruby_engine.rb:55:in `block in initialize'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:141:in `instance_eval'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:141:in `exec_ruby'
+## /home/rbotafogo/desenv/galaaz/lib/gknit/knitr_engine.rb:657:in `block in initialize'
 ## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `call'
 ## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `callback'
 ## (eval):3:in `function(...) {\n          rb_method(...)'
 ## unknown.r:1:in `in_dir'
-## unknown.r:1:in `block_exec'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc12/jre/languages/R/library/knitr/R/block.R:91:in `call_block'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc12/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc12/jre/languages/R/library/knitr/R/block.R:3:in `<no source>'
+## unknown.r:1:in `block_exec:BLOCK0'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:102:in `block_exec'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:92:in `call_block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:3:in `<no source>'
 ## unknown.r:1:in `withCallingHandlers'
 ## unknown.r:1:in `process_file'
-## unknown.r:1:in `<no source>'
-## unknown.r:1:in `<no source>'
-## <REPL>:4:in `<repl wrapper>'
+## unknown.r:1:in `<no source>:BLOCK1'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/output.R:129:in `<no source>'
+## unknown.r:1:in `<no source>:BLOCK1'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/rmarkdown/R/render.R:162:in `<no source>'
+## <REPL>:5:in `<repl wrapper>'
 ## <REPL>:1
 ```
+
+Here is a vector with logical values
+
+
+```ruby
+@vec = R.c(true, true, false, false, true)
+puts @vec
+```
+
+```
+## [1]  TRUE  TRUE FALSE FALSE  TRUE
+```
+
+## Combining Vectors
+
+The 'c' functions used to create vectors can also be used to combine two vectors:
+
+
+```ruby
+@vec1 = R.c(10.0, 20.0, 30.0)
+@vec2 = R.c(4.0, 5.0, 6.0)
+@vec = R.c(@vec1, @vec2)
+puts @vec
+```
+
+```
+## [1] 10 20 30  4  5  6
+```
+In galaaz, methods can be chainned (somewhat like the pipe operator in R %>%, but more generic).
+In this next example, method 'c' is chainned after '@vec1'.  This also looks like 'c' is a 
+method of the vector, but in reallity, this is actually closer to the pipe operator.  When
+Galaaz identifies that 'c' is not a method of 'vec' it actually tries to call 'R.c' with 
+'@vec1' as the first argument concatenated with all the other available arguments.  The code
+bellow is automatically converted to the code above.
+
+
+```ruby
+@vec = @vec1.c(@vec2)
+puts @vec
+```
+
+```
+## [1] 10 20 30  4  5  6
+```
+
+## Vector Arithmetic
+
+Arithmetic operations on vectors are performed element by element:
+
+
+```ruby
+puts @vec1 + @vec2
+```
+
+```
+## [1] 14 25 36
+```
+
+
+```ruby
+puts @vec1 * 5
+```
+
+```
+## [1]  50 100 150
+```
+
+When vectors have different length, a recycling rule is applied to the shorter vector:
+
+
+```ruby
+@vec3 = R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)
+puts @vec4 = @vec1 + @vec3
+```
+
+```
+## [1] 11 22 33 14 25 36 17 28 39
+```
+
+## Vector Indexing
+
+Vectors can be indexed by using the '[]' operator:
+
+
+```ruby
+puts @vec4[3]
+```
+
+```
+## [1] 33
+```
+
+We can also index a vector with another vector.  For example, in the code bellow, we take elements
+1, 3, 5, and 7 from @vec3:
+
+
+```ruby
+puts @vec4[R.c(1, 3, 5, 7)]
+```
+
+```
+## [1] 11 33 25 17
+```
+
+Repeating an index and having indices out of order is valid code:
+
+
+```ruby
+puts @vec4[R.c(1, 3, 3, 1)]
+```
+
+```
+## [1] 11 33 33 11
+```
+
+It is also possible to index a vector with a negative number or negative vector.  In these cases
+the indexed values are not returned:
+
+
+```ruby
+puts @vec4[-3]
+puts @vec4[-R.c(1, 3, 5, 7)]
+```
+
+```
+## [1] 11 22 14 25 36 17 28 39
+## [1] 22 14 36 28 39
+```
+
+If an index is out of range, a missing value (NA) will be reported.
+
+
+```ruby
+puts @vec4[30]
+```
+
+```
+## [1] NA
+```
+
+It is also possible to index a vector by range:
+
+
+```ruby
+puts @vec4[(2..5)]
+```
+
+```
+## [1] 22 33 14 25
+```
+
+Elements in a vector can be named using the 'names' attribute of a vector: 
+
+
+```ruby
+full_name = R.c("Rodrigo", "A", "Botafogo")
+full_name.names = R.c("First", "Middle", "Last")
+puts full_name
+```
+
+```
+##      First     Middle       Last 
+##  "Rodrigo"        "A" "Botafogo"
+```
+
+Or it can also be named by using the 'c' function with named paramenters:
+
+
+```ruby
+full_name = R.c(First: "Rodrigo", Middle: "A", Last: "Botafogo")
+puts full_name
+```
+
+```
+##      First     Middle       Last 
+##  "Rodrigo"        "A" "Botafogo"
+```
+
+## Extracting Native Ruby Types from a Vector
+
+Vectors created with 'R.c' are of class R::Vector.  You might have noticed that when indexing a
+vector, a new vector is returned, even if this vector has one single element. In order to use
+R::Vector with other ruby classes it might be necessary to extract the actual Ruby native type
+from the vector. In order to do this extraction the '>>' operator is used.
+
+
+```ruby
+puts @vec4
+puts @vec4 >> 0
+puts @vec4 >> 4
+```
+
+```
+## [1] 11 22 33 14 25 36 17 28 39
+## 11.0
+## 25.0
+```
+
+Note that indexing with '>>' starts at 0 and not at 1, also, we cannot do negative indexing.
+
+# Accessing R variables
+
+Galaaz allows Ruby to access variables created in R.  For example, the 'mtcars' data set is 
+available in R and can be accessed from Ruby by using the 'tilda' operator followed by the
+symbol for the variable, in this case ':mtcar'.  In the code bellow method 'outputs' is 
+used to output the 'mtcars' data set nicely formatted in HTML by use of the 'kable' and
+'kable_styling' functions. Method 'outputs' is only available when used with 'gknit'.
 
 
 ```ruby
@@ -700,40 +922,712 @@ outputs (~:mtcars).kable.kable_styling
 </tbody>
 </table>
 
+# Matrix
 
-## Graphics with ggplot
+A matrix is a collection of elements organized as a two dimensional table.  A matrix can be 
+created by the 'matrix' function:
 
 
 ```ruby
-require 'ggplot'
+@mat = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
+                nrow: 3,
+                ncol: 3)
 
-R.theme_set R.theme_bw
+puts @mat
+```
 
-# Data Prep
-mtcars = ~:mtcars
-mtcars.car_name = R.rownames(:mtcars)
-# compute normalized mpg 
-mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean)/mtcars.mpg.sd).round 2
-mtcars.mpg_type = mtcars.mpg_z < 0 ? "below" : "above"
-mtcars = mtcars[mtcars.mpg_z.order, :all]
-# convert to factor to retain sorted order in plot
-mtcars.car_name = mtcars.car_name.factor levels: mtcars.car_name
+```
+##      [,1] [,2] [,3]
+## [1,]    1    4    7
+## [2,]    2    5    8
+## [3,]    3    6    9
+```
+Note that matrices data is organized by column first. It is possible to organize the matrix
+memory by row first passing an extra argument to the 'matrix' function:
 
-# Diverging Barcharts
-gg = mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) + 
-     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity',  width: 0.5) +
-     R.scale_fill_manual(name: "Mileage", 
-                         labels: R.c("Above Average", "Below Average"), 
-                         values: R.c("above": "#00ba38", "below": "#f8766d")) + 
-     R.labs(subtitle: "Normalised mileage from 'mtcars'", 
-            title: "Diverging Bars") + 
-     R.coord_flip()
 
-puts gg
+```ruby
+@mat_row = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
+                nrow: 3,
+                ncol: 3,
+                byrow: true)
+
+puts @mat_row
+```
+
+```
+##      [,1] [,2] [,3]
+## [1,]    1    2    3
+## [2,]    4    5    6
+## [3,]    7    8    9
+```
+
+## Indexing a Matrix
+
+A matrix can be indexed by [row, column]:
+
+
+```ruby
+puts @mat_row[1, 1]
+puts @mat_row[2, 3]
+```
+
+```
+## [1] 1
+## [1] 6
+```
+It is possible to index an entire row or column with the ':all' keyword
+
+
+```ruby
+puts @mat_row[1, :all]
+puts @mat_row[:all, 2]
+```
+
+```
+## [1] 1 2 3
+## [1] 2 5 8
+```
+
+Indexing with a vector is also possible for matrices. In the following example we want
+rows 1 and 3 and columns 2 and 3 building a 2 x 2 matrix.
+
+
+```ruby
+puts @mat_row[R.c(1, 3), R.c(2, 3)]
+```
+
+```
+##      [,1] [,2]
+## [1,]    2    3
+## [2,]    8    9
+```
+
+Matrices can be combined with functions 'rbind' and 'cbind'
+
+
+```ruby
+puts @mat_row.rbind(@mat)
+puts @mat_row.cbind(@mat)
+```
+
+```
+##      [,1] [,2] [,3]
+## [1,]    1    2    3
+## [2,]    4    5    6
+## [3,]    7    8    9
+## [4,]    1    4    7
+## [5,]    2    5    8
+## [6,]    3    6    9
+##      [,1] [,2] [,3] [,4] [,5] [,6]
+## [1,]    1    2    3    1    4    7
+## [2,]    4    5    6    2    5    8
+## [3,]    7    8    9    3    6    9
+```
+
+# List
+
+A list is a data structure that can contain sublists of different types, while vector and matrix
+can only hold one type of element.
+
+
+```ruby
+nums = R.c(1.0, 2.0, 3.0)
+strs = R.c("a", "b", "c", "d")
+bool = R.c(true, true, false)
+@lst = R.list(nums: nums, strs: strs, bool: bool)
+puts @lst
+```
+
+```
+## $nums
+## [1] 1 2 3
+## 
+## $strs
+## [1] "a" "b" "c" "d"
+## 
+## $bool
+## [1]  TRUE  TRUE FALSE
+```
+
+Note that '@lst' elements are named elements.
+
+
+## List Indexing
+
+List indexing, also called slicing, is done using the '[]' operator and the '[[]]' operator. Let's
+first start with the '[]' operator. The list above has three sublist indexing with '[]' will 
+return one of the sublists.
+
+
+```ruby
+puts @lst[1]
+```
+
+```
+## $nums
+## [1] 1 2 3
+```
+
+Note that when using '[]' a new list is returned.  When using the double square bracket operator
+the value returned is the actual element of the list in the given position and not a slice of
+the original list
+
+
+
+```ruby
+puts @lst[[1]]
+```
+
+```
+## [1] 1 2 3
+```
+
+When elements are named, as dones with @lst, indexing can be done by name:
+
+
+```ruby
+puts @lst[['bool']][[1]] >> 0
+```
+
+```
+## true
+```
+
+In this example, first the 'bool' element of the list was extracted, not as a list, but as a vector,
+then the first element of the vector was extracted (note that vectors also accept the '[[]]' 
+operator) and then the vector was indexed by its first element, extracting the native Ruby type.
+
+
+# Data Frame
+
+A data frame is a table like structure in which each column has the same number of 
+rows. Data frames are the basic structure for storing data for data analysis.  We have already
+seen a data frame previously when we accessed variable '~:mtcars'.  In order to create a
+data frame, function 'data__frame' is used:
+
+
+```ruby
+df = R.data__frame(
+  year: R.c(2010, 2011, 2012),
+  income: R.c(1000.0, 1500.0, 2000.0))
+
+puts df
+```
+
+```
+##   year income
+## 1 2010   1000
+## 2 2011   1500
+## 3 2012   2000
+```
+
+## Data Frame Indexing
+
+A data frame can be indexed the same way as a matrix, by using '[row, column]', where row and
+column can either be a numeric or the name of the row or column
+
+
+```ruby
+puts (~:mtcars).head
+puts (~:mtcars)[1, 2]
+puts (~:mtcars)['Datsun 710', 'mpg']
+```
+
+```
+##                    mpg cyl disp  hp drat    wt  qsec vs am gear carb
+## Mazda RX4         21.0   6  160 110 3.90 2.620 16.46  0  1    4    4
+## Mazda RX4 Wag     21.0   6  160 110 3.90 2.875 17.02  0  1    4    4
+## Datsun 710        22.8   4  108  93 3.85 2.320 18.61  1  1    4    1
+## Hornet 4 Drive    21.4   6  258 110 3.08 3.215 19.44  1  0    3    1
+## Hornet Sportabout 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2
+## Valiant           18.1   6  225 105 2.76 3.460 20.22  1  0    3    1
+## [1] 6
+## [1] 22.8
+```
+
+Extracting a column from a data frame as a vector can be done by using the double square bracket
+operator:
+
+
+```ruby
+puts (~:mtcars)[['mpg']]
+```
+
+```
+##  [1] 21.0 21.0 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2
+## [15] 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26.0 30.4
+## [29] 15.8 19.7 15.0 21.4
+```
+
+A data frame column can also be accessed as if it were an instance variable of the data frame:
+
+
+```ruby
+puts (~:mtcars).mpg
+```
+
+```
+##  [1] 21.0 21.0 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2
+## [15] 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26.0 30.4
+## [29] 15.8 19.7 15.0 21.4
+```
+
+Slicing a data frame can be done by indexing it with a vector (we use 'head' to reduce the
+output):
+
+
+```ruby
+puts (~:mtcars)[R.c('mpg', 'hp')].head
+```
+
+```
+##                    mpg  hp
+## Mazda RX4         21.0 110
+## Mazda RX4 Wag     21.0 110
+## Datsun 710        22.8  93
+## Hornet 4 Drive    21.4 110
+## Hornet Sportabout 18.7 175
+## Valiant           18.1 105
+```
+
+A row slice can be obtained by indexing by row and using the ':all' keyword for the column:
+
+
+```ruby
+puts (~:mtcars)[R.c('Datsun 710', 'Camaro Z28'), :all]
+```
+
+```
+##             mpg cyl disp  hp drat   wt  qsec vs am gear carb
+## Datsun 710 22.8   4  108  93 3.85 2.32 18.61  1  1    4    1
+## Camaro Z28 13.3   8  350 245 3.73 3.84 15.41  0  0    3    4
+```
+
+Finally, a data frame can also be indexed with a logical vector.  In this next example, the
+'am' column of :mtcars is compared with 0 (with method 'eq').  When 'am' is equal to 0 the
+car is automatic.  So, by doing '(~:mtcars).am.eq 0' a logical vector is created with 
+'true' whenever 'am' is 0 and 'false' otherwise.  Using this logical vector, the data frame
+is indexed, returning a new data frame in which all cars have automatic transmission.
+
+
+```ruby
+# obtain a vector with 'true' for cars with automatic transmission
+automatic = (~:mtcars).am.eq 0
+puts automatic
+
+# slice the data frame by using this vector
+puts (~:mtcars)[automatic, :all]
+```
+
+```
+##  [1] FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+## [12]  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE FALSE FALSE FALSE  TRUE  TRUE
+## [23]  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+##                      mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## Hornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+## Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+## Valiant             18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+## Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
+## Merc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+## Merc 230            22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+## Merc 280            19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## Merc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+## Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+## Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+## Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+## Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+## Toyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+## Dodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2
+## AMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
+## Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+## Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+```
+
+# Writing Expressions in Galaaz
+
+Galaaz extends Ruby to work with complex expressions, similar to R's expressions build with 'quote' 
+(base R) or 'quo' (tidyverse).  Let's take a look at some of those expressions.
+
+## Expressions from operators
+
+The code bellow 
+creates an expression summing two symbols
+
+
+```ruby
+exp1 = :a + :b
+puts exp1
+```
+
+```
+## a + b
+```
+We can build any complex mathematical expression
+
+
+```ruby
+exp2 = (:a + :b) * 2.0 + :c ** 2 / :z
+puts exp2
+```
+
+```
+## (a + b) * 2 + c^2L/z
+```
+
+It is also possible to use inequality operators in building expressions
+
+
+```ruby
+exp3 = (:a + :b) >= :z
+puts exp3
+```
+
+```
+## a + b >= z
+```
+
+Galaaz provides both symbolic representations for operators, such as (>, <, !=) as functional 
+notation for those operators such as (.gt, .ge, etc.).  So the same expression written 
+above can also be written as
+
+
+```ruby
+exp4 = (:a + :b).ge :z
+puts exp4
+```
+
+```
+## a + b >= z
+```
+
+Two type of expression can only be created with the functional representation of the operators, 
+those are expressions involving '==', and '='.  In order to write an expression involving '==' we
+need to use the method '.eq' and for '=' we need the function '.assign'
+
+
+```ruby
+exp5 = (:a + :b).eq :z
+puts exp5
+```
+
+```
+## a + b == z
 ```
 
 
-![](/home/rbotafogo/desenv/galaaz/blogs/manual/manual_files/figure-html/diverging_bar.png)<!-- -->
+```ruby
+exp6 = :y.assign :a + :b
+puts exp6
+```
+
+```
+## y <- a + b
+```
+In general we think that using the functional notation is preferable to using the 
+symbolic notation as otherwise, we end up writing invalid expressions such as
+
+
+```ruby
+exp_wrong = (:a + :b) == :z
+puts exp_wrong
+```
+
+```
+## Message:
+##  Error in function (x, y, num.eq = TRUE, single.NA = TRUE, attrib.as.set = TRUE,  :
+##   object 'a' not found (RError)
+## Translated to internal error
+```
+and it might be difficult to understand what is going on here.  The problem lies with the fact that
+when using '==' we are comparing expression (:a + :b) to expression :z with '=='.  When the 
+comparison is executed, the system tries to evaluate :a, :b and :z, and those symbols at 
+this time are not bound to anything and we get a "object 'a' not found" message.
+If we only use functional notation, this type of error will not occur.
+
+## Expressions with R methods
+
+It is often necessary to create an expression that uses a method or function.  For instance, in
+mathematics, it's quite natural to write an expressin such as $y = sin(x)$. In this case, the
+'sin' function is part of the expression and should not immediately executed. Now, let's say
+that 'x' is an angle of 45$^\circ$ and we acttually want our expression to be $y = 0.850...$.
+When we want the function to be part of the expression, we call the function preceeding it
+by the letter E, such as 'E.sin(x)'
+
+
+```ruby
+exp7 = :y.assign E.sin(:x)
+puts exp7
+```
+
+```
+## y <- sin(x)
+```
+
+# Manipulating Data
+
+One of the major benefits of Galaaz is to bring strong data manipulation to Ruby. The following
+examples were extracted from Hardley's "R for Data Science" (https://r4ds.had.co.nz/). This
+is a highly recommended book for those not already familiar with the 'tidyverse' style of
+programming in R. In the sections to follow, we will limit ourselves to convert the R code to
+Galaaz. 
+
+For these
+examples, we will investigate the nycflights13 data set available on the package by the
+same name.  We use function 'R.install_and_loads' that checks if the library is available 
+locally, and if not, installs it. This data frame contains all 336,776 flights that 
+departed from New York City in 2013. The data comes from the US Bureau of 
+Transportation Statistics.
+
+
+```ruby
+R.install_and_loads('nycflights13')
+R.library('dplyr')
+```
+
+
+```ruby
+@flights = ~:flights
+puts @flights.head.as__data__frame
+```
+
+```
+##   year month day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+## 1 2013     1   1      517            515         2      830            819
+## 2 2013     1   1      533            529         4      850            830
+## 3 2013     1   1      542            540         2      923            850
+## 4 2013     1   1      544            545        -1     1004           1022
+## 5 2013     1   1      554            600        -6      812            837
+## 6 2013     1   1      554            558        -4      740            728
+##   arr_delay carrier flight tailnum origin dest air_time distance hour
+## 1        11      UA   1545  N14228    EWR  IAH      227     1400    5
+## 2        20      UA   1714  N24211    LGA  IAH      227     1416    5
+## 3        33      AA   1141  N619AA    JFK  MIA      160     1089    5
+## 4       -18      B6    725  N804JB    JFK  BQN      183     1576    5
+## 5       -25      DL    461  N668DN    LGA  ATL      116      762    6
+## 6        12      UA   1696  N39463    EWR  ORD      150      719    5
+##   minute           time_hour
+## 1     15 2013-01-01 05:00:00
+## 2     29 2013-01-01 05:00:00
+## 3     40 2013-01-01 05:00:00
+## 4     45 2013-01-01 05:00:00
+## 5      0 2013-01-01 06:00:00
+## 6     58 2013-01-01 05:00:00
+```
+
+## Filtering rows with Filter
+
+In this example we filter the flights data set by giving to the filter function two expressions:
+the first :month.eq 1
+
+
+```ruby
+puts @flights.filter((:month.eq 1), (:day.eq 1)).head.as__data__frame
+```
+
+```
+##   year month day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+## 1 2013     1   1      517            515         2      830            819
+## 2 2013     1   1      533            529         4      850            830
+## 3 2013     1   1      542            540         2      923            850
+## 4 2013     1   1      544            545        -1     1004           1022
+## 5 2013     1   1      554            600        -6      812            837
+## 6 2013     1   1      554            558        -4      740            728
+##   arr_delay carrier flight tailnum origin dest air_time distance hour
+## 1        11      UA   1545  N14228    EWR  IAH      227     1400    5
+## 2        20      UA   1714  N24211    LGA  IAH      227     1416    5
+## 3        33      AA   1141  N619AA    JFK  MIA      160     1089    5
+## 4       -18      B6    725  N804JB    JFK  BQN      183     1576    5
+## 5       -25      DL    461  N668DN    LGA  ATL      116      762    6
+## 6        12      UA   1696  N39463    EWR  ORD      150      719    5
+##   minute           time_hour
+## 1     15 2013-01-01 05:00:00
+## 2     29 2013-01-01 05:00:00
+## 3     40 2013-01-01 05:00:00
+## 4     45 2013-01-01 05:00:00
+## 5      0 2013-01-01 06:00:00
+## 6     58 2013-01-01 05:00:00
+```
+
+## Logical Operators
+
+All flights that departed in November of December
+
+
+```ruby
+puts @flights.filter((:month.eq 11) | (:month.eq 12)).head.as__data__frame
+```
+
+```
+##   year month day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+## 1 2013    11   1        5           2359         6      352            345
+## 2 2013    11   1       35           2250       105      123           2356
+## 3 2013    11   1      455            500        -5      641            651
+## 4 2013    11   1      539            545        -6      856            827
+## 5 2013    11   1      542            545        -3      831            855
+## 6 2013    11   1      549            600       -11      912            923
+##   arr_delay carrier flight tailnum origin dest air_time distance hour
+## 1         7      B6    745  N568JB    JFK  PSE      205     1617   23
+## 2        87      B6   1816  N353JB    JFK  SYR       36      209   22
+## 3       -10      US   1895  N192UW    EWR  CLT       88      529    5
+## 4        29      UA   1714  N38727    LGA  IAH      229     1416    5
+## 5       -24      AA   2243  N5CLAA    JFK  MIA      147     1089    5
+## 6       -11      UA    303  N595UA    JFK  SFO      359     2586    6
+##   minute           time_hour
+## 1     59 2013-11-01 23:00:00
+## 2     50 2013-11-01 22:00:00
+## 3      0 2013-11-01 05:00:00
+## 4     45 2013-11-01 05:00:00
+## 5     45 2013-11-01 05:00:00
+## 6      0 2013-11-01 06:00:00
+```
+
+The same as above, but using the 'in' operator. In R, it is possible to define many operators
+by doing %<op>%. The %in% operator checks if a value is in a vector.  In order to use those
+operators from Galaaz the '._' method is used, where the first argument is the operator's
+symbol, in this case ':in' and the second argument is the vector:
+
+
+```ruby
+puts @flights.filter(:month._ :in, R.c(11, 12)).head.as__data__frame
+```
+
+```
+##   year month day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+## 1 2013    11   1        5           2359         6      352            345
+## 2 2013    11   1       35           2250       105      123           2356
+## 3 2013    11   1      455            500        -5      641            651
+## 4 2013    11   1      539            545        -6      856            827
+## 5 2013    11   1      542            545        -3      831            855
+## 6 2013    11   1      549            600       -11      912            923
+##   arr_delay carrier flight tailnum origin dest air_time distance hour
+## 1         7      B6    745  N568JB    JFK  PSE      205     1617   23
+## 2        87      B6   1816  N353JB    JFK  SYR       36      209   22
+## 3       -10      US   1895  N192UW    EWR  CLT       88      529    5
+## 4        29      UA   1714  N38727    LGA  IAH      229     1416    5
+## 5       -24      AA   2243  N5CLAA    JFK  MIA      147     1089    5
+## 6       -11      UA    303  N595UA    JFK  SFO      359     2586    6
+##   minute           time_hour
+## 1     59 2013-11-01 23:00:00
+## 2     50 2013-11-01 22:00:00
+## 3      0 2013-11-01 05:00:00
+## 4     45 2013-11-01 05:00:00
+## 5     45 2013-11-01 05:00:00
+## 6      0 2013-11-01 06:00:00
+```
+
+# Graphics in Galaaz
+
+Creating graphics in Galaaz is quite easy, as it can use all the power of ggplot2.  There are
+many resources in the web that teaches ggplot, so here we give a quick example of ggplot 
+integration with Ruby.  We continue to use the :mtcars dataset and we will plot a diverging
+bar plot, showing cars that have 'above' or 'below' gas consuption. Let's first prepare
+the data frame with the necessary data:
+
+
+```ruby
+# copyt the R variable :mtcars to the Ruby mtcars variable
+@mtcars = ~:mtcars
+
+# create a new column 'car_name' to store the car names so that it can be
+# used for plotting. The 'rownames' of the data frame cannot be used as
+# data for plotting
+@mtcars.car_name = R.rownames(:mtcars)
+
+# compute normalized mpg and add it to a new column called mpg_z
+# Note that the mean value for mpg can be obtained by calling the 'mean'
+# function on the vector 'mtcars.mpg'.  The same with the standard
+# deviation 'sd'.  The vector is then rounded to two digits with 'round 2'
+@mtcars.mpg_z = ((@mtcars.mpg - @mtcars.mpg.mean)/@mtcars.mpg.sd).round 2
+
+# create a new column 'mpg_type'. Function 'ifelse' is a vectorized function
+# that looks at every element of the mpg_z vector and if the value is below
+# 0, returns 'below', otherwise returns 'above'
+@mtcars.mpg_type = (@mtcars.mpg_z < 0).ifelse("below", "above")
+
+# order the mtcar data set by the mpg_z vector from smaler to larger values
+@mtcars = @mtcars[@mtcars.mpg_z.order, :all]
+
+# convert the car_name column to a factor to retain sorted order in plot
+@mtcars.car_name = @mtcars.car_name.factor levels: @mtcars.car_name
+
+# let's look at the final data frame
+puts @mtcars
+```
+
+```
+##                      mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+## Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+## Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+## Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
+## Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+## Maserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8
+## Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+## AMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
+## Dodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2
+## Ford Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
+## Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+## Merc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## Valiant             18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+## Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+## Merc 280            19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+## Ferrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+## Mazda RX4           21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+## Mazda RX4 Wag       21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+## Hornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+## Volvo 142E          21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
+## Toyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+## Datsun 710          22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
+## Merc 230            22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+## Merc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+## Porsche 914-2       26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+## Fiat X1-9           27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+## Honda Civic         30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+## Lotus Europa        30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+## Fiat 128            32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+## Toyota Corolla      33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+##                                car_name mpg_z mpg_type
+## Cadillac Fleetwood   Cadillac Fleetwood -1.61    below
+## Lincoln Continental Lincoln Continental -1.61    below
+## Camaro Z28                   Camaro Z28 -1.13    below
+## Duster 360                   Duster 360 -0.96    below
+## Chrysler Imperial     Chrysler Imperial -0.89    below
+## Maserati Bora             Maserati Bora -0.84    below
+## Merc 450SLC                 Merc 450SLC -0.81    below
+## AMC Javelin                 AMC Javelin -0.81    below
+## Dodge Challenger       Dodge Challenger -0.76    below
+## Ford Pantera L           Ford Pantera L -0.71    below
+## Merc 450SE                   Merc 450SE -0.61    below
+## Merc 450SL                   Merc 450SL -0.46    below
+## Merc 280C                     Merc 280C -0.38    below
+## Valiant                         Valiant -0.33    below
+## Hornet Sportabout     Hornet Sportabout -0.23    below
+## Merc 280                       Merc 280 -0.15    below
+## Pontiac Firebird       Pontiac Firebird -0.15    below
+## Ferrari Dino               Ferrari Dino -0.06    below
+## Mazda RX4                     Mazda RX4  0.15    above
+## Mazda RX4 Wag             Mazda RX4 Wag  0.15    above
+## Hornet 4 Drive           Hornet 4 Drive  0.22    above
+## Volvo 142E                   Volvo 142E  0.22    above
+## Toyota Corona             Toyota Corona  0.23    above
+## Datsun 710                   Datsun 710  0.45    above
+## Merc 230                       Merc 230  0.45    above
+## Merc 240D                     Merc 240D  0.72    above
+## Porsche 914-2             Porsche 914-2  0.98    above
+## Fiat X1-9                     Fiat X1-9  1.20    above
+## Honda Civic                 Honda Civic  1.71    above
+## Lotus Europa               Lotus Europa  1.71    above
+## Fiat 128                       Fiat 128  2.04    above
+## Toyota Corolla           Toyota Corolla  2.29    above
+```
+Now, lets plot the diverging bar plot.  When using gKnit, there is no need to call
+'R.awt' to create a plotting device, since gKnit does take care of it:
+
 
 
 [TO BE CONTINUED...]
