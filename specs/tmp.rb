@@ -22,8 +22,19 @@
 ##########################################################################################
 
 require 'galaaz'
-R.install_and_loads 'dplyr'
+R.install_and_loads('nycflights13')
+# R.install_and_loads 'dplyr'
 
+@flights = ~:flights
+exp = :month._ :in, R.c(11, 12)
+puts exp
+
+puts @flights.filter(:month._ :in, R.c(11, 12)).head.as__data__frame
+
+
+# puts File.directory?(".")
+
+=begin
 Polyglot.eval("R", <<-R)
   funcs = funs(c('mean_mass', 'mean_birth_year'))
   print(funcs)
@@ -47,7 +58,7 @@ end
 
 puts grouped_mean((~:starwars), "eye_color", R.c("mass", "birth_year"))
 #=end
-
+=end
 =begin
 
 def mutate_y(df)

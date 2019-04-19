@@ -405,6 +405,242 @@ operator) and then the vector was indexed by its first element, extracting the n
 
 # Data Frame
 
+A data frame is a table like structure in which each column has the same number of 
+rows. Data frames are the basic structure for storing data for data analysis.  We have already
+seen a data frame previously when we accessed variable '~:mtcars'.  In order to create a
+data frame, function 'data__frame' is used:
+
+```{ruby dataframe}
+df = R.data__frame(
+  year: R.c(2010, 2011, 2012),
+  income: R.c(1000.0, 1500.0, 2000.0))
+
+puts df
+```
+
+## Data Frame Indexing
+
+A data frame can be indexed the same way as a matrix, by using '[row, column]', where row and
+column can either be a numeric or the name of the row or column
+
+```{ruby dataframe_index}
+puts (~:mtcars).head
+puts (~:mtcars)[1, 2]
+puts (~:mtcars)['Datsun 710', 'mpg']
+```
+
+Extracting a column from a data frame as a vector can be done by using the double square bracket
+operator:
+
+```{ruby dataframe_column}
+puts (~:mtcars)[['mpg']]
+```
+
+A data frame column can also be accessed as if it were an instance variable of the data frame:
+
+```{ruby dataframe_instance_variable}
+puts (~:mtcars).mpg
+```
+
+Slicing a data frame can be done by indexing it with a vector (we use 'head' to reduce the
+output):
+
+```{ruby dataframe_column_slice}
+puts (~:mtcars)[R.c('mpg', 'hp')].head
+```
+
+A row slice can be obtained by indexing by row and using the ':all' keyword for the column:
+
+```{ruby dataframe_row_slice}
+puts (~:mtcars)[R.c('Datsun 710', 'Camaro Z28'), :all]
+```
+
+Finally, a data frame can also be indexed with a logical vector.  In this next example, the
+'am' column of :mtcars is compared with 0 (with method 'eq').  When 'am' is equal to 0 the
+car is automatic.  So, by doing '(~:mtcars).am.eq 0' a logical vector is created with 
+'true' whenever 'am' is 0 and 'false' otherwise.  Using this logical vector, the data frame
+is indexed, returning a new data frame in which all cars have automatic transmission.
+
+```{ruby dataframe_logical}
+# obtain a vector with 'true' for cars with automatic transmission
+automatic = (~:mtcars).am.eq 0
+puts automatic
+
+# slice the data frame by using this vector
+puts (~:mtcars)[automatic, :all]
+```
+
+# Writing Expressions in Galaaz
+
+Galaaz extends Ruby to work with complex expressions, similar to R's expressions build with 'quote' 
+(base R) or 'quo' (tidyverse).  Let's take a look at some of those expressions.
+
+## Expressions from operators
+
+The code bellow 
+creates an expression summing two symbols
+
+```{ruby expressions}
+exp1 = :a + :b
+puts exp1
+```
+We can build any complex mathematical expression
+
+```{ruby expr2}
+exp2 = (:a + :b) * 2.0 + :c ** 2 / :z
+puts exp2
+```
+
+It is also possible to use inequality operators in building expressions
+
+```{ruby expr3}
+exp3 = (:a + :b) >= :z
+puts exp3
+```
+
+Galaaz provides both symbolic representations for operators, such as (>, <, !=) as functional 
+notation for those operators such as (.gt, .ge, etc.).  So the same expression written 
+above can also be written as
+
+```{ruby expr4}
+exp4 = (:a + :b).ge :z
+puts exp4
+```
+
+Two type of expression can only be created with the functional representation of the operators, 
+those are expressions involving '==', and '='.  In order to write an expression involving '==' we
+need to use the method '.eq' and for '=' we need the function '.assign'
+
+```{ruby expr5}
+exp5 = (:a + :b).eq :z
+puts exp5
+```
+
+```{ruby expr6}
+exp6 = :y.assign :a + :b
+puts exp6
+```
+In general we think that using the functional notation is preferable to using the 
+symbolic notation as otherwise, we end up writing invalid expressions such as
+
+```{ruby exp_wrong, warning=FALSE}
+exp_wrong = (:a + :b) == :z
+puts exp_wrong
+```
+and it might be difficult to understand what is going on here.  The problem lies with the fact that
+when using '==' we are comparing expression (:a + :b) to expression :z with '=='.  When the 
+comparison is executed, the system tries to evaluate :a, :b and :z, and those symbols at 
+this time are not bound to anything and we get a "object 'a' not found" message.
+If we only use functional notation, this type of error will not occur.
+
+## Expressions with R methods
+
+It is often necessary to create an expression that uses a method or function.  For instance, in
+mathematics, it's quite natural to write an expressin such as $y = sin(x)$. In this case, the
+'sin' function is part of the expression and should not immediately executed. Now, let's say
+that 'x' is an angle of 45$^\circ$ and we acttually want our expression to be $y = 0.850...$.
+When we want the function to be part of the expression, we call the function preceeding it
+by the letter E, such as 'E.sin(x)'
+
+```{ruby method_expression}
+exp7 = :y.assign E.sin(:x)
+puts exp7
+```
+
+# Manipulating Data
+
+One of the major benefits of Galaaz is to bring strong data manipulation to Ruby. The following
+examples were extracted from Hardley's "R for Data Science" (https://r4ds.had.co.nz/). This
+is a highly recommended book for those not already familiar with the 'tidyverse' style of
+programming in R. In the sections to follow, we will limit ourselves to convert the R code to
+Galaaz. 
+
+For these
+examples, we will investigate the nycflights13 data set available on the package by the
+same name.  We use function 'R.install_and_loads' that checks if the library is available 
+locally, and if not, installs it. This data frame contains all 336,776 flights that 
+departed from New York City in 2013. The data comes from the US Bureau of 
+Transportation Statistics.
+
+```{ruby nycflights13}
+R.install_and_loads('nycflights13')
+R.library('dplyr')
+```
+
+```{ruby flights}
+@flights = ~:flights
+puts @flights.head.as__data__frame
+```
+
+## Filtering rows with Filter
+
+In this example we filter the flights data set by giving to the filter function two expressions:
+the first :month.eq 1
+
+```{ruby filter_rows}
+puts @flights.filter((:month.eq 1), (:day.eq 1)).head.as__data__frame
+```
+
+## Logical Operators
+
+All flights that departed in November of December
+
+```{ruby nov_dec}
+puts @flights.filter((:month.eq 11) | (:month.eq 12)).head.as__data__frame
+```
+
+The same as above, but using the 'in' operator. In R, it is possible to define many operators
+by doing %<op>%. The %in% operator checks if a value is in a vector.  In order to use those
+operators from Galaaz the '._' method is used, where the first argument is the operator's
+symbol, in this case ':in' and the second argument is the vector:
+
+```{ruby in_op}
+puts @flights.filter(:month._ :in, R.c(11, 12)).head.as__data__frame
+```
+
+## Filtering NA (Not Available)
+
+# Graphics in Galaaz
+
+Creating graphics in Galaaz is quite easy, as it can use all the power of ggplot2.  There are
+many resources in the web that teaches ggplot, so here we give a quick example of ggplot 
+integration with Ruby.  We continue to use the :mtcars dataset and we will plot a diverging
+bar plot, showing cars that have 'above' or 'below' gas consuption. Let's first prepare
+the data frame with the necessary data:
+
+```{ruby diverging_plot_prep}
+# copyt the R variable :mtcars to the Ruby mtcars variable
+@mtcars = ~:mtcars
+
+# create a new column 'car_name' to store the car names so that it can be
+# used for plotting. The 'rownames' of the data frame cannot be used as
+# data for plotting
+@mtcars.car_name = R.rownames(:mtcars)
+
+# compute normalized mpg and add it to a new column called mpg_z
+# Note that the mean value for mpg can be obtained by calling the 'mean'
+# function on the vector 'mtcars.mpg'.  The same with the standard
+# deviation 'sd'.  The vector is then rounded to two digits with 'round 2'
+@mtcars.mpg_z = ((@mtcars.mpg - @mtcars.mpg.mean)/@mtcars.mpg.sd).round 2
+
+# create a new column 'mpg_type'. Function 'ifelse' is a vectorized function
+# that looks at every element of the mpg_z vector and if the value is below
+# 0, returns 'below', otherwise returns 'above'
+@mtcars.mpg_type = (@mtcars.mpg_z < 0).ifelse("below", "above")
+
+# order the mtcar data set by the mpg_z vector from smaler to larger values
+@mtcars = @mtcars[@mtcars.mpg_z.order, :all]
+
+# convert the car_name column to a factor to retain sorted order in plot
+@mtcars.car_name = @mtcars.car_name.factor levels: @mtcars.car_name
+
+# let's look at the final data frame
+puts @mtcars
+```
+Now, lets plot the diverging bar plot.  When using gKnit, there is no need to call
+'R.awt' to create a plotting device, since gKnit does take care of it:
+
+
 
 [TO BE CONTINUED...]
 

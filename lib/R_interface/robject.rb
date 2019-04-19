@@ -149,7 +149,6 @@ module R
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args, &block)
-
       name = R::Support.convert_symbol2r(symbol)
 
       # Need to raise a NoMethodError when method_missing is called by an implicit

@@ -78,6 +78,7 @@ module R
     R
         
     #----------------------------------------------------------------------------------------
+    # @TODO: Fix the 'rescue' clause and open issue with fastR
     # Evaluates an R code
     # @param string [String] A string of R code that can be correctly parsed by R
     #----------------------------------------------------------------------------------------
