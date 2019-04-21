@@ -198,13 +198,23 @@ class Symbol
   end
 
   #--------------------------------------------------------------------------------------
-  #
+  # Used when selecting column in a data frame, from the first column to the var2
+  # column
   #--------------------------------------------------------------------------------------
   
   def up_to(var2)
     R::Support.exec_function(R::Support.range, self, var2)
   end
+
   
+  #--------------------------------------------------------------------------------------
+  # Create an interaction between two variables in formulas
+  #--------------------------------------------------------------------------------------
+  
+  def inter(var2)
+    R::Support.exec_function(R::Support.range, self, var2)
+  end
+
   #--------------------------------------------------------------------------------------
   # If method_missing is implemented, then we also need to implement method 'to_ary'.
   # This is because starting from ruby 1.9 the code for Array#flatten has changed,
