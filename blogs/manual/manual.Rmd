@@ -598,7 +598,100 @@ symbol, in this case ':in' and the second argument is the vector:
 puts @flights.filter(:month._ :in, R.c(11, 12)).head.as__data__frame
 ```
 
-## Filtering NA (Not Available)
+## Filtering with NA (Not Available)
+
+Let's first create a 'tibble' with a Not Available value (R::NA).  Tibbles are a modern 
+version of a data frame and operate very similarly to one.  It differs in how it outputs
+the values and the result of some subsetting operations that are more consistent than
+what is obtained from data frame.
+
+```{ruby na_tibble}
+@df = R.tibble(x: R.c(1, R::NA, 3))
+puts @df.as__data__frame
+```
+
+Now filtering by :x > 1 shows all lines that satisfy this condition, where the row with R:NA does
+not.
+
+```{ruby filter_na}
+puts @df.filter(:x > 1).as__data__frame
+```
+
+To match an NA use method 'is__na'
+
+```{ruby with_na}
+puts @df.filter((:x.is__na) | (:x > 1)).as__data__frame
+```
+
+## Arrange Rows with arrange
+
+Arrange reorders the rows of a data frame by the given arguments.
+
+```{ruby arrange}
+puts @flights.arrange(:year, :month, :day).head.as__data__frame
+```
+
+To arrange in descending order, use function 'desc'
+
+```{ruby desc_arrange}
+puts @flights.arrange(:dep_delay.desc).head.as__data__frame
+```
+
+## Selecting columns
+
+To select specific columns from a dataset we use function 'select':
+
+```{ruby select}
+puts @flights.select(:year, :month, :day).head.as__data__frame
+```
+
+It is also possible to select column in a given range
+
+```{ruby select_range}
+puts @flights.select(:year.up_to :day).head.as__data__frame
+```
+
+Select all columns that start with a given name sequence
+
+```{ruby select_starts_with}
+puts @flights.select(E.starts_with('arr')).head.as__data__frame
+```
+
+Other functions that can be used:
+
+* ends_with("xyz"): matches names that end with “xyz”.
+
+* contains("ijk"): matches names that contain “ijk”.
+
+* matches("(.)\\1"): selects variables that match a regular expression. This one matches 
+  any variables that contain repeated characters.
+  
+* num_range("x", (1..3)): matches x1, x2 and x3
+
+A helper function that comes in handy when we just want to rearrange column order is 'Everything':
+
+```{ruby everything}
+puts @flights.select(:year, :month, :day, E.everything).head.as__data__frame
+```
+
+## Add variables to a dataframe with 'mutate'
+
+```{ruby small_flights}
+@flights_sm = @flights.
+                select((:year.up_to :day),
+                       E.ends_with('delay'),
+                       :distance,
+                       :air_time)
+
+puts @flights_sm.head.as__data__frame
+```
+
+```{ruby mutate}
+@flights_sm = @flights_sm.
+                mutate(gain: :dep_delay - :arr_delay,
+                       speed: :distance / :air_time * 60)
+puts @flights_sm.head.as__data__frame
+```
 
 # Graphics in Galaaz
 
@@ -608,8 +701,8 @@ integration with Ruby.  We continue to use the :mtcars dataset and we will plot 
 bar plot, showing cars that have 'above' or 'below' gas consuption. Let's first prepare
 the data frame with the necessary data:
 
-```{ruby diverging_plot_prep}
-# copyt the R variable :mtcars to the Ruby mtcars variable
+```{ruby diverging_plot_pre}
+# copy the R variable :mtcars to the Ruby mtcars variable
 @mtcars = ~:mtcars
 
 # create a new column 'car_name' to store the car names so that it can be

@@ -185,13 +185,15 @@ class Symbol
 
   def method_missing(symbol, *args, &block)
 
+=begin    
     if (symbol =~ /(.*)=$/)
       # method_missing_assign($1, args[0])
     elsif (args.length == 0 && ((R.c(symbol.to_s)._ :in, R.names(self)) >> 0))
       return self[symbol.to_s]
     end
+=end
     
-    R.send(symbol.to_s, self, *args)
+    E.send(symbol.to_s, self, *args)
     
   end
 
@@ -199,7 +201,7 @@ class Symbol
   #
   #--------------------------------------------------------------------------------------
   
-  def inter(var2)
+  def up_to(var2)
     R::Support.exec_function(R::Support.range, self, var2)
   end
   

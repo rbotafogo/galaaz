@@ -25,11 +25,13 @@ require 'galaaz'
 R.install_and_loads('nycflights13')
 # R.install_and_loads 'dplyr'
 
-@flights = ~:flights
-exp = :month._ :in, R.c(11, 12)
-puts exp
+## Renaming columns
 
-puts @flights.filter(:month._ :in, R.c(11, 12)).head.as__data__frame
+The rename function is used to rename columns
+
+```{ruby rename}
+puts @flights.rename(dep_time: 'deptime').head.as__data__frame
+```
 
 
 # puts File.directory?(".")
