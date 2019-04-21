@@ -23,7 +23,7 @@ fontsize: 11pt
 # set global chunk options.  We want all figures to be 'svg'
 # out.width will control the width of the ouput figure, in this case, we want it
 # to be 50% of the width
-knitr::opts_chunk$set(fig.width=1, fig.height=7, dev="svg", out.width = '50%')
+# knitr::opts_chunk$set(fig.width=1, fig.height=7, dev="svg", out.width = '50%')
 ```
 
 According to Wikipedia "Ruby is a dynamic, interpreted, reflective, object-oriented, 
@@ -291,7 +291,7 @@ the formula to ```+:supp =~ +:all``` would split the plot horizontally.
 
 @bp = @base_tooth + R.geom_boxplot +
       # Split in vertical direction
-      R.facet_grid(+:all =~ +:supp)
+      R.facet_grid(:all.til :supp)
       
 puts @bp
 ```
@@ -427,7 +427,7 @@ a boxplot known as a _violin plot_ with jittered data.
 
 ```{ruby violin_with_jitter}
 @violin = @base_tooth + R.geom_violin(E.aes(fill: :dose)) + 
-   R.facet_grid(+:all =~ +:supp) +
+   R.facet_grid(:all.til :supp) +
    R.geom_jitter(shape: 23, color: "cyan3", size: 1) +
    R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
                        breaks: R.c("2","1","0.5"))
@@ -570,7 +570,7 @@ Each animal received one of three dose levels of vitamin C.
 EOT
 
 @bp = @tooth_growth.ggplot(E.aes(x: :supp, y: :len, group: :supp)) + 
-      R.geom_boxplot(E.aes(fill: :supp)) + R.facet_grid(+:all =~ +:dose) +
+      R.geom_boxplot(E.aes(fill: :supp)) + R.facet_grid(:all.til :dose) +
       R.scale_fill_manual(values: R.c("cyan", "deepskyblue4")) +
       R.labs(title: "Tooth Growth:  Length by Dose",
              subtitle: "Faceted by dose",

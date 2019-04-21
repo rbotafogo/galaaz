@@ -580,8 +580,8 @@ class KnitrEngine
       STDERR.puts File.directory?(@fig__path)
 =end      
       # create directory for the graphics files if does not already exists
-      unless File.directory?(@fig__path)
-        # STDERR.puts "======================"
+      # unless File.directory?(@fig__path)
+      unless (R.dir__exists(@fig__path) >> 0)
         FileUtils.mkdir_p(@fig__path)
       end
 
