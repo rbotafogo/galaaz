@@ -22,70 +22,36 @@
 ##########################################################################################
 
 require 'galaaz'
-R.install_and_loads('nycflights13')
+require 'ggplot'
+
+# R.install_and_loads('nycflights13')
 # R.install_and_loads 'dplyr'
+
+R.awt
+x = R.rnorm(100)
+y = R.rnorm(100)
+# plot commands do not work.  Need to work with ggplot or grid
+# qplot uses a similar interface as plot
+# Need to call print at the end of the plot
+R.qplot(x, y,
+        xlab: "this is the x-axis",
+        ylab: "this is the y-axis",
+        main: "Plot of X vs Y")
+  .print
+# the graphics dies when the script ends... waiting 3 secs
+# so that the graphic can be seen
+sleep(3)
 
 ## Renaming columns
 
-The rename function is used to rename columns
+#The rename function is used to rename columns
 
-```{ruby rename}
-puts @flights.rename(dep_time: 'deptime').head.as__data__frame
-```
+#```{ruby rename}
+#puts @flights.rename(dep_time: 'deptime').head.as__data__frame
+#```
 
 
 # puts File.directory?(".")
-
-=begin
-Polyglot.eval("R", <<-R)
-  funcs = funs(c('mean_mass', 'mean_birth_year'))
-  print(funcs)
-R
-
-#par = Polyglot.eval("R", "c('mean_mass', 'mean_birth_year')")
-#funcs = Polyglot.eval("R", "funs").call(par)
-
-#=begin
-def grouped_mean(data, grouping_variables, value_variables)
-  puts R.paste0("mean_", value_variables)
-  puts R.funs(E.paste0("mean_", value_variables))
-
-  data.
-    group_by_at(grouping_variables).
-    mutate(count: E.n).
-    summarise_at(E.c(value_variables, "count"), ~:mean, na__rm: true).
-    rename_at(value_variables, R.funs(E.paste0("mean_", value_variables)))
-
-end
-
-puts grouped_mean((~:starwars), "eye_color", R.c("mass", "birth_year"))
-#=end
-=end
-=begin
-
-def mutate_y(df)
-  df.mutate(:y.assign :a + :x)
-end
-
-a = 10
-puts mutate_y(df1)
-
-form = :y.assign :a + :x
-=end
-
-=begin
-df1 = Polyglot.eval("R", "data.frame(x = 1:3)")
-form = Polyglot.eval("R", "quo(y <- a + x)")
-Polyglot.eval("R", "mutate").call(df1, form)
-=end
-
-#=begin
-# mtcars = ~:mtcars
-# puts mtcars
-
-=begin
-# should allow mtcars[['car name']] = mtcars.rownames
-=end
 
 
 
