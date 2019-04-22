@@ -22,25 +22,20 @@
 ##########################################################################################
 
 require 'galaaz'
-require 'ggplot'
+# require 'ggplot'
 
-# R.install_and_loads('nycflights13')
-# R.install_and_loads 'dplyr'
+R.install_and_loads('nycflights13')
+R.install_and_loads 'dplyr'
 
-R.awt
-x = R.rnorm(100)
-y = R.rnorm(100)
-# plot commands do not work.  Need to work with ggplot or grid
-# qplot uses a similar interface as plot
-# Need to call print at the end of the plot
-R.qplot(x, y,
-        xlab: "this is the x-axis",
-        ylab: "this is the y-axis",
-        main: "Plot of X vs Y")
-  .print
-# the graphics dies when the script ends... waiting 3 secs
-# so that the graphic can be seen
-sleep(3)
+@flights = ~:flights
+puts @flights.head.as__data__frame
+
+puts @flights.summarise(delay: E.mean(:dep_delay, na__rm: true))
+
+
+
+
+
 
 ## Renaming columns
 

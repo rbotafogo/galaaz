@@ -699,14 +699,28 @@ Function 'summarise' calculates summaries for the data frame. When no 'group_by'
 a single value is obtained from the data frame:
 
 ```{ruby summarise}
-puts @flights.summarise(delay: E.mean(:dep_delay, na__rm = true))
+puts @flights.summarise(delay: E.mean(:dep_delay, na__rm: true)).as__data__frame
 ```
 
 When a data frame is groupe with 'group_by' summaries apply to the given group:
 
 ```{ruby summarise_group_by}
 by_day = @flights.group_by(:year, :month, :day)
-puts by_day.summarise(delay: :dep_delay.mean(na__rm = true))
+puts by_day.summarise(delay: :dep_delay.mean(na__rm: true)).head.as__data__frame
+```
+
+Next we put many operations together by pipping them one after the other:
+
+```{ruby pipping}
+delays = @flights.
+           group_by(:dest).
+           summarise(
+             count: E.n,
+             dist: :distance.mean(na__rm: true),
+             delay: :arr_delay.mean(na__rm: true)).
+           filter(:count > 20, :dest != "NHL")
+
+puts delays.as__data__frame
 ```
 
 # Graphics in Galaaz
