@@ -51,7 +51,7 @@ puts boston.medv
 
 R.awt
 
-puts R.qplot(:Boston.lstat, :Boston.medv, col: "red") +
+puts R.qplot(:lstat, :medv, data: :Boston, col: "red") +
      R.geom_abline(intercept: boston_lm.coef[1],
                    slope: boston_lm.coef[2],
                    color: "blue",
@@ -66,13 +66,13 @@ sleep(2)
 R.grid__newpage
 
 R.my_data = R.data__frame(pred: R.predict(boston_lm), res: R.residuals(boston_lm))
-puts R.qplot(:my_data.pred, :my_data.res)
+puts R.qplot(:pred, :res, data: :my_data)
 
 sleep(2)
 R.grid__newpage
 
 R.my_data = R.data__frame(pred: R.predict(boston_lm), res: R.rstudent(boston_lm))
-puts R.qplot(:my_data.pred, :my_data.res)
+puts R.qplot(:pred, :res, data: :my_data)
 
 sleep(2)
 R.grid__newpage
@@ -80,7 +80,7 @@ R.grid__newpage
 vals = R.hatvalues(boston_lm)
 R.my_data = R.data__frame(size: (1..vals.size), values: vals)
 # method size returns a Numeric... size is equivalent to 'length << 0'
-puts R.qplot(:my_data.size, :my_data.values)
+puts R.qplot(:size, :values, data: :my_data)
 
 sleep(2)
 R.grid__newpage

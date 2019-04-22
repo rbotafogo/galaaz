@@ -121,7 +121,7 @@ context "ISLR" do
     it "should create a jpeg file" do
       R.jpeg("/home/rbotafogo/desenv/galaaz/examples/islr/x_y_rnorm.jpg")
       R.df = R.data__frame(x: R.rnorm(100), y: R.rnorm(100))
-      puts R.qplot(:df.x, :df.y, col: "green")
+      puts R.qplot(:x, :y, data: :df, col: "green")
       R.dev__off
     end
 
