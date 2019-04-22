@@ -693,6 +693,22 @@ puts @flights_sm.head.as__data__frame
 puts @flights_sm.head.as__data__frame
 ```
 
+## Summarising data
+
+Function 'summarise' calculates summaries for the data frame. When no 'group_by' is used
+a single value is obtained from the data frame:
+
+```{ruby summarise}
+puts @flights.summarise(delay: E.mean(:dep_delay, na__rm = true))
+```
+
+When a data frame is groupe with 'group_by' summaries apply to the given group:
+
+```{ruby summarise_group_by}
+by_day = @flights.group_by(:year, :month, :day)
+puts by_day.summarise(delay: :dep_delay.mean(na__rm = true))
+```
+
 # Graphics in Galaaz
 
 Creating graphics in Galaaz is quite easy, as it can use all the power of ggplot2.  There are
@@ -731,8 +747,33 @@ the data frame with the necessary data:
 puts @mtcars
 ```
 Now, lets plot the diverging bar plot.  When using gKnit, there is no need to call
-'R.awt' to create a plotting device, since gKnit does take care of it:
+'R.awt' to create a plotting device, since gKnit does take care of it. Galaaz 
+provides integration with ggplot. The interested reader should check online for more
+information on ggplot, since it is outside the scope of this manual describing 
+how ggplot works. We give here but a brief description on how this plot is generated.
 
+ggplot implements the 'grammar of graphics'. In this approach, plots are build by
+adding layers to the plot.  On the first layer we describe what we want on the 'x'
+and 'y' axis of the plot.  In this case, we have 'car_name' on the 'x' axis and 
+'mpg\_z' on the 'y' axis. Then the type of graph is specified by adding
+'geom\_bar' (for a bar graph).  We specify that our bars should be filled using 
+'mpg\_type', which is either 'above' or 'bellow' giving then two colours for
+filling. On the next layer we specify the labels for the graph, then we add the
+title and subtitle.  Finally, in a bar chart usually bars go on the vertical direction,
+but in this graph we want the bars to be horizontally layed so we add 'coord\_flip'.
+
+```{ruby diverging_bar}
+require 'ggplot'
+
+puts @mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
+  R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
+  R.scale_fill_manual(name: 'Mileage',
+                      labels: R.c('Above Average', 'Below Average'),
+                      values: R.c('above': '#00ba38', 'below': '#f8766d')) +
+  R.labs(subtitle: "Normalised mileage from 'mtcars'",
+         title: "Diverging Bars") + 
+  R.coord_flip
+```
 
 
 [TO BE CONTINUED...]
