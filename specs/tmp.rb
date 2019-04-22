@@ -22,55 +22,131 @@
 ##########################################################################################
 
 require 'galaaz'
-R.require 'stats'
+R.install_and_loads('nycflights13')
+# R.install_and_loads 'dplyr'
 
-# require 'ggplot'
+## Renaming columns
 
-# Need to fix function 'str'... not printing anything
-# anymore
-# puts R.str(mtcars)
-# shouls allow mtcars[['car name']] = mtcars.rownames
+The rename function is used to rename columns
 
-# (~:mtcars).str
-
-describe R::List do
-  
-  context "The apply family of functions with lists" do
+```{ruby rename}
+puts @flights.rename(dep_time: 'deptime').head.as__data__frame
+```
 
 
-    x = R.list(a: (1..10), beta: R.exp(-3..3), logic: R.c(true, false, false, true))
-#puts x
+# puts File.directory?(".")
 
-    quant = R.lapply(x, ~:quantile)
-#puts quant
-#puts quant.a[['50,00000%']]
+=begin
+Polyglot.eval("R", <<-R)
+  funcs = funs(c('mean_mass', 'mean_birth_year'))
+  print(funcs)
+R
 
-# puts quant.beta['100%']
+#par = Polyglot.eval("R", "c('mean_mass', 'mean_birth_year')")
+#funcs = Polyglot.eval("R", "funs").call(par)
 
-    it "ss" do
-      
-      ret = R.all__equal(quant.beta["100%"],
-                         R.c('100%': 20.08553692),
-                         tolerance: (~:".Machine").double__eps ** 0.5)
-      expect(R.c(1, 2, 3)).to eq false
-      # expect(5 == 10).to eq true
-    end
-  end
+#=begin
+def grouped_mean(data, grouping_variables, value_variables)
+  puts R.paste0("mean_", value_variables)
+  puts R.funs(E.paste0("mean_", value_variables))
+
+  data.
+    group_by_at(grouping_variables).
+    mutate(count: E.n).
+    summarise_at(E.c(value_variables, "count"), ~:mean, na__rm: true).
+    rename_at(value_variables, R.funs(E.paste0("mean_", value_variables)))
+
 end
 
+puts grouped_mean((~:starwars), "eye_color", R.c("mass", "birth_year"))
+#=end
+=end
 =begin
-# Make @q the function R quantile
 
-#puts quant.a
+def mutate_y(df)
+  df.mutate(:y.assign :a + :x)
+end
 
-# puts quant.a[["50%"]]
+a = 10
+puts mutate_y(df1)
+
+form = :y.assign :a + :x
+=end
+
+=begin
+df1 = Polyglot.eval("R", "data.frame(x = 1:3)")
+form = Polyglot.eval("R", "quo(y <- a + x)")
+Polyglot.eval("R", "mutate").call(df1, form)
+=end
+
+#=begin
+# mtcars = ~:mtcars
+# puts mtcars
+
+=begin
+# should allow mtcars[['car name']] = mtcars.rownames
 =end
 
 
+
+
+
+#===========================================================
 =begin
-R::Support.eval(<<R)
-  x = list(a = (1:10), beta = exp(-3:3), logic = c(TRUE, FALSE, FALSE, TRUE))
-  quant = lapply(x, quantile)
-  print(quant)
+# Add NULL to an element of the list
+# Not implemented yet.  Need to assing the
+# list(NULL) element.
+R::Support.eval(<<-R)
+y <- list(a = 1, b = 2)
+y["b"] <- list(NULL)
+str(y)
+
+print(list(NULL))
 R
 =end
+
+
+=begin
+Polyglot.eval("R", <<-R)
+  fidx = function(idx) {
+      print(typeof(idx))
+      print(class(idx))
+      print(idx)
+      print(is_missing(idx))
+  }
+
+  ma = missing_arg()
+  f = fidx
+  params = list()
+  params = `[[<-`(params, 1, ma)
+  invoke(f, params)
+
+  print("======")
+  fidx(ma)
+
+R
+=end
+
+=begin
+ma = Polyglot.eval("R", "missing_arg()")
+
+puts "======"
+
+f = Polyglot.eval("R", "fidx")
+params = Polyglot.eval("R", "list()")
+params = Polyglot.eval("R", "`[[<-`").call(params, 1, ma)
+Polyglot.eval("R", "invoke").call(f, params)
+
+puts "======"
+
+Polyglot.eval("R", "fidx").call(ma)
+=end
+
+# Polyglot.eval("R", "print").call(pl)
+# ma2 = Polyglot.eval("R", "`[[`").call(pl, 1)
+# Polyglot.eval("R", "fidx").call(ma2)
+
+#R.fidx(ma)
+
+# R.fidx(Polyglot.eval("R", "missing_arg()"))
+# R.fidx(R.empty_symbol)

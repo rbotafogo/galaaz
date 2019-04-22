@@ -33,7 +33,9 @@ require_relative 'version'
 class MakeTask < Rake::TaskLib
 
   # Create class variables for the polyglot options and libs
-  @@polyglot_options = "--polyglot --jvm --single_threaded"
+  # not yet possible to run native with R it seems...
+  # @@polyglot_options = "--polyglot --experimental-options --single_threaded"
+  @@polyglot_options = "--polyglot --jvm --experimental-options --single_threaded"
   @@libs = "-Ilib/" # -Ir_requires/"
 
   #----------------------------------------------------------------------------------------
@@ -161,7 +163,7 @@ blogs.each do |dir|
   end
 
 end
-  
+
 #===========================================================================================
 # Loads R and require libraries to run Galaaz
 #===========================================================================================

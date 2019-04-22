@@ -20,7 +20,7 @@
 # RODRIGO BOTAFOGO HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, 
 # OR MODIFICATIONS.
 ##########################################################################################
-
+#=begin
 module Kernel
 
   def puts(*args)
@@ -29,7 +29,7 @@ module Kernel
   end
 
 end
-
+#=end
 #==========================================================================================
 #
 #==========================================================================================
@@ -185,24 +185,36 @@ class Symbol
 
   def method_missing(symbol, *args, &block)
 
+=begin    
     if (symbol =~ /(.*)=$/)
       # method_missing_assign($1, args[0])
     elsif (args.length == 0 && ((R.c(symbol.to_s)._ :in, R.names(self)) >> 0))
       return self[symbol.to_s]
     end
+=end
     
-    R.send(symbol.to_s, self, *args)
+    E.send(symbol.to_s, self, *args)
     
   end
 
   #--------------------------------------------------------------------------------------
-  #
+  # Used when selecting column in a data frame, from the first column to the var2
+  # column
+  #--------------------------------------------------------------------------------------
+  
+  def up_to(var2)
+    R::Support.exec_function(R::Support.range, self, var2)
+  end
+
+  
+  #--------------------------------------------------------------------------------------
+  # Create an interaction between two variables in formulas
   #--------------------------------------------------------------------------------------
   
   def inter(var2)
     R::Support.exec_function(R::Support.range, self, var2)
   end
-  
+
   #--------------------------------------------------------------------------------------
   # If method_missing is implemented, then we also need to implement method 'to_ary'.
   # This is because starting from ruby 1.9 the code for Array#flatten has changed,

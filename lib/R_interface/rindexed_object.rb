@@ -38,8 +38,7 @@ module R
 
       # dealing with double indexing function '[['
       if (index.is_a? Array)
-        R::Support.exec_function(R::Support.dbk_index, @r_interop,
-                                 R.internal_eval(:c, *index))
+        R::Support.exec_function(R::Support.dbk_index, @r_interop, *index)
       else
         R::Support.exec_function_name("`[`", @r_interop, index)
       end

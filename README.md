@@ -1518,6 +1518,252 @@ puts @flights.filter(:month._ :in, R.c(11, 12)).head.as__data__frame
 ## 6      0 2013-11-01 06:00:00
 ```
 
+## Filtering with NA (Not Available)
+
+Let's first create a 'tibble' with a Not Available value (R::NA).  Tibbles are a modern 
+version of a data frame and operate very similarly to one.  It differs in how it outputs
+the values and the result of some subsetting operations that are more consistent than
+what is obtained from data frame.
+
+
+```ruby
+@df = R.tibble(x: R.c(1, R::NA, 3))
+puts @df.as__data__frame
+```
+
+```
+##    x
+## 1  1
+## 2 NA
+## 3  3
+```
+
+Now filtering by :x > 1 shows all lines that satisfy this condition, where the row with R:NA does
+not.
+
+
+```ruby
+puts @df.filter(:x > 1).as__data__frame
+```
+
+```
+##   x
+## 1 3
+```
+
+To match an NA use method 'is__na'
+
+
+```ruby
+puts @df.filter((:x.is__na) | (:x > 1)).as__data__frame
+```
+
+```
+##    x
+## 1 NA
+## 2  3
+```
+
+## Arrange Rows with arrange
+
+Arrange reorders the rows of a data frame by the given arguments.
+
+
+```ruby
+puts @flights.arrange(:year, :month, :day).head.as__data__frame
+```
+
+```
+##   year month day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+## 1 2013     1   1      517            515         2      830            819
+## 2 2013     1   1      533            529         4      850            830
+## 3 2013     1   1      542            540         2      923            850
+## 4 2013     1   1      544            545        -1     1004           1022
+## 5 2013     1   1      554            600        -6      812            837
+## 6 2013     1   1      554            558        -4      740            728
+##   arr_delay carrier flight tailnum origin dest air_time distance hour
+## 1        11      UA   1545  N14228    EWR  IAH      227     1400    5
+## 2        20      UA   1714  N24211    LGA  IAH      227     1416    5
+## 3        33      AA   1141  N619AA    JFK  MIA      160     1089    5
+## 4       -18      B6    725  N804JB    JFK  BQN      183     1576    5
+## 5       -25      DL    461  N668DN    LGA  ATL      116      762    6
+## 6        12      UA   1696  N39463    EWR  ORD      150      719    5
+##   minute           time_hour
+## 1     15 2013-01-01 05:00:00
+## 2     29 2013-01-01 05:00:00
+## 3     40 2013-01-01 05:00:00
+## 4     45 2013-01-01 05:00:00
+## 5      0 2013-01-01 06:00:00
+## 6     58 2013-01-01 05:00:00
+```
+
+To arrange in descending order, use function 'desc'
+
+
+```ruby
+puts @flights.arrange(:dep_delay.desc).head.as__data__frame
+```
+
+```
+##   year month day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+## 1 2013     1   9      641            900      1301     1242           1530
+## 2 2013     6  15     1432           1935      1137     1607           2120
+## 3 2013     1  10     1121           1635      1126     1239           1810
+## 4 2013     9  20     1139           1845      1014     1457           2210
+## 5 2013     7  22      845           1600      1005     1044           1815
+## 6 2013     4  10     1100           1900       960     1342           2211
+##   arr_delay carrier flight tailnum origin dest air_time distance hour
+## 1      1272      HA     51  N384HA    JFK  HNL      640     4983    9
+## 2      1127      MQ   3535  N504MQ    JFK  CMH       74      483   19
+## 3      1109      MQ   3695  N517MQ    EWR  ORD      111      719   16
+## 4      1007      AA    177  N338AA    JFK  SFO      354     2586   18
+## 5       989      MQ   3075  N665MQ    JFK  CVG       96      589   16
+## 6       931      DL   2391  N959DL    JFK  TPA      139     1005   19
+##   minute           time_hour
+## 1      0 2013-01-09 09:00:00
+## 2     35 2013-06-15 19:00:00
+## 3     35 2013-01-10 16:00:00
+## 4     45 2013-09-20 18:00:00
+## 5      0 2013-07-22 16:00:00
+## 6      0 2013-04-10 19:00:00
+```
+
+## Selecting columns
+
+To select specific columns from a dataset we use function 'select':
+
+
+```ruby
+puts @flights.select(:year, :month, :day).head.as__data__frame
+```
+
+```
+##   year month day
+## 1 2013     1   1
+## 2 2013     1   1
+## 3 2013     1   1
+## 4 2013     1   1
+## 5 2013     1   1
+## 6 2013     1   1
+```
+
+It is also possible to select column in a given range
+
+
+```ruby
+puts @flights.select(:year.up_to :day).head.as__data__frame
+```
+
+```
+##   year month day
+## 1 2013     1   1
+## 2 2013     1   1
+## 3 2013     1   1
+## 4 2013     1   1
+## 5 2013     1   1
+## 6 2013     1   1
+```
+
+Select all columns that start with a given name sequence
+
+
+```ruby
+puts @flights.select(E.starts_with('arr')).head.as__data__frame
+```
+
+```
+##   arr_time arr_delay
+## 1      830        11
+## 2      850        20
+## 3      923        33
+## 4     1004       -18
+## 5      812       -25
+## 6      740        12
+```
+
+Other functions that can be used:
+
+* ends_with("xyz"): matches names that end with “xyz”.
+
+* contains("ijk"): matches names that contain “ijk”.
+
+* matches("(.)\\1"): selects variables that match a regular expression. This one matches 
+  any variables that contain repeated characters.
+  
+* num_range("x", (1..3)): matches x1, x2 and x3
+
+A helper function that comes in handy when we just want to rearrange column order is 'Everything':
+
+
+```ruby
+puts @flights.select(:year, :month, :day, E.everything).head.as__data__frame
+```
+
+```
+##   year month day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+## 1 2013     1   1      517            515         2      830            819
+## 2 2013     1   1      533            529         4      850            830
+## 3 2013     1   1      542            540         2      923            850
+## 4 2013     1   1      544            545        -1     1004           1022
+## 5 2013     1   1      554            600        -6      812            837
+## 6 2013     1   1      554            558        -4      740            728
+##   arr_delay carrier flight tailnum origin dest air_time distance hour
+## 1        11      UA   1545  N14228    EWR  IAH      227     1400    5
+## 2        20      UA   1714  N24211    LGA  IAH      227     1416    5
+## 3        33      AA   1141  N619AA    JFK  MIA      160     1089    5
+## 4       -18      B6    725  N804JB    JFK  BQN      183     1576    5
+## 5       -25      DL    461  N668DN    LGA  ATL      116      762    6
+## 6        12      UA   1696  N39463    EWR  ORD      150      719    5
+##   minute           time_hour
+## 1     15 2013-01-01 05:00:00
+## 2     29 2013-01-01 05:00:00
+## 3     40 2013-01-01 05:00:00
+## 4     45 2013-01-01 05:00:00
+## 5      0 2013-01-01 06:00:00
+## 6     58 2013-01-01 05:00:00
+```
+
+## Add variables to a dataframe with 'mutate'
+
+
+```ruby
+@flights_sm = @flights.
+                select((:year.up_to :day),
+                       E.ends_with('delay'),
+                       :distance,
+                       :air_time)
+
+puts @flights_sm.head.as__data__frame
+```
+
+```
+##   year month day dep_delay arr_delay distance air_time
+## 1 2013     1   1         2        11     1400      227
+## 2 2013     1   1         4        20     1416      227
+## 3 2013     1   1         2        33     1089      160
+## 4 2013     1   1        -1       -18     1576      183
+## 5 2013     1   1        -6       -25      762      116
+## 6 2013     1   1        -4        12      719      150
+```
+
+
+```ruby
+@flights_sm = @flights_sm.
+                mutate(gain: :dep_delay - :arr_delay,
+                       speed: :distance / :air_time * 60)
+puts @flights_sm.head.as__data__frame
+```
+
+```
+##   year month day dep_delay arr_delay distance air_time gain    speed
+## 1 2013     1   1         2        11     1400      227   -9 370.0441
+## 2 2013     1   1         4        20     1416      227  -16 374.2731
+## 3 2013     1   1         2        33     1089      160  -31 408.3750
+## 4 2013     1   1        -1       -18     1576      183   17 516.7213
+## 5 2013     1   1        -6       -25      762      116   19 394.1379
+## 6 2013     1   1        -4        12      719      150  -16 287.6000
+```
+
 # Graphics in Galaaz
 
 Creating graphics in Galaaz is quite easy, as it can use all the power of ggplot2.  There are
@@ -1528,7 +1774,7 @@ the data frame with the necessary data:
 
 
 ```ruby
-# copyt the R variable :mtcars to the Ruby mtcars variable
+# copy the R variable :mtcars to the Ruby mtcars variable
 @mtcars = ~:mtcars
 
 # create a new column 'car_name' to store the car names so that it can be

@@ -572,9 +572,16 @@ class KnitrEngine
     plot = R.evaluate_plot_snapshot
 
     if (!(plot.is__null >> 0))
-      
+=begin      
+      STDERR.puts "======================"
+      STDERR.puts "in knitr_engine: capture_plot"
+      STDERR.puts @fig__path
+      STDERR.puts @fig__path.class
+      STDERR.puts File.directory?(@fig__path)
+=end      
       # create directory for the graphics files if does not already exists
-      unless File.directory?(@fig__path)
+      # unless File.directory?(@fig__path)
+      unless (R.dir__exists(@fig__path) >> 0)
         FileUtils.mkdir_p(@fig__path)
       end
 

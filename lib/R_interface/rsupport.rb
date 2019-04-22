@@ -29,7 +29,7 @@ module R
   # as [x, ].  What follows the ',' is an empty_symbol.  Whenever we use in Ruby the
   # :all symbol, it will be converted to an empty_symbol in R.
   #--------------------------------------------------------------------------------------
-  
+=begin  
   @@empty_symbol = Polyglot.eval("R", <<-R)
     __missing_arg = quote(f(,0));
     __missing_arg[[2]]
@@ -38,7 +38,12 @@ module R
   def self.empty_symbol
     @@empty_symbol
   end
+=end
 
+  def self.empty_symbol
+    Polyglot.eval("R", "missing_arg()")
+  end
+  
   # When evaluating to NA, Interop treats it as FALSE.  This breaks all expectations
   # about NA.  We need to protect NA from Interop unboxing.  Class NotAvailable
   # puts a list around NA, so that no unboxing occurs.
@@ -63,24 +68,17 @@ module R
     # and allows for debugging.  Use it in exec_function when debugging is needed.
     @@exec_from_ruby = Polyglot.eval("R", <<-R)
       function(build_method, ...) {
-        # print(build_method);
-        # print("exec_from_ruby");
-        # args = list(...);
-        # print(args);
-
         # function 'invoke' from package rlang should do a cleaner than
         # do.call (this is what the documentation says).
         # res = do.call(...);
         res = invoke(...);
-        
-        # print(res);
         res2 = build_method(res);
-        # print(res2);
         res2
       }
     R
         
     #----------------------------------------------------------------------------------------
+    # @TODO: Fix the 'rescue' clause and open issue with fastR
     # Evaluates an R code
     # @param string [String] A string of R code that can be correctly parsed by R
     #----------------------------------------------------------------------------------------
