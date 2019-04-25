@@ -35,7 +35,7 @@ class MakeTask < Rake::TaskLib
   # Create class variables for the polyglot options and libs
   # not yet possible to run native with R it seems...
   # @@polyglot_options = "--polyglot --experimental-options --single_threaded"
-  @@polyglot_options = "--polyglot --jvm --experimental-options --single_threaded"
+  @@polyglot_options = "--polyglot --jvm --experimental-options --single-threaded"
   @@libs = "-Ilib/" # -Ir_requires/"
 
   #----------------------------------------------------------------------------------------

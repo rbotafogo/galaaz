@@ -24,18 +24,53 @@
 require 'galaaz'
 # require 'ggplot'
 
-R.install_and_loads('nycflights13')
-R.install_and_loads 'dplyr'
+R.library('data.table')
+R.install_and_loads('curl')
 
-@flights = ~:flights
-puts @flights.head.as__data__frame
-
-puts @flights.summarise(delay: E.mean(:dep_delay, na__rm: true))
-
-
+input = "https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv"
+@flights = R.fread(input)
+puts @flights
+puts @flights.dim
 
 
+data_table = R.data__table(
+  ID: R.c("b","b","b","a","a","c"),
+  a: (1..6),
+  b: (7..12),
+  c: (13..18)
+)
 
+puts data_table
+puts data_table.ID
+
+# ubset rows in i
+
+ans = @flights[(:origin.eq "JFK") & (:month.eq 6)]
+puts ans.head
+
+# Get the first two rows from flights.
+
+ans = @flights[(1..2)]
+puts ans
+
+# Sort flights first by column origin in ascending order, and then by dest in descending order:
+
+# ans = @flights[E.order(:origin, -(:dest))]
+# puts ans.head
+
+# Select column(s) in j
+
+# select arr_delay column, but return it as a vector.
+
+ans = @flights[:all, :arr_delay]
+puts ans.head
+
+# Select arr_delay column, but return as a data.table instead.
+
+ans = @flights[:all, :arr_delay.list]
+puts ans.head
+
+ans = @flights[:all, E.list(:arr_delay, :dep_delay)]
 
 ## Renaming columns
 

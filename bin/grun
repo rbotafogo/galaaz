@@ -2,4 +2,4 @@
 
 # Dir.chdir(File.dirname(File.expand_path('.', __FILE__)))
 
-exec "ruby --polyglot --jvm --experimental-options --single_threaded -S #{ARGV[0]}"
+exec "ruby --polyglot --jvm --experimental-options --single-threaded -S #{ARGV[0]}"
