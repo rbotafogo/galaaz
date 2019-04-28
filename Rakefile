@@ -76,12 +76,16 @@ class MakeTask < Rake::TaskLib
   
 end
 
+
+task :default => "sthda:all"
+
 geoms = FileList['examples/sthda_ggplot/**/*.rb']
 specs = FileList['specs/**/*.rb']
 master_list = FileList['examples/50Plots_MasterList/**/*.rb']
 islr = FileList['examples/islr/**/*.rb']
 misc = FileList['examples/misc/**/*.rb']
 blogs = Dir.entries("blogs")
+bugs = FileList['bugs/**/*.rb']
 
 #===========================================================================================
 # Creates tasks for all specs.
@@ -148,7 +152,17 @@ misc.each do |f|
   Desc
 end
 
-task :default => "sthda:all"
+#===========================================================================================
+# Creates tasks for bug examples
+#===========================================================================================
+
+bugs.each do |f|
+  task_name = File.basename(f, ".rb")
+  dir_name = File.dirname(f)
+  MakeTask.new("bugs", dir_name, task_name, false, <<-Desc)
+    Executes misc #{task_name}
+  Desc
+end
 
 #===========================================================================================
 # Creates task for running gknit
