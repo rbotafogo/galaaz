@@ -49,12 +49,16 @@ module GalaazUtil
 
         if files != nil
           file = "#{path}/#{filename}"
-          break if File.exist?(file)
+          # break if File.exist?(file)
+          break if (R.file__exists(file) >> 0)
         end
       end
     end
-    
-    if File.exist?(file)
+
+    # There is a bug(?) in > RC15 that when the bellow command
+    # is called, there is a call to R Polyglot eval passing to_i 
+    # if File.exist?(file)
+    if (R.file__exists(file) >> 0)
       code = ""
       File.open(file, "r") do |fileObj|
         while (line = fileObj.gets)

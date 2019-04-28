@@ -25,3 +25,5 @@ cran/*
 *.html
 *.tex
 
+*.rds
+*.dump
