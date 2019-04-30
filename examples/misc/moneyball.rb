@@ -14,7 +14,7 @@ moneyball = baseball.subset(baseball.Year < 2002)
 # runs allowed (RA) and runs scored (RS).  RD is the runs difference.
 # We are making a linear model for predicting wins (W) based on RD
 moneyball.RD = moneyball.RS - moneyball.RA
-wins_reg = R.lm(+:W =~ +:RD, data: moneyball)
+wins_reg = R.lm((:W.til :RD), data: moneyball)
 
 def show(title, data)
   puts title
