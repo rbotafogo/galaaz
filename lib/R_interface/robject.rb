@@ -134,27 +134,17 @@ module R
 
     end
     
-=begin
-    #--------------------------------------------------------------------------------------
-    # This method was moved to DataFrame.  Need to check which other objects can have
-    # values assigned to them
-    #--------------------------------------------------------------------------------------
-
-    def method_missing_assign(column_name, arg)
-      return setR_name("`[<-`", R.empty_symbol, column_name, arg)
-    end
-=end
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args, &block)
       name = R::Support.convert_symbol2r(symbol)
-
+=begin
       # Need to raise a NoMethodError when method_missing is called by an implicit
       # call to "to_ary".  I'm not sure why "to_ary" is being called, but it is
       raise NoMethodError if name == "to_ary"
-      
+=end      
       case
       when block_given?
         R::Support.new_scope(symbol, self, *args, &block)

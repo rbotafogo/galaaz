@@ -4,16 +4,16 @@ author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
 tags: [Tech, Data Science, Ruby, R, GraalVM]
-date: "20/02/2019"
+date: "29/04/2019"
 bibliography: stats.bib
 output:
-  html_document:
-    self_contained: true
-    keep_md: true
   pdf_document:
     includes:
       in_header: ["../../sty/galaaz.sty"]
     number_sections: yes
+  html_document:
+    self_contained: true
+    keep_md: true
 ---
 
 ```{r setup, echo=FALSE}
@@ -51,6 +51,7 @@ With Knitr, __R markdown__ was also developed, an extension to the
 Markdown format.  With __R markdown__ and Knitr it is possible to generate reports in a multitude
 of formats such as HTML, markdown, Latex, PDF, dvi, etc.  __R markdown__ also allows the use of
 multiple programming languages such as R, Ruby, Python, etc. in the same document.  
+
 In __R markdown__, text is interspersed with
 code chunks that can be executed and both the code and its results can become
 part of the final report.  Although __R markdown__ allows multiple programming languages in the
@@ -104,7 +105,9 @@ notebook the SoS kernel was developed (https://vatlab.github.io/sos-docs/).
 # gKnitting a Document
 
 This document describes gKnit.  gKnit is based on knitr and __R markdown__ and can knit a document 
-written both in Ruby or R and output it in any of the available formats of __R markdown__.
+written both in Ruby and/or R and output it in any of the available formats of __R markdown__.  gKnit
+allows ruby developers to do literate programming and reproducible research by allowing them to
+have in a single document, text and code.
 
 gKnit runs atop of GraalVM, and Galaaz (an integration 
 library between Ruby and R - see bellow).  In gKnit, Ruby variables are persisted between 
@@ -434,8 +437,8 @@ ten aspects are:
 # convert the car_name column to a factor to retain sorted order in plot
 @mtcars.car_name = @mtcars.car_name.factor levels: @mtcars.car_name
 
-# let's look at the final data frame
-puts @mtcars
+# let's look at the first records of the final data frame
+puts @mtcars.head
 ```
 
 ```{ruby diverging_bar, fig.width = 9.1, fig.height = 6.5}
@@ -466,10 +469,6 @@ This is some text with inline Ruby accessing variable \@b which has value:
 and is followed by some other text!
 ````
 
-Note that it is important not to add any new line before of after the code
-block if we want everything to be in only one line, resulting in the following sentence 
-with inline Ruby code
-
 <div style="margin-bottom:30px;">
 </div>
 
@@ -481,18 +480,23 @@ and is followed by some other text!
 <div style="margin-bottom:30px;">
 </div>
 
+Note that it is important not to add any new line before of after the code
+block if we want everything to be in only one line, resulting in the following sentence 
+with inline Ruby code.
+
 
 ```{ruby heading, echo = FALSE}
 outputs "### #{@c}"
 ```
 
-He have previously used the standard 'puts' method in Ruby chunks in order to get some
-output.  As can be seen, the result of a 'puts' is formatted inside a white box that 
+He have previously used the standard 'puts' method in Ruby chunks in order produce
+output.  The result of a 'puts', as seen in all previous chunks that use it,  is formatted 
+inside a white box that 
 follows the code block. Many times however, we would like to do some processing in the 
 Ruby chunk and have the result of this processing generate and output that is 
-'included' in the document as if we had typed it in __R markdown__.  
+"included" in the document as if we had typed it in __R markdown__ document.
 
-For example, suppose we want to create a new 'heading' in our document, but the heading 
+For example, suppose we want to create a new heading in our document, but the heading 
 phrase is the result of some code processing: maybe it's the first line of a file we are
 going to read.  Method 'outputs' adds its output as if typed in the __R markdown__ document. 
 
@@ -508,14 +512,14 @@ outputs "### #{@c}"
 ```
 ````
 
-The three '###' are the way we add a Heading 3 in __R markdown__.
+The three '###' is the way we add a Heading 3 in __R markdown__.
 
 
 ### HTML Output from Ruby Chunks
 
 We've just seen the use of method 'outputs' to add text to the the __R markdown__ 
 document.  This technique can also be used to add HTML code to the document. In 
-__R markdown__ any html code typed directly in the document will be properly rendered.  
+__R markdown__, any html code typed directly in the document will be properly rendered.  
 Here, for instance, is a table definition in HTML and its output in the document:
 
 ```
@@ -561,8 +565,10 @@ Here, for instance, is a table definition in HTML and its output in the document
 <div style="margin-bottom:30px;">
 </div>
 
-But manually creating HTML output is not always easy or desirable. The above 
-table certainly looks ugly.  The 'kableExtra' library is a great library for 
+But manually creating HTML output is not always easy or desirable, specially
+if we intend the document to be rendered in other formats, for example, as Latex.
+Also, The above 
+table looks ugly.  The 'kableExtra' library is a great library for 
 creating beautiful tables. Take a look at https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
 
 In the next chunk, we output the 'mtcars' dataframe from R in a nicely formatted 
@@ -573,39 +579,38 @@ R.install_and_loads('kableExtra')
 outputs (~:mtcars).kable.kable_styling
 ```
 
-### Including Ruby files
+### Including Ruby files in a chunk
 
 R is a language that was created to be easy and fast for statisticians to use.  As far
-as I know (and please correct me if you think otherwise), tt was not a
+as I know, it was not a
 language to be used for developing large systems.  Of course, there are large systems and
 libraries in R, but the focus of the language is for developing statistical models and
 distribute that to peers.
 
 Ruby on the other hand, is a language for large software development.  Systems written in
-Ruby will have dozens, hundreds or even thousands of files.  In order to document a 
-large system with
-literate programming we cannot expect the developer to add all the files in a single '.Rmd'
-file.  gKnit provides the 'include' chunk engine to include a Ruby file as if it had being
-typed in the '.Rmd' file.
+Ruby will have dozens, hundreds or even thousands of files.  To document a 
+large system with literate programming, we cannot expect the developer to add all the 
+files in a single '.Rmd' file.  gKnit provides the 'include' chunk engine to include 
+a Ruby file as if it had being typed in the '.Rmd' file.
 
 To include a file, the following chunk should be created, where <filename> is the name of
-the file to be include and where the extension, if it is '.rb', does not need to be added.
+the file to be included and where the extension, if it is '.rb', does not need to be added.
 If the 'relative' option is not included, then it is treated as TRUE.  When 'relative' is
-true, 'require_relative' semantics is used to load the file, when false, Ruby's \$LOAD_PATH
-is searched to find the file and it is 'require'd.
+true, ruby's 'require\_relative' semantics is used to load the file, when false, Ruby's 
+\$LOAD_PATH is searched to find the file and it is 'require'd.
 
 ````
 ```{include <filename>, relative = <TRUE/FALSE>}`r ''`
 ```
 ````
 
-Here we include file 'model.rb' which is in the same directory of this blog.  
+Bellow we include file 'model.rb', which is in the same directory of this blog.  
 This code uses R 'caret' package to split a dataset in a train and test sets.
 The 'caret' package is a very important a useful package for doing Data Analysis,
 it has hundreds of functions for all steps of the Data Analysis workflow.  To
-just split a dataset it is using the proverbial cannon to kill the fly.  We use
-it here only to show that integrating Ruby and R and using even a very comples
-package as 'caret' is trivial with Galaaz.
+use 'caret' just to split a dataset is like using the proverbial cannon to 
+kill the fly.  We use it here only to show that integrating Ruby and R and 
+using even a very complex package as 'caret' is trivial with Galaaz.
 
 A word of advice: the 'caret' package has lots of dependencies and installing
 it in a Linux system is a time consuming operation.  Method 'R.install_and_loads'
@@ -630,10 +635,11 @@ puts model.test.head
 ### Documenting Gems
 
 gKnit also allows developers to document and load files that are not in the same directory
-of the '.Rmd' file.  When using 'relative = FALSE' in a chunk header, gKnit will look for the
-file in Ruby's \$LOAD_PATH and load it if found.
+of the '.Rmd' file.
 
-Here is an example of loading the 'find.rb' file from TruffleRuby.
+Here is an example of loading the 'find.rb' file from TruffleRuby. In this example, relative
+is set to FALSE, so Ruby will look for the file in its $LOAD\_PATH, and the user does not
+need to no it's directory.
 
 ````
 ```{include find, relative = FALSE}`r ''`
@@ -662,25 +668,36 @@ date: "29 October 2018"
 output:
   pdf_document:
     includes:
-      in_header: ["../../sty/galaaz.sty"]
-    number_sections: yes
+      in\_header: ["../../sty/galaaz.sty"]
+    number\_sections: yes
 ---
 ```
 
 # Conclusion
 
-One of the promises of GraalVM is that users/developers will be able to use the best tool
-for their task at hand, independently of the programming language the tool was written.  Galaaz
-and gKnit are not trivial implementations atop the GraalVM and Truffle interop messages;
-however, the time and effort it took to wrap Ruby over R - Galaaz - (not finished yet) or to
-wrap Knitr with gKnit is a fraction of a fraction of a fraction of the time require to
+In order to do reproducible research, one of the main basic tools needed is a systhem that
+allows "literate programming" where text, code and possibly a set of files can be compiled
+onto a report that can be easily distributed to peers. Peers should be able to use this
+same set of files to rerun the compilation by their own obtaining the exact same original
+report.  gKnit is such a system for Ruby and R.  It uses __R Markdown__ to integrate
+text and code chunks, where code chunks can either be part of the __R Markdwon__ file or
+be imported from files in the system.  Ideally, in reproducible research, all the files
+needed to rebuild a report should be easilly packed together (in the same zipped directory)
+and distributed to peers for reexecution.
+
+One of the promises of Oracle's GraalVM is that users/developers will be able to use the best tool
+for their task at hand, independently of the programming language the tool was written on.
+We developed and implemented Galaaz atop the GraalVM and Truffle interop messages and
+the time and effort to wrap Ruby over R - Galaaz - or to
+wrap Knitr with gKnit was a fraction of a fraction of a fraction (one man effort for a couple
+of hours a day, for approximately six months) of the time require to
 implement the original tools.  Trying to reimplement all R packages in Ruby would require the
-same effort it is taking Python to implement NumPy, Panda and all supporting libraries and it
+same effort it is taking Python to implement NumPy, Pandas and all supporting libraries and it
 is unlikely that this effort would ever be done.  GraalVM has allowed Ruby to profit "almost
 for free" from this huge set of libraries and tools that make R one of the most used
 languages for data analysis and machine learning.
 
-More interesting though than being able to wrap the R libraries with Ruby, is that Ruby adds
+More interesting than wrapping the R libraries with Ruby, is that Ruby adds
 value to R, by allowing developers to use powerful and modern constructs for code reuse that
 are not the strong points of R.  As shown in this blog, R and Ruby can easily communicate
 and R can be structured in classes and modules in a way that greatly expands its power and

@@ -24,6 +24,9 @@ cran/*
 *.md
 *.html
 *.tex
+*.pdf
 
 *.rds
 *.dump
+
+.RData

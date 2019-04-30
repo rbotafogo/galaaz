@@ -38,8 +38,6 @@ R.library('dplyr')
 
 puts @flights.head.as__data__frame
 
-=begin
-
 ## Renaming columns
 
 #The rename function is used to rename columns
@@ -47,8 +45,6 @@ puts @flights.head.as__data__frame
 #```{ruby rename}
 #puts @flights.rename(dep_time: 'deptime').head.as__data__frame
 #```
-
-=end
 
 # puts File.directory?(".")
 
