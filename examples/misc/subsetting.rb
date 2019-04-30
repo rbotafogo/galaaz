@@ -13,13 +13,13 @@ require 'galaaz'
 
 x = R.c("m", "f", "u", "f", "f", "m", "m")
 lookup = R.c(m: "Male", f: "Female", u: R::NA)
-lookup[x].pp
+puts lookup[x]
 print("\n")
 
 #       m        f        u        f        f        m        m 
 #  "Male" "Female"       NA "Female" "Female"   "Male"   "Male" 
 
-R.unname(lookup[x]).pp
+puts R.unname(lookup[x])
 print("\n")
 
 # [1] "Male"   "Female" NA  "Female" "Female" "Male"   "Male"  
@@ -48,7 +48,7 @@ info = R.data__frame(
 
 # Using match
 id = R.match(grades, info.grade)
-info[id, :all].pp
+puts info[id, :all]
 print("\n")
 
 #    grade      desc  fail
@@ -60,7 +60,7 @@ print("\n")
 
 # Using rownames
 info.rownames = info.grade
-info[grades.as__character, :all].pp
+puts info[grades.as__character, :all]
 print("\n")
 
 #     grade      desc  fail
@@ -83,7 +83,7 @@ df = R.data__frame(x: R.rep((1..3), each: 2), y: (6..1), z: (~:letters)[(1..6)])
 R.set__seed(10)
 
 # Randomly reorder
-df[R.sample(df.nrow), :all].pp
+puts df[R.sample(df.nrow), :all]
 print("\n")
 
 #   x y z
@@ -95,7 +95,7 @@ print("\n")
 # 6 3 1 f
 
 # Select 3 random rows
-df[R.sample(df.nrow, 3), :all].pp
+puts df[R.sample(df.nrow, 3), :all]
 print("\n")
 
 #   x y z
@@ -104,7 +104,7 @@ print("\n")
 # 3 2 4 c
 
 # Select 6 bootstrap replicates
-df[R.sample(df.nrow, 6, rep: true), :all].pp
+puts df[R.sample(df.nrow, 6, rep: true), :all]
 print("\n")
 
 #     x y z
@@ -120,19 +120,19 @@ print("\n")
 #------------------------------------------------------------------------------------------
 
 x = R.c("b", "c", "a")
-x.order.pp
+puts x.order
 print("\n")
 
 # [1] 3 1 2
 
-x[x.order].pp
+puts x[x.order]
 print("\n")
 
 # [1] "a" "b" "c"
 
 # Randomly reorder df
 df2 = df[R.sample(df.nrow), (3..1)]
-df2.pp
+puts df2
 print("\n")
 
 #   z y x
@@ -143,7 +143,7 @@ print("\n")
 # 6 f 1 3
 # 5 e 2 3
 
-df2[df2.x.order, :all].pp
+puts df2[df2.x.order, :all]
 print("\n")
 
 #   z y x
@@ -154,7 +154,7 @@ print("\n")
 # 6 f 1 3
 # 5 e 2 3
 
-df2[:all, df2.names.order].pp
+puts df2[:all, df2.names.order]
 print("\n")
 
 #   x y z
@@ -174,12 +174,12 @@ print("\n")
 #------------------------------------------------------------------------------------------
 
 df = R.data__frame(x: R.c(2, 4, 1), y: R.c(9, 11, 6), n: R.c(3, 5, 1))
-R.rep((1..(df.nrow << 0)), df.n).pp
+puts R.rep((1..(df.nrow >> 0)), df.n)
 print("\n")
 
 # [1] 1 1 1 2 2 2 2 2 3
 
-df[R.rep((1..df.nrow << 0), df.n), :all].pp
+puts df[R.rep((1..df.nrow >> 0), df.n), :all]
 print("\n")
 
 #     x  y n
@@ -203,11 +203,11 @@ print("\n")
 df = R.data__frame(x: (1..3), y: (3..1), z: (~:letters)[(1..3)])
 # Not implemented yet
 # df.z = nil
-df.pp
+puts df
 print("\n")
 
 df = R.data__frame(x: (1..3), y: (3..1), z: (~:letters)[(1..3)])
-df[R.c("x", "y")].pp
+puts df[R.c("x", "y")]
 print("\n")
 
 #   x y
@@ -215,7 +215,7 @@ print("\n")
 # 2 2 2
 # 3 3 1
 
-df[df.names.setdiff("z")].pp
+puts df[df.names.setdiff("z")]
 print("\n")
 
 #   x y
@@ -233,7 +233,7 @@ print("\n")
 
 mtcars = ~:mtcars
 
-mtcars[mtcars.gear == 5, :all].pp
+puts mtcars[(mtcars.gear.eq 5), :all]
 print("\n")
 
 #                 mpg cyl  disp  hp drat    wt qsec vs am gear carb
@@ -243,7 +243,7 @@ print("\n")
 # Ferrari Dino   19.7   6 145.0 175 3.62 2.770 15.5  0  1    5    6
 # Maserati Bora  15.0   8 301.0 335 3.54 3.570 14.6  0  1    5    8
 
-mtcars[(mtcars.gear == 5) & (mtcars.cyl == 4), :all].pp
+puts mtcars[(mtcars.gear.eq 5) & (mtcars.cyl.eq 4), :all]
 print("\n")
 
 #                mpg cyl  disp  hp drat    wt qsec vs am gear carb
@@ -259,42 +259,42 @@ print("\n")
 #------------------------------------------------------------------------------------------
 
 x = R.sample(10) < 4
-x.which.pp
+puts x.which
 print("\n")
 
 # [1]  3  7 10
 
 #===
-x1 = R.c((1..10)) % 2 == 0
-x1.pp
+x1 = (R.c((1..10)) % 2).eq 0
+puts x1
 print("\n")
 
 # [1] FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE
 
 #===
 x2 = x1.which
-x2.pp
+puts x2
 print("\n")
 
 # [1]  2  4  6  8 10
 
 #===
-y1 = R.c((1..10)) % 5 == 0
-y1.pp
+y1 = (R.c((1..10)) % 5).eq 0
+puts y1
 print("\n")
 
 # [1] FALSE FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE  TRUE
 
 #===
 y2 = y1.which
-y2.pp
+puts y2
 print("\n")
 
 # [1]  5 10
 
 #===
 # X & Y <-> intersect(x, y)
-(x1 & y1).pp
+puts (x1 & y1)
 print("\n")
 
 # [1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
@@ -316,59 +316,59 @@ puts x2.intersect y2
 
 #===
 # X | Y <-> union(x, y)
-(x1 | y1).pp
+puts (x1 | y1)
 print("\n")
 
 # [1] FALSE  TRUE FALSE  TRUE  TRUE  TRUE FALSE  TRUE FALSE  TRUE
 
 #===
-R.union(x2, y2).pp
+puts R.union(x2, y2)
 print("\n")
 
 # [1]  2  4  6  8 10  5
 
-(x2.union y2).pp
+puts (x2.union y2)
 
 # [1]  2  4  6  8 10  5
 
 #===
 # X & !Y <-> setdiff(x, y)
-(x1 & !y1).pp
+puts (x1 & !y1)
 print("\n")
 
 # [1] FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE FALSE FALSE
 
 #===
-R.setdiff(x2, y2).pp
+puts R.setdiff(x2, y2)
 print("\n")
 
 # [1] 2 4 6 8
 
-(x2.setdiff y2).pp
+puts (x2.setdiff y2)
 
 # [1] 2 4 6 8
 
 
 #===
 # xor(X, Y) <-> setdiff(union(x, y), intersect(x, y))
-R.xor(x1, y1).pp
+puts R.xor(x1, y1)
 print("\n")
 
 #  [1] FALSE  TRUE FALSE  TRUE  TRUE  TRUE FALSE  TRUE FALSE FALSE
 
 # Writing the same as the last example in a Ruby style
-(x1.xor y1).pp
+puts (x1.xor y1)
 
 #  [1] FALSE  TRUE FALSE  TRUE  TRUE  TRUE FALSE  TRUE FALSE FALSE
 
 #===
-R.setdiff(R.union(x2, y2), R.intersect(x2, y2)).pp
+puts R.setdiff(R.union(x2, y2), R.intersect(x2, y2))
 print("\n")
 
 # [1] 2 4 6 8 5
 
 # Writing the same as the last example in a Ruby style
-((x2.union y2).setdiff (x2.intersect y2)).pp
+puts ((x2.union y2).setdiff (x2.intersect y2))
 print("\n")
 
 # [1] 2 4 6 8 5
