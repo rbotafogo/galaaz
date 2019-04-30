@@ -1,27 +1,3 @@
----
-title: "Galaaz Manual"
-subtitle: "How to tightly couple Ruby and R in GraalVM"
-author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
-date: "2019"
-output:
-  html_document:
-    self_contained: true
-    keep_md: true
-  md_document:
-    variant: markdown_github
-  pdf_document:
-    includes:
-      in_header: "../../sty/galaaz.sty"
-    keep_tex: yes
-    number_sections: yes
-    toc: true
-    toc_depth: 2
-fontsize: 11pt
----
-
-
-
 # Introduction
 
 Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language, with a large 
