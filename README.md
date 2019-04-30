@@ -1,3 +1,27 @@
+---
+title: "Galaaz Manual"
+subtitle: "How to tightly couple Ruby and R in GraalVM"
+author: "Rodrigo Botafogo"
+tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
+date: "2019"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+  md_document:
+    variant: markdown_github
+  pdf_document:
+    includes:
+      in_header: "../../sty/galaaz.sty"
+    keep_tex: yes
+    number_sections: yes
+    toc: true
+    toc_depth: 2
+fontsize: 11pt
+---
+
+
+
 # Introduction
 
 Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language, with a large 
@@ -197,22 +221,22 @@ vec = R.c(1, hello, 5)
 ##  (eval):1:in `exec_ruby'
 ## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:141:in `instance_eval'
 ## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:141:in `exec_ruby'
-## /home/rbotafogo/desenv/galaaz/lib/gknit/knitr_engine.rb:657:in `block in initialize'
+## /home/rbotafogo/desenv/galaaz/lib/gknit/knitr_engine.rb:650:in `block in initialize'
 ## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `call'
 ## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `callback'
 ## (eval):3:in `function(...) {\n          rb_method(...)'
 ## unknown.r:1:in `in_dir'
 ## unknown.r:1:in `block_exec:BLOCK0'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:102:in `block_exec'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:92:in `call_block'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/block.R:3:in `<no source>'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:102:in `block_exec'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:92:in `call_block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:3:in `<no source>'
 ## unknown.r:1:in `withCallingHandlers'
 ## unknown.r:1:in `process_file'
 ## unknown.r:1:in `<no source>:BLOCK1'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/knitr/R/output.R:129:in `<no source>'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/output.R:129:in `<no source>'
 ## unknown.r:1:in `<no source>:BLOCK1'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc15/jre/languages/R/library/rmarkdown/R/render.R:162:in `<no source>'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/rmarkdown/R/render.R:162:in `<no source>'
 ## <REPL>:5:in `<repl wrapper>'
 ## <REPL>:1
 ```
@@ -1740,6 +1764,288 @@ puts @flights_sm.head.as__data__frame
 ## 6 2013     1   1        -4        12      719      150  -16 287.6000
 ```
 
+## Summarising data
+
+Function 'summarise' calculates summaries for the data frame. When no 'group_by' is used
+a single value is obtained from the data frame:
+
+
+```ruby
+puts @flights.summarise(delay: E.mean(:dep_delay, na__rm: true)).as__data__frame
+```
+
+```
+##      delay
+## 1 12.63907
+```
+
+When a data frame is groupe with 'group_by' summaries apply to the given group:
+
+
+```ruby
+by_day = @flights.group_by(:year, :month, :day)
+puts by_day.summarise(delay: :dep_delay.mean(na__rm: true)).head.as__data__frame
+```
+
+```
+##   year month day     delay
+## 1 2013     1   1 11.548926
+## 2 2013     1   2 13.858824
+## 3 2013     1   3 10.987832
+## 4 2013     1   4  8.951595
+## 5 2013     1   5  5.732218
+## 6 2013     1   6  7.148014
+```
+
+Next we put many operations together by pipping them one after the other:
+
+
+```ruby
+delays = @flights.
+           group_by(:dest).
+           summarise(
+             count: E.n,
+             dist: :distance.mean(na__rm: true),
+             delay: :arr_delay.mean(na__rm: true)).
+           filter(:count > 20, :dest != "NHL")
+
+puts delays.as__data__frame
+```
+
+```
+##    dest count       dist       delay
+## 1   ABQ   254 1826.00000  4.38188976
+## 2   ACK   265  199.00000  4.85227273
+## 3   ALB   439  143.00000 14.39712919
+## 4   ATL 17215  757.10822 11.30011285
+## 5   AUS  2439 1514.25297  6.01990875
+## 6   AVL   275  583.58182  8.00383142
+## 7   BDL   443  116.00000  7.04854369
+## 8   BGR   375  378.00000  8.02793296
+## 9   BHM   297  865.99663 16.87732342
+## 10  BNA  6333  758.21348 11.81245891
+## 11  BOS 15508  190.63696  2.91439222
+## 12  BQN   896 1578.98326  8.24549550
+## 13  BTV  2589  265.09154  8.95099602
+## 14  BUF  4681  296.80837  8.94595186
+## 15  BUR   371 2465.00000  8.17567568
+## 16  BWI  1781  179.41830 10.72673385
+## 17  BZN    36 1882.00000  7.60000000
+## 18  CAE   116  603.55172 41.76415094
+## 19  CAK   864  397.00000 19.69833729
+## 20  CHO    52  305.00000  9.50000000
+## 21  CHS  2884  632.91678 10.59296847
+## 22  CLE  4573  414.17428  9.18161129
+## 23  CLT 14064  538.02730  7.36031885
+## 24  CMH  3524  476.55505 10.60132291
+## 25  CRW   138  444.00000 14.67164179
+## 26  CVG  3941  575.15986 15.36456376
+## 27  DAY  1525  537.10230 12.68048606
+## 28  DCA  9705  211.00618  9.06695204
+## 29  DEN  7266 1614.67836  8.60650021
+## 30  DFW  8738 1383.04303  0.32212685
+## 31  DSM   569 1020.88752 19.00573614
+## 32  DTW  9384  498.12852  5.42996346
+## 33  EGE   213 1735.70892  6.30434783
+## 34  FLL 12055 1070.06877  8.08212154
+## 35  GRR   765  605.78170 18.18956044
+## 36  GSO  1606  449.84184 14.11260054
+## 37  GSP   849  595.95995 15.93544304
+## 38  HNL   707 4972.67468 -1.36519258
+## 39  HOU  2115 1420.15508  7.17618819
+## 40  IAD  5700  224.84684 13.86420212
+## 41  IAH  7198 1407.20672  4.24079040
+## 42  ILM   110  500.00000  4.63551402
+## 43  IND  2077  652.26288  9.94043412
+## 44  JAC    25 1875.60000 28.09523810
+## 45  JAX  2720  824.67610 11.84483416
+## 46  LAS  5997 2240.96148  0.25772849
+## 47  LAX 16174 2468.62236  0.54711094
+## 48  LGB   668 2465.00000 -0.06202723
+## 49  MCI  2008 1097.69522 14.51405836
+## 50  MCO 14082  943.11057  5.45464309
+## 51  MDW  4113  718.04595 12.36422360
+## 52  MEM  1789  954.20123 10.64531435
+## 53  MHT  1009  207.02973 14.78755365
+## 54  MIA 11728 1091.55244  0.29905978
+## 55  MKE  2802  733.38151 14.16722038
+## 56  MSN   572  803.95455 20.19604317
+## 57  MSP  7185 1017.40167  7.27016886
+## 58  MSY  3799 1177.70571  6.49017497
+## 59  MVY   221  173.00000 -0.28571429
+## 60  MYR    59  550.66102  4.60344828
+## 61  OAK   312 2576.00000  3.07766990
+## 62  OKC   346 1325.00000 30.61904762
+## 63  OMA   849 1135.56655 14.69889841
+## 64  ORD 17283  729.00081  5.87661475
+## 65  ORF  1536  288.52344 10.94909344
+## 66  PBI  6554 1028.83811  8.56297210
+## 67  PDX  1354 2445.56573  5.14157973
+## 68  PHL  1632   94.32353 10.12719014
+## 69  PHX  4656 2141.30326  2.09704733
+## 70  PIT  2875  334.06122  7.68099053
+## 71  PSE   365 1617.00000  7.87150838
+## 72  PVD   376  160.00000 16.23463687
+## 73  PWM  2352  276.12840 11.66040210
+## 74  RDU  8163  426.75769 10.05238095
+## 75  RIC  2454  281.40465 20.11125320
+## 76  ROC  2416  259.25083 11.56064461
+## 77  RSW  3537 1072.85327  3.23814963
+## 78  SAN  2737 2437.29923  3.13916574
+## 79  SAT   686 1578.34111  6.94537178
+## 80  SAV   804  709.18408 15.12950601
+## 81  SDF  1157  645.98358 12.66938406
+## 82  SEA  3923 2412.66531 -1.09909910
+## 83  SFO 13331 2577.92356  2.67289152
+## 84  SJC   329 2569.00000  3.44817073
+## 85  SJU  5819 1599.83365  2.52052659
+## 86  SLC  2467 1986.98662  0.17625459
+## 87  SMF   284 2521.00000 12.10992908
+## 88  SNA   825 2434.00000 -7.86822660
+## 89  SRQ  1211 1044.65153  3.08243131
+## 90  STL  4339  878.72321 11.07846451
+## 91  STT   522 1626.98276 -3.83590734
+## 92  SYR  1761  205.92164  8.90392501
+## 93  TPA  7466 1003.93557  7.40852503
+## 94  TUL   315 1215.00000 33.65986395
+## 95  TVC   101  652.38614 12.96842105
+## 96  TYS   631  638.80983 24.06920415
+## 97  XNA  1036 1142.50579  7.46572581
+```
+
+# Using Data Table
+
+
+```ruby
+R.library('data.table')
+R.install_and_loads('curl')
+
+input = "https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv"
+@flights = R.fread(input)
+puts @flights
+puts @flights.dim
+```
+
+```
+##         year month day dep_delay arr_delay carrier origin dest air_time
+##      1: 2014     1   1        14        13      AA    JFK  LAX      359
+##      2: 2014     1   1        -3        13      AA    JFK  LAX      363
+##      3: 2014     1   1         2         9      AA    JFK  LAX      351
+##      4: 2014     1   1        -8       -26      AA    LGA  PBI      157
+##      5: 2014     1   1         2         1      AA    JFK  LAX      350
+##     ---                                                                
+## 253312: 2014    10  31         1       -30      UA    LGA  IAH      201
+## 253313: 2014    10  31        -5       -14      UA    EWR  IAH      189
+## 253314: 2014    10  31        -8        16      MQ    LGA  RDU       83
+## 253315: 2014    10  31        -4        15      MQ    LGA  DTW       75
+## 253316: 2014    10  31        -5         1      MQ    LGA  SDF      110
+##         distance hour
+##      1:     2475    9
+##      2:     2475   11
+##      3:     2475   19
+##      4:     1035    7
+##      5:     2475   13
+##     ---              
+## 253312:     1416   14
+## 253313:     1400    8
+## 253314:      431   11
+## 253315:      502   11
+## 253316:      659    8
+## [1] 253316     11
+```
+
+
+```ruby
+
+data_table = R.data__table(
+  ID: R.c("b","b","b","a","a","c"),
+  a: (1..6),
+  b: (7..12),
+  c: (13..18)
+)
+
+puts data_table
+puts data_table.ID
+```
+
+```
+##    ID a  b  c
+## 1:  b 1  7 13
+## 2:  b 2  8 14
+## 3:  b 3  9 15
+## 4:  a 4 10 16
+## 5:  a 5 11 17
+## 6:  c 6 12 18
+## [1] "b" "b" "b" "a" "a" "c"
+```
+
+
+```ruby
+# subset rows in i
+ans = @flights[(:origin.eq "JFK") & (:month.eq 6)]
+puts ans.head
+
+# Get the first two rows from flights.
+
+ans = @flights[(1..2)]
+puts ans
+
+# Sort flights first by column origin in ascending order, and then by dest in descending order:
+
+# ans = @flights[E.order(:origin, -(:dest))]
+# puts ans.head
+```
+
+```
+##    year month day dep_delay arr_delay carrier origin dest air_time
+## 1: 2014     6   1        -9        -5      AA    JFK  LAX      324
+## 2: 2014     6   1       -10       -13      AA    JFK  LAX      329
+## 3: 2014     6   1        18        -1      AA    JFK  LAX      326
+## 4: 2014     6   1        -6       -16      AA    JFK  LAX      320
+## 5: 2014     6   1        -4       -45      AA    JFK  LAX      326
+## 6: 2014     6   1        -6       -23      AA    JFK  LAX      329
+##    distance hour
+## 1:     2475    8
+## 2:     2475   12
+## 3:     2475    7
+## 4:     2475   10
+## 5:     2475   18
+## 6:     2475   14
+##    year month day dep_delay arr_delay carrier origin dest air_time
+## 1: 2014     1   1        14        13      AA    JFK  LAX      359
+## 2: 2014     1   1        -3        13      AA    JFK  LAX      363
+##    distance hour
+## 1:     2475    9
+## 2:     2475   11
+```
+
+
+```ruby
+# Select column(s) in j
+# select arr_delay column, but return it as a vector.
+
+ans = @flights[:all, :arr_delay]
+puts ans.head
+
+# Select arr_delay column, but return as a data.table instead.
+
+ans = @flights[:all, :arr_delay.list]
+puts ans.head
+
+ans = @flights[:all, E.list(:arr_delay, :dep_delay)]
+```
+
+```
+## [1]  13  13   9 -26   1   0
+##    arr_delay
+## 1:        13
+## 2:        13
+## 3:         9
+## 4:       -26
+## 5:         1
+## 6:         0
+```
+
 # Graphics in Galaaz
 
 Creating graphics in Galaaz is quite easy, as it can use all the power of ggplot2.  There are
@@ -1848,8 +2154,37 @@ puts @mtcars
 ## Toyota Corolla           Toyota Corolla  2.29    above
 ```
 Now, lets plot the diverging bar plot.  When using gKnit, there is no need to call
-'R.awt' to create a plotting device, since gKnit does take care of it:
+'R.awt' to create a plotting device, since gKnit does take care of it. Galaaz 
+provides integration with ggplot. The interested reader should check online for more
+information on ggplot, since it is outside the scope of this manual describing 
+how ggplot works. We give here but a brief description on how this plot is generated.
 
+ggplot implements the 'grammar of graphics'. In this approach, plots are build by
+adding layers to the plot.  On the first layer we describe what we want on the 'x'
+and 'y' axis of the plot.  In this case, we have 'car_name' on the 'x' axis and 
+'mpg\_z' on the 'y' axis. Then the type of graph is specified by adding
+'geom\_bar' (for a bar graph).  We specify that our bars should be filled using 
+'mpg\_type', which is either 'above' or 'bellow' giving then two colours for
+filling. On the next layer we specify the labels for the graph, then we add the
+title and subtitle.  Finally, in a bar chart usually bars go on the vertical direction,
+but in this graph we want the bars to be horizontally layed so we add 'coord\_flip'.
+
+
+```ruby
+require 'ggplot'
+
+puts @mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
+  R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
+  R.scale_fill_manual(name: 'Mileage',
+                      labels: R.c('Above Average', 'Below Average'),
+                      values: R.c('above': '#00ba38', 'below': '#f8766d')) +
+  R.labs(subtitle: "Normalised mileage from 'mtcars'",
+         title: "Diverging Bars") + 
+  R.coord_flip
+```
+
+
+![](/home/rbotafogo/desenv/galaaz/blogs/manual/manual_files/figure-html/diverging_bar.png)<!-- -->
 
 
 [TO BE CONTINUED...]
