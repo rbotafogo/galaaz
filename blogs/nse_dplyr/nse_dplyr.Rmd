@@ -4,7 +4,7 @@ author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
 tags: [Tech, Data Science, Ruby, R, GraalVM]
-date: "20/02/2019"
+date: "10/05/2019"
 output:
   html_document:
     self_contained: true
@@ -22,21 +22,30 @@ library('tibble')
 
 # Introduction
 
-In this post we will see how to program with dplyr in Galaaz.  
+In this post we will see how to program with _dplyr_ in Galaaz.
 
-### But first, what is Galaaz??
+## But first, what is Galaaz??
 
 Galaaz is a system for tightly coupling Ruby and R.  Ruby is a powerful language, with
 a large community, a very large set of libraries and great for web development.  However,
 it lacks libraries for data science, statistics, scientific plotting and machine learning.
 On the other hand, R is considered one of the most powerful languages for solving all of the
 above problems.  Maybe the strongest competitor to R is Python with libraries such as NumPy,
-Panda, SciPy, SciKit-Learn and a couple more.
+Pandas, SciPy, SciKit-Learn and many more.
 
 With Galaaz we do not intend to re-implement any of the scientific libraries in R. However, we 
 allow for very tight coupling between the two languages to the point that the Ruby 
-developer does not need to know that there is an R engine running.  For this to happen we 
-use new technologies provided by Oracle: GraalVM, TruffleRuby and FastR:
+developer does not need to know that there is an R engine running.  Also, from the point of
+view of the R user/developer Galaaz looks a lot like R, with just minor syntactic difference,
+so there is almost no learning courve for the R developer. And as we will see in this
+post, programming with _dplyr_ is easier in Galaaz than in R.
+
+R users are probably quite knowledgeable about _dplyr_, for the Ruby developer, _dplyr_ and
+the _tidyverse_ libraries are a set of libraries for data manipulation in R, developed by
+Hardley Wickham, chief scientis at RStudio and a prolific R coder and writer.
+
+For the coupling of Ruby and R we use new technologies provided by Oracle: GraalVM, 
+TruffleRuby and FastR:
 
      GraalVM is a universal virtual machine for running applications
      written in JavaScript, Python 3, Ruby, R, JVM-based languages like Java,
@@ -71,10 +80,16 @@ Interested readers should also check out the following sites:
 * [TruffleRuby](https://github.com/oracle/truffleruby)
 * [FastR](https://github.com/oracle/fastr)
 * [Faster R with FastR](https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb)
+* [How to make Beautiful Ruby Plots with Galaaz](https://medium.freecodecamp.org/how-to-make-beautiful-ruby-plots-with-galaaz-320848058857)
+* [Ruby Plotting with Galaaz: An example of tightly coupling Ruby and R in GraalVM](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021)
+* [How to do reproducible research in Ruby with gKnit](https://towardsdatascience.com/how-to-do-reproducible-research-in-ruby-with-gknit-c26d2684d64e)
+* [R for Data Science](https://r4ds.had.co.nz/)
+* [Advanced R](https://adv-r.hadley.nz/)
 
-### Programming with dplyr
+## Programming with dplyr
 
-According to Hardley (https://dplyr.tidyverse.org/articles/programming.html)
+This post will follow closely the work done in https://dplyr.tidyverse.org/articles/programming.html,
+by Hardley Wickham. In it, Hardley states:
 
 > Most dplyr functions use non-standard evaluation (NSE). This is a catch-all term that 
 > means they don’t follow the usual R rules of evaluation. Instead, they capture the 
@@ -83,7 +98,7 @@ According to Hardley (https://dplyr.tidyverse.org/articles/programming.html)
 
 > Operations on data frames can be expressed succinctly because you don’t need to repeat 
 > the name of the data frame. For example, you can write filter(df, x == 1, y == 2, z == 3) 
-> instead of df[df$x == 1 & df$y ==2 & df$z == 3, ].
+> instead of df[df\$x == 1 & df\$y ==2 & df\$z == 3, ].
 
 > dplyr can choose to compute results in a different way to base R. This is important for 
 > database backends because dplyr itself doesn’t do any work, but instead generates the SQL 
@@ -112,35 +127,48 @@ filter(df, my_var == 1)
 ```
 > This makes it hard to create functions with arguments that change how dplyr verbs are computed.
 
-In this post we will see that programming with dplyr in Galaaz does not require knowledge of
+In this post we will see that programming with _dplyr_ in Galaaz does not require knowledge of
 non-standard evaluation in R and can be accomplished by utilizing normal Ruby constructs.
 
 # Writing Expressions in Galaaz
 
-Galaaz extends Ruby to work with complex expressions, similar to R's expressions build with 'quote' 
-(base R) or 'quo' (tidyverse).  Let's take a look at some of those expressions.
+Galaaz extends Ruby to work with expressions, similar to R's expressions build with 'quote' 
+(base R) or 'quo' (tidyverse).  Expressions in this context are like mathematical expressions or
+formulae.  For instance, in mathematics, the expression $y = sin(x)$ describes a function but cannot
+be computed unless the value of $x$ is bound to some value. 
+
+Let's take a look at some of those expressions in Ruby:
 
 ## Expressions from operators
 
-The code bellow 
-creates an expression summing two symbols
+The code bellow creates an expression summing two symbols. Note that :a and :b are Ruby symbols and
+are not bound to any value at the time of expression definition:
 
 ```{ruby expressions}
 exp1 = :a + :b
 puts exp1
 ```
-We can build any complex mathematical expression
+We can build any complex mathematical expression such as:
 
 ```{ruby expr2}
 exp2 = (:a + :b) * 2.0 + :c ** 2 / :z
 puts exp2
 ```
+The 'L' after two indicates that 2 is an integer.
 
-It is also possible to use inequality operators in building expressions
+It is also possible to use inequality operators in building expressions:
 
 ```{ruby expr3}
 exp3 = (:a + :b) >= :z
 puts exp3
+```
+Expressions' definition can also make use of normal Ruby variables without any problem:
+
+```{ruby expr_with_var}
+x = 20
+y = 30
+exp_var = (:a + :b) * x <= :z - y
+puts exp_var
 ```
 
 Galaaz provides both symbolic representations for operators, such as (>, <, !=) as functional 
@@ -152,8 +180,9 @@ exp4 = (:a + :b).ge :z
 puts exp4
 ```
 
-Two type of expression can only be created with the functional representation of the operators, 
-those are expressions involving '==', and '='.  In order to write an expression involving '==' we
+Two type of expression, however, can only be created with the functional representation 
+of the operators,  those are expressions involving '==', and '='.  In order to write an 
+expression involving '==' we
 need to use the method '.eq' and for '=' we need the function '.assign'
 
 ```{ruby expr5}
@@ -182,9 +211,8 @@ If we only use functional notation, this type of error will not occur.
 
 It is often necessary to create an expression that uses a method or function.  For instance, in
 mathematics, it's quite natural to write an expressin such as $y = sin(x)$. In this case, the
-'sin' function is part of the expression and should not immediately executed. Now, let's say
-that 'x' is an angle of 45$^\circ$ and we acttually want our expression to be $y = 0.850...$.
-When we want the function to be part of the expression, we call the function preceeding it
+'sin' function is part of the expression and should not immediately be executed. When we want 
+the function to be part of the expression, we call the function preceeding it
 by the letter E, such as 'E.sin(x)'
 
 ```{ruby method_expression}
@@ -192,11 +220,26 @@ exp7 = :y.assign E.sin(:x)
 puts exp7
 ```
 
+Expressions can also be written using '.' notation:
+
+```{ruby expression_with_dot}
+exp8 = :y.assign :x.sin
+puts exp8
+```
+
+When a function has multiple arguments, the first one can be used before the '.':
+
+```{ruby expression_multiple_args}
+exp9 = :x.c(:y)
+puts exp9
+```
+
 # Using Galaaz to call R functions
 
 Galaaz tries to emulate as closely as possible the way R functions are called and migrating from 
 R to Galaaz should be quite easy requiring only minor syntactic changes to an R script.  In 
-this post, we do not have enough space to write a complety manual to Galaaz, so we will 
+this post, we do not have enough space to write a complete manual on Galaaz 
+(a short manual can be found at: https://www.rubydoc.info/gems/galaaz/0.4.9), so we will 
 present only a few examples scripts using Galaaz.
 
 Basically, to call an R function from Ruby with Galaaz, one only needs to preceed the function
@@ -219,36 +262,39 @@ Note that we can use named arguments in our list.  The same code in R would be:
 lst = list(a = 1, b = 2L, c = 3L)
 print(lst)
 ```
+Now, let's say that 'x' is an angle of 45$^\circ$ and we acttually want to create
+the expression $y = sin(45^\circ)$, which is $y = 0.850...$.  In this case, 
+we will use 'R.sin':
 
-
-However, if we want the function to be evaluated, then
-we use the normal call to function with R as 'R.sin(x)'.
-
-```{ruby method_exc}
-x = 45
-exp8 = :y.assign R.sin(x)
-puts exp8
+```{ruby eval_sin}
+exp10 = :y.assign R.sin(45)
+puts exp10
 ```
-
 
 # Filtering using expressions
 
-Now that we now how to write expression, we can use then to filter a data frame by expressions.  
-Let's first start by creating a simple data frame with two columns named 'x' and 'y'
+Now that we know how to write expression and call R functions let's do some data manipulation in
+Galaaz.  Let's first start by creating the same data frame that we created previously in section
+"Programming with dplyr":
 
 ```{ruby df}
 @df = R.data__frame(x: (1..3), y: (3..1))
 puts @df
 ```
-In the code bellow we want to filter the data frame by rows in which the value of 'x' is
-equal to 1.
+The 'filter' function can be called on this data frame either by using 'R.filter(\@df, ...)' or 
+by using dot notation.  We prefer to use dot notation as shown bellow.  The argument to 'filter'
+in Galaaz should be an expression. Note that if we gave to filter a Ruby expression such as
+'x == 1', we would get an error, since there is no variable 'x' defined and if 'x' was a variable
+then 'x == 1' would either be 'true' or 'false'. Our goal is to filter our data frame returning
+all rows in which the 'x' value is equal to 1. To express this we want: ':x.eq 1', where :x will
+be interpreted by filter as the 'x' column.
 
 ```{ruby filter_exp}
 puts @df.filter(:x.eq 1)
 ```
 
 In R, and when coding with 'tidyverse', arguments to a function are usually not 
-*referencially transparent*. That is, ou can’t replace a value with a seemingly equivalent 
+*referencially transparent*. That is, you can’t replace a value with a seemingly equivalent 
 object that you’ve defined elsewhere. In other words, this code
 
 ```{r not_transp, eval=FALSE}
@@ -257,8 +303,8 @@ filter(df, my_var == 1)
 ```
 Generates the following error: "object 'x' not found.
 
-However, in Ruby and Galaaz, arguments are referencially transparent as can be seen by the 
-code bellow.  Note, initally that 'my_var = :x' will not give the error "object 'x' not found" 
+However, in Galaaz, arguments are referencially transparent as can be seen by the 
+code bellow.  Note initally that 'my_var = :x' will not give the error "object 'x' not found" 
 since ':x' is treated as an expression and assigned to my\_var. Then when doing (my\_var.eq 1), 
 my\_var is a variable that resolves to ':x' and it becomes equivalent to (:x.eq 1) which is
 what we want.
@@ -280,7 +326,7 @@ df[x == y, ]
 ```
 In galaaz this ambiguity does not exist, filter(df, x.eq y) is not a valid expression as 
 expressions are build with symbols.  In doing filter(df, :x.eq y) we are looking for elements
-of the 'x' column that are equal to a previously defined y variable.  Finally, 
+of the 'x' column that are equal to a previously defined y variable.  Finally in 
 filter(df, :x.eq :y) we are looking for elements in which the 'x' column value is equal to
 the 'y' column value. This can be seen in the following two chunks of code:
 
@@ -299,7 +345,11 @@ puts @df.filter(:x.eq @y)
 ```
 # Writing a function that applies to different data sets
 
+Let's suppose that we want to write a function that receives as the first argument a data frame
+and as second argument an expression that adds a column to the data frame that is equal to the
+sum of elements in column 'a' plus 'x'. 
 
+Here is the intended behaviour using the 'mutate' function of 'dplyr':
 
 ```
 mutate(df1, y = a + x)
@@ -307,34 +357,57 @@ mutate(df2, y = a + x)
 mutate(df3, y = a + x)
 mutate(df4, y = a + x)
 ```
+The naive approach to writing an R function to solve this problem is:
 
-Here we create a mutate_y Ruby method.
+```
+mutate_y <- function(df) {
+  mutate(df, y = a + x)
+}
+```
+Unfortunately, in R, this function can fail silently if one of the variables isn’t present 
+in the data frame, but is present in the global environment.  We will not go through here how
+to solve this problem in R.
+
+In Galaaz the method mutate_y bellow will work fine and will never fail silently.
 
 ```{ruby mutate_y, warning=FALSE}
 def mutate_y(df)
   df.mutate(:y.assign :a + :x)
 end
 ```
+Here we create a data frame that has only one column named 'x':
 
-Note that contrary to what happens in R, method mutate_y will fail independetly from the fact
-that variable 'a' is defined or not.
-
-```{ruby call_mutate, warning=FALSE}
-df1 = R.data__frame(x: (1..3))
-puts df1
-a = 10
-mutate_y(df1)
+```{ruby data_frame_no_a_column, warning=FALSE}
+@df1 = R.data__frame(x: (1..3))
+puts @df1
 ```
 
+Note that method mutate_y will fail independetly from the fact that variable 'a' is defined and
+in the scope of the method.  Variable 'a' has no relationship with the symbol ':a' used in the
+definition of 'mutate\_y' above:
+
+```{ruby call_mutate_y, warning = FALSE}
+a = 10
+mutate_y(@df1)
+```
 # Different expressions
 
+Let's move to the next problem as presented by Hardley where trying to write a function in R 
+that will receive two argumens, the first a variable and the second an expression is not trivial.
+Bellow we create a data frame and we want to write a function that groups data by a variable and
+summarises it by an expression:
+
 ```{r diff_expr}
+set.seed(123)
+
 df <- data.frame(
   g1 = c(1, 1, 2, 2, 2),
   g2 = c(1, 2, 1, 2, 1),
   a = sample(5),
   b = sample(5)
 )
+
+as.data.frame(df) 
 
 d2 <- df %>%
   group_by(g1) %>%
@@ -349,9 +422,7 @@ d2 <- df %>%
 as.data.frame(d2)	       
 ```
 
-Trying to write a function in R that will receive two argumens, the first a variable and
-the second an expression is not trivia. As shown by Hardley, one might expect this function 
-to do the trick:
+As shown by Hardley, one might expect this function to do the trick:
 
 ```{r diff_exp_fnc}
 my_summarise <- function(df, group_var) {
@@ -365,11 +436,13 @@ my_summarise <- function(df, group_var) {
 ```
 
 In order to solve this problem, coding with dplyr requires the introduction of many new concepts
-and functions such as 'quo', 'quos', 'enquo', 'enquos', '!!' (bang bang), '!!!' (triple bang).
+and functions such as 'quo', 'quos', 'enquo', 'enquos', '!!' (bang bang), '!!!' (triple bang). 
+Again, we'll leave to Hardley the explanation on how to use all those functions.
 
 Now, let's try to implement the same function in galaaz.  The next code block first prints the
-'df' data frame define previously in R, then creates the my_summarize function and calls it 
-passing the R data frame and the group by variable ':g1'
+'df' data frame define previously in R (to access an R variable from Galaaz, we use the tilda 
+operator '~' applied to the R variable name as symbol, i.e., ':df'.  We then create the 
+'my_summarize' method and call it passing the R data frame and the group by variable ':g1':
 
 ```{ruby diff_exp_ruby_func}
 puts ~:df
@@ -377,15 +450,15 @@ print "\n"
 
 def my_summarize(df, group_var)
   df.group_by(group_var).
-    summarize(a: E.mean(:a))
+    summarize(a: :a.mean)
 end
 
-puts my_summarize((~:df), :g1).as__data__frame
+puts my_summarize(:df, :g1).as__data__frame
 ```
-It works!!! Well let's make sure this was not just some coincidence
+It works!!! Well, let's make sure this was not just some coincidence
 
 ```{ruby group_g2}
-puts my_summarize((~:df), :g2).as__data__frame
+puts my_summarize(:df, :g2).as__data__frame
 ```
 
 Great, everything is fine! No magic, no new functions, no complexities, just normal, standard Ruby
@@ -394,7 +467,7 @@ code.  If you've ever done NSE in R, this certainly feels much safer and easy to
 # Different input variables
 
 In the previous section we've managed to get rid of all NSE formulation for a simple example, but
-does this remain true for more complex examples, or will the Ruby way prove inpractical for
+does this remain true for more complex examples, or will the Galaaz way prove inpractical for
 more complex code?
 
 In the next example Hardley proposes us to write a function that given an expression such as 'a'
@@ -412,7 +485,7 @@ summarise(df, mean = mean(a * b), sum = sum(a * b), n = n())
 #> # A tibble: 1 x 3
 #>    mean   sum     n
 #>   <dbl> <int> <int>
-#> 1   9.6    48     5
+#> 1   9    45     5
 ```
 
 Let's try it in galaaz:
@@ -431,7 +504,7 @@ puts my_summarise2((~:df), :a * :b)
 ```
 
 Once again, there is no need to use any special theory or functions.  The only point to be 
-careful about is the use of 'E' to build an expression that uses the mean, sum and n.
+careful about is the use of 'E' to build expressions from functions 'mean', 'sum' and 'n'.
 
 # Different input and output variable
 
@@ -461,8 +534,10 @@ mutate(df, mean_b = mean(b), sum_b = sum(b))
 #> 4     2     2     5     4      3    15
 #> # … with 1 more row
 ```
+In order to solve this problem in R, Hardley needs to introduce some more new functions and notations:
+'quo_name' and the ':=' operator from package 'rlang'
 
-Here is our Ruby code
+Here is our Ruby code:
 
 ```{ruby name_change}
 def my_mutate(df, expr)
@@ -486,6 +561,12 @@ and variable mean\_name is not followed by ':' but by '=>'.  This is standard Ru
 
 # Capturing multiple variables
 
+Moving on with new complexities, Hardley proposes us to solve the problem in which the 
+summarise function will receive any number of grouping variables.
+
+This again is quite standard Ruby.  In order to receive an undefined number of paramenters
+the paramenter is preceded by '*':
+
 ```{ruby multiple_vars}
 def my_summarise3(df, *group_vars)
   df.group_by(*group_vars).
@@ -495,12 +576,58 @@ end
 puts my_summarise3((~:df), :g1, :g2).as__data__frame
 ```
 
+# Why does R require NSE and Galaaz does not?
+
+NSE introduces a number of new concepts, such as 'quoting', 'quasiquotation', 'unquoting' and 
+'unquote-splicing', while in Galaaz none of those concepts are needed. What gives?
+
+R is an extremely flexible language and it has lazy evaluation of parameters. When in R a 
+function is called as 'summarise(df, a = b)', the summarise function receives the litteral
+'a = b' parameter and can work with this as if it were a string. In R, it is not clear what
+a and b are, they can be expressions or they can be variables, it is up to the function to
+decide what 'a = b' means.
+
+In Ruby, there is no lazy evaluation of parameters and 'a' is always a variable and so is 'b'.
+Variables assume their value as soon as they are used, so 'x = a' is immediately evaluate and 
+variable 'x' will receive the value of variable 'a' as soon as the Ruby statement is executed. 
+Ruby also provides the notion of a symbol; ':a' is a symbol and does not evaluate to anything.
+Galaaz uses Ruby symbols to build expressions that are not bound to anything: ':a.eq :b' is
+clearly an expression and has no relationship whatsoever with the statment 'a = b'. By using
+symbols, variables and expressions all the possible ambiguities that are found in R are 
+eliminated in Galaaz.
+
+The main problem that remains, is that in R, functions are not clearly documented as what type
+of input they are expecting, they might be expecting regular variables or they might be 
+expecting expressions and the R function will know how to deal with an input of the form 
+'a = b', now for the Ruby developer it might not be immediately clear if it should call the 
+function passing the value 'true' if variable 'a' is equal to variable 'b' or if it should
+call the function passing the expression ':a.eq :b'.
+
+
 # Advanced dplyr features
-https://www.r-bloggers.com/programming-with-dplyr-by-using-dplyr/
+
+In the blog: Programming with dplyr by using dplyr (https://www.r-bloggers.com/programming-with-dplyr-by-using-dplyr/) Iñaki Úcar shows surprise that some R users are trying to code in dplyr avoiding
+the use of NSE.  For instance he says:
+
+> Take the example of seplyr. It stands for standard evaluation dplyr, and enables us to 
+> program over dplyr without having “to bring in (or study) any deep-theory or 
+> heavy-weight tools such as rlang/tidyeval”.
+
+For me, there isn't really any surprise that users are trying to avoid dplyr deep-theory. R
+users frequently are not programmers and learning to code is already hard business, on top
+of that, having to learn how to 'quote' or 'enquo' or 'quos' or 'enquos' is not necessarily
+a 'piece of cake'. So much so, that 'tidyeval' has some more advanced functions that instead
+of using quoted expressions, uses strings as arguments.
+
+In the following examples, we show the use of functions 'group\_by\_at', 'summarise\_at' and
+'rename\_at' that receive strings as argument. The data frame used in 'starwars' that describes
+features of characters in the Starwars movies:
 
 ```{ruby starwars}
 puts (~:starwars).head.as__data__frame
 ```
+The grouped_mean function bellow will receive a grouping variable and calculate summaries for
+the value\_variables given:
 
 ```{r grouped_mean}
 grouped_mean <- function(data, grouping_variables, value_variables) {
@@ -517,14 +644,26 @@ gm = starwars %>%
 as.data.frame(gm)   
 ```
 
+The same code with Galaaz, becomes:
+
 ```{ruby advanced_starwars}
 def grouped_mean(data, grouping_variables, value_variables)
   data.
     group_by_at(grouping_variables).
     mutate(count: E.n).
     summarise_at(E.c(value_variables, "count"), ~:mean, na__rm: true).
-    rename_at(value_variables, R.funs(E.paste0("mean_", value_variables)))
+    rename_at(value_variables, E.funs(E.paste0("mean_", value_variables)))
 end
 
-puts grouped_mean((~:starwars), "eye_color", R.c("mass", "birth_year")).as__data__frame
+puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year")).as__data__frame
 ```
+
+# Conclusion
+
+Ruby and Galaaz provide a nice framework for developing code that uses R functions. Although R is
+a very powerful and flexible language, sometimes, too much flexibility makes life harder for
+the casual user. We believe however, that even for the advanced user, Ruby integrated 
+with R throught Galaaz, makes a powerful environment for data analysis.  In this blog post we
+showed how Galaaz consistent syntax eliminates the need for complex constructs such as quoting,
+enquoting, quasiquotation, etc. This simplification comes from the fact that expressions and
+variables are clearly separated objects, which is not the case in the R language.

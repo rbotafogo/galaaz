@@ -7,13 +7,13 @@ tags: [Tech, Data Science, Ruby, R, GraalVM]
 date: "29/04/2019"
 bibliography: stats.bib
 output:
+  html_document:
+    self_contained: true
+    keep_md: true
   pdf_document:
     includes:
       in_header: ["../../sty/galaaz.sty"]
     number_sections: yes
-  html_document:
-    self_contained: true
-    keep_md: true
 ---
 
 ```{r setup, echo=FALSE}
@@ -666,12 +666,13 @@ author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr, gknit]
 date: "29 October 2018"
 output:
-  pdf_document:
+  pdf\_document:
     includes:
       in\_header: ["../../sty/galaaz.sty"]
     number\_sections: yes
 ---
 ```
+
 
 # Conclusion
 
