@@ -21,17 +21,6 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
-#=begin
-module Kernel
-
-  def puts(*args)
-    print(*args)
-    print "\n"
-  end
-
-end
-#=end
-
 #==========================================================================================
 #
 #==========================================================================================
@@ -173,35 +162,12 @@ class Symbol
     exec_bin_oper("`=`", expression)
   end
   
-=begin
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
-
-  def [](index)
-    exec_bin_oper("`[[`", index)
-  end
-=end
   #--------------------------------------------------------------------------------------
   #
   #--------------------------------------------------------------------------------------
 
   def method_missing(symbol, *args, &block)
 
-=begin    
-    if (symbol =~ /(.*)=$/)
-      # method_missing_assign($1, args[0])
-    elsif (args.length == 0 && ((R.c(symbol.to_s)._ :in, R.names(self)) >> 0))
-      return self[symbol.to_s]
-    end
-=end
-    
-#=begin
-      # Need to raise a NoMethodError when method_missing is called by an implicit
-      # call to "to_ary".  I'm not sure why "to_ary" is being called, but it is
-      raise NoMethodError if name == "to_ary"
-#=end      
-    
     E.send(symbol.to_s, self, *args)
     
   end
@@ -223,7 +189,7 @@ class Symbol
   def inter(var2)
     R::Support.exec_function(R::Support.range, self, var2)
   end
-#=begin
+  
   #--------------------------------------------------------------------------------------
   # If method_missing is implemented, then we also need to implement method 'to_ary'.
   # This is because starting from ruby 1.9 the code for Array#flatten has changed,
@@ -234,7 +200,7 @@ class Symbol
   #--------------------------------------------------------------------------------------
 
   def to_ary
-    [self.to_s]
+    # [self.to_s]
   end
-#=end  
+
 end

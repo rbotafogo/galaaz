@@ -22,19 +22,10 @@
 ##########################################################################################
 
 require 'galaaz'
-R.install_and_loads('nycflights13')
-R.library('dplyr')
 
-@flights = ~:flights
-@flights = @flights.
-             mutate("Diff Chegada": :arr_time - :sched_arr_time,
-                    'Total Delay': :'Diff Chegada' *
-                                   E.if_else(((:arr_time - :sched_arr_time) < 0), 1, 2),
-                    'Moeda.x': "R$",
-                    'Valor BRR': :'Diff Chegada' *
-                                 E.if_else((:'Moeda.x'.eq "R$"), :'Total Delay', 100))
+vec = R.c(1, 2, 3)
+puts vec
 
-puts @flights.head.as__data__frame
 
 ## Renaming columns
 

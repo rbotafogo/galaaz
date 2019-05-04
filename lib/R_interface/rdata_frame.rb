@@ -97,18 +97,6 @@ module R
       
     end
 
-#=begin    
-    #--------------------------------------------------------------------------------------
-    # @TODO Need to understand why to_ary is being called here and what the effect is of
-    # returning the empty array.  For now, doing this returns better error messages in
-    # rspec
-    #--------------------------------------------------------------------------------------
-
-    def to_ary
-      []
-    end
-#=end
-
   end
   
 end

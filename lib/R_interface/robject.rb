@@ -124,28 +124,27 @@ module R
 
     end
 
-=begin    
-    #--------------------------------------------------------------------------------------
-    # @TODO: rspec sometimes calls to_ary when an expected value is false.  I still don't
-    # understand this call.  Returning an array with a number inside seems to make
-    # rspec happy, however this could have other consequences I don't know of. 
-    #--------------------------------------------------------------------------------------
-
-    def to_ary
-      [1]
-    end
-=end
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args, &block)
       name = R::Support.convert_symbol2r(symbol)
-#=begin
+
       # Need to raise a NoMethodError when method_missing is called by an implicit
-      # call to "to_ary".  I'm not sure why "to_ary" is being called, but it is
+      # call to "to_ary".  The explanation for that is:
+      # Okay, I've found the source of the behaviour. IOOperations.puts will attempt to
+      # coerce an argument to an array and print its contents, and R::Vector responds to
+      # to_ary but returns the empty array which results in no output.
+      #
+      # Previously IOOperations.puts only checked the type of the argument, and did not
+      # attempt coercion, but that meant we didn't match MRI's behaviour and had some test
+      # failures in other gems. I'd suggest either removing the to_ary methods on
+      # R::Object and R::Vector or implementing them more fully. I see from the comments on
+      # those methods that you needed them for RSpec, it might worth seeing if those problems
+      # still occur and we can look a better way to resolve those.      
       raise NoMethodError if name == "to_ary"
-#=end      
+
       case
       when block_given?
         R::Support.new_scope(symbol, self, *args, &block)
