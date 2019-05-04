@@ -196,6 +196,12 @@ class Symbol
     end
 =end
     
+#=begin
+      # Need to raise a NoMethodError when method_missing is called by an implicit
+      # call to "to_ary".  I'm not sure why "to_ary" is being called, but it is
+      raise NoMethodError if name == "to_ary"
+#=end      
+    
     E.send(symbol.to_s, self, *args)
     
   end
@@ -217,7 +223,7 @@ class Symbol
   def inter(var2)
     R::Support.exec_function(R::Support.range, self, var2)
   end
-
+#=begin
   #--------------------------------------------------------------------------------------
   # If method_missing is implemented, then we also need to implement method 'to_ary'.
   # This is because starting from ruby 1.9 the code for Array#flatten has changed,
@@ -230,5 +236,5 @@ class Symbol
   def to_ary
     [self.to_s]
   end
-  
+#=end  
 end

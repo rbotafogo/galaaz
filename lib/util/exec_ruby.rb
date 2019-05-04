@@ -22,56 +22,7 @@
 ##########################################################################################
 
 require 'stringio'
-=begin
-#----------------------------------------------------------------------------------------
-# Path StringIO puts... Already opened an issue in RC12
-#----------------------------------------------------------------------------------------
 
-class StringIO
-  
-  def puts(*args)
-
-    print "========================\n"
-    print "Inside puts\n"
-    print "========================\n"
-    
-    if args.empty?
-      write(DEFAULT_RECORD_SEPARATOR)
-    else
-      args.each do |arg|
-
-        # method to_s is not being called when the output is diverted
-        # need to fix it
-        if (arg.is_a? R::Object)
-          arg = arg.to_s
-        end
-        
-        if arg.nil?
-          line = ''
-        elsif Thread.guarding? arg
-          line = '[...]'
-        else
-          begin
-            arg = Truffle::Type.coerce_to(arg, Array, :to_ary)
-            Thread.recursion_guard arg do
-              arg.each { |a| puts a }
-            end
-            next
-          rescue
-            line = arg.to_s
-          end
-        end
-
-        write(line)
-        write(DEFAULT_RECORD_SEPARATOR) # unless line[-1] == ?\n
-      end
-    end
-
-    nil
-  end
-
-end
-=end
 #----------------------------------------------------------------------------------------
 # Class RubyChunk is used only as a context for all ruby chunks in the rmarkdown file.
 # This allows for chunks to access instance_variables (@)

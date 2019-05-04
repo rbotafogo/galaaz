@@ -65,16 +65,6 @@ module R
       R::Support.exec_function_name("`==`", @r_interop,
                                     R::Support.parse_arg(other_object))
     end
-
-    #--------------------------------------------------------------------------------------
-    # @TODO: rspec sometimes calls to_ary when an expected value is false.  I still don't
-    # understand this call.  Returning an array with a number inside seems to make
-    # rspec happy, however this could have other consequences I don't know of. 
-    #--------------------------------------------------------------------------------------
-
-    def to_ary
-      [1]
-    end
     
     #--------------------------------------------------------------------------------------
     # @param r_interop [Interop] pointer to an R object
@@ -133,18 +123,29 @@ module R
       end
 
     end
-    
+
+=begin    
+    #--------------------------------------------------------------------------------------
+    # @TODO: rspec sometimes calls to_ary when an expected value is false.  I still don't
+    # understand this call.  Returning an array with a number inside seems to make
+    # rspec happy, however this could have other consequences I don't know of. 
+    #--------------------------------------------------------------------------------------
+
+    def to_ary
+      [1]
+    end
+=end
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args, &block)
       name = R::Support.convert_symbol2r(symbol)
-=begin
+#=begin
       # Need to raise a NoMethodError when method_missing is called by an implicit
       # call to "to_ary".  I'm not sure why "to_ary" is being called, but it is
       raise NoMethodError if name == "to_ary"
-=end      
+#=end      
       case
       when block_given?
         R::Support.new_scope(symbol, self, *args, &block)
