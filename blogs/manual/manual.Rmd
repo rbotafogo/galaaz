@@ -5,11 +5,6 @@ author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
 date: "2019"
 output:
-  html_document:
-    self_contained: true
-    keep_md: true
-  md_document:
-    variant: markdown_github
   pdf_document:
     includes:
       in_header: "../../sty/galaaz.sty"
@@ -17,6 +12,11 @@ output:
     number_sections: yes
     toc: true
     toc_depth: 2
+  html_document:
+    self_contained: true
+    keep_md: true
+  md_document:
+    variant: markdown_github
 fontsize: 11pt
 ---
 
@@ -463,7 +463,7 @@ Finally, a data frame can also be indexed with a logical vector.  In this next e
 car is automatic.  So, by doing '(~:mtcars).am.eq 0' a logical vector is created with 
 'true' whenever 'am' is 0 and 'false' otherwise.
 
-```{ruby logical_vector}
+```{ruby logical_vector_filter}
 # obtain a vector with 'true' for cars with automatic transmission
 automatic = (~:mtcars).am.eq 0
 puts automatic
