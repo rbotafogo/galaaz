@@ -95,15 +95,13 @@ Panda, SciPy, SciKit-Learn and a couple more.
 # gKnitting a Document
 
 This manual has been formatted usign gKnit.  gKnit uses Knitr and R markdown to knit 
-a document in Ruby or R and output it in any of the available formats for R markdown.  
+a document in Ruby or R and output it in any of the available formats for R markdown.
 gKnit runs atop of GraalVM, and Galaaz.  In gKnit, Ruby variables are persisted between 
-chunks, making it an ideal solution for literate programming.  
-Also, since it is based on Galaaz, Ruby chunks can have access to R variables and Polyglot 
-Programming with Ruby and R is quite natural.
+chunks, making it an ideal solution for literate programming. Also, since it is based 
+on Galaaz, Ruby chunks can have access to R variables and Polyglot Programming with 
+Ruby and R is quite natural.
 
-gknit was describe in more depth in:
-
-* xxx.xxxx.xxx
+[gknit is described in more details here](https://towardsdatascience.com/how-to-do-reproducible-research-in-ruby-with-gknit-c26d2684d64e)
 
 # Vector
 
@@ -130,11 +128,11 @@ vector is often referred to as a character string.
 To create a vector the 'c' (concatenate) method from the 'R' module should be used:
 
 ```{ruby integer}
-@vec = R.c(1, 2, 3)
-puts @vec
+vec = R.c(1, 2, 3)
+puts vec
 ```
 
-Lets take a look at the type, mode and storage.mode of our vector @vec.  In order to print
+Lets take a look at the type, mode and storage.mode of our vector vec.  In order to print
 this out, we are creating a data frame 'df' and printing it out.  A data frame, for those
 not familiar with it, is basically a table.  Here we create the data frame and add the 
 column name by passing named parameters for each column, such as 'typeof:', 'mode:' and
@@ -145,7 +143,7 @@ Data frames will later be more carefully described.  In R, the method used to cr
 data frame is 'data.frame', in Galaaz we use 'data\_\_frame'.
 
 ```{ruby typeof_integer}
-df = R.data__frame(typeof: @vec.typeof, mode: @vec.mode, storage__mode: @vec.storage__mode)
+df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
 puts df
 ```
 
@@ -155,12 +153,12 @@ like '1' is converted to float and to have an integer the R developer will use '
 follows normal Ruby rules and the number 1 is an integer and 1.0 is a float.
 
 ```{ruby float}
-@vec = R.c(1.0, 2, 3)
-puts @vec
+vec = R.c(1.0, 2, 3)
+puts vec
 ```
 
 ```{ruby typeof_float}
-df = R.data__frame(typeof: @vec.typeof, mode: @vec.mode, storage__mode: @vec.storage__mode)
+df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
 outputs df.kable.kable_styling
 ```
 
@@ -176,8 +174,8 @@ vec = R.c(1, hello, 5)
 Here is a vector with logical values
 
 ```{ruby logical_vector}
-@vec = R.c(true, true, false, false, true)
-puts @vec
+vec = R.c(true, true, false, false, true)
+puts vec
 ```
 
 ## Combining Vectors
@@ -185,21 +183,21 @@ puts @vec
 The 'c' functions used to create vectors can also be used to combine two vectors:
 
 ```{ruby combining_vectors}
-@vec1 = R.c(10.0, 20.0, 30.0)
-@vec2 = R.c(4.0, 5.0, 6.0)
-@vec = R.c(@vec1, @vec2)
-puts @vec
+vec1 = R.c(10.0, 20.0, 30.0)
+vec2 = R.c(4.0, 5.0, 6.0)
+vec = R.c(vec1, vec2)
+puts vec
 ```
 In galaaz, methods can be chainned (somewhat like the pipe operator in R %>%, but more generic).
-In this next example, method 'c' is chainned after '@vec1'.  This also looks like 'c' is a 
+In this next example, method 'c' is chainned after 'vec1'.  This also looks like 'c' is a 
 method of the vector, but in reallity, this is actually closer to the pipe operator.  When
 Galaaz identifies that 'c' is not a method of 'vec' it actually tries to call 'R.c' with 
-'@vec1' as the first argument concatenated with all the other available arguments.  The code
+'vec1' as the first argument concatenated with all the other available arguments.  The code
 bellow is automatically converted to the code above.
 
 ```{ruby chainning_methods}
-@vec = @vec1.c(@vec2)
-puts @vec
+vec = vec1.c(vec2)
+puts vec
 ```
 
 ## Vector Arithmetic
@@ -207,18 +205,18 @@ puts @vec
 Arithmetic operations on vectors are performed element by element:
 
 ```{ruby vec_arith1}
-puts @vec1 + @vec2
+puts vec1 + vec2
 ```
 
 ```{ruby mult}
-puts @vec1 * 5
+puts vec1 * 5
 ```
 
 When vectors have different length, a recycling rule is applied to the shorter vector:
 
 ```{ruby recycle}
-@vec3 = R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)
-puts @vec4 = @vec1 + @vec3
+vec3 = R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)
+puts vec4 = vec1 + vec3
 ```
 
 ## Vector Indexing
@@ -226,40 +224,40 @@ puts @vec4 = @vec1 + @vec3
 Vectors can be indexed by using the '[]' operator:
 
 ```{ruby index}
-puts @vec4[3]
+puts vec4[3]
 ```
 
 We can also index a vector with another vector.  For example, in the code bellow, we take elements
-1, 3, 5, and 7 from @vec3:
+1, 3, 5, and 7 from vec3:
 
 ```{ruby index_by_vector}
-puts @vec4[R.c(1, 3, 5, 7)]
+puts vec4[R.c(1, 3, 5, 7)]
 ```
 
 Repeating an index and having indices out of order is valid code:
 
 ```{ruby repeated_index}
-puts @vec4[R.c(1, 3, 3, 1)]
+puts vec4[R.c(1, 3, 3, 1)]
 ```
 
 It is also possible to index a vector with a negative number or negative vector.  In these cases
 the indexed values are not returned:
 
 ```{ruby neg_index}
-puts @vec4[-3]
-puts @vec4[-R.c(1, 3, 5, 7)]
+puts vec4[-3]
+puts vec4[-R.c(1, 3, 5, 7)]
 ```
 
 If an index is out of range, a missing value (NA) will be reported.
 
 ```{ruby out_of_range}
-puts @vec4[30]
+puts vec4[30]
 ```
 
 It is also possible to index a vector by range:
 
 ```{ruby range}
-puts @vec4[(2..5)]
+puts vec4[(2..5)]
 ```
 
 Elements in a vector can be named using the 'names' attribute of a vector: 
@@ -285,9 +283,9 @@ R::Vector with other ruby classes it might be necessary to extract the actual Ru
 from the vector. In order to do this extraction the '>>' operator is used.
 
 ```{ruby ruby_native}
-puts @vec4
-puts @vec4 >> 0
-puts @vec4 >> 4
+puts vec4
+puts vec4 >> 0
+puts vec4 >> 4
 ```
 
 Note that indexing with '>>' starts at 0 and not at 1, also, we cannot do negative indexing.
@@ -310,22 +308,22 @@ A matrix is a collection of elements organized as a two dimensional table.  A ma
 created by the 'matrix' function:
 
 ```{ruby matrix}
-@mat = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
-                nrow: 3,
-                ncol: 3)
+mat = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
+               nrow: 3,
+               ncol: 3)
 
-puts @mat
+puts mat
 ```
 Note that matrices data is organized by column first. It is possible to organize the matrix
 memory by row first passing an extra argument to the 'matrix' function:
 
 ```{ruby matrix_rowfirst}
-@mat_row = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
-                nrow: 3,
-                ncol: 3,
-                byrow: true)
+mat_row = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
+                   nrow: 3,
+                   ncol: 3,
+                   byrow: true)
 
-puts @mat_row
+puts mat_row
 ```
 
 ## Indexing a Matrix
@@ -333,28 +331,33 @@ puts @mat_row
 A matrix can be indexed by [row, column]:
 
 ```{ruby matrix_index}
-puts @mat_row[1, 1]
-puts @mat_row[2, 3]
+puts mat_row[1, 1]
+puts mat_row[2, 3]
 ```
 It is possible to index an entire row or column with the ':all' keyword
 
 ```{ruby matrix_index_all}
-puts @mat_row[1, :all]
-puts @mat_row[:all, 2]
+puts mat_row[1, :all]
+puts mat_row[:all, 2]
 ```
 
 Indexing with a vector is also possible for matrices. In the following example we want
 rows 1 and 3 and columns 2 and 3 building a 2 x 2 matrix.
 
 ```{ruby matrix_index_vector}
-puts @mat_row[R.c(1, 3), R.c(2, 3)]
+puts mat_row[R.c(1, 3), R.c(2, 3)]
 ```
 
-Matrices can be combined with functions 'rbind' and 'cbind'
+Matrices can be combined with functions 'rbind': 
 
-```{ruby matrix_combine}
-puts @mat_row.rbind(@mat)
-puts @mat_row.cbind(@mat)
+```{ruby matrix_combine_rbind}
+puts mat_row.rbind(mat)
+```
+
+and 'cbind':
+
+```{ruby matrix_combine_cbind}
+puts mat_row.cbind(mat)
 ```
 
 # List
@@ -366,11 +369,11 @@ can only hold one type of element.
 nums = R.c(1.0, 2.0, 3.0)
 strs = R.c("a", "b", "c", "d")
 bool = R.c(true, true, false)
-@lst = R.list(nums: nums, strs: strs, bool: bool)
-puts @lst
+lst = R.list(nums: nums, strs: strs, bool: bool)
+puts lst
 ```
 
-Note that '@lst' elements are named elements.
+Note that 'lst' elements are named elements.
 
 
 ## List Indexing
@@ -380,7 +383,7 @@ first start with the '[]' operator. The list above has three sublist indexing wi
 return one of the sublists.
 
 ```{ruby list_indexing}
-puts @lst[1]
+puts lst[1]
 ```
 
 Note that when using '[]' a new list is returned.  When using the double square bracket operator
@@ -389,13 +392,13 @@ the original list
 
 
 ```{ruby list_indexing_single}
-puts @lst[[1]]
+puts lst[[1]]
 ```
 
-When elements are named, as dones with @lst, indexing can be done by name:
+When elements are named, as dones with lst, indexing can be done by name:
 
 ```{ruby list_indexing_by_name}
-puts @lst[['bool']][[1]] >> 0
+puts lst[['bool']][[1]] >> 0
 ```
 
 In this example, first the 'bool' element of the list was extracted, not as a list, but as a vector,
@@ -458,14 +461,18 @@ puts (~:mtcars)[R.c('Datsun 710', 'Camaro Z28'), :all]
 Finally, a data frame can also be indexed with a logical vector.  In this next example, the
 'am' column of :mtcars is compared with 0 (with method 'eq').  When 'am' is equal to 0 the
 car is automatic.  So, by doing '(~:mtcars).am.eq 0' a logical vector is created with 
-'true' whenever 'am' is 0 and 'false' otherwise.  Using this logical vector, the data frame
-is indexed, returning a new data frame in which all cars have automatic transmission.
+'true' whenever 'am' is 0 and 'false' otherwise.
 
-```{ruby dataframe_logical}
+```{ruby logical_vector}
 # obtain a vector with 'true' for cars with automatic transmission
 automatic = (~:mtcars).am.eq 0
 puts automatic
+```
 
+Using this logical vector, the data frame is indexed, returning a new data frame in 
+which all cars have automatic transmission.
+
+```{ruby dataframe_logical}
 # slice the data frame by using this vector
 puts (~:mtcars)[automatic, :all]
 ```
@@ -547,6 +554,42 @@ exp7 = :y.assign E.sin(:x)
 puts exp7
 ```
 
+Expressions can also be written using '.' notation:
+
+```{ruby expression_with_dot}
+exp8 = :y.assign :x.sin
+puts exp8
+```
+
+When a function has multiple arguments, the first one can be used before the '.':
+
+```{ruby expression_multiple_args}
+exp9 = :x.c(:y)
+puts exp9
+```
+
+## Evaluating an Expression
+
+Expressions can be evaluated by calling function 'eval' with a binding. A binding can be provided
+with a list:
+
+```{ruby eval_expression_list}
+exp = (:a + :b) * 2.0 + :c ** 2 / :z
+puts exp.eval(R.list(a: 10, b: 20, c: 30, z: 40))
+```
+
+... with a data frame:
+
+```{ruby eval_expression_df}
+df = R.data__frame(
+  a: R.c(1, 2, 3),
+  b: R.c(10, 20, 30),
+  c: R.c(100, 200, 300),
+  z: R.c(1000, 2000, 3000))
+
+puts exp.eval(df)
+```
+
 # Manipulating Data
 
 One of the major benefits of Galaaz is to bring strong data manipulation to Ruby. The following
@@ -568,8 +611,8 @@ R.library('dplyr')
 ```
 
 ```{ruby flights}
-@flights = ~:flights
-puts @flights.head.as__data__frame
+flights = ~:flights
+puts flights.head.as__data__frame
 ```
 
 ## Filtering rows with Filter
@@ -578,7 +621,7 @@ In this example we filter the flights data set by giving to the filter function 
 the first :month.eq 1
 
 ```{ruby filter_rows}
-puts @flights.filter((:month.eq 1), (:day.eq 1)).head.as__data__frame
+puts flights.filter((:month.eq 1), (:day.eq 1)).head.as__data__frame
 ```
 
 ## Logical Operators
@@ -586,7 +629,7 @@ puts @flights.filter((:month.eq 1), (:day.eq 1)).head.as__data__frame
 All flights that departed in November of December
 
 ```{ruby nov_dec}
-puts @flights.filter((:month.eq 11) | (:month.eq 12)).head.as__data__frame
+puts flights.filter((:month.eq 11) | (:month.eq 12)).head.as__data__frame
 ```
 
 The same as above, but using the 'in' operator. In R, it is possible to define many operators
@@ -595,7 +638,7 @@ operators from Galaaz the '._' method is used, where the first argument is the o
 symbol, in this case ':in' and the second argument is the vector:
 
 ```{ruby in_op}
-puts @flights.filter(:month._ :in, R.c(11, 12)).head.as__data__frame
+puts flights.filter(:month._ :in, R.c(11, 12)).head.as__data__frame
 ```
 
 ## Filtering with NA (Not Available)
@@ -606,21 +649,21 @@ the values and the result of some subsetting operations that are more consistent
 what is obtained from data frame.
 
 ```{ruby na_tibble}
-@df = R.tibble(x: R.c(1, R::NA, 3))
-puts @df.as__data__frame
+df = R.tibble(x: R.c(1, R::NA, 3))
+puts df.as__data__frame
 ```
 
 Now filtering by :x > 1 shows all lines that satisfy this condition, where the row with R:NA does
 not.
 
 ```{ruby filter_na}
-puts @df.filter(:x > 1).as__data__frame
+puts df.filter(:x > 1).as__data__frame
 ```
 
 To match an NA use method 'is__na'
 
 ```{ruby with_na}
-puts @df.filter((:x.is__na) | (:x > 1)).as__data__frame
+puts df.filter((:x.is__na) | (:x > 1)).as__data__frame
 ```
 
 ## Arrange Rows with arrange
@@ -628,13 +671,13 @@ puts @df.filter((:x.is__na) | (:x > 1)).as__data__frame
 Arrange reorders the rows of a data frame by the given arguments.
 
 ```{ruby arrange}
-puts @flights.arrange(:year, :month, :day).head.as__data__frame
+puts flights.arrange(:year, :month, :day).head.as__data__frame
 ```
 
 To arrange in descending order, use function 'desc'
 
 ```{ruby desc_arrange}
-puts @flights.arrange(:dep_delay.desc).head.as__data__frame
+puts flights.arrange(:dep_delay.desc).head.as__data__frame
 ```
 
 ## Selecting columns
@@ -642,19 +685,19 @@ puts @flights.arrange(:dep_delay.desc).head.as__data__frame
 To select specific columns from a dataset we use function 'select':
 
 ```{ruby select}
-puts @flights.select(:year, :month, :day).head.as__data__frame
+puts flights.select(:year, :month, :day).head.as__data__frame
 ```
 
 It is also possible to select column in a given range
 
 ```{ruby select_range}
-puts @flights.select(:year.up_to :day).head.as__data__frame
+puts flights.select(:year.up_to :day).head.as__data__frame
 ```
 
 Select all columns that start with a given name sequence
 
 ```{ruby select_starts_with}
-puts @flights.select(E.starts_with('arr')).head.as__data__frame
+puts flights.select(E.starts_with('arr')).head.as__data__frame
 ```
 
 Other functions that can be used:
@@ -671,26 +714,26 @@ Other functions that can be used:
 A helper function that comes in handy when we just want to rearrange column order is 'Everything':
 
 ```{ruby everything}
-puts @flights.select(:year, :month, :day, E.everything).head.as__data__frame
+puts flights.select(:year, :month, :day, E.everything).head.as__data__frame
 ```
 
 ## Add variables to a dataframe with 'mutate'
 
 ```{ruby small_flights}
-@flights_sm = @flights.
-                select((:year.up_to :day),
-                       E.ends_with('delay'),
-                       :distance,
-                       :air_time)
+flights_sm = flights.
+               select((:year.up_to :day),
+                      E.ends_with('delay'),
+                      :distance,
+                      :air_time)
 
-puts @flights_sm.head.as__data__frame
+puts flights_sm.head.as__data__frame
 ```
 
 ```{ruby mutate}
-@flights_sm = @flights_sm.
-                mutate(gain: :dep_delay - :arr_delay,
-                       speed: :distance / :air_time * 60)
-puts @flights_sm.head.as__data__frame
+flights_sm = flights_sm.
+               mutate(gain: :dep_delay - :arr_delay,
+                      speed: :distance / :air_time * 60)
+puts flights_sm.head.as__data__frame
 ```
 
 ## Summarising data
@@ -699,20 +742,20 @@ Function 'summarise' calculates summaries for the data frame. When no 'group_by'
 a single value is obtained from the data frame:
 
 ```{ruby summarise}
-puts @flights.summarise(delay: E.mean(:dep_delay, na__rm: true)).as__data__frame
+puts flights.summarise(delay: E.mean(:dep_delay, na__rm: true)).as__data__frame
 ```
 
 When a data frame is groupe with 'group_by' summaries apply to the given group:
 
 ```{ruby summarise_group_by}
-by_day = @flights.group_by(:year, :month, :day)
+by_day = flights.group_by(:year, :month, :day)
 puts by_day.summarise(delay: :dep_delay.mean(na__rm: true)).head.as__data__frame
 ```
 
 Next we put many operations together by pipping them one after the other:
 
 ```{ruby pipping}
-delays = @flights.
+delays = flights.
            group_by(:dest).
            summarise(
              count: E.n,
@@ -720,7 +763,7 @@ delays = @flights.
              delay: :arr_delay.mean(na__rm: true)).
            filter(:count > 20, :dest != "NHL")
 
-puts delays.as__data__frame
+puts delays.as__data__frame.head
 ```
 
 # Using Data Table
@@ -730,9 +773,9 @@ R.library('data.table')
 R.install_and_loads('curl')
 
 input = "https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv"
-@flights = R.fread(input)
-puts @flights
-puts @flights.dim
+flights = R.fread(input)
+puts flights
+puts flights.dim
 ```
 
 ```{ruby data_table}
@@ -750,17 +793,17 @@ puts data_table.ID
 
 ```{ruby subset_i}
 # subset rows in i
-ans = @flights[(:origin.eq "JFK") & (:month.eq 6)]
+ans = flights[(:origin.eq "JFK") & (:month.eq 6)]
 puts ans.head
 
 # Get the first two rows from flights.
 
-ans = @flights[(1..2)]
+ans = flights[(1..2)]
 puts ans
 
 # Sort flights first by column origin in ascending order, and then by dest in descending order:
 
-# ans = @flights[E.order(:origin, -(:dest))]
+# ans = flights[E.order(:origin, -(:dest))]
 # puts ans.head
 
 ```
@@ -769,15 +812,15 @@ puts ans
 # Select column(s) in j
 # select arr_delay column, but return it as a vector.
 
-ans = @flights[:all, :arr_delay]
+ans = flights[:all, :arr_delay]
 puts ans.head
 
 # Select arr_delay column, but return as a data.table instead.
 
-ans = @flights[:all, :arr_delay.list]
+ans = flights[:all, :arr_delay.list]
 puts ans.head
 
-ans = @flights[:all, E.list(:arr_delay, :dep_delay)]
+ans = flights[:all, E.list(:arr_delay, :dep_delay)]
 ```
 
 # Graphics in Galaaz
@@ -790,32 +833,32 @@ the data frame with the necessary data:
 
 ```{ruby diverging_plot_pre}
 # copy the R variable :mtcars to the Ruby mtcars variable
-@mtcars = ~:mtcars
+mtcars = ~:mtcars
 
 # create a new column 'car_name' to store the car names so that it can be
 # used for plotting. The 'rownames' of the data frame cannot be used as
 # data for plotting
-@mtcars.car_name = R.rownames(:mtcars)
+mtcars.car_name = R.rownames(:mtcars)
 
 # compute normalized mpg and add it to a new column called mpg_z
 # Note that the mean value for mpg can be obtained by calling the 'mean'
 # function on the vector 'mtcars.mpg'.  The same with the standard
 # deviation 'sd'.  The vector is then rounded to two digits with 'round 2'
-@mtcars.mpg_z = ((@mtcars.mpg - @mtcars.mpg.mean)/@mtcars.mpg.sd).round 2
+mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean)/mtcars.mpg.sd).round 2
 
 # create a new column 'mpg_type'. Function 'ifelse' is a vectorized function
 # that looks at every element of the mpg_z vector and if the value is below
 # 0, returns 'below', otherwise returns 'above'
-@mtcars.mpg_type = (@mtcars.mpg_z < 0).ifelse("below", "above")
+mtcars.mpg_type = (mtcars.mpg_z < 0).ifelse("below", "above")
 
 # order the mtcar data set by the mpg_z vector from smaler to larger values
-@mtcars = @mtcars[@mtcars.mpg_z.order, :all]
+mtcars = mtcars[mtcars.mpg_z.order, :all]
 
 # convert the car_name column to a factor to retain sorted order in plot
-@mtcars.car_name = @mtcars.car_name.factor levels: @mtcars.car_name
+mtcars.car_name = mtcars.car_name.factor levels: mtcars.car_name
 
 # let's look at the final data frame
-puts @mtcars
+puts mtcars.head
 ```
 Now, lets plot the diverging bar plot.  When using gKnit, there is no need to call
 'R.awt' to create a plotting device, since gKnit does take care of it. Galaaz 
@@ -836,14 +879,394 @@ but in this graph we want the bars to be horizontally layed so we add 'coord\_fl
 ```{ruby diverging_bar, fig.width = 9.1, fig.height = 6.5}
 require 'ggplot'
 
-puts @mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
-  R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
-  R.scale_fill_manual(name: 'Mileage',
-                      labels: R.c('Above Average', 'Below Average'),
-                      values: R.c('above': '#00ba38', 'below': '#f8766d')) +
-  R.labs(subtitle: "Normalised mileage from 'mtcars'",
-         title: "Diverging Bars") + 
-  R.coord_flip
+puts mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
+     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
+     R.scale_fill_manual(name: 'Mileage',
+                         labels: R.c('Above Average', 'Below Average'),
+                         values: R.c('above': '#00ba38', 'below': '#f8766d')) +
+     R.labs(subtitle: "Normalised mileage from 'mtcars'",
+            title: "Diverging Bars") + 
+     R.coord_flip
+```
+
+# Coding with Tidyverse
+
+In R, and when coding with 'tidyverse', arguments to a function are usually not 
+*referencially transparent*. That is, you can’t replace a value with a seemingly equivalent 
+object that you’ve defined elsewhere. To see the problem, let's first define a data frame:
+
+```{ruby df}
+df = R.data__frame(x: (1..3), y: (3..1))
+puts df
+```
+
+and now, let's look at this code:
+
+```{r not_transp, eval=FALSE}
+my_var <- x
+filter(df, my_var == 1)
+```
+It generates the following error: "object 'x' not found.
+
+However, in Galaaz, arguments are referencially transparent as can be seen by the 
+code bellow.  Note initally that 'my_var = :x' will not give the error "object 'x' not found" 
+since ':x' is treated as an expression and assigned to my\_var. Then when doing (my\_var.eq 1), 
+my\_var is a variable that resolves to ':x' and it becomes equivalent to (:x.eq 1) which is
+what we want.
+
+```{ruby my_var}
+my_var = :x
+puts df.filter(my_var.eq 1)
+```
+As stated by Hardley
+
+> dplyr code is ambiguous. Depending on what variables are defined where, 
+> filter(df, x == y) could be equivalent to any of:
+
+```
+df[df$x == df$y, ]
+df[df$x == y, ]
+df[x == df$y, ]
+df[x == y, ]
+```
+In galaaz this ambiguity does not exist, filter(df, x.eq y) is not a valid expression as 
+expressions are build with symbols.  In doing filter(df, :x.eq y) we are looking for elements
+of the 'x' column that are equal to a previously defined y variable.  Finally in 
+filter(df, :x.eq :y) we are looking for elements in which the 'x' column value is equal to
+the 'y' column value. This can be seen in the following two chunks of code:
+
+```{ruby disamb1}
+y = 1
+x = 2
+
+# looking for values where the 'x' column is equal to the 'y' column
+puts df.filter(:x.eq :y)
+```
+
+```{ruby disamb2}
+# looking for values where the 'x' column is equal to the 'y' variable
+# in this case, the number 1
+puts df.filter(:x.eq y)
+```
+## Writing a function that applies to different data sets
+
+Let's suppose that we want to write a function that receives as the first argument a data frame
+and as second argument an expression that adds a column to the data frame that is equal to the
+sum of elements in column 'a' plus 'x'. 
+
+Here is the intended behaviour using the 'mutate' function of 'dplyr':
+
+```
+mutate(df1, y = a + x)
+mutate(df2, y = a + x)
+mutate(df3, y = a + x)
+mutate(df4, y = a + x)
+```
+The naive approach to writing an R function to solve this problem is:
+
+```
+mutate_y <- function(df) {
+  mutate(df, y = a + x)
+}
+```
+Unfortunately, in R, this function can fail silently if one of the variables isn’t present 
+in the data frame, but is present in the global environment.  We will not go through here how
+to solve this problem in R.
+
+In Galaaz the method mutate_y bellow will work fine and will never fail silently.
+
+```{ruby mutate_y, warning=FALSE}
+def mutate_y(df)
+  df.mutate(:y.assign :a + :x)
+end
+```
+Here we create a data frame that has only one column named 'x':
+
+```{ruby data_frame_no_a_column, warning=FALSE}
+df1 = R.data__frame(x: (1..3))
+puts df1
+```
+
+Note that method mutate_y will fail independetly from the fact that variable 'a' is defined and
+in the scope of the method.  Variable 'a' has no relationship with the symbol ':a' used in the
+definition of 'mutate\_y' above:
+
+```{ruby call_mutate_y, warning = FALSE}
+a = 10
+mutate_y(df1)
+```
+## Different expressions
+
+Let's move to the next problem as presented by Hardley where trying to write a function in R 
+that will receive two argumens, the first a variable and the second an expression is not trivial.
+Bellow we create a data frame and we want to write a function that groups data by a variable and
+summarises it by an expression:
+
+```{r diff_expr}
+set.seed(123)
+
+df <- data.frame(
+  g1 = c(1, 1, 2, 2, 2),
+  g2 = c(1, 2, 1, 2, 1),
+  a = sample(5),
+  b = sample(5)
+)
+
+as.data.frame(df) 
+
+d2 <- df %>%
+  group_by(g1) %>%
+  summarise(a = mean(a))
+	       
+as.data.frame(d2)	       
+
+d2 <- df %>%
+  group_by(g2) %>%
+  summarise(a = mean(a))
+	       
+as.data.frame(d2)	       
+```
+
+As shown by Hardley, one might expect this function to do the trick:
+
+```{r diff_exp_fnc}
+my_summarise <- function(df, group_var) {
+  df %>%
+    group_by(group_var) %>%
+    summarise(a = mean(a))
+}
+
+# my_summarise(df, g1)
+#> Error: Column `group_var` is unknown
+```
+
+In order to solve this problem, coding with dplyr requires the introduction of many new concepts
+and functions such as 'quo', 'quos', 'enquo', 'enquos', '!!' (bang bang), '!!!' (triple bang). 
+Again, we'll leave to Hardley the explanation on how to use all those functions.
+
+Now, let's try to implement the same function in galaaz.  The next code block first prints the
+'df' data frame defined previously in R (to access an R variable from Galaaz, we use the tilda 
+operator '~' applied to the R variable name as symbol, i.e., ':df'.
+
+```{ruby r_dataframe}
+puts ~:df
+```
+
+We then create the 'my_summarize' method and call it passing the R data frame and 
+the group by variable ':g1':
+
+```{ruby diff_exp_ruby_func}
+def my_summarize(df, group_var)
+  df.group_by(group_var).
+    summarize(a: :a.mean)
+end
+
+puts my_summarize(:df, :g1).as__data__frame
+```
+
+It works!!! Well, let's make sure this was not just some coincidence
+
+```{ruby group_g2}
+puts my_summarize(:df, :g2).as__data__frame
+```
+
+Great, everything is fine! No magic, no new functions, no complexities, just normal, standard Ruby
+code.  If you've ever done NSE in R, this certainly feels much safer and easy to implement.
+
+## Different input variables
+
+In the previous section we've managed to get rid of all NSE formulation for a simple example, but
+does this remain true for more complex examples, or will the Galaaz way prove inpractical for
+more complex code?
+
+In the next example Hardley proposes us to write a function that given an expression such as 'a'
+or 'a * b', calculates three summaries.  What we want a function that does the same as these R
+statements:
+
+```
+summarise(df, mean = mean(a), sum = sum(a), n = n())
+#> # A tibble: 1 x 3
+#>    mean   sum     n
+#>   <dbl> <int> <int>
+#> 1     3    15     5
+
+summarise(df, mean = mean(a * b), sum = sum(a * b), n = n())
+#> # A tibble: 1 x 3
+#>    mean   sum     n
+#>   <dbl> <int> <int>
+#> 1   9    45     5
+```
+
+Let's try it in galaaz:
+
+```{ruby summarize_method}
+def my_summarise2(df, expr)
+  df.summarize(
+    mean: E.mean(expr),
+    sum: E.sum(expr),
+    n: E.n
+  )
+end
+
+puts my_summarise2((~:df), :a)
+puts "\n"
+puts my_summarise2((~:df), :a * :b)
+```
+
+Once again, there is no need to use any special theory or functions.  The only point to be 
+careful about is the use of 'E' to build expressions from functions 'mean', 'sum' and 'n'.
+
+## Different input and output variable
+
+Now the next challenge presented by Hardley is to vary the name of the output variables based on 
+the received expression.  So, if the input expression is 'a', we want our data frame columns to
+be named 'mean\_a' and 'sum\_a'.  Now, if the input expression is 'b', columns
+should be named 'mean\_b' and 'sum\_b'.
+
+```
+mutate(df, mean_a = mean(a), sum_a = sum(a))
+#> # A tibble: 5 x 6
+#>      g1    g2     a     b mean_a sum_a
+#>   <dbl> <dbl> <int> <int>  <dbl> <int>
+#> 1     1     1     1     3      3    15
+#> 2     1     2     4     2      3    15
+#> 3     2     1     2     1      3    15
+#> 4     2     2     5     4      3    15
+#> # … with 1 more row
+
+mutate(df, mean_b = mean(b), sum_b = sum(b))
+#> # A tibble: 5 x 6
+#>      g1    g2     a     b mean_b sum_b
+#>   <dbl> <dbl> <int> <int>  <dbl> <int>
+#> 1     1     1     1     3      3    15
+#> 2     1     2     4     2      3    15
+#> 3     2     1     2     1      3    15
+#> 4     2     2     5     4      3    15
+#> # … with 1 more row
+```
+In order to solve this problem in R, Hardley needs to introduce some more new functions and notations:
+'quo_name' and the ':=' operator from package 'rlang'
+
+Here is our Ruby code:
+
+```{ruby name_change}
+def my_mutate(df, expr)
+  mean_name = "mean_#{expr.to_s}"
+  sum_name = "sum_#{expr.to_s}"
+
+  df.mutate(mean_name => E.mean(expr),
+            sum_name => E.sum(expr))
+end
+
+puts my_mutate((~:df), :a)
+puts "\n"
+puts my_mutate((~:df), :b)
+```
+It really seems that "Non Standard Evaluation" is actually quite standard in Galaaz! But, you 
+might have noticed a small change in the way the arguments to the mutate method were called.
+In a previous example we used df.summarise(mean: E.mean(:a), ...) where the column name was
+followed by a ':' colom.  In this example, we have df.mutate(mean_name => E.mean(expr), ...)
+and variable mean\_name is not followed by ':' but by '=>'.  This is standard Ruby notation.
+
+[explain....]
+
+## Capturing multiple variables
+
+Moving on with new complexities, Hardley proposes us to solve the problem in which the 
+summarise function will receive any number of grouping variables.
+
+This again is quite standard Ruby.  In order to receive an undefined number of paramenters
+the paramenter is preceded by '*':
+
+```{ruby multiple_vars}
+def my_summarise3(df, *group_vars)
+  df.group_by(*group_vars).
+    summarise(a: E.mean(:a))
+end
+
+puts my_summarise3((~:df), :g1, :g2).as__data__frame
+```
+
+## Why does R require NSE and Galaaz does not?
+
+NSE introduces a number of new concepts, such as 'quoting', 'quasiquotation', 'unquoting' and 
+'unquote-splicing', while in Galaaz none of those concepts are needed. What gives?
+
+R is an extremely flexible language and it has lazy evaluation of parameters. When in R a 
+function is called as 'summarise(df, a = b)', the summarise function receives the litteral
+'a = b' parameter and can work with this as if it were a string. In R, it is not clear what
+a and b are, they can be expressions or they can be variables, it is up to the function to
+decide what 'a = b' means.
+
+In Ruby, there is no lazy evaluation of parameters and 'a' is always a variable and so is 'b'.
+Variables assume their value as soon as they are used, so 'x = a' is immediately evaluate and 
+variable 'x' will receive the value of variable 'a' as soon as the Ruby statement is executed. 
+Ruby also provides the notion of a symbol; ':a' is a symbol and does not evaluate to anything.
+Galaaz uses Ruby symbols to build expressions that are not bound to anything: ':a.eq :b' is
+clearly an expression and has no relationship whatsoever with the statment 'a = b'. By using
+symbols, variables and expressions all the possible ambiguities that are found in R are 
+eliminated in Galaaz.
+
+The main problem that remains, is that in R, functions are not clearly documented as what type
+of input they are expecting, they might be expecting regular variables or they might be 
+expecting expressions and the R function will know how to deal with an input of the form 
+'a = b', now for the Ruby developer it might not be immediately clear if it should call the 
+function passing the value 'true' if variable 'a' is equal to variable 'b' or if it should
+call the function passing the expression ':a.eq :b'.
+
+
+## Advanced dplyr features
+
+In the blog: Programming with dplyr by using dplyr (https://www.r-bloggers.com/programming-with-dplyr-by-using-dplyr/) Iñaki Úcar shows surprise that some R users are trying to code in dplyr avoiding
+the use of NSE.  For instance he says:
+
+> Take the example of seplyr. It stands for standard evaluation dplyr, and enables us to 
+> program over dplyr without having “to bring in (or study) any deep-theory or 
+> heavy-weight tools such as rlang/tidyeval”.
+
+For me, there isn't really any surprise that users are trying to avoid dplyr deep-theory. R
+users frequently are not programmers and learning to code is already hard business, on top
+of that, having to learn how to 'quote' or 'enquo' or 'quos' or 'enquos' is not necessarily
+a 'piece of cake'. So much so, that 'tidyeval' has some more advanced functions that instead
+of using quoted expressions, uses strings as arguments.
+
+In the following examples, we show the use of functions 'group\_by\_at', 'summarise\_at' and
+'rename\_at' that receive strings as argument. The data frame used in 'starwars' that describes
+features of characters in the Starwars movies:
+
+```{ruby starwars}
+puts (~:starwars).head.as__data__frame
+```
+The grouped_mean function bellow will receive a grouping variable and calculate summaries for
+the value\_variables given:
+
+```{r grouped_mean}
+grouped_mean <- function(data, grouping_variables, value_variables) {
+  data %>%
+    group_by_at(grouping_variables) %>%
+    mutate(count = n()) %>%
+    summarise_at(c(value_variables, "count"), mean, na.rm = TRUE) %>%
+    rename_at(value_variables, funs(paste0("mean_", .)))
+    }
+
+gm = starwars %>% 
+   grouped_mean("eye_color", c("mass", "birth_year"))
+
+as.data.frame(gm)   
+```
+
+The same code with Galaaz, becomes:
+
+```{ruby advanced_starwars}
+def grouped_mean(data, grouping_variables, value_variables)
+  data.
+    group_by_at(grouping_variables).
+    mutate(count: E.n).
+    summarise_at(E.c(value_variables, "count"), ~:mean, na__rm: true).
+    rename_at(value_variables, E.funs(E.paste0("mean_", value_variables)))
+end
+
+puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year")).as__data__frame
 ```
 
 

@@ -14,10 +14,42 @@ output:
 ---
 
 ```{r setup, echo=FALSE}
-
+opts_knit$set(progress = TRUE, verbose = TRUE)
+KNITR_PROGRESS = TRUE
 ```
 
 ```{ruby err}
 puts File.directory?('.')
 ```
 
+```{ruby expr6}
+@exp6 = :y.assign :a + :b
+puts @exp6
+```
+
+```{ruby exp_wrong, warning=FALSE}
+exp_wrong = (:a + :b) == :z
+puts exp_wrong
+```
+
+```{r resetup, echo=FALSE}
+opts_knit$set(progress = TRUE, verbose = TRUE)
+KNITR_PROGRESS = TRUE
+```
+
+```{ruby opts_knit}
+puts (~:opts_knit)
+```
+
+```{ruby expr7}
+exp7 = :a + :b
+puts exp7
+```
+
+```{ruby access_local}
+puts exp7
+```
+
+```{ruby instance}
+puts @exp6
+```

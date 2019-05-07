@@ -656,7 +656,8 @@ class KnitrEngine
         # be processed by 'pandoc' and not appear in the output block from
         # engine_output, should be outputed with the 'outputs' function and will be
         # stored in the @@outputs variable
-        out = R.c(out, RubyChunk.get_outputs)
+        # out = R.c(out, RubyChunk.get_outputs)
+        out = R.c(out, RChunk.out_list)
         
         # @TODO: allow capturing many plots in the block.  For now, only the last
         # plot will be captured.  Not a very serious problem for now.

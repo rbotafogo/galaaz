@@ -24,25 +24,30 @@
 require 'stringio'
 
 #----------------------------------------------------------------------------------------
-# Class RubyChunk is used only as a context for all ruby chunks in the rmarkdown file.
-# This allows for chunks to access instance_variables (@)
+# Class RC is used only as a context for all ruby chunks in the rmarkdown file.
+# This allows for chunks to access local variables defined in other chunks.
 #----------------------------------------------------------------------------------------
 
-class RubyChunk
+class RC
 
-  def self.init
-    @@outputs = R.list
+  attr_reader :out_list
+
+  def initialize
+    @out_list = R.list
   end
-  
-  def self.get_outputs
-    @@outputs
+
+  def outputs(obj)
+    @outputs = R.c(@outputs, obj)
   end
-  
-  def self.outputs(obj)
-    @@outputs = R.c(@@outputs, obj)
+
+  def get_binding
+    binding
   end
   
 end
+
+RChunk = RC.new
+RCbinding = RChunk.get_binding
 
 #----------------------------------------------------------------------------------------
 #
@@ -68,11 +73,11 @@ module GalaazUtil
 
   def self.exec_ruby(options)
 
-    RubyChunk.init
+    # RubyChunk.init
     
     # read the chunk code
     code = R.paste(options.code, collapse: "\n") >> 0
-
+    
     # the output should be a list with the proper structure to pass to
     # function engine_output.  We first add the souce code from the block to
     # the list
@@ -89,7 +94,8 @@ module GalaazUtil
       # Execute the Ruby code in the scope of class RubyChunk. This is done
       # so that instance variables created in one chunk can be used again on
       # another chunk
-      RubyChunk.instance_eval(code) if (options[["eval"]] >> 0)
+      # RubyChunk.instance_eval(code) if (options[["eval"]] >> 0)
+      eval(code, RCbinding, __FILE__, __LINE__ + 1) if (options[["eval"]] >> 0)
       
       # add the returned value to the list
       # this should have captured everything in the evaluation code

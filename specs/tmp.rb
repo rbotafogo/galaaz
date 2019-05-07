@@ -23,8 +23,33 @@
 
 require 'galaaz'
 
-vec = R.c(1, 2, 3)
-puts vec
+puts RChunk
+puts RCbinding
+
+eval("a = 10", RCbinding)
+eval("puts a", RCbinding)
+
+code = <<-EOC
+     def test
+       puts "hello from test"
+     end
+EOC
+
+eval(code, RCbinding)
+eval("test", RCbinding)
+
+
+
+=begin
+code6 = <<-EOC
+  test
+EOC
+
+puts code2
+
+eval(code2, RubyChunk.binding)
+=end
+
 
 
 ## Renaming columns
