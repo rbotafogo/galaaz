@@ -22,9 +22,7 @@ cran/*
 *.jpg
 
 *.md
-*.html
 *.tex
-*.pdf
 
 *.rds
 *.dump

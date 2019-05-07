@@ -139,8 +139,6 @@ cathegory.  Some of the examples require 'rspec' do be available.  To install 'r
 ```{r midwest_child, child = 'midwest.Rmd'}
 ```
 
-![Midwest Plot](midwest.png){width=70%}
-
 In R, the code to generate this plot is the following
 
 ```{r midwest_r, eval=FALSE}
@@ -310,9 +308,7 @@ class ScatterPlot
   # Plots the scatterplot
   #---------------------------------------------------------------------------------
 
-  def plot(device = 'awt')
-    device == 'awt' ? R.awt : R.svg
-   
+  def plot
     gg = @data.ggplot(E.aes(x: @x, y: @y)) +
       points + 
       R.geom_smooth(method: @method, se: @confidence) +
@@ -325,9 +321,7 @@ class ScatterPlot
                    caption: @caption) +
       CorpTheme.global_theme
 
-    R.png('scatter_plot.png') if !(device == 'awt')
     puts gg
-    R.dev__off
     
   end
   
@@ -337,7 +331,7 @@ end
 
 And this is the final code for making the scatter plot with the midwest data
 
-```{ruby scatter_plot_rb}
+```{ruby scatter_plot_rb, fig.width = 9.1, fig.height = 9.1}
 require 'galaaz'
 require 'ggplot'
 
@@ -350,11 +344,8 @@ sp.y_label = "Population"
 sp.group_by(color: :state, size: :popdensity)    # try sp.group_by(color: :state)
 # available methods: "lm", "glm", "loess", "gam"
 sp.add_smoothing_line(method: "glm") 
-sp.plot('svg')
-# puts sp
+sp.plot
 ```
-
-![Midwest Plot with 'glm' function and modified theme](scatter_plot.png){width=70%}
 
 # Conclusion
 
