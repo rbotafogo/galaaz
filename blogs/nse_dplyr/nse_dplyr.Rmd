@@ -13,6 +13,11 @@ output:
     includes:
       in_header: ["../../sty/galaaz.sty"]
     number_sections: yes
+    toc: true
+    toc_depth: 2
+  md_document:
+    variant: markdown_github
+fontsize: 11pt
 ---
 
 ```{r setup, echo=FALSE, message = FALSE}
@@ -234,6 +239,28 @@ exp9 = :x.c(:y)
 puts exp9
 ```
 
+## Evaluating an Expression
+
+Expressions can be evaluated by calling function 'eval' with a binding. A binding can be provided
+with a list:
+
+```{ruby eval_expression_list}
+exp = (:a + :b) * 2.0 + :c ** 2 / :z
+puts exp.eval(R.list(a: 10, b: 20, c: 30, z: 40))
+```
+
+... with a data frame:
+
+```{ruby eval_expression_df}
+df = R.data__frame(
+  a: R.c(1, 2, 3),
+  b: R.c(10, 20, 30),
+  c: R.c(100, 200, 300),
+  z: R.c(1000, 2000, 3000))
+
+puts exp.eval(df)
+```
+
 # Using Galaaz to call R functions
 
 Galaaz tries to emulate as closely as possible the way R functions are called and migrating from 
@@ -247,14 +274,14 @@ with 'R.'.  For instance, to create a vector in R, the 'c' function is used.  Fr
 vector can be created by using 'R.c':
 
 ```{ruby vector}
-@vec = R.c(1.0, 2, 3)
-puts @vec
+vec = R.c(1.0, 2, 3)
+puts vec
 ```
 A list is created in R with the 'list' function, so in Galaaz we do:
 
 ```{ruby list}
-@list = R.list(a: 1.0, b: 2, c: 3)
-puts @list
+list = R.list(a: 1.0, b: 2, c: 3)
+puts list
 ```
 Note that we can use named arguments in our list.  The same code in R would be:
 
@@ -278,10 +305,10 @@ Galaaz.  Let's first start by creating the same data frame that we created previ
 "Programming with dplyr":
 
 ```{ruby df}
-@df = R.data__frame(x: (1..3), y: (3..1))
-puts @df
+df = R.data__frame(x: (1..3), y: (3..1))
+puts df
 ```
-The 'filter' function can be called on this data frame either by using 'R.filter(\@df, ...)' or 
+The 'filter' function can be called on this data frame either by using 'R.filter(df, ...)' or 
 by using dot notation.  We prefer to use dot notation as shown bellow.  The argument to 'filter'
 in Galaaz should be an expression. Note that if we gave to filter a Ruby expression such as
 'x == 1', we would get an error, since there is no variable 'x' defined and if 'x' was a variable
@@ -290,7 +317,7 @@ all rows in which the 'x' value is equal to 1. To express this we want: ':x.eq 1
 be interpreted by filter as the 'x' column.
 
 ```{ruby filter_exp}
-puts @df.filter(:x.eq 1)
+puts df.filter(:x.eq 1)
 ```
 
 In R, and when coding with 'tidyverse', arguments to a function are usually not 
@@ -311,7 +338,7 @@ what we want.
 
 ```{ruby my_var}
 my_var = :x
-puts @df.filter(my_var.eq 1)
+puts df.filter(my_var.eq 1)
 ```
 As stated by Hardley
 
@@ -331,17 +358,17 @@ filter(df, :x.eq :y) we are looking for elements in which the 'x' column value i
 the 'y' column value. This can be seen in the following two chunks of code:
 
 ```{ruby disamb1}
-@y = 1
-@x = 2
+y = 1
+x = 2
 
 # looking for values where the 'x' column is equal to the 'y' column
-puts @df.filter(:x.eq :y)
+puts df.filter(:x.eq :y)
 ```
 
 ```{ruby disamb2}
 # looking for values where the 'x' column is equal to the 'y' variable
 # in this case, the number 1
-puts @df.filter(:x.eq @y)
+puts df.filter(:x.eq y)
 ```
 # Writing a function that applies to different data sets
 
@@ -378,8 +405,8 @@ end
 Here we create a data frame that has only one column named 'x':
 
 ```{ruby data_frame_no_a_column, warning=FALSE}
-@df1 = R.data__frame(x: (1..3))
-puts @df1
+df1 = R.data__frame(x: (1..3))
+puts df1
 ```
 
 Note that method mutate_y will fail independetly from the fact that variable 'a' is defined and
@@ -388,7 +415,7 @@ definition of 'mutate\_y' above:
 
 ```{ruby call_mutate_y, warning = FALSE}
 a = 10
-mutate_y(@df1)
+mutate_y(df1)
 ```
 # Different expressions
 
