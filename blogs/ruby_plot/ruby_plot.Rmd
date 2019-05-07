@@ -126,10 +126,7 @@ Ruby and dozens of other languages.  Yet, while R and Python chunks can share da
 languages, chunks are independent.  This means that a variable defined in one chunk
 cannot be used in another chunk.
 
-With _gKnit_ Ruby code chunks can share data.  In gKnit each
-Ruby chunk executes in its own scope and thus, local variable defined in a chunk are
-not accessible by other chunks.  Yet, All chunks execute in the scope of a 'chunk'
-class and instance variables ('@'), are available in all chunks.
+With _gKnit_ Ruby code chunks can share data.
 
 # Exploring the Dataset
 
@@ -144,16 +141,16 @@ in 60 guinea pigs, where each animal received one of three dose levels of Vitami
 The ToothGrowth dataset contains three columns: 'len', 'supp' and 'dose'.  Let's
 take a look at a few rows of this dataset. In Galaaz, R variables are accessed
 by using the corresponding Ruby symbol preceeded by the tilda ('~') function. Note in the
-following chunk that 'ToothGrowth' is the R  variable and Ruby's '@tooth_growth' is
+following chunk that 'ToothGrowth' is the R  variable and Ruby's 'tooth_growth' is
 assigned the value of '~:ToothGrowth'.
 
 ```{ruby head}
 # Read the R ToothGrowth variable and assign it to the
-# Ruby instance variable @tooth_growth that will be 
+# Ruby instance variable tooth_growth that will be 
 # available to all Ruby chunks in this document.
-@tooth_growth = ~:ToothGrowth
+tooth_growth = ~:ToothGrowth
 # print the first few elements of the dataset
-puts @tooth_growth.head
+puts tooth_growth.head
 ```
 
 Great! We've managed to read the ToothGrowth dataset and take a look at its elements.
@@ -164,7 +161,7 @@ in usual Ruby style.
 ```{ruby dataset_columns}
 # Access the tooth_growth 'len' column and print the first few
 # elements of this column with the 'head' method.
-puts @tooth_growth.len.head
+puts tooth_growth.len.head
 ```
  
 The 'dose' column contains a numeric value with either, 0.5, 1 or 2, although the
@@ -176,14 +173,14 @@ The function 'as.factor' becomes 'R.as__factor' or just 'as__factor' when chaini
 
 ```{ruby tooth_growth}
 # convert the dose to a factor
-@tooth_growth.dose = @tooth_growth.dose.as__factor
+tooth_growth.dose = tooth_growth.dose.as__factor
 ```
 
 Let's explore some more details of this dataset.  In particular, let's look at its dimensions,
 structure and summary statistics.
 
 ```{ruby dim}
-puts @tooth_growth.dim
+puts tooth_growth.dim
 ```
 
 This dataset has 60 rows, one for each subject and 3 columns, as we have already seen.
@@ -193,7 +190,7 @@ functions does not return anything and prints the structure of the dataset
 as a side effect.
 
 ```{ruby str}
-@tooth_growth.str
+tooth_growth.str
 ```
 Observe that both variables 'supp' and 'dose' are factors.  The system made variable 'supp'
 a factor automatically, since it contais two strings OJ and VC.
@@ -201,7 +198,7 @@ a factor automatically, since it contais two strings OJ and VC.
 Finally, using the summary method, we get the statistical summary for the dataset
 
 ```{ruby summary}
-puts @tooth_growth.summary
+puts tooth_growth.summary
 ```
 
 # Doing the Data Analysis
@@ -223,32 +220,19 @@ to form the final graphics.
 
 In order to make a plot, we use the 'ggplot' function to the dataset.  In R, this would be
 written as ```ggplot(<dataset>, ...)```. Galaaz gives you the flexibility to use
-either ```R.ggplot(<dataset>, ...)``` or ```<dataset>.ggplot(...)```.  In the graph s
-pecification bellow, we use the second notation
-that looks more like Ruby.  ggplot uses the ‘aes’ method to specify
+either ```R.ggplot(<dataset>, ...)``` or ```<dataset>.ggplot(...)```.  In the graph 
+specification bellow, we use the second notation that looks more like Ruby.  
+ggplot uses the ‘aes’ method to specify
 x and y axes; in this case, the 'dose' on the $x$ axis and the 'length' on
 the $y$ axis: 'E.aes(x: :dose, y: :len)'.  To specify the type of plot add a geom to
 the plot.  For a boxplot, the geom is R.geom_boxplot.
 
-Note also that we have a call to 'R.png' before plotting and 'R.dev__off' after the print
-statement.  'R.png' opens a 'png device' for outputting the plot.  If we do no pass a
-name to the 'png' function, the
-image gets a default name of 'Rplot\<nnn\>' where \<nnn\> is the number of the plot.
-'R.dev__off'
-closes the device and creates the 'png' file. We can
-then include the generated 'png' file in the document by adding an rmarkdown directive.
-
-```{ruby dose_len}
+```{ruby dose_len, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
 require 'ggplot'
 
-e = @tooth_growth.ggplot(E.aes(x: :dose, y: :len))
+e = tooth_growth.ggplot(E.aes(x: :dose, y: :len))
 print e + R.geom_boxplot
 ```
-
-[//]: # (Including the 'png' file generated above.  In future releases)
-[//]: # (of gKnit, the figures should be automatically saved and the name)
-[//]: # (taken from the chunk 'label' and possibly chunk parameters)
-
 
 Great! We've just managed to create and save our first plot in Ruby with only
 four lines of code. We can now easily see with this plot a clear trend: as the
@@ -269,31 +253,27 @@ automatically creates the facets based on the delivery method factors.  The para
 the 'facet_grid' method is a [_formula_](https://thomasleeper.com/Rcourse/Tutorials/formulae.html).
 
 In Galaaz we give programmers the flexibility to use two different ways to write formulas.
-In the first way, the following changes from writing formulas (for example 'x ~ y')
-in R are necessary:
+In the first way, we use Ruby expressions and the '.til' function. The formula 'x ~ y', becomes
+':x.til :y'. More information on expressions can be found in [Galaaz Manual](https://www.rubydoc.info/gems/galaaz/).
 
-* R symbols are represented by the same Ruby symbol prefixed with the '+' method. The
-  symbol ```x``` in R becomes ```+:x``` in Ruby;
-* The '~' operator in R becomes '=~' in Ruby.  The formula ```x ~ y``` in R is written as
-  ```+:x =~ +:y``` in Ruby;
-* The '.' symbol in R becomes '+:all'
 
 Another way of writing a formula is to use the 'formula' function with the actual formula as
 a string.  The formula ```x ~ y``` in R can be written as ```R.formula("x ~ y")```.  For more
 complex formulas, the use of the 'formula' function is preferred.
 
-The formula ```+:all =~ +:supp``` indicates to the 'facet_grid' function that it needs to
+The formula ```:all.til :supp``` indicates to the 'facet_grid' function that it needs to
 facet the plot based on the ```supp``` variable and split the plot vertically.  Changing
-the formula to ```+:supp =~ +:all``` would split the plot horizontally.
+the formula to ```:supp.til :all``` would split the plot horizontally.
 
-```{ruby facet_by_delivery}
-@base_tooth = @tooth_growth.ggplot(E.aes(x: :dose, y: :len, group: :dose))
+```{ruby facet_by_delivery, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
 
-@bp = @base_tooth + R.geom_boxplot +
+base_tooth = tooth_growth.ggplot(E.aes(x: :dose, y: :len, group: :dose))
+
+bp = base_tooth + R.geom_boxplot +
       # Split in vertical direction
       R.facet_grid(:all.til :supp)
       
-puts @bp
+puts bp
 ```
 
 It now becomes clear that although both methods of delivery have a direct
@@ -310,9 +290,9 @@ visible.  In the following plot, the boxes are color coded by dose.  To add colo
 enough to add ```fill: :dose``` to the aesthetic of boxplot.  With this command each 'dose'
 factor gets its own color.
 
-```{ruby facets_by_delivery_color}
-@bp = @bp + R.geom_boxplot(E.aes(fill: :dose))
-puts @bp
+```{ruby facets_by_delivery_color, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
+bp = bp + R.geom_boxplot(E.aes(fill: :dose))
+puts bp
 ```
 
 Facetting helps us compare the general trends for each delivery method.
@@ -344,11 +324,11 @@ it with detail and do not leave large empty boxes.  In this next plot, we add da
 each of the 60 pigs in the experiment.  For that, add the function 'R.geom_point' to the
 plot.
 
-```{ruby facets_with_points}
+```{ruby facets_with_points, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
 # Split in vertical direction
-@bp = @bp + R.geom_point
+bp = bp + R.geom_point
 
-puts @bp
+puts bp
 ```
 
 Now we can see the actual distribution of all the 60 subjects.  Actually, this is not
@@ -362,9 +342,9 @@ discreteness in smaller datasets.  This makes it easier to see all of the points
 prevents data hiding.  We also add
 color and change the shape of the points, making them even easier to see.
 
-```{ruby facets_with_jitter}
+```{ruby facets_with_jitter, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
 # Split in vertical direction
-puts @bp + R.geom_jitter(shape: 23, color: "cyan3", size: 1)
+puts bp + R.geom_jitter(shape: 23, color: "cyan3", size: 1)
 ```
 
 Now we can see all 60 points in the graph. We have here a much higher information density
@@ -400,12 +380,12 @@ the smaller value (0.5) at the botton of the labels and the largest (2) at the t
 This ordering seems more natural and
 matches with the actual order of the colors in the plot.
 
-```{ruby facets_by_delivery_color2}
-@bp = @bp +
-      R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
+```{ruby facets_by_delivery_color2, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
+bp = bp +
+     R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
                           breaks: R.c("2","1","0.5"))
 
-puts @bp
+puts bp
 ```
 
 ## Violin Plot and Jitter
@@ -425,14 +405,14 @@ a boxplot known as a _violin plot_ with jittered data.
 > The next layer (if it exists) inside represents the values that occur 50% of the time.
 > The central dot represents the median average value. 
 
-```{ruby violin_with_jitter}
-@violin = @base_tooth + R.geom_violin(E.aes(fill: :dose)) + 
+```{ruby violin_with_jitter, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
+violin = base_tooth + R.geom_violin(E.aes(fill: :dose)) + 
    R.facet_grid(:all.til :supp) +
    R.geom_jitter(shape: 23, color: "cyan3", size: 1) +
    R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
                        breaks: R.c("2","1","0.5"))
 
-puts @violin
+puts violin
 ```
 
 This plot is an alternative to the original boxplot.  For the final presentation, it is
@@ -459,13 +439,13 @@ Length of odontoblasts in 60 guinea pigs.
 Each animal received one of three dose levels of vitamin C.
 EOT
 
-@decorations =
+decorations =
   R.labs(title: "Tooth Growth:  Length vs Vitamin C Dose",
          subtitle: "Faceted by delivery method, OJ or VC",
          x: "Dose (mg)", y: "Teeth length",
          caption: caption)
 
-puts @bp + @decorations
+puts bp + decorations
 ```
 
 ## The Corp Theme
@@ -541,20 +521,20 @@ We can now easily make our final boxplot and violin plot.  All the layers for th
 added in order to expose our understanding of the data and the need to present the result
 to our audience.
 
-The final specification is just the addition of all layers build up to this point (@bp), plus
-the decorations (@decorations), plus the corporate theme.
+The final specification is just the addition of all layers build up to this point ('bp'), plus
+the decorations ('decorations'), plus the corporate theme.
 
 Here is our final boxplot, without jitter.
 
-```{ruby final_box_plot}
-puts @bp + @decorations + CorpTheme.global_theme(faceted: true)
+```{ruby final_box_plot, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
+puts bp + decorations + CorpTheme.global_theme(faceted: true)
 ```
 
 And here is the final violin plot, with jitter and the same look and feel of the corporate
 boxplot.
 
-```{ruby final_violin_plot}
-puts @violin + @decorations + CorpTheme.global_theme(faceted: true)
+```{ruby final_violin_plot, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
+puts violin + decorations + CorpTheme.global_theme(faceted: true)
 ```
 
 ## Another View
@@ -563,21 +543,22 @@ We now make another plot, with the same look and feel as before but facetted by
 dose and not by supplement.  This shows how easy it is to create new plots by just
 changing small statement on the _grammar of graphics_.
 
-```{ruby facet_by_dose}
+```{ruby facet_by_dose, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
 caption = <<-EOT
 Length of odontoblasts in 60 guinea pigs. 
 Each animal received one of three dose levels of vitamin C.
 EOT
 
-@bp = @tooth_growth.ggplot(E.aes(x: :supp, y: :len, group: :supp)) + 
-      R.geom_boxplot(E.aes(fill: :supp)) + R.facet_grid(:all.til :dose) +
-      R.scale_fill_manual(values: R.c("cyan", "deepskyblue4")) +
-      R.labs(title: "Tooth Growth:  Length by Dose",
-             subtitle: "Faceted by dose",
-             x: "Delivery method", y: "Teeth length",
-             caption: caption) +
-      CorpTheme.global_theme(faceted: true)
-puts @bp
+bp = tooth_growth.ggplot(E.aes(x: :supp, y: :len, group: :supp)) + 
+     R.geom_boxplot(E.aes(fill: :supp)) + R.facet_grid(:all.til :dose) +
+     R.scale_fill_manual(values: R.c("cyan", "deepskyblue4")) +
+     R.labs(title: "Tooth Growth:  Length by Dose",
+            subtitle: "Faceted by dose",
+            x: "Delivery method", y: "Teeth length",
+            caption: caption) +
+     CorpTheme.global_theme(faceted: true)
+
+puts bp
 ```
 
 # Conclusion
@@ -594,10 +575,9 @@ Trying to bring to Ruby the power of R starting from scratch is an enourmous end
 and would probably never be accomplished.  Today's data scientists would certainly
 stick with either Python or R.  Now, both the Ruby and R communities can benefit
 from this marriage, provided by Galaaz on top of GraalVM and Truffle's
-polyglot environment.  We presented 
-the process to couple Ruby and R, but this process can also be done to couple Ruby
-and JavaScript or Ruby and Python.  In a polyglot world a *uniglot* language might
-be extremely relevant.
+polyglot environment.  We presented the process to couple Ruby and R, but this 
+process can also be done to couple Ruby and JavaScript or Ruby and Python. 
+In a polyglot world a *uniglot* language might be extremely relevant.
 
 From the perspective of performance, GraalVM and Truffle promises improvements that could
 reach over 10 times, both for [FastR](https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb)
