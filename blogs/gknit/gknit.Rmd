@@ -40,9 +40,8 @@ the same output and reports.
 
 The R community has put a great deal of effort in reproducible research.  In 2002, Sweave was
 introduced and it allowed mixing R code with Latex generating high quality PDF documents.  A
-Sweave 
-document could include code, the results of executing the code, graphics and text such that it
-contained the whole narrative to reproduce the research.  In
+Sweave document could include code, the results of executing the code, graphics and text 
+such that it contained the whole narrative to reproduce the research.  In
 2012, Knitr, developed by Yihui Xie from RStudio was released to replace Sweave and to
 consolidate in one single package the many extensions and add-on packages that
 were necessary for Sweave.
@@ -87,12 +86,12 @@ this problem, it is very rare to see any __R markdown__ document in the Ruby com
 When variables can be used accross chunks, then no overhead is needed:
 
 ```{ruby persistence}
-@lst = R.list(a: 1, b: 2, c: 3)
+lst = R.list(a: 1, b: 2, c: 3)
 # any other code can be added here
 ```
 
 ```{ruby use_var}
-puts @lst
+puts lst
 ```
 
 In the Python community, the same effort to have code and text in an integrated environment
@@ -335,12 +334,9 @@ In this example, the ruby chunk is called 'first_ruby_chunk'.  One important
 aspect of chunk labels is that they cannot be duplicated.  If a chunk label is 
 duplicated, gKnit will stop with an error.
 
-Another important point with Ruby chunks is that they are evaluated in the scope
-of a class called RubyChunk.  To make sure that variables are
-available between chunks, they should be made as instance variables of the 
-RubyChunk class.  In the following chunk, variable '\@a', '\@b' and '\@c' 
-are standard Ruby variables and '\@vec' and '\@vec2' are two vectors created 
-by calling the 'c' method on the R module.
+In the following chunk, variable 'a', 'b' and 'c' are standard Ruby variables 
+and 'vec' and 'vec2' are two vectors created  by calling the 'c' method on the 
+R module.
 
 In Galaaz, the R module allows us to access R functions transparently.  The 'c' 
 function in R, is a function that concatenates its arguments making a vector.
@@ -351,22 +347,22 @@ functions.  gKnit will knit standard Ruby code, or even general text without
 any code.
 
 ```{ruby split_data}
-@a = [1, 2, 3]
-@b = "US$ 250.000"
-@c = "The 'outputs' function"
+a = [1, 2, 3]
+b = "US$ 250.000"
+c = "The 'outputs' function"
 
-@vec = R.c(1, 2, 3)
-@vec2 = R.c(10, 20, 30)
+vec = R.c(1, 2, 3)
+vec2 = R.c(10, 20, 30)
 ```
 
-In this next block, variables '\@a', '\@vec' and '\@vec2' are used and printed.
+In the next block, variables 'a', 'vec' and 'vec2' are used and printed.
 
 ```{ruby split2}
-puts @a
-puts @vec * @vec2
+puts a
+puts vec * vec2
 ```
 
-Note that \@a is a standard Ruby Array and \@vec and \@vec2 are vectors that behave accordingly,
+Note that 'a' is a standard Ruby Array and 'vec' and 'vec2' are vectors that behave accordingly,
 where multiplication works as expected.
 
 
@@ -413,38 +409,38 @@ ten aspects are:
 
 ```{ruby diverging_plot_pre}
 # copy the R variable :mtcars to the Ruby mtcars variable
-@mtcars = ~:mtcars
+mtcars = ~:mtcars
 
 # create a new column 'car_name' to store the car names so that it can be
 # used for plotting. The 'rownames' of the data frame cannot be used as
 # data for plotting
-@mtcars.car_name = R.rownames(:mtcars)
+mtcars.car_name = R.rownames(:mtcars)
 
 # compute normalized mpg and add it to a new column called mpg_z
 # Note that the mean value for mpg can be obtained by calling the 'mean'
 # function on the vector 'mtcars.mpg'.  The same with the standard
 # deviation 'sd'.  The vector is then rounded to two digits with 'round 2'
-@mtcars.mpg_z = ((@mtcars.mpg - @mtcars.mpg.mean)/@mtcars.mpg.sd).round 2
+mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean)/mtcars.mpg.sd).round 2
 
 # create a new column 'mpg_type'. Function 'ifelse' is a vectorized function
 # that looks at every element of the mpg_z vector and if the value is below
 # 0, returns 'below', otherwise returns 'above'
-@mtcars.mpg_type = (@mtcars.mpg_z < 0).ifelse("below", "above")
+mtcars.mpg_type = (mtcars.mpg_z < 0).ifelse("below", "above")
 
 # order the mtcar data set by the mpg_z vector from smaler to larger values
-@mtcars = @mtcars[@mtcars.mpg_z.order, :all]
+mtcars = mtcars[mtcars.mpg_z.order, :all]
 
 # convert the car_name column to a factor to retain sorted order in plot
-@mtcars.car_name = @mtcars.car_name.factor levels: @mtcars.car_name
+mtcars.car_name = mtcars.car_name.factor levels: mtcars.car_name
 
 # let's look at the first records of the final data frame
-puts @mtcars.head
+puts mtcars.head
 ```
 
 ```{ruby diverging_bar, fig.width = 9.1, fig.height = 6.5}
 require 'ggplot'
 
-puts @mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
+puts mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
      R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
      R.scale_fill_manual(name: 'Mileage',
                          labels: R.c('Above Average', 'Below Average'),
@@ -463,8 +459,8 @@ with the 'rb' engine.  The following chunk specification will
 create and inline Ruby text:
 
 ````
-This is some text with inline Ruby accessing variable \@b which has value:
-```{rb puts "```{rb puts @b}\n```"}
+This is some text with inline Ruby accessing variable 'b' which has value:
+```{rb puts "```{rb puts b}\n```"}
 ```
 and is followed by some other text!
 ````
@@ -472,8 +468,8 @@ and is followed by some other text!
 <div style="margin-bottom:30px;">
 </div>
 
-This is some text with inline Ruby accessing variable \@b which has value:
-```{rb puts @b}
+This is some text with inline Ruby accessing variable 'b' which has value:
+```{rb puts b}
 ```
 and is followed by some other text!
 
@@ -486,7 +482,7 @@ with inline Ruby code.
 
 
 ```{ruby heading, echo = FALSE}
-outputs "### #{@c}"
+outputs "### #{c}"
 ```
 
 He have previously used the standard 'puts' method in Ruby chunks in order produce
@@ -500,15 +496,15 @@ For example, suppose we want to create a new heading in our document, but the he
 phrase is the result of some code processing: maybe it's the first line of a file we are
 going to read.  Method 'outputs' adds its output as if typed in the __R markdown__ document. 
 
-Take now a look at variable '\@c' (it was defined in a previous block above) as 
-'\@c = "The 'outputs' function".  "The 'outputs' function" is actually the name of this
+Take now a look at variable 'c' (it was defined in a previous block above) as 
+'c = "The 'outputs' function".  "The 'outputs' function" is actually the name of this
 section and it was created using the 'outputs' function inside a Ruby chunk.
 
 The ruby chunk to generate this heading is:
 
 ````
 ```{ruby heading}`r ''`
-outputs "### #{@c}"
+outputs "### #{c}"
 ```
 ````
 

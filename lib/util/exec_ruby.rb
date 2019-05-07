@@ -37,7 +37,11 @@ class RC
   end
 
   def outputs(obj)
-    @outputs = R.c(@outputs, obj)
+    @out_list = R.c(@out_list, obj)
+  end
+
+  def reset_outputs
+    @out_list = nil
   end
 
   def get_binding
