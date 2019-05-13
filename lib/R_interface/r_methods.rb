@@ -171,6 +171,16 @@ module R
         R
     end
 
+    #--------------------------------------------------------------------------------------
+    #
+    #--------------------------------------------------------------------------------------
+
+    Polyglot.eval("R", <<-R)
+      plot = function(...) {
+        print("Function 'plot' is not implemented in fastR.  Please, use ggplot instead")
+      }
+    R
+
   end
   
 end

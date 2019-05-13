@@ -42,6 +42,7 @@ module R
     end
     
     def method_missing(symbol, *args)
+      symbol = R::Support.convert_symbol2r(symbol)
       R::Support.exec_function_name("#{@package_name}::#{symbol}", *args)
     end
 

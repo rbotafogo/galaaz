@@ -98,7 +98,7 @@ module GalaazUtil
       # Execute the Ruby code in the scope of class RubyChunk. This is done
       # so that instance variables created in one chunk can be used again on
       # another chunk
-      # RubyChunk.instance_eval(code) if (options[["eval"]] >> 0)
+      # RChunk.instance_eval(code) if (options[["eval"]] >> 0)
       eval(code, RCbinding, __FILE__, __LINE__ + 1) if (options[["eval"]] >> 0)
       
       # add the returned value to the list

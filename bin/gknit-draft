@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+require 'optionparser'
+
+options = {}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: gknit-draft [options] [path]"
+  opts.on("-f", "--filename FILE", "Directory and filename to create") do |opt|
+    options[:file] = opt
+  end
+  opts.on("-t", "--template TEMPLATE", "Latex template to use") do |opt|
+    options[:template] = opt
+  end
+  opts.on("-p", "--package PACKAGE", "R Package where the template is defined") do |opt|
+    options[:package] = opt
+  end
+  opts.on("-c", "--create_dir", "If a new directory should be created") do |opt|
+    options[:create_dir] = opt
+  end
+  opts.on("-e", "--edit EDITOR", "Editor to use to edit the file") do |opt|
+    options[:editor] = opt
+  end
+end.parse!
+
+Dir.chdir(File.dirname(File.expand_path('.', __FILE__)))
+
+options[:file] = "#{options[:file]}-#{options[:template]}"
+
+exec "ruby --polyglot --jvm --experimental-options --single-threaded \
+-I../lib -S ./gknit-draft.rb #{options[:file]} #{options[:template]} #{options[:package]} #{options[:create_dir]} #{options[:editor]}"
+

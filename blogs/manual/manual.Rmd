@@ -4,6 +4,7 @@ subtitle: "How to tightly couple Ruby and R in GraalVM"
 author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
 date: "2019"
+bibliography: "/home/rbotafogo/Bibliography/stats.bib"
 output:
   pdf_document:
     includes:
@@ -11,7 +12,7 @@ output:
     keep_tex: yes
     number_sections: yes
     toc: true
-    toc_depth: 2
+    toc_depth: 3
   html_document:
     self_contained: true
     keep_md: true
@@ -32,6 +33,92 @@ libraries for data science, statistics, scientific plotting and machine learning
 other hand, R is considered one of the most powerful languages for solving all of the above 
 problems. Maybe the strongest competitor to R is Python with libraries such as NumPy, 
 Panda, SciPy, SciKit-Learn and a couple more.
+
+With Galaaz we do not intend to re-implement any of the scientific libraries in R, we allow
+for very tight coupling between the two languages to the point that the Ruby developer does
+not need to know that there is an R engine running.
+
+According to Wikipedia "Ruby is a dynamic, interpreted, reflective, object-oriented, 
+general-purpose programming language. It was designed and developed in the mid-1990s by Yukihiro 
+"Matz" Matsumoto in Japan."  It reached high popularity with the development of Ruby on Rails
+(RoR) by David Heinemeier Hansson. RoR is a web application framework first released
+around 2005. It makes extensive use of Ruby's metaprogramming features.  With RoR,
+Ruby became very popular.  According to [Ruby's Tiobe index](https://www.tiobe.com/tiobe-index/ruby/)
+it peeked in popularity around 2008, then declined until 2015 when it started picking up again.
+At the time of this writing (November 2018), the Tiobe index puts Ruby in 16th position as
+most popular language.
+
+Python, a language similar to Ruby, ranks 4th in the index.  Java, C and C++ take the
+first three positions.  Ruby is often criticized for its focus on web applications.
+But Ruby can do [much more](https://github.com/markets/awesome-ruby) than just web applications.
+Yet, for scientific computing, Ruby lags way behind Python and R.  Python has
+Django framework for web, NumPy for numerical arrays, Pandas for data analysis.
+R is a free software environment for statistical computing and graphics with thousands
+of libraries for data analysis. 
+
+Until recently, there was no real perspective for Ruby to bridge this gap.
+Implementing a complete scientific computing infrastructure would take too long.
+Enters [Oracle's GraalVM](https://www.graalvm.org/):
+
+> GraalVM is a universal virtual machine for running applications written in
+> JavaScript, Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin,
+> and LLVM-based languages such as C and C++.
+>
+> GraalVM removes the isolation between programming languages and enables
+> interoperability in a shared runtime. It can run either standalone or in the
+> context of OpenJDK, Node.js, Oracle Database, or MySQL.
+>
+> GraalVM allows you to write polyglot applications with a seamless way to pass
+> values from one language to another. With GraalVM there is no copying or
+> marshaling necessary as it is with other polyglot systems. This lets you
+> achieve high performance when language boundaries are crossed. Most of the time
+> there is no additional cost for crossing a language boundary at all.
+>
+> Often developers have to make uncomfortable compromises that require them
+> to rewrite their software in other languages. For example:
+>
+>  * That library is not available in my language. I need to rewrite it. 
+>  * That language would be the perfect fit for my problem, but we cannot
+>    run it in our environment. 
+>  * That problem is already solved in my language, but the language is
+>    too slow.
+>   
+>  With GraalVM we aim to allow developers to freely choose the right language for
+>  the task at hand without making compromises.
+
+As stated above, GraalVM is a _universal_ virtual machine that allows Ruby and R (and other
+languages) to run on the same environment.  GraalVM allows polyglot applications to
+_seamlessly_ interact with one another and pass values from one language to the other.
+Although a great idea, GraalVM still requires application writers to know several languages.
+To eliminate that requirement, we built Galaaz, a gem for Ruby, to tightly couple
+Ruby and R and allow those languages to interact in a way that the user will be unaware
+of such interaction. In other words, a Ruby programmer will be able to use all
+the capabilities of R without knowing the R syntax.
+
+Library wrapping is a usual way of bringing features from one language into another.
+To improve performance, Python often wraps more efficient C libraries. For the
+Python developer, the existence of such C libraries is hidden.  The problem with
+library wrapping is that for any new library, there is the need to handcraft a new
+wrapper.
+
+Galaaz, instead of wrapping a single C or R library, wraps the whole R language
+in Ruby.  Doing so, all thousands of R libraries are available immediately
+to Ruby developers without any new wrapping effort.
+
+## What does Galaaz mean
+
+Galaaz is the Portuguese name for "Galahad".  From Wikipedia:
+
+    Sir Galahad (sometimes referred to as Galeas or Galath),
+    in Arthurian legend, is a knight of King Arthur's Round Table and one
+    of the three achievers of the Holy Grail. He is the illegitimate son
+    of Sir Lancelot and Elaine of Corbenic, and is renowned for his
+    gallantry and purity as the most perfect of all knights. Emerging quite
+    late in the medieval Arthurian tradition, Sir Galahad first appears in the
+    Lancelot–Grail cycle, and his story is taken up in later works such as
+    the Post-Vulgate Cycle and Sir Thomas Malory's Le Morte d'Arthur.
+    His name should not be mistaken with Galehaut, a different knight from
+    Arthurian legend. 
 
 # System Compatibility
 
@@ -83,7 +170,7 @@ Panda, SciPy, SciKit-Learn and a couple more.
   > galaaz -T
   
   Shows a list with all available executalbe tasks.  To execute a task, substitute the
-  'rake' word in the list with 'galaaz'.  For instance, the following line shows up
+   'rake' word in the list with 'galaaz'.  For instance, the following line shows up
   after 'galaaz -T'
   
   rake master_list:scatter_plot        # scatter_plot from:....
@@ -101,9 +188,595 @@ chunks, making it an ideal solution for literate programming. Also, since it is 
 on Galaaz, Ruby chunks can have access to R variables and Polyglot Programming with 
 Ruby and R is quite natural.
 
-[gknit is described in more details here](https://towardsdatascience.com/how-to-do-reproducible-research-in-ruby-with-gknit-c26d2684d64e)
+The idea of "literate programming" was first introduced by Donald Knuth in the 
+1980's [@Knuth:literate_programming].
+The main intention of this approach was to develop software interspersing macro snippets,
+traditional source code, and a natural language such as English in a document 
+that could be compiled into
+executable code and at the same time easily read by a human developer. According to Knuth
+"The practitioner of 
+literate programming can be regarded as an essayist, whose main concern is with exposition 
+and excellence of style."
 
-# Vector
+The idea of literate programming evolved into the idea of reproducible research, in which
+all the data, software code, documentation, graphics etc. needed to reproduce the research
+and its reports could be included in a
+single document or set of documents that when distributed to peers could be rerun generating
+the same output and reports.
+
+The R community has put a great deal of effort in reproducible research.  In 2002, Sweave was
+introduced and it allowed mixing R code with Latex generating high quality PDF documents.  A
+Sweave document could include code, the results of executing the code, graphics and text 
+such that it contained the whole narrative to reproduce the research.  In
+2012, Knitr, developed by Yihui Xie from RStudio was released to replace Sweave and to
+consolidate in one single package the many extensions and add-on packages that
+were necessary for Sweave.
+
+With Knitr, __R markdown__ was also developed, an extension to the
+Markdown format.  With __R markdown__ and Knitr it is possible to generate reports in a multitude
+of formats such as HTML, markdown, Latex, PDF, dvi, etc.  __R markdown__ also allows the use of
+multiple programming languages such as R, Ruby, Python, etc. in the same document.  
+
+In __R markdown__, text is interspersed with
+code chunks that can be executed and both the code and its results can become
+part of the final report.  Although __R markdown__ allows multiple programming languages in the
+same document, only R and Python (with
+the reticulate package) can persist variables between chunks.  For other languages, such as
+Ruby, every chunk will start a new process and thus all data is lost between chunks, unless it
+is somehow stored in a data file that is read by the next chunk.
+
+Being able to persist data
+between chunks is critical for literate programming otherwise the flow of the narrative is lost
+by all the effort of having to save data and then reload it. Although this might, at first, seem like
+a small nuisance, not being able to persist data between chunks is a major issue. For example, let's
+take a look at the following simple example in which we want to show how to create a list and the
+use it.  Let's first assume that data cannot be persisted between chunks.  In the next chunk we
+create a list, then we would need to save it to file, but to save it, we need somehow to marshal the
+data into a binary format:
+
+```{ruby no_persistence}
+lst = R.list(a: 1, b: 2, c: 3)
+lst.saveRDS("lst.rds")
+```
+then, on the next chunk, where variable 'lst' is used, we need to read back it's value
+
+```{ruby load_persisted_data}
+lst = R.readRDS("lst.rds")
+puts lst
+```
+
+Now, any single code has dozens of variables that we might want to use and reuse between chunks.
+Clearly, such an approach becomes quickly unmanageable. Probably, because of 
+this problem, it is very rare to see any __R markdown__ document in the Ruby community.
+
+When variables can be used accross chunks, then no overhead is needed:
+
+```{ruby persistence}
+lst = R.list(a: 1, b: 2, c: 3)
+# any other code can be added here
+```
+
+```{ruby use_var}
+puts lst
+```
+
+In the Python community, the same effort to have code and text in an integrated environment
+started around the first decade of 2000. In 2006 iPython 0.7.2 was released.  In 2014,
+Fernando Pérez, spun off project Jupyter from iPython creating a web-based interactive
+computation environment.  Jupyter can now be used with many languages, including Ruby with the
+iruby gem (https://github.com/SciRuby/iruby).  In order to have multiple languages in a Jupyter
+notebook the SoS kernel was developed (https://vatlab.github.io/sos-docs/).
+
+## gKnit and __R markdown__
+
+gKnit is based on knitr and __R markdown__ and can knit a document 
+written both in Ruby and/or R and output it in any of the available formats of __R markdown__.  gKnit
+allows ruby developers to do literate programming and reproducible research by allowing them to
+have in a single document, text and code.
+
+In gKnit, Ruby variables are persisted between 
+chunks, making  it an ideal solution for literate programming in this language.  Also, 
+since it is based on  Galaaz, Ruby chunks can have access to R variables and Polyglot Programming 
+with Ruby and R is quite natural.
+
+This is not a blog post on __R markdown__, and the interested user is directed to the following links
+for detailed information on its capabilities and use.
+
+* https://rmarkdown.rstudio.com/ or
+* https://bookdown.org/yihui/rmarkdown/ 
+
+In this post, we will describe just the main aspects of __R markdown__, so the user can start 
+gKnitting Ruby and R documents quickly.
+
+## The Yaml header
+
+An __R markdown__ document should start with a Yaml header and be stored in a file with 
+'.Rmd' extension. This document has the following header for gKitting an HTML document.
+
+```
+---
+title: "How to do reproducible research in Ruby with gKnit"
+author: 
+    - "Rodrigo Botafogo"
+    - "Daniel Mossé - University of Pittsburgh"
+tags: [Tech, Data Science, Ruby, R, GraalVM]
+date: "20/02/2019"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+  pdf_document:
+    includes:
+      in_header: ["../../sty/galaaz.sty"]
+    number_sections: yes
+---
+```
+
+For more information on the options in the Yaml header, [check here](https://bookdown.org/yihui/rmarkdown/html-document.html).
+
+## __R Markdown__ formatting
+
+Document formatting can be done with simple markups such as:
+
+## Headers
+
+```
+# Header 1
+
+## Header 2
+
+### Header 3
+
+```
+
+## Lists
+
+```
+Unordered lists:
+
+* Item 1
+* Item 2
+    + Item 2a
+    + Item 2b
+```
+
+```
+Ordered Lists
+
+1. Item 1
+2. Item 2
+3. Item 3
+    + Item 3a
+    + Item 3b
+```
+
+For more R markdown formatting go to https://rmarkdown.rstudio.com/authoring_basics.html.
+
+## R chunks
+
+Running and executing Ruby and R code is actually what really interests us is this blog.  
+Inserting a code chunk is done by adding code in a block delimited by three back ticks 
+followed by an open
+curly brace ('{') followed with the engine name (r, ruby, rb, include, ...), an 
+any optional chunk_label and options, as shown bellow:
+
+````
+```{engine_name [chunk_label], [chunk_options]}`r ''`
+```
+````
+
+for instance, let's add an R chunk to the document labeled 'first_r_chunk'.  This is
+a very simple code just to create a variable and print it out, as follows:
+
+````
+```{r first_r_chunk}`r ''`
+vec <- c(1, 2, 3)
+print(vec)
+```
+````
+
+If this block is added to an __R markdown__ document and gKnitted the result will be:
+
+```{r first_r_chunk}
+vec <- c(1, 2, 3)
+print(vec)
+```
+
+Now let's say that we want to do some analysis in the code, but just print the result and not the
+code itself.  For this, we need to add the option 'echo = FALSE'.
+
+````
+```{r second_r_chunk, echo = FALSE}`r ''`
+vec2 <- c(10, 20, 30)
+vec3 <- vec * vec2
+print(vec3)     
+```
+````
+Here is how this block will show up in the document. Observe that the code is not shown
+and we only see the execution result in a white box
+
+```{r second_r_chunk, echo = FALSE}
+vec2 <- c(10, 20, 30)
+vec3 <- vec * vec2
+print(vec3)     
+```
+
+A description of the available chunk options can be found in https://yihui.name/knitr/.
+
+Let's add another R chunk with a function definition.  In this example, a vector 
+'r_vec' is created and
+a new function 'reduce_sum' is defined.  The chunk specification is
+
+````
+```{r data_creation}`r ''`
+r_vec <- c(1, 2, 3, 4, 5)
+
+reduce_sum <- function(...) {
+  Reduce(sum, as.list(...))
+}
+```
+````
+
+and this is how it will look like once executed.  From now on, to be concise in the
+presentation we will not show chunk definitions any longer.
+
+
+```{r data_creation}
+r_vec <- c(1, 2, 3, 4, 5)
+
+reduce_sum <- function(...) {
+  Reduce(sum, as.list(...))
+}
+```
+
+We can, possibly in another chunk, access the vector and call the function as follows:
+
+```{r using_previous}
+print(r_vec)
+print(reduce_sum(r_vec))
+```
+## R Graphics with ggplot
+
+In the following chunk, we create a bubble chart in R using ggplot and include it in 
+this document.  Note that there is no directive in the code to include the image, this
+occurs automatically.  The 'mpg' dataframe is natively available to R and to Galaaz as
+well.
+
+For the reader not knowledgeable of ggplot, ggplot is a graphics library based on "the
+grammar of graphics" [@Wilkinson:grammar_of_graphics]. The idea of the grammar of graphics
+is to build a graphics by adding layers to the plot.  More information can be found in
+https://towardsdatascience.com/a-comprehensive-guide-to-the-grammar-of-graphics-for-effective-visualization-of-multi-dimensional-1f92b4ed4149.
+
+In the plot bellow the 'mpg' dataset from base R is used. "The data concerns city-cycle fuel 
+consumption in miles per gallon, to be predicted in terms of 3 multivalued discrete and 5 
+continuous attributes." (Quinlan, 1993)
+
+First, the 'mpg' dataset if filtered to extract only cars from the following manumactures: Audi, Ford,
+Honda, and Hyundai and stored in the 'mpg_select' variable.  Then, the selected dataframe is passed
+to the ggplot function specifying in the aesthetic method (aes) that 'displacement' (disp) should
+be plotted in the 'x' axis and 'city mileage' should be on the 'y' axis.  In the 'labs' layer we
+pass the 'title' and 'subtitle' for the plot.  To the basic plot 'g', geom\_jitter is added, that
+plots cars from the same manufactures with the same color (col=manufactures) and the size of the
+car point equal its high way consumption (size = hwy).  Finally, a last layer is plotter containing
+a linear regression line (method = "lm") for every manufacturer.
+
+```{r bubble, dev='png'}
+# load package and data
+library(ggplot2)
+data(mpg, package="ggplot2")
+
+mpg_select <- mpg[mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"), ]
+
+# Scatterplot
+theme_set(theme_bw())  # pre-set the bw theme.
+g <- ggplot(mpg_select, aes(displ, cty)) + 
+  labs(subtitle="mpg: Displacement vs City Mileage",
+       title="Bubble chart")
+
+g + geom_jitter(aes(col=manufacturer, size=hwy)) + 
+  geom_smooth(aes(col=manufacturer), method="lm", se=F)
+```
+
+## Ruby chunks
+
+Including a Ruby chunk is just as easy as including an R chunk in the document: just 
+change the name of the engine to 'ruby'.  It is also possible to pass chunk options
+to the Ruby engine; however, this version does not accept all the options that are
+available to R chunks.  Future versions will add those options.
+
+````
+```{ruby first_ruby_chunk}`r ''`
+```
+````
+
+In this example, the ruby chunk is called 'first_ruby_chunk'.  One important 
+aspect of chunk labels is that they cannot be duplicated.  If a chunk label is 
+duplicated, gKnit will stop with an error.
+
+In the following chunk, variable 'a', 'b' and 'c' are standard Ruby variables 
+and 'vec' and 'vec2' are two vectors created  by calling the 'c' method on the 
+R module.
+
+In Galaaz, the R module allows us to access R functions transparently.  The 'c' 
+function in R, is a function that concatenates its arguments making a vector.
+
+It 
+should be clear that there is no requirement in gknit to call or use any R 
+functions.  gKnit will knit standard Ruby code, or even general text without 
+any code.
+
+```{ruby split_data}
+a = [1, 2, 3]
+b = "US$ 250.000"
+c = "The 'outputs' function"
+
+vec = R.c(1, 2, 3)
+vec2 = R.c(10, 20, 30)
+```
+
+In the next block, variables 'a', 'vec' and 'vec2' are used and printed.
+
+```{ruby split2}
+puts a
+puts vec * vec2
+```
+
+Note that 'a' is a standard Ruby Array and 'vec' and 'vec2' are vectors that behave accordingly,
+where multiplication works as expected.
+
+
+## Accessing R from Ruby
+
+One of the nice aspects of Galaaz on GraalVM, is that variables and functions defined in R, can
+be easily accessed from Ruby.  This next chunk, reads data from R and uses the 'reduce_sum'
+function defined previously.  To access an R variable from Ruby the '~' function should be
+applied to the Ruby symbol representing the R variable.  Since the R variable is called 'r_vec',
+in Ruby, the symbol to acess it is ':r_vec' and thus '~:r_vec' retrieves the value of the
+variable.
+
+```{ruby access_r}
+puts ~:r_vec
+```
+
+In order to call an R function, the 'R.' module is used as follows
+
+```{ruby call_r_func}
+puts R.reduce_sum(~:r_vec)
+```
+
+## Inline Ruby code
+
+When using a Ruby chunk, the code and the output are formatted in blocks as seen above.
+This formatting is not always desired.  Sometimes, we want to have the results of the
+Ruby evaluation included in the middle of a phrase. gKnit allows adding inline Ruby code 
+with the 'rb' engine.  The following chunk specification will 
+create and inline Ruby text:
+
+````
+This is some text with inline Ruby accessing variable 'b' which has value:
+```{rb puts "```{rb puts b}\n```"}
+```
+and is followed by some other text!
+````
+
+<div style="margin-bottom:30px;">
+</div>
+
+This is some text with inline Ruby accessing variable 'b' which has value:
+```{rb puts b}
+```
+and is followed by some other text!
+
+<div style="margin-bottom:30px;">
+</div>
+
+Note that it is important not to add any new line before of after the code
+block if we want everything to be in only one line, resulting in the following sentence 
+with inline Ruby code.
+
+
+```{ruby heading, echo = FALSE}
+outputs "### #{c}"
+```
+
+He have previously used the standard 'puts' method in Ruby chunks in order produce
+output.  The result of a 'puts', as seen in all previous chunks that use it,  is formatted 
+inside a white box that 
+follows the code block. Many times however, we would like to do some processing in the 
+Ruby chunk and have the result of this processing generate and output that is 
+"included" in the document as if we had typed it in __R markdown__ document.
+
+For example, suppose we want to create a new heading in our document, but the heading 
+phrase is the result of some code processing: maybe it's the first line of a file we are
+going to read.  Method 'outputs' adds its output as if typed in the __R markdown__ document. 
+
+Take now a look at variable 'c' (it was defined in a previous block above) as 
+'c = "The 'outputs' function".  "The 'outputs' function" is actually the name of this
+section and it was created using the 'outputs' function inside a Ruby chunk.
+
+The ruby chunk to generate this heading is:
+
+````
+```{ruby heading}`r ''`
+outputs "### #{c}"
+```
+````
+
+The three '###' is the way we add a Heading 3 in __R markdown__.
+
+
+### HTML Output from Ruby Chunks
+
+We've just seen the use of method 'outputs' to add text to the the __R markdown__ 
+document.  This technique can also be used to add HTML code to the document. In 
+__R markdown__, any html code typed directly in the document will be properly rendered.  
+Here, for instance, is a table definition in HTML and its output in the document:
+
+```
+<table style="width:100%">
+  <tr>
+    <th>Firstname</th>
+    <th>Lastname</th> 
+    <th>Age</th>
+  </tr>
+  <tr>
+    <td>Jill</td>
+    <td>Smith</td> 
+    <td>50</td>
+  </tr>
+  <tr>
+    <td>Eve</td>
+    <td>Jackson</td> 
+    <td>94</td>
+  </tr>
+</table>
+```
+<div style="margin-bottom:30px;">
+</div>
+
+<table style="width:100%">
+  <tr>
+    <th>Firstname</th>
+    <th>Lastname</th> 
+    <th>Age</th>
+  </tr>
+  <tr>
+    <td>Jill</td>
+    <td>Smith</td> 
+    <td>50</td>
+  </tr>
+  <tr>
+    <td>Eve</td>
+    <td>Jackson</td> 
+    <td>94</td>
+  </tr>
+</table>
+
+<div style="margin-bottom:30px;">
+</div>
+
+But manually creating HTML output is not always easy or desirable, specially
+if we intend the document to be rendered in other formats, for example, as Latex.
+Also, The above 
+table looks ugly.  The 'kableExtra' library is a great library for 
+creating beautiful tables. Take a look at https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
+
+In the next chunk, we output the 'mtcars' dataframe from R in a nicely formatted 
+table.  Note that we retrieve the mtcars dataframe by using '~:mtcars'.
+
+```{ruby nice_table}
+R.install_and_loads('kableExtra')
+outputs (~:mtcars).kable.kable_styling
+```
+
+## Including Ruby files in a chunk
+
+R is a language that was created to be easy and fast for statisticians to use.  As far
+as I know, it was not a
+language to be used for developing large systems.  Of course, there are large systems and
+libraries in R, but the focus of the language is for developing statistical models and
+distribute that to peers.
+
+Ruby on the other hand, is a language for large software development.  Systems written in
+Ruby will have dozens, hundreds or even thousands of files.  To document a 
+large system with literate programming, we cannot expect the developer to add all the 
+files in a single '.Rmd' file.  gKnit provides the 'include' chunk engine to include 
+a Ruby file as if it had being typed in the '.Rmd' file.
+
+To include a file, the following chunk should be created, where <filename> is the name of
+the file to be included and where the extension, if it is '.rb', does not need to be added.
+If the 'relative' option is not included, then it is treated as TRUE.  When 'relative' is
+true, ruby's 'require\_relative' semantics is used to load the file, when false, Ruby's 
+\$LOAD_PATH is searched to find the file and it is 'require'd.
+
+````
+```{include <filename>, relative = <TRUE/FALSE>}`r ''`
+```
+````
+
+Bellow we include file 'model.rb', which is in the same directory of this blog.  
+This code uses R 'caret' package to split a dataset in a train and test sets.
+The 'caret' package is a very important a useful package for doing Data Analysis,
+it has hundreds of functions for all steps of the Data Analysis workflow.  To
+use 'caret' just to split a dataset is like using the proverbial cannon to 
+kill the fly.  We use it here only to show that integrating Ruby and R and 
+using even a very complex package as 'caret' is trivial with Galaaz.
+
+A word of advice: the 'caret' package has lots of dependencies and installing
+it in a Linux system is a time consuming operation.  Method 'R.install_and_loads'
+will install the package if it is not already installed and can take a while.
+
+````
+```{include model}`r ''`
+```
+````
+
+```{include model}
+```
+
+```{ruby model_partition}
+mtcars = ~:mtcars
+model = Model.new(mtcars, percent_train: 0.8)
+model.partition(:mpg)
+puts model.train.head
+puts model.test.head
+```
+
+## Documenting Gems
+
+gKnit also allows developers to document and load files that are not in the same directory
+of the '.Rmd' file.
+
+Here is an example of loading the 'find.rb' file from TruffleRuby. In this example, relative
+is set to FALSE, so Ruby will look for the file in its $LOAD\_PATH, and the user does not
+need to no it's directory.
+
+````
+```{include find, relative = FALSE}`r ''`
+```
+````
+
+```{include find, relative = FALSE}
+```
+
+## Converting to PDF
+
+One of the beauties of knitr is that the same input can be converted to many different outputs.
+One very useful format, is, of course, PDF.  In order to converted an __R markdown__ file to PDF
+it is necessary to have LaTeX installed on the system.  We will not explain here how to
+install LaTeX as there are plenty of documents on the web showing how to proceed.
+
+gKnit comes with a simple LaTeX style file for gknitting this blog as a PDF document.  Here is
+the Yaml header to generate this blog in PDF format instead of HTML:
+
+```
+---
+title: "gKnit - Ruby and R Knitting with Galaaz in GraalVM"
+author: "Rodrigo Botafogo"
+tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr, gknit]
+date: "29 October 2018"
+output:
+  pdf\_document:
+    includes:
+      in\_header: ["../../sty/galaaz.sty"]
+    number\_sections: yes
+---
+```
+# Accessing R variables
+
+Galaaz allows Ruby to access variables created in R.  For example, the 'mtcars' data set is 
+available in R and can be accessed from Ruby by using the 'tilda' operator followed by the
+symbol for the variable, in this case ':mtcar'.  In the code bellow method 'outputs' is 
+used to output the 'mtcars' data set nicely formatted in HTML by use of the 'kable' and
+'kable_styling' functions. Method 'outputs' is only available when used with 'gknit'.
+
+```{ruby view_kable}
+outputs (~:mtcars).kable.kable_styling
+```
+
+# Basic Data Types
+
+## Vector
 
 Vectors can be thought of as contiguous cells containing data. Cells are accessed through
 indexing operations such as x[5]. Galaaz has six basic (‘atomic’) vector types: logical, 
@@ -178,7 +851,7 @@ vec = R.c(true, true, false, false, true)
 puts vec
 ```
 
-## Combining Vectors
+### Combining Vectors
 
 The 'c' functions used to create vectors can also be used to combine two vectors:
 
@@ -200,7 +873,7 @@ vec = vec1.c(vec2)
 puts vec
 ```
 
-## Vector Arithmetic
+### Vector Arithmetic
 
 Arithmetic operations on vectors are performed element by element:
 
@@ -219,7 +892,7 @@ vec3 = R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)
 puts vec4 = vec1 + vec3
 ```
 
-## Vector Indexing
+### Vector Indexing
 
 Vectors can be indexed by using the '[]' operator:
 
@@ -275,7 +948,7 @@ full_name = R.c(First: "Rodrigo", Middle: "A", Last: "Botafogo")
 puts full_name
 ```
 
-## Extracting Native Ruby Types from a Vector
+### Extracting Native Ruby Types from a Vector
 
 Vectors created with 'R.c' are of class R::Vector.  You might have noticed that when indexing a
 vector, a new vector is returned, even if this vector has one single element. In order to use
@@ -290,19 +963,7 @@ puts vec4 >> 4
 
 Note that indexing with '>>' starts at 0 and not at 1, also, we cannot do negative indexing.
 
-# Accessing R variables
-
-Galaaz allows Ruby to access variables created in R.  For example, the 'mtcars' data set is 
-available in R and can be accessed from Ruby by using the 'tilda' operator followed by the
-symbol for the variable, in this case ':mtcar'.  In the code bellow method 'outputs' is 
-used to output the 'mtcars' data set nicely formatted in HTML by use of the 'kable' and
-'kable_styling' functions. Method 'outputs' is only available when used with 'gknit'.
-
-```{ruby view_kable}
-outputs (~:mtcars).kable.kable_styling
-```
-
-# Matrix
+## Matrix
 
 A matrix is a collection of elements organized as a two dimensional table.  A matrix can be 
 created by the 'matrix' function:
@@ -326,7 +987,7 @@ mat_row = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
 puts mat_row
 ```
 
-## Indexing a Matrix
+### Indexing a Matrix
 
 A matrix can be indexed by [row, column]:
 
@@ -360,7 +1021,7 @@ and 'cbind':
 puts mat_row.cbind(mat)
 ```
 
-# List
+## List
 
 A list is a data structure that can contain sublists of different types, while vector and matrix
 can only hold one type of element.
@@ -376,7 +1037,7 @@ puts lst
 Note that 'lst' elements are named elements.
 
 
-## List Indexing
+### List Indexing
 
 List indexing, also called slicing, is done using the '[]' operator and the '[[]]' operator. Let's
 first start with the '[]' operator. The list above has three sublist indexing with '[]' will 
@@ -406,7 +1067,7 @@ then the first element of the vector was extracted (note that vectors also accep
 operator) and then the vector was indexed by its first element, extracting the native Ruby type.
 
 
-# Data Frame
+## Data Frame
 
 A data frame is a table like structure in which each column has the same number of 
 rows. Data frames are the basic structure for storing data for data analysis.  We have already
@@ -421,7 +1082,7 @@ df = R.data__frame(
 puts df
 ```
 
-## Data Frame Indexing
+### Data Frame Indexing
 
 A data frame can be indexed the same way as a matrix, by using '[row, column]', where row and
 column can either be a numeric or the name of the row or column
@@ -1275,7 +1936,6 @@ puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year")).as__data
 
 # Contributing
 
-
 * Fork it
 * Create your feature branch (git checkout -b my-new-feature)
 * Write Tests!
@@ -1283,3 +1943,4 @@ puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year")).as__data
 * Push to the branch (git push origin my-new-feature)
 * Create new Pull Request
 
+# References

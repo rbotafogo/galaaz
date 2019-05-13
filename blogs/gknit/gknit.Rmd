@@ -7,13 +7,14 @@ tags: [Tech, Data Science, Ruby, R, GraalVM]
 date: "29/04/2019"
 bibliography: stats.bib
 output:
-  html_document:
-    self_contained: true
-    keep_md: true
   pdf_document:
     includes:
       in_header: ["../../sty/galaaz.sty"]
     number_sections: yes
+  html_document:
+    self_contained: true
+    keep_md: true
+biblio-style: apsr
 ---
 
 ```{r setup, echo=FALSE}

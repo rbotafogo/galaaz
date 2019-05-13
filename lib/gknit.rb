@@ -27,3 +27,5 @@ require_relative 'gknit/knitr_engine'
 require_relative 'gknit/ruby_engine'
 require_relative 'gknit/rb_engine'
 require_relative 'gknit/include_engine'
+require_relative 'gknit/draft'
+
