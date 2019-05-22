@@ -173,7 +173,7 @@ blogs.each do |dir|
   blog_rmd = "blogs/#{dir}/#{dir}.Rmd"
   desc "run gknit to build #{dir} blog post"
   task "blog:#{dir}" do
-    (sh %{ bin/gknit #{blog_rmd} })
+    (sh %{ bin/gknit #{blog_rmd} } )
   end
 
 end

@@ -687,36 +687,3 @@ class KnitrEngine
   end
   
 end
-
-=begin
-module R
-
-  class Object
-
-    #--------------------------------------------------------------------------------------
-    # Redefine to_s in order to capture plots when in knitr
-    #--------------------------------------------------------------------------------------
-    
-    def to_s
-
-      STDERR.puts "+++++++++++++++++++++++++++"
-      STDERR.puts "in to_s"
-      STDERR.puts "+++++++++++++++++++++++++++"
-      
-      cap = nil
-      cap = R::Support.capture.call(r_interop)
-      str = String.new
-      (0...(cap.size - 1)).each do |i|
-        str << cap[i] << "\n"
-      end
-      str << cap[cap.size - 1] if cap.size >= 1
-      re = RubyEngine.instance
-      re.capture_plot
-      str
-    end
-
-  end
-  
-end
-
-=end

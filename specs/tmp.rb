@@ -22,11 +22,19 @@
 ##########################################################################################
 
 require 'galaaz'
-require 'gknit'
+# require 'gknit'
+
+Polyglot.eval("R", <<-R)
+library(plotly)
+m <- highlight_key(mpg)
+p <- ggplot(m, aes(displ, hwy)) + geom_point()
+gg <- highlight(ggplotly(p), "plotly_selected")
+crosstalk::bscols(gg, DT::datatable(m))
+R
 
 # GKnit.draft(file: "rmd_test.Rmd", template: 'acm_article'))
 # GKnit.draft(file: "rmd_test.Rmd", template: 'acm_article2', package: 'rticles')
-GKnit.draft(file: "rmd_test", template: 'acm_article', package: 'rticles')
+# GKnit.draft(file: "rmd_test", template: 'acm_article', package: 'rticles')
 
 ## Renaming columns
 

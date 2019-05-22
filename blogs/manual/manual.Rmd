@@ -179,6 +179,84 @@ Galaaz is the Portuguese name for "Galahad".  From Wikipedia:
   
   > galaaz master_list:scatter_plot
 
+
+# Accessing R from Ruby
+
+One of the nice aspects of Galaaz on GraalVM, is that variables and functions defined in R, can
+be easily accessed from Ruby.  For instance, to access the 'mtcars' data frame from R
+in Ruby, we use the ':mtcar' symbol preceded by the '~' operator, thus '~:r_vec' retrieves the 
+value of the 'mtcars' variable.
+
+```{ruby access_r}
+puts ~:mtcars
+```
+
+To access an R function from Ruby, the R function needs to be preceeded by 'R.' scoping. 
+Bellow we see and example of creating a R::Vector by calling the 'c' R function
+
+```{ruby call_r_func}
+puts vec = R.c(1.0, 2.0, 3.0, 4.0)
+```
+Note that 'vec' is an object of type R::Vector:
+
+```{ruby r_object}
+puts vec.class
+```
+Every object created by a call to an R function will be of a type that inherits from
+R::Object. In R, there is also a function 'class'. In order to access that function we
+have two options, either use the 'R.' scoping rule or we can call method 'rclass' to 
+the R::Object:
+
+```{ruby rclass}
+puts R.class(vec)
+puts vec.rclass
+```
+When working with R::Object(s), it is possible to use the '.' operator to pipe operations.
+When using '.', the object to which the '.' is applied becomes the first argument of the
+corresponding R function. For instance, function 'c' in R, can be used to concatenate
+two vectors or more vectors (in R, there are no scalar values, scalars are converted to
+vectors of size 1. Within Galaaz, scalar parameter is converted to a size one vector):
+
+```{ruby concat}
+puts R.c(vec, 10, 20, 30)
+```
+The call above to the 'c' function can also be done using '.' notation:
+
+```{ruby concat_with_dot}
+puts vec.c(10, 20, 30)
+```
+We will talk about vector indexing in a latter section. But notice here that indexing
+an R::Vector will return another R::Vector:
+
+```{ruby indexing}
+puts vec[1]
+```
+Sometimes we want to index an R::Object and get back a Ruby object that is not wrapped
+in an R::Object, but the native Ruby object. For this, we can index the R object with
+the '>>' operator:
+
+```{ruby native_value}
+puts vec >> 0
+puts vec >> 2
+```
+
+It is also possible to call an R function with named arguments, by creating the function
+in Galaaz with named parameters. For instance, here is an example of creating a 'list'
+with named elements:
+
+```{ruby named_parameters}
+puts R.list(first_name: "Rodrigo", last_name: "Botafogo")
+```
+
+Many R functions receive another function as argument. For instance, method 'map' applies
+a function to every element of a vector. With Galaaz, it is possible to pass a Proc, 
+Method or Lambda in place of the expected R function. In this next example, we will
+add 2 to every element of our previously created vector:
+
+```{ruby proc_as_param}
+puts vec.map { |x| x + 2 }
+```
+
 # gKnitting a Document
 
 This manual has been formatted usign gKnit.  gKnit uses Knitr and R markdown to knit 
@@ -523,26 +601,6 @@ puts vec * vec2
 
 Note that 'a' is a standard Ruby Array and 'vec' and 'vec2' are vectors that behave accordingly,
 where multiplication works as expected.
-
-
-## Accessing R from Ruby
-
-One of the nice aspects of Galaaz on GraalVM, is that variables and functions defined in R, can
-be easily accessed from Ruby.  This next chunk, reads data from R and uses the 'reduce_sum'
-function defined previously.  To access an R variable from Ruby the '~' function should be
-applied to the Ruby symbol representing the R variable.  Since the R variable is called 'r_vec',
-in Ruby, the symbol to acess it is ':r_vec' and thus '~:r_vec' retrieves the value of the
-variable.
-
-```{ruby access_r}
-puts ~:r_vec
-```
-
-In order to call an R function, the 'R.' module is used as follows
-
-```{ruby call_r_func}
-puts R.reduce_sum(~:r_vec)
-```
 
 ## Inline Ruby code
 
@@ -1191,7 +1249,7 @@ puts exp6
 In general we think that using the functional notation is preferable to using the 
 symbolic notation as otherwise, we end up writing invalid expressions such as
 
-```{ruby exp_wrong, warning=FALSE}
+```{ruby exp_wrong, warning=FALSE, eval=FALSE}
 exp_wrong = (:a + :b) == :z
 puts exp_wrong
 ```

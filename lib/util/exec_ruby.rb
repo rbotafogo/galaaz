@@ -137,30 +137,4 @@ module GalaazUtil
     
   end
   
-  #----------------------------------------------------------------------------------------
-  # Used by old gknit.  Will eventually be replaced by exe_ruby
-  #----------------------------------------------------------------------------------------
-
-  def self.exec_ruby_tor(code)
-
-    # the output should be a list with the proper structure to pass to
-    # function engine_output.
-    out_list = R.list(R.structure(R.list(src: code), class: 'source'))
-    
-    # Set up standard output as a StringIO object.
-    $stdout = StringIO.new
-    RubyChunk.instance_eval(code)
-
-    # this should have captured everything in the evaluation code
-    # it is not working since at least RC10.
-    out = $stdout.string
-
-    out_list = R.c(out_list, out)
-    
-    # return $stdout to standard output
-    $stdout = STDOUT
-    R::Support.parse_arg(out_list)
-
-  end
-  
 end

@@ -1,15 +1,118 @@
 #!/usr/bin/env ruby
 # coding: utf-8
 
-dir = Dir.pwd
-puts "Knitting #{dir}/#{ARGV[0]}"
+require 'optionparser'
 
+options = {}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: gknit [options]"
+  opts.on("-f", "--filename FILE", "The input file to be rendered.  This value can also be provided without the '-f' or '--filename' flag by just giving the name of the file as an input parameter.") do |opt|
+    options[:input_file] = opt
+  end
+  opts.on("--output_format OUT_FORMAT", "The R Markdown output format to convert to. The option 'all' will render all formats defined within the file. The option can be the name of a format (e.g. 'html_document') and that will render the document to that single format. One can also use a vector of format names to render to multiple formats. Alternatively, you can pass an output format object (e.g. html_document()). If using NULL then the output format is the first one defined in the YAML frontmatter in the input file (this defaults to HTML if no format is specified there).") do |opt|
+    options[:output_format] = opt
+  end
+  opts.on("-o", "--output_file OUT_FILE", "The name of the output file. If using nil then the output filename will be based on filename for the input file. If a filename is provided, a path to the output file can also be provided. Note that the output_dir option allows for specifying the output file path as well, however, if also specifying the path, the directory must exist.") do |opt|
+    options[:output_file] = opt
+  end
+  opts.on("-d", "--output_dir OUT_DIR", "The output directory for the rendered output_file. This allows for a choice of an alternate directory to which the output file should be written (the default output directory is that of the input file). If a path is provided with a filename in output_file the directory specified here will take precedence. Please note that any directory path provided will create any necessary directories if they do not exist.") do |opt|
+    options[:output_dir] = opt
+  end
+  opts.on("-a", "--output_options OUT_OPT", "List of output options that can override the options specified in metadata (e.g. could be used to force self_contained or mathjax = 'local'). Note that this is only valid when the output format is read from metadata (i.e. not a custom format object passed to output_format).") do |opt|
+    options[:output_options] = opt
+  end
+  opts.on("-i", "--intermediates_dir INTER_DIR", "FEATURE NOT YET IMPLEMENTED! Intermediate files directory. If a path is specified then intermediate files will be written to that path. If nil, intermediate files are written to the same directory as the input file.") do |opt|
+    options[:intermediates_dir] = opt
+  end
+  opts.on("-n", "--no_clean", "Will not clean intermediate files that are created during rendering.") do |opt|
+    options[:clean] = opt
+  end
+end.parse!
+
+# Sets the directory
+dir = Dir.pwd
+
+#=========================================================================================
+# Check if the name of the file to gKnit was given and that it exists. If not,
+# issue error.
+#=========================================================================================
+
+options[:input_file] = ARGV[0] if !ARGV[0].nil?
+raise "Input file name is required for gKnitting. Add -f FILE or --input_file FILE. For help, type gknit -h" if
+  options[:input_file].nil?
+options[:input_file] = "#{dir}/#{options[:input_file]}"
+raise "File #{options[:input_file]} does not exist!" if !File.exist?(options[:input_file])
+
+#=========================================================================================
+# Checks the output_format option. If none, pass NULL to the render function. Output
+# format needs to be quoted.
+#=========================================================================================
+
+options[:output_format] =
+  (options[:output_format].nil?)? "NULL" : "\"#{options[:output_format]}\""
+
+#=========================================================================================
+# Checks the output_file option. If none, pass NULL to the render function. Output
+# file name needs to be quoted.
+#=========================================================================================
+
+options[:output_file] =
+  (options[:output_file].nil?)? "NULL" : "\"#{options[:output_file]}\""
+
+#=========================================================================================
+# Checks if an output directory was given. If given and directory does not exist,
+# create the directory.  If no directory given, pass NULL to the render function.
+#=========================================================================================
+
+if (!options[:output_dir].nil?)
+  Dir.mkdir(options[:output_dir]) if !Dir.exist?(options[:output_dir])
+  options[:output_dir] = "\"#{options[:output_dir]}\""
+else
+  # If not, pass NULL to the render function
+  options[:output_dir] = "NULL"
+end
+
+#=========================================================================================
+# Checks if any intermediate directory given. If not, pass NULL to the render function
+# Calling render with options intermediates_dir is not working, requires further study
+#=========================================================================================
+
+if (!options[:intermediates_dir].nil?)
+  if !Dir.exist?(options[:intermediates_dir])
+    Dir.mkdir(options[:intermediates_dir])
+    options[:intermediates_dir] = "\"#{options[:intermediates_dir]}\""
+  else
+    options[:intermediates_dir] = "\"#{options[:intermediates_dir]}\""
+  end
+else
+  options[:intermediates_dir] = "NULL"
+end
+
+options[:clean] = (options[:clean].nil?)? "TRUE" : "FALSE" 
+
+#=========================================================================================
+# Sends message to user that the gKniting process has started
+#=========================================================================================
+puts "================================"
+puts "gKnitting #{options[:input_file]} with the following options:"
+puts "   * Output format: \t #{options[:output_format]}"
+puts "   * Output file: \t #{options[:output_file]}"
+puts "   * Output directory: \t #{options[:output_dir]}"
+puts "   * Clean: \t\t #{options[:clean]}"
+
+
+# Code to be evaluated by the R script
 code = <<EOF
 eval.polyglot("ruby", "$LOAD_PATH.unshift %q(/home/rbotafogo/desenv/galaaz/lib)")
 eval.polyglot("ruby", "require %q(gknit)")
 
-gknit_file = "#{dir}/#{ARGV[0]}"
-rmarkdown::render("#{dir}/#{ARGV[0]}")
+rmarkdown::render("#{options[:input_file]}", output_format = #{options[:output_format]}, 
+                  output_file = #{options[:output_file]}, 
+                  output_dir = #{options[:output_dir]}, 
+                  clean = #{options[:clean]})
 EOF
 
 exec "Rscript --jvm --polyglot -e '#{code}'"
+
+

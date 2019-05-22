@@ -15,6 +15,9 @@ OptionParser.new do |opts|
   opts.on("-p", "--package PACKAGE", "R Package where the template is defined") do |opt|
     options[:package] = opt
   end
+  opts.on("-g", "--gem RubyGem", "Ruby Gem where the template is defined") do |opt|
+    options[:gem] = opt
+  end
   opts.on("-c", "--create_dir", "If a new directory should be created") do |opt|
     options[:create_dir] = opt
   end
@@ -22,6 +25,22 @@ OptionParser.new do |opts|
     options[:editor] = opt
   end
 end.parse!
+
+#=========================================================================================
+# Only one of 'package' or 'gem' can be given
+#=========================================================================================
+
+raise "You should either specify an R package or Ruby Gem where the template is defined" if
+  !options[:package].nil? && !options[:gem].nil?
+
+#=========================================================================================
+# If gem given, then set it as the package name
+#=========================================================================================
+
+options[:package] = options[:gem] if !options[:gem].nil?
+
+#=========================================================================================
+#=========================================================================================
 
 Dir.chdir(File.dirname(File.expand_path('.', __FILE__)))
 
