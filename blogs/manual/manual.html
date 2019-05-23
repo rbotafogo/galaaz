@@ -381,6 +381,39 @@ $(document).ready(function () {
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
 <p>Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language, with a large community, a very large set of libraries and great for web development. However, it lacks libraries for data science, statistics, scientific plotting and machine learning. On the other hand, R is considered one of the most powerful languages for solving all of the above problems. Maybe the strongest competitor to R is Python with libraries such as NumPy, Panda, SciPy, SciKit-Learn and a couple more.</p>
+<p>With Galaaz we do not intend to re-implement any of the scientific libraries in R, we allow for very tight coupling between the two languages to the point that the Ruby developer does not need to know that there is an R engine running.</p>
+<p>According to Wikipedia “Ruby is a dynamic, interpreted, reflective, object-oriented, general-purpose programming language. It was designed and developed in the mid-1990s by Yukihiro”Matz&quot; Matsumoto in Japan.&quot; It reached high popularity with the development of Ruby on Rails (RoR) by David Heinemeier Hansson. RoR is a web application framework first released around 2005. It makes extensive use of Ruby’s metaprogramming features. With RoR, Ruby became very popular. According to <a href="https://www.tiobe.com/tiobe-index/ruby/">Ruby’s Tiobe index</a> it peeked in popularity around 2008, then declined until 2015 when it started picking up again. At the time of this writing (November 2018), the Tiobe index puts Ruby in 16th position as most popular language.</p>
+<p>Python, a language similar to Ruby, ranks 4th in the index. Java, C and C++ take the first three positions. Ruby is often criticized for its focus on web applications. But Ruby can do <a href="https://github.com/markets/awesome-ruby">much more</a> than just web applications. Yet, for scientific computing, Ruby lags way behind Python and R. Python has Django framework for web, NumPy for numerical arrays, Pandas for data analysis. R is a free software environment for statistical computing and graphics with thousands of libraries for data analysis.</p>
+<p>Until recently, there was no real perspective for Ruby to bridge this gap. Implementing a complete scientific computing infrastructure would take too long. Enters <a href="https://www.graalvm.org/">Oracle’s GraalVM</a>:</p>
+<blockquote>
+<p>GraalVM is a universal virtual machine for running applications written in JavaScript, Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin, and LLVM-based languages such as C and C++.</p>
+<p>GraalVM removes the isolation between programming languages and enables interoperability in a shared runtime. It can run either standalone or in the context of OpenJDK, Node.js, Oracle Database, or MySQL.</p>
+<p>GraalVM allows you to write polyglot applications with a seamless way to pass values from one language to another. With GraalVM there is no copying or marshaling necessary as it is with other polyglot systems. This lets you achieve high performance when language boundaries are crossed. Most of the time there is no additional cost for crossing a language boundary at all.</p>
+<p>Often developers have to make uncomfortable compromises that require them to rewrite their software in other languages. For example:</p>
+<ul>
+<li>That library is not available in my language. I need to rewrite it.</li>
+<li>That language would be the perfect fit for my problem, but we cannot run it in our environment.</li>
+<li>That problem is already solved in my language, but the language is too slow.</li>
+</ul>
+<p>With GraalVM we aim to allow developers to freely choose the right language for the task at hand without making compromises.</p>
+</blockquote>
+<p>As stated above, GraalVM is a <em>universal</em> virtual machine that allows Ruby and R (and other languages) to run on the same environment. GraalVM allows polyglot applications to <em>seamlessly</em> interact with one another and pass values from one language to the other. Although a great idea, GraalVM still requires application writers to know several languages. To eliminate that requirement, we built Galaaz, a gem for Ruby, to tightly couple Ruby and R and allow those languages to interact in a way that the user will be unaware of such interaction. In other words, a Ruby programmer will be able to use all the capabilities of R without knowing the R syntax.</p>
+<p>Library wrapping is a usual way of bringing features from one language into another. To improve performance, Python often wraps more efficient C libraries. For the Python developer, the existence of such C libraries is hidden. The problem with library wrapping is that for any new library, there is the need to handcraft a new wrapper.</p>
+<p>Galaaz, instead of wrapping a single C or R library, wraps the whole R language in Ruby. Doing so, all thousands of R libraries are available immediately to Ruby developers without any new wrapping effort.</p>
+<div id="what-does-galaaz-mean" class="section level2">
+<h2>What does Galaaz mean</h2>
+<p>Galaaz is the Portuguese name for “Galahad”. From Wikipedia:</p>
+<pre><code>Sir Galahad (sometimes referred to as Galeas or Galath),
+in Arthurian legend, is a knight of King Arthur's Round Table and one
+of the three achievers of the Holy Grail. He is the illegitimate son
+of Sir Lancelot and Elaine of Corbenic, and is renowned for his
+gallantry and purity as the most perfect of all knights. Emerging quite
+late in the medieval Arthurian tradition, Sir Galahad first appears in the
+Lancelot–Grail cycle, and his story is taken up in later works such as
+the Post-Vulgate Cycle and Sir Thomas Malory's Le Morte d'Arthur.
+His name should not be mistaken with Galehaut, a different knight from
+Arthurian legend. </code></pre>
+</div>
 </div>
 <div id="system-compatibility" class="section level1">
 <h1>System Compatibility</h1>
@@ -445,10 +478,109 @@ $(document).ready(function () {
 </blockquote></li>
 </ul>
 </div>
+<div id="accessing-r-from-ruby" class="section level1">
+<h1>Accessing R from Ruby</h1>
+<p>One of the nice aspects of Galaaz on GraalVM, is that variables and functions defined in R, can be easily accessed from Ruby. For instance, to access the ‘mtcars’ data frame from R in Ruby, we use the ‘:mtcar’ symbol preceded by the ‘~’ operator, thus ‘~:r_vec’ retrieves the value of the ‘mtcars’ variable.</p>
+<pre class="ruby"><code>puts ~:mtcars</code></pre>
+<pre><code>##                      mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## Mazda RX4           21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+## Mazda RX4 Wag       21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+## Datsun 710          22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
+## Hornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+## Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+## Valiant             18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+## Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
+## Merc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+## Merc 230            22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+## Merc 280            19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## Merc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+## Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+## Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+## Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+## Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+## Fiat 128            32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+## Honda Civic         30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+## Toyota Corolla      33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+## Toyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+## Dodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2
+## AMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
+## Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+## Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+## Fiat X1-9           27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+## Porsche 914-2       26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+## Lotus Europa        30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+## Ford Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
+## Ferrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+## Maserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8
+## Volvo 142E          21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2</code></pre>
+<p>To access an R function from Ruby, the R function needs to be preceeded by ‘R.’ scoping. Bellow we see and example of creating a R::Vector by calling the ‘c’ R function</p>
+<pre class="ruby"><code>puts vec = R.c(1.0, 2.0, 3.0, 4.0)</code></pre>
+<pre><code>## [1] 1 2 3 4</code></pre>
+<p>Note that ‘vec’ is an object of type R::Vector:</p>
+<pre class="ruby"><code>puts vec.class</code></pre>
+<pre><code>## R::Vector</code></pre>
+<p>Every object created by a call to an R function will be of a type that inherits from R::Object. In R, there is also a function ‘class’. In order to access that function we have two options, either use the ‘R.’ scoping rule or we can call method ‘rclass’ to the R::Object:</p>
+<pre class="ruby"><code>puts R.class(vec)
+puts vec.rclass</code></pre>
+<pre><code>## Message:
+##  wrong number of arguments (given 1, expected 0)</code></pre>
+<pre><code>## Message:
+##  /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:103:in `class'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:103:in `get_binding'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:102:in `eval'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:102:in `exec_ruby'
+## /home/rbotafogo/desenv/galaaz/lib/gknit/knitr_engine.rb:650:in `block in initialize'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `call'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `callback'
+## (eval):3:in `function(...) {\n          rb_method(...)'
+## unknown.r:1:in `in_dir'
+## unknown.r:1:in `block_exec:BLOCK0'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:102:in `block_exec'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:92:in `call_block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:3:in `&lt;no source&gt;'
+## unknown.r:1:in `withCallingHandlers'
+## unknown.r:1:in `process_file'
+## unknown.r:1:in `&lt;no source&gt;:BLOCK1'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/output.R:129:in `&lt;no source&gt;'
+## unknown.r:1:in `&lt;no source&gt;:BLOCK1'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/rmarkdown/R/render.R:162:in `&lt;no source&gt;'
+## &lt;REPL&gt;:4:in `&lt;repl wrapper&gt;'
+## &lt;REPL&gt;:1</code></pre>
+<p>When working with R::Object(s), it is possible to use the ‘.’ operator to pipe operations. When using ‘.’, the object to which the ‘.’ is applied becomes the first argument of the corresponding R function. For instance, function ‘c’ in R, can be used to concatenate two vectors or more vectors (in R, there are no scalar values, scalars are converted to vectors of size 1. Within Galaaz, scalar parameter is converted to a size one vector):</p>
+<pre class="ruby"><code>puts R.c(vec, 10, 20, 30)</code></pre>
+<pre><code>## [1]  1  2  3  4 10 20 30</code></pre>
+<p>The call above to the ‘c’ function can also be done using ‘.’ notation:</p>
+<pre class="ruby"><code>puts vec.c(10, 20, 30)</code></pre>
+<pre><code>## [1]  1  2  3  4 10 20 30</code></pre>
+<p>We will talk about vector indexing in a latter section. But notice here that indexing an R::Vector will return another R::Vector:</p>
+<pre class="ruby"><code>puts vec[1]</code></pre>
+<pre><code>## [1] 1</code></pre>
+<p>Sometimes we want to index an R::Object and get back a Ruby object that is not wrapped in an R::Object, but the native Ruby object. For this, we can index the R object with the ‘&gt;&gt;’ operator:</p>
+<pre class="ruby"><code>puts vec &gt;&gt; 0
+puts vec &gt;&gt; 2</code></pre>
+<pre><code>## 1.0
+## 3.0</code></pre>
+<p>It is also possible to call an R function with named arguments, by creating the function in Galaaz with named parameters. For instance, here is an example of creating a ‘list’ with named elements:</p>
+<pre class="ruby"><code>puts R.list(first_name: &quot;Rodrigo&quot;, last_name: &quot;Botafogo&quot;)</code></pre>
+<pre><code>## $first_name
+## [1] &quot;Rodrigo&quot;
+## 
+## $last_name
+## [1] &quot;Botafogo&quot;</code></pre>
+<p>Many R functions receive another function as argument. For instance, method ‘map’ applies a function to every element of a vector. With Galaaz, it is possible to pass a Proc, Method or Lambda in place of the expected R function. In this next example, we will add 2 to every element of our previously created vector:</p>
+<pre class="ruby"><code>puts vec.map { |x| x + 2 }</code></pre>
+<pre><code>## [1] 3
+## [1] 4
+## [1] 5
+## [1] 6</code></pre>
+</div>
 <div id="gknitting-a-document" class="section level1">
 <h1>gKnitting a Document</h1>
 <p>This manual has been formatted usign gKnit. gKnit uses Knitr and R markdown to knit a document in Ruby or R and output it in any of the available formats for R markdown. gKnit runs atop of GraalVM, and Galaaz. In gKnit, Ruby variables are persisted between chunks, making it an ideal solution for literate programming. Also, since it is based on Galaaz, Ruby chunks can have access to R variables and Polyglot Programming with Ruby and R is quite natural.</p>
-<p>The idea of “literate programming” was first introduced by Donald Knuth in the 1980’s <span class="citation">[@Knuth:literate_programming]</span>. The main intention of this approach was to develop software interspersing macro snippets, traditional source code, and a natural language such as English in a document that could be compiled into executable code and at the same time easily read by a human developer. According to Knuth “The practitioner of literate programming can be regarded as an essayist, whose main concern is with exposition and excellence of style.”</p>
+<p>The idea of “literate programming” was first introduced by Donald Knuth in the 1980’s <span class="citation">(Knuth 1984)</span>. The main intention of this approach was to develop software interspersing macro snippets, traditional source code, and a natural language such as English in a document that could be compiled into executable code and at the same time easily read by a human developer. According to Knuth “The practitioner of literate programming can be regarded as an essayist, whose main concern is with exposition and excellence of style.”</p>
 <p>The idea of literate programming evolved into the idea of reproducible research, in which all the data, software code, documentation, graphics etc. needed to reproduce the research and its reports could be included in a single document or set of documents that when distributed to peers could be rerun generating the same output and reports.</p>
 <p>The R community has put a great deal of effort in reproducible research. In 2002, Sweave was introduced and it allowed mixing R code with Latex generating high quality PDF documents. A Sweave document could include code, the results of executing the code, graphics and text such that it contained the whole narrative to reproduce the research. In 2012, Knitr, developed by Yihui Xie from RStudio was released to replace Sweave and to consolidate in one single package the many extensions and add-on packages that were necessary for Sweave.</p>
 <p>With Knitr, <strong>R markdown</strong> was also developed, an extension to the Markdown format. With <strong>R markdown</strong> and Knitr it is possible to generate reports in a multitude of formats such as HTML, markdown, Latex, PDF, dvi, etc. <strong>R markdown</strong> also allows the use of multiple programming languages such as R, Ruby, Python, etc. in the same document.</p>
@@ -511,7 +643,7 @@ output:
       in_header: [&quot;../../sty/galaaz.sty&quot;]
     number_sections: yes
 ---</code></pre>
-<p>For more information on the options in the Yaml header, check <a href="https://bookdown.org/yihui/rmarkdown/html-document.html" class="uri">https://bookdown.org/yihui/rmarkdown/html-document.html</a>.</p>
+<p>For more information on the options in the Yaml header, <a href="https://bookdown.org/yihui/rmarkdown/html-document.html">check here</a>.</p>
 </div>
 <div id="r-markdown-formatting" class="section level2">
 <h2><strong>R Markdown</strong> formatting</h2>
@@ -590,7 +722,7 @@ reduce_sum &lt;- function(...) {
 <div id="r-graphics-with-ggplot" class="section level2">
 <h2>R Graphics with ggplot</h2>
 <p>In the following chunk, we create a bubble chart in R using ggplot and include it in this document. Note that there is no directive in the code to include the image, this occurs automatically. The ‘mpg’ dataframe is natively available to R and to Galaaz as well.</p>
-<p>For the reader not knowledgeable of ggplot, ggplot is a graphics library based on “the grammar of graphics” <span class="citation">[@Wilkinson:grammar_of_graphics]</span>. The idea of the grammar of graphics is to build a graphics by adding layers to the plot. More information can be found in <a href="https://towardsdatascience.com/a-comprehensive-guide-to-the-grammar-of-graphics-for-effective-visualization-of-multi-dimensional-1f92b4ed4149" class="uri">https://towardsdatascience.com/a-comprehensive-guide-to-the-grammar-of-graphics-for-effective-visualization-of-multi-dimensional-1f92b4ed4149</a>.</p>
+<p>For the reader not knowledgeable of ggplot, ggplot is a graphics library based on “the grammar of graphics” <span class="citation">(Wilkinson 2005)</span>. The idea of the grammar of graphics is to build a graphics by adding layers to the plot. More information can be found in <a href="https://towardsdatascience.com/a-comprehensive-guide-to-the-grammar-of-graphics-for-effective-visualization-of-multi-dimensional-1f92b4ed4149" class="uri">https://towardsdatascience.com/a-comprehensive-guide-to-the-grammar-of-graphics-for-effective-visualization-of-multi-dimensional-1f92b4ed4149</a>.</p>
 <p>In the plot bellow the ‘mpg’ dataset from base R is used. “The data concerns city-cycle fuel consumption in miles per gallon, to be predicted in terms of 3 multivalued discrete and 5 continuous attributes.” (Quinlan, 1993)</p>
 <p>First, the ‘mpg’ dataset if filtered to extract only cars from the following manumactures: Audi, Ford, Honda, and Hyundai and stored in the ‘mpg_select’ variable. Then, the selected dataframe is passed to the ggplot function specifying in the aesthetic method (aes) that ‘displacement’ (disp) should be plotted in the ‘x’ axis and ‘city mileage’ should be on the ‘y’ axis. In the ‘labs’ layer we pass the ‘title’ and ‘subtitle’ for the plot. To the basic plot ‘g’, geom_jitter is added, that plots cars from the same manufactures with the same color (col=manufactures) and the size of the car point equal its high way consumption (size = hwy). Finally, a last layer is plotter containing a linear regression line (method = “lm”) for every manufacturer.</p>
 <pre class="r"><code># load package and data
@@ -607,7 +739,7 @@ g &lt;- ggplot(mpg_select, aes(displ, cty)) +
 
 g + geom_jitter(aes(col=manufacturer, size=hwy)) + 
   geom_smooth(aes(col=manufacturer), method=&quot;lm&quot;, se=F)</code></pre>
-<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
 </div>
 <div id="ruby-chunks" class="section level2">
 <h2>Ruby chunks</h2>
@@ -632,15 +764,6 @@ puts vec * vec2</code></pre>
 ## 3
 ## [1] 10 40 90</code></pre>
 <p>Note that ‘a’ is a standard Ruby Array and ‘vec’ and ‘vec2’ are vectors that behave accordingly, where multiplication works as expected.</p>
-</div>
-<div id="accessing-r-from-ruby" class="section level2">
-<h2>Accessing R from Ruby</h2>
-<p>One of the nice aspects of Galaaz on GraalVM, is that variables and functions defined in R, can be easily accessed from Ruby. This next chunk, reads data from R and uses the ‘reduce_sum’ function defined previously. To access an R variable from Ruby the ‘~’ function should be applied to the Ruby symbol representing the R variable. Since the R variable is called ‘r_vec’, in Ruby, the symbol to acess it is ‘:r_vec’ and thus ‘~:r_vec’ retrieves the value of the variable.</p>
-<pre class="ruby"><code>puts ~:r_vec</code></pre>
-<pre><code>## [1] 1 2 3 4 5</code></pre>
-<p>In order to call an R function, the ‘R.’ module is used as follows</p>
-<pre class="ruby"><code>puts R.reduce_sum(~:r_vec)</code></pre>
-<pre><code>## [1] 15</code></pre>
 </div>
 <div id="inline-ruby-code" class="section level2">
 <h2>Inline Ruby code</h2>
@@ -2178,195 +2301,45 @@ output:
     number\_sections: yes
 ---</code></pre>
 </div>
-</div>
-<div id="vector" class="section level1">
-<h1>Vector</h1>
-<p>Vectors can be thought of as contiguous cells containing data. Cells are accessed through indexing operations such as x[5]. Galaaz has six basic (‘atomic’) vector types: logical, integer, real, complex, string (or character) and raw. The modes and storage modes for the different vector types are listed in the following table.</p>
-<table>
-<thead>
-<tr class="header">
-<th>typeof</th>
-<th align="center">mode</th>
-<th align="right">storage.mode</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>logical</td>
-<td align="center">logical</td>
-<td align="right">logical</td>
-</tr>
-<tr class="even">
-<td>integer</td>
-<td align="center">numeric</td>
-<td align="right">integer</td>
-</tr>
-<tr class="odd">
-<td>double</td>
-<td align="center">numeric</td>
-<td align="right">double</td>
-</tr>
-<tr class="even">
-<td>complex</td>
-<td align="center">complex</td>
-<td align="right">comples</td>
-</tr>
-<tr class="odd">
-<td>character</td>
-<td align="center">character</td>
-<td align="right">character</td>
-</tr>
-<tr class="even">
-<td>raw</td>
-<td align="center">raw</td>
-<td align="right">raw</td>
-</tr>
-</tbody>
-</table>
-<p>Single numbers, such as 4.2, and strings, such as “four point two” are still vectors, of length 1; there are no more basic types. Vectors with length zero are possible (and useful). String vectors have mode and storage mode “character”. A single element of a character vector is often referred to as a character string.</p>
-<p>To create a vector the ‘c’ (concatenate) method from the ‘R’ module should be used:</p>
-<pre class="ruby"><code>vec = R.c(1, 2, 3)
-puts vec</code></pre>
-<pre><code>## [1] 1 2 3</code></pre>
-<p>Lets take a look at the type, mode and storage.mode of our vector vec. In order to print this out, we are creating a data frame ‘df’ and printing it out. A data frame, for those not familiar with it, is basically a table. Here we create the data frame and add the column name by passing named parameters for each column, such as ‘typeof:’, ‘mode:’ and ’storage__mode?‘. You should also note here that the double underscore is converted to a’.’. So, when printed ‘storage__mode’ will actually print as ‘storage.mode’.</p>
-<p>Data frames will later be more carefully described. In R, the method used to create a data frame is ‘data.frame’, in Galaaz we use ‘data__frame’.</p>
-<pre class="ruby"><code>df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
-puts df</code></pre>
-<pre><code>##    typeof    mode storage.mode
-## 1 integer numeric      integer</code></pre>
-<p>If you want to create a vector with floating point numbers, then we need at least one of the vector’s element to be a float, such as 1.0. R users should be careful, since in R a number like ‘1’ is converted to float and to have an integer the R developer will use ‘1L’. Galaaz follows normal Ruby rules and the number 1 is an integer and 1.0 is a float.</p>
-<pre class="ruby"><code>vec = R.c(1.0, 2, 3)
-puts vec</code></pre>
-<pre><code>## [1] 1 2 3</code></pre>
-<pre class="ruby"><code>df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
-outputs df.kable.kable_styling</code></pre>
-<table class="table" style="margin-left: auto; margin-right: auto;">
-<thead>
-<tr>
-<th style="text-align:left;">
-typeof
-</th>
-<th style="text-align:left;">
-mode
-</th>
-<th style="text-align:left;">
-storage.mode
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-double
-</td>
-<td style="text-align:left;">
-numeric
-</td>
-<td style="text-align:left;">
-double
-</td>
-</tr>
-</tbody>
-</table>
-<p>In this next example we try to create a vector with a variable ‘hello’ that has not yet being defined. This will raise an exception that is printed out. We get two return blocks, the first with a message explaining what went wrong and the second with the full backtrace of the error.</p>
-<pre class="ruby"><code>vec = R.c(1, hello, 5)</code></pre>
-<pre><code>## Message:
-##  undefined local variable or method `hello' for #&lt;RC:0x360 @out_list=nil&gt;:RC</code></pre>
-<pre><code>## Message:
-##  /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:103:in `get_binding'
-## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:102:in `eval'
-## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:102:in `exec_ruby'
-## /home/rbotafogo/desenv/galaaz/lib/gknit/knitr_engine.rb:650:in `block in initialize'
-## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `call'
-## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `callback'
-## (eval):3:in `function(...) {\n          rb_method(...)'
-## unknown.r:1:in `in_dir'
-## unknown.r:1:in `block_exec:BLOCK0'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:102:in `block_exec'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:92:in `call_block'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:3:in `&lt;no source&gt;'
-## unknown.r:1:in `withCallingHandlers'
-## unknown.r:1:in `process_file'
-## unknown.r:1:in `&lt;no source&gt;:BLOCK1'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/output.R:129:in `&lt;no source&gt;'
-## unknown.r:1:in `&lt;no source&gt;:BLOCK1'
-## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/rmarkdown/R/render.R:162:in `&lt;no source&gt;'
-## &lt;REPL&gt;:5:in `&lt;repl wrapper&gt;'
-## &lt;REPL&gt;:1</code></pre>
-<p>Here is a vector with logical values</p>
-<pre class="ruby"><code>vec = R.c(true, true, false, false, true)
-puts vec</code></pre>
-<pre><code>## [1]  TRUE  TRUE FALSE FALSE  TRUE</code></pre>
-<div id="combining-vectors" class="section level2">
-<h2>Combining Vectors</h2>
-<p>The ‘c’ functions used to create vectors can also be used to combine two vectors:</p>
-<pre class="ruby"><code>vec1 = R.c(10.0, 20.0, 30.0)
-vec2 = R.c(4.0, 5.0, 6.0)
-vec = R.c(vec1, vec2)
-puts vec</code></pre>
-<pre><code>## [1] 10 20 30  4  5  6</code></pre>
-<p>In galaaz, methods can be chainned (somewhat like the pipe operator in R %&gt;%, but more generic). In this next example, method ‘c’ is chainned after ‘vec1’. This also looks like ‘c’ is a method of the vector, but in reallity, this is actually closer to the pipe operator. When Galaaz identifies that ‘c’ is not a method of ‘vec’ it actually tries to call ‘R.c’ with ‘vec1’ as the first argument concatenated with all the other available arguments. The code bellow is automatically converted to the code above.</p>
-<pre class="ruby"><code>vec = vec1.c(vec2)
-puts vec</code></pre>
-<pre><code>## [1] 10 20 30  4  5  6</code></pre>
-</div>
-<div id="vector-arithmetic" class="section level2">
-<h2>Vector Arithmetic</h2>
-<p>Arithmetic operations on vectors are performed element by element:</p>
-<pre class="ruby"><code>puts vec1 + vec2</code></pre>
-<pre><code>## [1] 14 25 36</code></pre>
-<pre class="ruby"><code>puts vec1 * 5</code></pre>
-<pre><code>## [1]  50 100 150</code></pre>
-<p>When vectors have different length, a recycling rule is applied to the shorter vector:</p>
-<pre class="ruby"><code>vec3 = R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)
-puts vec4 = vec1 + vec3</code></pre>
-<pre><code>## [1] 11 22 33 14 25 36 17 28 39</code></pre>
-</div>
-<div id="vector-indexing" class="section level2">
-<h2>Vector Indexing</h2>
-<p>Vectors can be indexed by using the ‘[]’ operator:</p>
-<pre class="ruby"><code>puts vec4[3]</code></pre>
-<pre><code>## [1] 33</code></pre>
-<p>We can also index a vector with another vector. For example, in the code bellow, we take elements 1, 3, 5, and 7 from vec3:</p>
-<pre class="ruby"><code>puts vec4[R.c(1, 3, 5, 7)]</code></pre>
-<pre><code>## [1] 11 33 25 17</code></pre>
-<p>Repeating an index and having indices out of order is valid code:</p>
-<pre class="ruby"><code>puts vec4[R.c(1, 3, 3, 1)]</code></pre>
-<pre><code>## [1] 11 33 33 11</code></pre>
-<p>It is also possible to index a vector with a negative number or negative vector. In these cases the indexed values are not returned:</p>
-<pre class="ruby"><code>puts vec4[-3]
-puts vec4[-R.c(1, 3, 5, 7)]</code></pre>
-<pre><code>## [1] 11 22 14 25 36 17 28 39
-## [1] 22 14 36 28 39</code></pre>
-<p>If an index is out of range, a missing value (NA) will be reported.</p>
-<pre class="ruby"><code>puts vec4[30]</code></pre>
-<pre><code>## [1] NA</code></pre>
-<p>It is also possible to index a vector by range:</p>
-<pre class="ruby"><code>puts vec4[(2..5)]</code></pre>
-<pre><code>## [1] 22 33 14 25</code></pre>
-<p>Elements in a vector can be named using the ‘names’ attribute of a vector:</p>
-<pre class="ruby"><code>full_name = R.c(&quot;Rodrigo&quot;, &quot;A&quot;, &quot;Botafogo&quot;)
-full_name.names = R.c(&quot;First&quot;, &quot;Middle&quot;, &quot;Last&quot;)
-puts full_name</code></pre>
-<pre><code>##      First     Middle       Last 
-##  &quot;Rodrigo&quot;        &quot;A&quot; &quot;Botafogo&quot;</code></pre>
-<p>Or it can also be named by using the ‘c’ function with named paramenters:</p>
-<pre class="ruby"><code>full_name = R.c(First: &quot;Rodrigo&quot;, Middle: &quot;A&quot;, Last: &quot;Botafogo&quot;)
-puts full_name</code></pre>
-<pre><code>##      First     Middle       Last 
-##  &quot;Rodrigo&quot;        &quot;A&quot; &quot;Botafogo&quot;</code></pre>
-</div>
-<div id="extracting-native-ruby-types-from-a-vector" class="section level2">
-<h2>Extracting Native Ruby Types from a Vector</h2>
-<p>Vectors created with ‘R.c’ are of class R::Vector. You might have noticed that when indexing a vector, a new vector is returned, even if this vector has one single element. In order to use R::Vector with other ruby classes it might be necessary to extract the actual Ruby native type from the vector. In order to do this extraction the ‘&gt;&gt;’ operator is used.</p>
-<pre class="ruby"><code>puts vec4
-puts vec4 &gt;&gt; 0
-puts vec4 &gt;&gt; 4</code></pre>
-<pre><code>## [1] 11 22 33 14 25 36 17 28 39
-## 11.0
-## 25.0</code></pre>
-<p>Note that indexing with ‘&gt;&gt;’ starts at 0 and not at 1, also, we cannot do negative indexing.</p>
+<div id="template-based-documents-generation" class="section level2">
+<h2>Template based documents generation</h2>
+<p>When a document is converted to PDF it follows a certain convertion template. We’ve seen above the use of ‘galaaz.sty’ as a basic template to generate a PDF document. Using the ‘gknit-draft’ app that comes with Galaaz, the same .Rmd file can be compiled to different looking PDF documents. Galaaz automatically loads the ‘rticles’ R package that comes with templates for the following journals with the respective template name:</p>
+<ul>
+<li>ACM articles: acm_article</li>
+<li>ACS articles: acs_article</li>
+<li>AEA journal submissions: aea_article</li>
+<li>AGU journal submissions: ????</li>
+<li>AMS articles: ams_article</li>
+<li>American Statistical Association: asa_article</li>
+<li>Biometrics articles: biometrics_article</li>
+<li>Bulletin de l’AMQ journal submissions: amq_article</li>
+<li>CTeX documents: ctex</li>
+<li>Elsevier journal submissions: elsevier_article</li>
+<li>IEEE Transaction journal submissions: ieee_article</li>
+<li>JSS articles: jss_article</li>
+<li>MDPI journal submissions: mdpi_article</li>
+<li>Monthly Notices of the Royal Astronomical Society articles: mnras_article</li>
+<li>NNRAS journal submissions: nmras_article</li>
+<li>PeerJ articles: peerj_article</li>
+<li>Royal Society Open Science journal submissions: rsos_article</li>
+<li>Royal Statistical Society: rss_article</li>
+<li>Sage journal submissions: sage_article</li>
+<li>Springer journal submissions: springer_article</li>
+<li>Statistics in Medicine journal submissions: sim_article</li>
+<li>Copernicus Publications journal submissions: copernicus_article</li>
+<li>The R Journal articles: rjournal_article</li>
+<li>Frontiers articles: ???</li>
+<li>Taylor &amp; Francis articles: ???</li>
+<li>Bulletin De L’AMQ: amq_article</li>
+<li>PLOS journal: plos_article</li>
+<li>Proceedings of the National Academy of Sciences of the USA: pnas_article</li>
+</ul>
+<p>In order to create a document with one of those templates, use the following command:</p>
+<pre><code>gknit-draft --filename &lt;my_document&gt; --template &lt;template&gt; --package &lt;package&gt;
+            --create_dir</code></pre>
+<p>So, in order to create a template for writing an R Journal, use:</p>
+<pre><code>gknit-draft --filename my_r_article --template rjournal_article --package rticles
+            --create_dir</code></pre>
 </div>
 </div>
 <div id="accessing-r-variables" class="section level1">
@@ -3633,8 +3606,200 @@ Volvo 142E
 </tbody>
 </table>
 </div>
-<div id="matrix" class="section level1">
-<h1>Matrix</h1>
+<div id="basic-data-types" class="section level1">
+<h1>Basic Data Types</h1>
+<div id="vector" class="section level2">
+<h2>Vector</h2>
+<p>Vectors can be thought of as contiguous cells containing data. Cells are accessed through indexing operations such as x[5]. Galaaz has six basic (‘atomic’) vector types: logical, integer, real, complex, string (or character) and raw. The modes and storage modes for the different vector types are listed in the following table.</p>
+<table>
+<thead>
+<tr class="header">
+<th>typeof</th>
+<th align="center">mode</th>
+<th align="right">storage.mode</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>logical</td>
+<td align="center">logical</td>
+<td align="right">logical</td>
+</tr>
+<tr class="even">
+<td>integer</td>
+<td align="center">numeric</td>
+<td align="right">integer</td>
+</tr>
+<tr class="odd">
+<td>double</td>
+<td align="center">numeric</td>
+<td align="right">double</td>
+</tr>
+<tr class="even">
+<td>complex</td>
+<td align="center">complex</td>
+<td align="right">comples</td>
+</tr>
+<tr class="odd">
+<td>character</td>
+<td align="center">character</td>
+<td align="right">character</td>
+</tr>
+<tr class="even">
+<td>raw</td>
+<td align="center">raw</td>
+<td align="right">raw</td>
+</tr>
+</tbody>
+</table>
+<p>Single numbers, such as 4.2, and strings, such as “four point two” are still vectors, of length 1; there are no more basic types. Vectors with length zero are possible (and useful). String vectors have mode and storage mode “character”. A single element of a character vector is often referred to as a character string.</p>
+<p>To create a vector the ‘c’ (concatenate) method from the ‘R’ module should be used:</p>
+<pre class="ruby"><code>vec = R.c(1, 2, 3)
+puts vec</code></pre>
+<pre><code>## [1] 1 2 3</code></pre>
+<p>Lets take a look at the type, mode and storage.mode of our vector vec. In order to print this out, we are creating a data frame ‘df’ and printing it out. A data frame, for those not familiar with it, is basically a table. Here we create the data frame and add the column name by passing named parameters for each column, such as ‘typeof:’, ‘mode:’ and ’storage__mode?‘. You should also note here that the double underscore is converted to a’.’. So, when printed ‘storage__mode’ will actually print as ‘storage.mode’.</p>
+<p>Data frames will later be more carefully described. In R, the method used to create a data frame is ‘data.frame’, in Galaaz we use ‘data__frame’.</p>
+<pre class="ruby"><code>df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
+puts df</code></pre>
+<pre><code>##    typeof    mode storage.mode
+## 1 integer numeric      integer</code></pre>
+<p>If you want to create a vector with floating point numbers, then we need at least one of the vector’s element to be a float, such as 1.0. R users should be careful, since in R a number like ‘1’ is converted to float and to have an integer the R developer will use ‘1L’. Galaaz follows normal Ruby rules and the number 1 is an integer and 1.0 is a float.</p>
+<pre class="ruby"><code>vec = R.c(1.0, 2, 3)
+puts vec</code></pre>
+<pre><code>## [1] 1 2 3</code></pre>
+<pre class="ruby"><code>df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
+outputs df.kable.kable_styling</code></pre>
+<table class="table" style="margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+typeof
+</th>
+<th style="text-align:left;">
+mode
+</th>
+<th style="text-align:left;">
+storage.mode
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+double
+</td>
+<td style="text-align:left;">
+numeric
+</td>
+<td style="text-align:left;">
+double
+</td>
+</tr>
+</tbody>
+</table>
+<p>In this next example we try to create a vector with a variable ‘hello’ that has not yet being defined. This will raise an exception that is printed out. We get two return blocks, the first with a message explaining what went wrong and the second with the full backtrace of the error.</p>
+<pre class="ruby"><code>vec = R.c(1, hello, 5)</code></pre>
+<pre><code>## Message:
+##  undefined local variable or method `hello' for #&lt;RC:0x3b8 @out_list=nil&gt;:RC</code></pre>
+<pre><code>## Message:
+##  /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:103:in `get_binding'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:102:in `eval'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:102:in `exec_ruby'
+## /home/rbotafogo/desenv/galaaz/lib/gknit/knitr_engine.rb:650:in `block in initialize'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `call'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `callback'
+## (eval):3:in `function(...) {\n          rb_method(...)'
+## unknown.r:1:in `in_dir'
+## unknown.r:1:in `block_exec:BLOCK0'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:102:in `block_exec'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:92:in `call_block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:6:in `process_group.block'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/block.R:3:in `&lt;no source&gt;'
+## unknown.r:1:in `withCallingHandlers'
+## unknown.r:1:in `process_file'
+## unknown.r:1:in `&lt;no source&gt;:BLOCK1'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/knitr/R/output.R:129:in `&lt;no source&gt;'
+## unknown.r:1:in `&lt;no source&gt;:BLOCK1'
+## /home/rbotafogo/lib/graalvm-ce-1.0.0-rc16/jre/languages/R/library/rmarkdown/R/render.R:162:in `&lt;no source&gt;'
+## &lt;REPL&gt;:4:in `&lt;repl wrapper&gt;'
+## &lt;REPL&gt;:1</code></pre>
+<p>Here is a vector with logical values</p>
+<pre class="ruby"><code>vec = R.c(true, true, false, false, true)
+puts vec</code></pre>
+<pre><code>## [1]  TRUE  TRUE FALSE FALSE  TRUE</code></pre>
+<div id="combining-vectors" class="section level3">
+<h3>Combining Vectors</h3>
+<p>The ‘c’ functions used to create vectors can also be used to combine two vectors:</p>
+<pre class="ruby"><code>vec1 = R.c(10.0, 20.0, 30.0)
+vec2 = R.c(4.0, 5.0, 6.0)
+vec = R.c(vec1, vec2)
+puts vec</code></pre>
+<pre><code>## [1] 10 20 30  4  5  6</code></pre>
+<p>In galaaz, methods can be chainned (somewhat like the pipe operator in R %&gt;%, but more generic). In this next example, method ‘c’ is chainned after ‘vec1’. This also looks like ‘c’ is a method of the vector, but in reallity, this is actually closer to the pipe operator. When Galaaz identifies that ‘c’ is not a method of ‘vec’ it actually tries to call ‘R.c’ with ‘vec1’ as the first argument concatenated with all the other available arguments. The code bellow is automatically converted to the code above.</p>
+<pre class="ruby"><code>vec = vec1.c(vec2)
+puts vec</code></pre>
+<pre><code>## [1] 10 20 30  4  5  6</code></pre>
+</div>
+<div id="vector-arithmetic" class="section level3">
+<h3>Vector Arithmetic</h3>
+<p>Arithmetic operations on vectors are performed element by element:</p>
+<pre class="ruby"><code>puts vec1 + vec2</code></pre>
+<pre><code>## [1] 14 25 36</code></pre>
+<pre class="ruby"><code>puts vec1 * 5</code></pre>
+<pre><code>## [1]  50 100 150</code></pre>
+<p>When vectors have different length, a recycling rule is applied to the shorter vector:</p>
+<pre class="ruby"><code>vec3 = R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0)
+puts vec4 = vec1 + vec3</code></pre>
+<pre><code>## [1] 11 22 33 14 25 36 17 28 39</code></pre>
+</div>
+<div id="vector-indexing" class="section level3">
+<h3>Vector Indexing</h3>
+<p>Vectors can be indexed by using the ‘[]’ operator:</p>
+<pre class="ruby"><code>puts vec4[3]</code></pre>
+<pre><code>## [1] 33</code></pre>
+<p>We can also index a vector with another vector. For example, in the code bellow, we take elements 1, 3, 5, and 7 from vec3:</p>
+<pre class="ruby"><code>puts vec4[R.c(1, 3, 5, 7)]</code></pre>
+<pre><code>## [1] 11 33 25 17</code></pre>
+<p>Repeating an index and having indices out of order is valid code:</p>
+<pre class="ruby"><code>puts vec4[R.c(1, 3, 3, 1)]</code></pre>
+<pre><code>## [1] 11 33 33 11</code></pre>
+<p>It is also possible to index a vector with a negative number or negative vector. In these cases the indexed values are not returned:</p>
+<pre class="ruby"><code>puts vec4[-3]
+puts vec4[-R.c(1, 3, 5, 7)]</code></pre>
+<pre><code>## [1] 11 22 14 25 36 17 28 39
+## [1] 22 14 36 28 39</code></pre>
+<p>If an index is out of range, a missing value (NA) will be reported.</p>
+<pre class="ruby"><code>puts vec4[30]</code></pre>
+<pre><code>## [1] NA</code></pre>
+<p>It is also possible to index a vector by range:</p>
+<pre class="ruby"><code>puts vec4[(2..5)]</code></pre>
+<pre><code>## [1] 22 33 14 25</code></pre>
+<p>Elements in a vector can be named using the ‘names’ attribute of a vector:</p>
+<pre class="ruby"><code>full_name = R.c(&quot;Rodrigo&quot;, &quot;A&quot;, &quot;Botafogo&quot;)
+full_name.names = R.c(&quot;First&quot;, &quot;Middle&quot;, &quot;Last&quot;)
+puts full_name</code></pre>
+<pre><code>##      First     Middle       Last 
+##  &quot;Rodrigo&quot;        &quot;A&quot; &quot;Botafogo&quot;</code></pre>
+<p>Or it can also be named by using the ‘c’ function with named paramenters:</p>
+<pre class="ruby"><code>full_name = R.c(First: &quot;Rodrigo&quot;, Middle: &quot;A&quot;, Last: &quot;Botafogo&quot;)
+puts full_name</code></pre>
+<pre><code>##      First     Middle       Last 
+##  &quot;Rodrigo&quot;        &quot;A&quot; &quot;Botafogo&quot;</code></pre>
+</div>
+<div id="extracting-native-ruby-types-from-a-vector" class="section level3">
+<h3>Extracting Native Ruby Types from a Vector</h3>
+<p>Vectors created with ‘R.c’ are of class R::Vector. You might have noticed that when indexing a vector, a new vector is returned, even if this vector has one single element. In order to use R::Vector with other ruby classes it might be necessary to extract the actual Ruby native type from the vector. In order to do this extraction the ‘&gt;&gt;’ operator is used.</p>
+<pre class="ruby"><code>puts vec4
+puts vec4 &gt;&gt; 0
+puts vec4 &gt;&gt; 4</code></pre>
+<pre><code>## [1] 11 22 33 14 25 36 17 28 39
+## 11.0
+## 25.0</code></pre>
+<p>Note that indexing with ‘&gt;&gt;’ starts at 0 and not at 1, also, we cannot do negative indexing.</p>
+</div>
+</div>
+<div id="matrix" class="section level2">
+<h2>Matrix</h2>
 <p>A matrix is a collection of elements organized as a two dimensional table. A matrix can be created by the ‘matrix’ function:</p>
 <pre class="ruby"><code>mat = R.matrix(R.c(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0),
                nrow: 3,
@@ -3656,8 +3821,8 @@ puts mat_row</code></pre>
 ## [1,]    1    2    3
 ## [2,]    4    5    6
 ## [3,]    7    8    9</code></pre>
-<div id="indexing-a-matrix" class="section level2">
-<h2>Indexing a Matrix</h2>
+<div id="indexing-a-matrix" class="section level3">
+<h3>Indexing a Matrix</h3>
 <p>A matrix can be indexed by [row, column]:</p>
 <pre class="ruby"><code>puts mat_row[1, 1]
 puts mat_row[2, 3]</code></pre>
@@ -3690,8 +3855,8 @@ puts mat_row[:all, 2]</code></pre>
 ## [3,]    7    8    9    3    6    9</code></pre>
 </div>
 </div>
-<div id="list" class="section level1">
-<h1>List</h1>
+<div id="list" class="section level2">
+<h2>List</h2>
 <p>A list is a data structure that can contain sublists of different types, while vector and matrix can only hold one type of element.</p>
 <pre class="ruby"><code>nums = R.c(1.0, 2.0, 3.0)
 strs = R.c(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;, &quot;d&quot;)
@@ -3707,8 +3872,8 @@ puts lst</code></pre>
 ## $bool
 ## [1]  TRUE  TRUE FALSE</code></pre>
 <p>Note that ‘lst’ elements are named elements.</p>
-<div id="list-indexing" class="section level2">
-<h2>List Indexing</h2>
+<div id="list-indexing" class="section level3">
+<h3>List Indexing</h3>
 <p>List indexing, also called slicing, is done using the ‘[]’ operator and the ‘[[]]’ operator. Let’s first start with the ‘[]’ operator. The list above has three sublist indexing with ‘[]’ will return one of the sublists.</p>
 <pre class="ruby"><code>puts lst[1]</code></pre>
 <pre><code>## $nums
@@ -3722,8 +3887,8 @@ puts lst</code></pre>
 <p>In this example, first the ‘bool’ element of the list was extracted, not as a list, but as a vector, then the first element of the vector was extracted (note that vectors also accept the ‘[[]]’ operator) and then the vector was indexed by its first element, extracting the native Ruby type.</p>
 </div>
 </div>
-<div id="data-frame" class="section level1">
-<h1>Data Frame</h1>
+<div id="data-frame" class="section level2">
+<h2>Data Frame</h2>
 <p>A data frame is a table like structure in which each column has the same number of rows. Data frames are the basic structure for storing data for data analysis. We have already seen a data frame previously when we accessed variable ‘~:mtcars’. In order to create a data frame, function ’data__frame’ is used:</p>
 <pre class="ruby"><code>df = R.data__frame(
   year: R.c(2010, 2011, 2012),
@@ -3734,8 +3899,8 @@ puts df</code></pre>
 ## 1 2010   1000
 ## 2 2011   1500
 ## 3 2012   2000</code></pre>
-<div id="data-frame-indexing" class="section level2">
-<h2>Data Frame Indexing</h2>
+<div id="data-frame-indexing" class="section level3">
+<h3>Data Frame Indexing</h3>
 <p>A data frame can be indexed the same way as a matrix, by using ‘[row, column]’, where row and column can either be a numeric or the name of the row or column</p>
 <pre class="ruby"><code>puts (~:mtcars).head
 puts (~:mtcars)[1, 2]
@@ -3805,6 +3970,7 @@ puts (~:mtcars)[automatic, :all]</code></pre>
 ## Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2</code></pre>
 </div>
 </div>
+</div>
 <div id="writing-expressions-in-galaaz" class="section level1">
 <h1>Writing Expressions in Galaaz</h1>
 <p>Galaaz extends Ruby to work with complex expressions, similar to R’s expressions build with ‘quote’ (base R) or ‘quo’ (tidyverse). Let’s take a look at some of those expressions.</p>
@@ -3836,10 +4002,6 @@ puts exp6</code></pre>
 <p>In general we think that using the functional notation is preferable to using the symbolic notation as otherwise, we end up writing invalid expressions such as</p>
 <pre class="ruby"><code>exp_wrong = (:a + :b) == :z
 puts exp_wrong</code></pre>
-<pre><code>## Message:
-##  Error in function (x, y, num.eq = TRUE, single.NA = TRUE, attrib.as.set = TRUE,  :
-##   object 'a' not found (RError)
-## Translated to internal error</code></pre>
 <p>and it might be difficult to understand what is going on here. The problem lies with the fact that when using ‘==’ we are comparing expression (:a + :b) to expression :z with ‘==’. When the comparison is executed, the system tries to evaluate :a, :b and :z, and those symbols at this time are not bound to anything and we get a “object ‘a’ not found” message. If we only use functional notation, this type of error will not occur.</p>
 </div>
 <div id="expressions-with-r-methods" class="section level2">
@@ -4690,6 +4852,17 @@ puts grouped_mean((~:starwars), &quot;eye_color&quot;, E.c(&quot;mass&quot;, &qu
 <li>Push to the branch (git push origin my-new-feature)</li>
 <li>Create new Pull Request</li>
 </ul>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1>References</h1>
+<div id="refs" class="references">
+<div id="ref-Knuth:literate_programming">
+<p>Knuth, Donald E. 1984. “Literate Programming.” <em>Comput. J.</em> 27 (2). Oxford, UK: Oxford University Press: 97–111. <a href="https://doi.org/10.1093/comjnl/27.2.97" class="uri">https://doi.org/10.1093/comjnl/27.2.97</a>.</p>
+</div>
+<div id="ref-Wilkinson:grammar_of_graphics">
+<p>Wilkinson, Leland. 2005. <em>The Grammar of Graphics (Statistics and Computing)</em>. Berlin, Heidelberg: Springer-Verlag.</p>
+</div>
+</div>
 </div>
 
 

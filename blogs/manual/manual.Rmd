@@ -6,6 +6,11 @@ tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
 date: "2019"
 bibliography: "/home/rbotafogo/Bibliography/stats.bib"
 output:
+  html_document:
+    self_contained: true
+    keep_md: true
+  md_document:
+    variant: markdown_github
   pdf_document:
     includes:
       in_header: "../../sty/galaaz.sty"
@@ -13,11 +18,6 @@ output:
     number_sections: yes
     toc: true
     toc_depth: 3
-  html_document:
-    self_contained: true
-    keep_md: true
-  md_document:
-    variant: markdown_github
 fontsize: 11pt
 ---
 
@@ -820,6 +820,57 @@ output:
     number\_sections: yes
 ---
 ```
+
+## Template based documents generation
+
+When a document is converted to PDF it follows a certain convertion template. We've seen above
+the use of 'galaaz.sty' as a basic template to generate a PDF document.  Using the 
+'gknit-draft' app that comes with Galaaz, the same .Rmd file can be compiled to different 
+looking PDF documents. Galaaz automatically loads the 'rticles' R package that comes with
+templates for the following journals with the respective template name:
+
+* ACM articles: acm_article
+* ACS articles: acs_article
+* AEA journal submissions: aea_article
+* AGU journal submissions: ????
+* AMS articles: ams_article
+* American Statistical Association: asa_article
+* Biometrics articles: biometrics_article
+* Bulletin de l'AMQ journal submissions: amq_article
+* CTeX documents: ctex
+* Elsevier journal submissions: elsevier_article
+* IEEE Transaction journal submissions: ieee_article
+* JSS articles: jss_article
+* MDPI journal submissions: mdpi_article
+* Monthly Notices of the Royal Astronomical Society articles: mnras_article
+* NNRAS journal submissions: nmras_article
+* PeerJ articles: peerj_article
+* Royal Society Open Science journal submissions: rsos_article
+* Royal Statistical Society: rss_article
+* Sage journal submissions: sage_article
+* Springer journal submissions: springer_article
+* Statistics in Medicine journal submissions: sim_article
+* Copernicus Publications journal submissions: copernicus_article
+* The R Journal articles: rjournal_article
+* Frontiers articles: ???
+* Taylor & Francis articles: ???
+* Bulletin De L'AMQ: amq_article
+* PLOS journal: plos_article 
+* Proceedings of the National Academy of Sciences of the USA: pnas_article
+
+In order to create a document with one of those templates, use the following command:
+
+```
+gknit-draft --filename <my_document> --template <template> --package <package>
+            --create_dir
+```
+So, in order to create a template for writing an R Journal, use:
+
+```
+gknit-draft --filename my_r_article --template rjournal_article --package rticles
+            --create_dir
+```
+
 # Accessing R variables
 
 Galaaz allows Ruby to access variables created in R.  For example, the 'mtcars' data set is 
