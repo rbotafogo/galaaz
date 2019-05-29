@@ -40,8 +40,8 @@ OptionParser.new do |opts|
   opts.on("-g", "--gem RubyGem", "Ruby Gem where the template is defined") do |opt|
     options[:gem] = opt
   end
-  opts.on("-c", "--create_dir", "If a new directory should be created") do |opt|
-    options[:create_dir] = opt
+  opts.on("-n", "--no_dir", "If a new directory should not be created") do |opt|
+    options[:no_dir] = opt
   end
   opts.on("-e", "--edit EDITOR", "Editor to use to edit the file") do |opt|
     options[:editor] = opt
@@ -59,15 +59,44 @@ raise "You should either specify an R package or Ruby Gem where the template is 
 # If gem given, then set it as the package name
 #=========================================================================================
 
-options[:package] = options[:gem] if !options[:gem].nil?
+is_r_package = (options[:package].nil?)? false : true
+options[:package] =
+  (!options[:gem].nil?)? "%Q(#{options[:gem]})" : "%Q(#{options[:package]})"
 
 #=========================================================================================
+#
+#=========================================================================================
+
+options[:no_dir] = (options[:no_dir].nil?)? true : false
+
+#=========================================================================================
+#
 #=========================================================================================
 
 Dir.chdir(File.dirname(File.expand_path('.', __FILE__)))
 
-options[:file] = "#{options[:file]}-#{options[:template]}"
+options[:file] = "%Q(#{options[:file]}-#{options[:template]})"
 
-exec "ruby --polyglot --jvm --experimental-options --single-threaded \
--I../lib -S ./gknit-draft.rb #{options[:file]} #{options[:template]} #{options[:package]} #{options[:create_dir]} #{options[:editor]}"
+code = <<-Ruby
+require 'gknit'
+R.install_and_loads 'xfun'
 
+GKnit.draft(file: #{options[:file]}, template: %Q(#{options[:template]}), 
+            package: #{options[:package]}, create_dir: #{options[:no_dir]}, 
+            is_package: #{is_r_package}, edit: true)
+Ruby
+
+exec %Q(ruby --polyglot --jvm --experimental-options --single-threaded -I../lib -e "#{code}")
+
+=begin
+puts "=========="
+full_filename = Dir.glob("gknit-templates*", base: "#{Gem.default_dir}/gems")
+template_path = "#{Gem.default_dir}/gems/#{full_filename[0]/rmarkdown/templates/}"
+puts template_path
+puts "=========="
+=end
+
+#puts %Q(ruby --polyglot --jvm --experimental-options --single-threaded -I../lib -e "#{code}")
+
+#exec "ruby --polyglot --jvm --experimental-options --single-threaded \
+#-I../lib -S ./gknit-draft.rb #{options[:file]} #{options[:template]} #{options[:package]} #{options[:create_#dir]} #{is_r_package} #{options[:editor]}"

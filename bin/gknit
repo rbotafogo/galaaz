@@ -113,6 +113,7 @@ rmarkdown::render("#{options[:input_file]}", output_format = #{options[:output_f
                   clean = #{options[:clean]})
 EOF
 
+
 exec "Rscript --jvm --polyglot -e '#{code}'"
 
 

@@ -1,0 +1,53 @@
+---
+title: "gKnit - Ruby and R Knitting with Galaaz in GraalVM"
+author: "Rodrigo Botafogo"
+tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr]
+date: "19 October 2018"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+  pdf_document:
+    includes:
+      in_header: ["../../sty/galaaz.sty"]
+    number_sections: yes
+---
+
+```{r setup, echo=FALSE}
+#opts_knit$set(progress = TRUE, verbose = TRUE)
+#KNITR_PROGRESS = TRUE
+```
+
+```{r expss}
+library(expss)
+data(mtcars)
+mtcars = apply_labels(mtcars,
+                      mpg = "Miles/(US) gallon",
+                      cyl = "Number of cylinders",
+                      disp = "Displacement (cu.in.)",
+                      hp = "Gross horsepower",
+                      drat = "Rear axle ratio",
+                      wt = "Weight (1000 lbs)",
+                      qsec = "1/4 mile time",
+                      vs = "Engine",
+                      vs = c("V-engine" = 0,
+                             "Straight engine" = 1),
+                      am = "Transmission",
+                      am = c("Automatic" = 0,
+                             "Manual"=1),
+                      gear = "Number of forward gears",
+                      carb = "Number of carburetors"
+		      	   )
+
+out = cro(mtcars$am, mtcars$vs)
+print(class(out))
+print(typeof(out))
+print(out)
+```
+
+```{ruby expss2}
+out = R.cro_cpct((~:mtcars).cyl, R.list(R.total, (~:mtcars).am, (~:mtcars).vs))
+puts out.rclass
+puts out.typeof
+outputs out.htmlTable
+```
