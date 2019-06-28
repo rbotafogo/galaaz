@@ -381,10 +381,23 @@ $(document).ready(function () {
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>In this post we will see how to program with <em>dplyr</em> in Galaaz.</p>
-<div id="but-first-what-is-galaaz" class="section level2">
-<h2>But first, what is Galaaz??</h2>
-<p>Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language, with a large community, a very large set of libraries and great for web development. However, it lacks libraries for data science, statistics, scientific plotting and machine learning. On the other hand, R is considered one of the most powerful languages for solving all of the above problems. Maybe the strongest competitor to R is Python with libraries such as NumPy, Pandas, SciPy, SciKit-Learn and many more.</p>
+<p>According to Steven Sagaert answer on Quora about “Is programming language R overrated?”:</p>
+<blockquote>
+<p>R is a sophisticated language with an unusual (i.e. non-mainstream) set of features. It‘s an impure functional programming language with sophisticated metaprogramming and 3 different OO systems.</p>
+</blockquote>
+<blockquote>
+<p>Just like common lisp you can completely customise how things work via metaprogramming. The biggest example is the tidyverse: by creating it’s own evaluation system (tidyeval) was able to create a custom syntax for dplyr.</p>
+</blockquote>
+<blockquote>
+<p>Mastering R (the language) and its ecosystem is not a matter of weeks or months but takes years. The rabbit hole goes pretty deep…</p>
+</blockquote>
+<p>Although having a highly configurable language might give extreme power to the programmer, it cal also be, as stated above, a question of years to master it. Programming with <em>dplyr</em> for instance, requires learning a set of complex concepts and rules that are not easily accessible for casual users or <em>unsofisticated</em> programmers as many users of R are. Being <em>unsofisticated</em> is NOT used here in a negative sense, as R was build for statitians and not programmers that need to solve real problems, often in a short time spam and are not concerned about creating complex computer systems.</p>
+<p>Unfortunatelly, if this <em>unsofisticated</em> programmer decides to move unto more sofisticated coding, the learning curve might become a serious impediment.</p>
+<p>In this post we will see how to program with <em>dplyr</em> in Galaaz and how Ruby can simplify the learning curve of mastering <em>dplyr</em> coding.</p>
+</div>
+<div id="but-first-what-is-galaaz" class="section level1">
+<h1>But first, what is Galaaz??</h1>
+<p>Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language, with a large community, a very large set of libraries and great for web development. It is also easy to learn. However, it lacks libraries for data science, statistics, scientific plotting and machine learning. On the other hand, R is considered one of the most powerful languages for solving all of the above problems. Maybe the strongest competitor to R is Python with libraries such as NumPy, Pandas, SciPy, SciKit-Learn and many more.</p>
 <p>With Galaaz we do not intend to re-implement any of the scientific libraries in R. However, we allow for very tight coupling between the two languages to the point that the Ruby developer does not need to know that there is an R engine running. Also, from the point of view of the R user/developer Galaaz looks a lot like R, with just minor syntactic difference, so there is almost no learning courve for the R developer. And as we will see in this post, programming with <em>dplyr</em> is easier in Galaaz than in R.</p>
 <p>R users are probably quite knowledgeable about <em>dplyr</em>, for the Ruby developer, <em>dplyr</em> and the <em>tidyverse</em> libraries are a set of libraries for data manipulation in R, developed by Hardley Wickham, chief scientis at RStudio and a prolific R coder and writer.</p>
 <p>For the coupling of Ruby and R we use new technologies provided by Oracle: GraalVM, TruffleRuby and FastR:</p>
@@ -414,7 +427,7 @@ $(document).ready(function () {
 
 With GraalVM we aim to allow developers to freely choose the right language
 for the task at hand without making compromises.</code></pre>
-<p>Interested readers should also check out the following sites:</p>
+<p>For more information on GraalVM, TruffleRuby, fastR, R and Galaaz check out the following sites/posts:</p>
 <ul>
 <li><a href="https://www.graalvm.org/">GraalVM Home</a></li>
 <li><a href="https://github.com/oracle/truffleruby">TruffleRuby</a></li>
@@ -427,9 +440,30 @@ for the task at hand without making compromises.</code></pre>
 <li><a href="https://adv-r.hadley.nz/">Advanced R</a></li>
 </ul>
 </div>
-<div id="programming-with-dplyr" class="section level2">
-<h2>Programming with dplyr</h2>
-<p>This post will follow closely the work done in <a href="https://dplyr.tidyverse.org/articles/programming.html" class="uri">https://dplyr.tidyverse.org/articles/programming.html</a>, by Hardley Wickham. In it, Hardley states:</p>
+<div id="tidyverse-and-dplyr" class="section level1">
+<h1>Tidyverse and dplyr</h1>
+<p>In <a href="https://rviews.rstudio.com/2017/06/08/what-is-the-tidyverse/">What is the tidyverse?</a> the tidyverse is explained as follows:</p>
+<blockquote>
+<p>The tidyverse is a coherent system of packages for data manipulation, exploration and visualization that share a common design philosophy. These were mostly developed by Hadley Wickham himself, but they are now being expanded by several contributors. Tidyverse packages are intended to make statisticians and data scientists more productive by guiding them through workflows that facilitate communication, and result in reproducible work products. Fundamentally, the tidyverse is about the connections between the tools that make the workflow possible.</p>
+</blockquote>
+<p><em>dplyr</em> is one of the many packages that are part of the tidyverse. It is:</p>
+<blockquote>
+<p>a grammar of data manipulation, providing a consistent set of verbs that help you solve the most common data manipulation challenges:</p>
+</blockquote>
+<blockquote>
+<ol style="list-style-type: decimal">
+<li>mutate() adds new variables that are functions of existing variables</li>
+<li>select() picks variables based on their names.</li>
+<li>filter() picks cases based on their values.</li>
+<li>summarise() reduces multiple values down to a single summary.</li>
+<li>arrange() changes the ordering of the rows.</li>
+</ol>
+</blockquote>
+<p>Very often R is used interatively and users use <em>dplyr</em> to manipulate a single dataset and thus no programming with <em>dplyr</em> is needed. When users want to replicate their work for multiple datasets, programming becomes necessary.</p>
+</div>
+<div id="programming-with-dplyr" class="section level1">
+<h1>Programming with dplyr</h1>
+<p>In the vignette <a href="https://dplyr.tidyverse.org/articles/programming.html">“Programming with dplyr”</a>, Hardley Wickham states:</p>
 <blockquote>
 <p>Most dplyr functions use non-standard evaluation (NSE). This is a catch-all term that means they don’t follow the usual R rules of evaluation. Instead, they capture the expression that you typed and evaluate it in a custom way. This has two main benefits for dplyr code:</p>
 </blockquote>
@@ -439,6 +473,7 @@ for the task at hand without making compromises.</code></pre>
 <blockquote>
 <p>dplyr can choose to compute results in a different way to base R. This is important for database backends because dplyr itself doesn’t do any work, but instead generates the SQL that tells the database what to do.</p>
 </blockquote>
+<p>But then he goes on:</p>
 <blockquote>
 <p>Unfortunately these benefits do not come for free. There are two main drawbacks:</p>
 </blockquote>
@@ -461,8 +496,9 @@ filter(df, my_var == 1)
 <blockquote>
 <p>This makes it hard to create functions with arguments that change how dplyr verbs are computed.</p>
 </blockquote>
-<p>In this post we will see that programming with <em>dplyr</em> in Galaaz does not require knowledge of non-standard evaluation in R and can be accomplished by utilizing normal Ruby constructs.</p>
-</div>
+<p>As a result of this, programming with <em>dplyr</em> requires learning a set of new ideas and concepts. In this vignette Hardley goes on showing how to program ever more difficult problems with <em>dplyr</em>, showing the problems it faces and how to solve them.</p>
+<p>In this blog, we will look at all the problems presented by Harley on the vignette and show how those same problems can be solved using Galaaz and the Ruby language.</p>
+<p>This blog is organized as follows: first we show how to write expressions using Galaaz, then we show how Ruby and R can be integrated and how R functions are transparently called from Ruby.</p>
 </div>
 <div id="writing-expressions-in-galaaz" class="section level1">
 <h1>Writing Expressions in Galaaz</h1>
@@ -575,8 +611,11 @@ print(lst)</code></pre>
 puts exp10</code></pre>
 <pre><code>## y &lt;- 0.850903524534118</code></pre>
 </div>
-<div id="filtering-using-expressions" class="section level1">
-<h1>Filtering using expressions</h1>
+<div id="data-manipulation-wiht-dplyr" class="section level1">
+<h1>Data manipulation wiht <em>dplyr</em></h1>
+<p>In this section we look at the list of problems that Hardley describes in the “Programming with dplyr” vignette and show how those problems are solved and coded with Galaaz. Readers interested in how those problems are treated in <em>dplyr</em> should read the vignette and use it as comparison with this blog.</p>
+<div id="filtering-using-expressions" class="section level2">
+<h2>Filtering using expressions</h2>
 <p>Now that we know how to write expression and call R functions let’s do some data manipulation in Galaaz. Let’s first start by creating the same data frame that we created previously in section “Programming with dplyr”:</p>
 <pre class="ruby"><code>df = R.data__frame(x: (1..3), y: (3..1))
 puts df</code></pre>
@@ -619,8 +658,8 @@ puts df.filter(:x.eq y)</code></pre>
 <pre><code>##   x y
 ## 1 1 3</code></pre>
 </div>
-<div id="writing-a-function-that-applies-to-different-data-sets" class="section level1">
-<h1>Writing a function that applies to different data sets</h1>
+<div id="writing-a-function-that-applies-to-different-data-sets" class="section level2">
+<h2>Writing a function that applies to different data sets</h2>
 <p>Let’s suppose that we want to write a function that receives as the first argument a data frame and as second argument an expression that adds a column to the data frame that is equal to the sum of elements in column ‘a’ plus ‘x’.</p>
 <p>Here is the intended behaviour using the ‘mutate’ function of ‘dplyr’:</p>
 <pre><code>mutate(df1, y = a + x)
@@ -654,8 +693,8 @@ mutate_y(df1)</code></pre>
 ##   mismatched protect/unprotect (unprotect with empty protect stack) (RError)
 ## Translated to internal error</code></pre>
 </div>
-<div id="different-expressions" class="section level1">
-<h1>Different expressions</h1>
+<div id="different-expressions" class="section level2">
+<h2>Different expressions</h2>
 <p>Let’s move to the next problem as presented by Hardley where trying to write a function in R that will receive two argumens, the first a variable and the second an expression is not trivial. Bellow we create a data frame and we want to write a function that groups data by a variable and summarises it by an expression:</p>
 <pre class="r"><code>set.seed(123)
 
@@ -726,8 +765,8 @@ puts my_summarize(:df, :g1).as__data__frame</code></pre>
 ## 2  2 3.500000</code></pre>
 <p>Great, everything is fine! No magic, no new functions, no complexities, just normal, standard Ruby code. If you’ve ever done NSE in R, this certainly feels much safer and easy to implement.</p>
 </div>
-<div id="different-input-variables" class="section level1">
-<h1>Different input variables</h1>
+<div id="different-input-variables" class="section level2">
+<h2>Different input variables</h2>
 <p>In the previous section we’ve managed to get rid of all NSE formulation for a simple example, but does this remain true for more complex examples, or will the Galaaz way prove inpractical for more complex code?</p>
 <p>In the next example Hardley proposes us to write a function that given an expression such as ‘a’ or ‘a * b’, calculates three summaries. What we want a function that does the same as these R statements:</p>
 <pre><code>summarise(df, mean = mean(a), sum = sum(a), n = n())
@@ -758,8 +797,8 @@ puts my_summarise2((~:df), :a * :b)</code></pre>
 ## 1    9  45 5</code></pre>
 <p>Once again, there is no need to use any special theory or functions. The only point to be careful about is the use of ‘E’ to build expressions from functions ‘mean’, ‘sum’ and ‘n’.</p>
 </div>
-<div id="different-input-and-output-variable" class="section level1">
-<h1>Different input and output variable</h1>
+<div id="different-input-and-output-variable" class="section level2">
+<h2>Different input and output variable</h2>
 <p>Now the next challenge presented by Hardley is to vary the name of the output variables based on the received expression. So, if the input expression is ‘a’, we want our data frame columns to be named ‘mean_a’ and ‘sum_a’. Now, if the input expression is ‘b’, columns should be named ‘mean_b’ and ‘sum_b’.</p>
 <pre><code>mutate(df, mean_a = mean(a), sum_a = sum(a))
 #&gt; # A tibble: 5 x 6
@@ -807,8 +846,8 @@ puts my_mutate((~:df), :b)</code></pre>
 <p>It really seems that “Non Standard Evaluation” is actually quite standard in Galaaz! But, you might have noticed a small change in the way the arguments to the mutate method were called. In a previous example we used df.summarise(mean: E.mean(:a), …) where the column name was followed by a ‘:’ colom. In this example, we have df.mutate(mean_name =&gt; E.mean(expr), …) and variable mean_name is not followed by ‘:’ but by ‘=&gt;’. This is standard Ruby notation.</p>
 <p>[explain….]</p>
 </div>
-<div id="capturing-multiple-variables" class="section level1">
-<h1>Capturing multiple variables</h1>
+<div id="capturing-multiple-variables" class="section level2">
+<h2>Capturing multiple variables</h2>
 <p>Moving on with new complexities, Hardley proposes us to solve the problem in which the summarise function will receive any number of grouping variables.</p>
 <p>This again is quite standard Ruby. In order to receive an undefined number of paramenters the paramenter is preceded by ’*’:</p>
 <pre class="ruby"><code>def my_summarise3(df, *group_vars)
@@ -823,6 +862,7 @@ puts my_summarise3((~:df), :g1, :g2).as__data__frame</code></pre>
 ## 3  2  1 3
 ## 4  2  2 3</code></pre>
 </div>
+</div>
 <div id="why-does-r-require-nse-and-galaaz-does-not" class="section level1">
 <h1>Why does R require NSE and Galaaz does not?</h1>
 <p>NSE introduces a number of new concepts, such as ‘quoting’, ‘quasiquotation’, ‘unquoting’ and ‘unquote-splicing’, while in Galaaz none of those concepts are needed. What gives?</p>
@@ -832,7 +872,7 @@ puts my_summarise3((~:df), :g1, :g2).as__data__frame</code></pre>
 </div>
 <div id="advanced-dplyr-features" class="section level1">
 <h1>Advanced dplyr features</h1>
-<p>In the blog: Programming with dplyr by using dplyr (<a href="https://www.r-bloggers.com/programming-with-dplyr-by-using-dplyr/" class="uri">https://www.r-bloggers.com/programming-with-dplyr-by-using-dplyr/</a>) Iñaki Úcar shows surprise that some R users are trying to code in dplyr avoiding the use of NSE. For instance he says:</p>
+<p>In the blog: <a href="https://www.r-bloggers.com/programming-with-dplyr-by-using-dplyr/">Programming with dplyr by using dplyr</a> Iñaki Úcar shows surprise that some R users are trying to code in dplyr avoiding the use of NSE. For instance he says:</p>
 <blockquote>
 <p>Take the example of seplyr. It stands for standard evaluation dplyr, and enables us to program over dplyr without having “to bring in (or study) any deep-theory or heavy-weight tools such as rlang/tidyeval”.</p>
 </blockquote>
