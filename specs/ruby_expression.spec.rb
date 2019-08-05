@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'galaaz'
+require 'ggplot'
 
 #========================================================================================
 # class Expression in the R module extends Ruby's symbols, so that they can be used in
