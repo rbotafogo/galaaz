@@ -25,4 +25,4 @@ require 'gknit'
 R.install_and_loads 'xfun'
 
 GKnit.draft(file: ARGV[0], template: ARGV[1], package: ARGV[2],
-	    create_dir: ARGV[3], edit: ARGV[4])
+	    create_dir: ARGV[3], is_package: ARGV[4], edit: ARGV[5])

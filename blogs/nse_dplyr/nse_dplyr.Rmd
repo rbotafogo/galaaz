@@ -41,11 +41,11 @@ According to Steven Sagaert answer on Quora about "Is programming language R ove
 > takes years. The rabbit hole goes pretty deep…
 
 Although having a highly configurable language might give extreme power to the programmer,
-it cal also be, as stated above, a question of years to master it. Programming with _dplyr_
+it can also be, as stated above, a question of years to master it. Programming with _dplyr_
 for instance, requires learning a set of complex concepts and rules that are not easily 
 accessible for casual users or _unsofisticated_ programmers as many users of R are. Being
 _unsofisticated_ is NOT used here in a negative sense, as R was build for statitians and
-not programmers that need to solve real problems, often in a short time spam and are not
+not programmers, that need to solve real problems, often in a short time spam and are not
 concerned about creating complex computer systems.
 
 Unfortunatelly, if this _unsofisticated_ programmer decides to move unto more sofisticated
@@ -62,21 +62,24 @@ easy to learn. However,
 it lacks libraries for data science, statistics, scientific plotting and machine learning.
 On the other hand, R is considered one of the most powerful languages for solving all of the
 above problems.  Maybe the strongest competitor to R is Python with libraries such as NumPy,
-Pandas, SciPy, SciKit-Learn and many more.
+Pandas, SciPy, SciKit-Learn and many more.  We will not get here in the discussion on R
+versus Python, both are excellent languages with powerful features, benefits and drawbacks.
+Our interest is to bring to yet another excellent language, Ruby, the data science libraries
+that it lacks.
 
 With Galaaz we do not intend to re-implement any of the scientific libraries in R. However, we 
 allow for very tight coupling between the two languages to the point that the Ruby 
 developer does not need to know that there is an R engine running.  Also, from the point of
-view of the R user/developer Galaaz looks a lot like R, with just minor syntactic difference,
-so there is almost no learning courve for the R developer. And as we will see in this
-post, programming with _dplyr_ is easier in Galaaz than in R.
+view of the R user/developer, Galaaz looks a lot like R, with just minor syntactic difference,
+so there is almost no learning curve for the R developer. And as we will see in this
+post that programming with _dplyr_ is easier in Galaaz than in R.
 
-R users are probably quite knowledgeable about _dplyr_, for the Ruby developer, _dplyr_ and
+R users are probably quite knowledgeable about _dplyr_. For the Ruby developer, _dplyr_ and
 the _tidyverse_ libraries are a set of libraries for data manipulation in R, developed by
 Hardley Wickham, chief scientis at RStudio and a prolific R coder and writer.
 
-For the coupling of Ruby and R we use new technologies provided by Oracle: GraalVM, 
-TruffleRuby and FastR:
+For the coupling of Ruby and R, we use new technologies provided by Oracle: GraalVM, 
+TruffleRuby and FastR. GraalVM home page had the following definition:
 
      GraalVM is a universal virtual machine for running applications
      written in JavaScript, Python 3, Ruby, R, JVM-based languages like Java,
@@ -105,17 +108,6 @@ TruffleRuby and FastR:
     With GraalVM we aim to allow developers to freely choose the right language
     for the task at hand without making compromises.
 
-For more information on GraalVM, TruffleRuby, fastR, R and Galaaz check out the following sites/posts:
-
-* [GraalVM Home](https://www.graalvm.org/)
-* [TruffleRuby](https://github.com/oracle/truffleruby)
-* [FastR](https://github.com/oracle/fastr)
-* [Faster R with FastR](https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb)
-* [How to make Beautiful Ruby Plots with Galaaz](https://medium.freecodecamp.org/how-to-make-beautiful-ruby-plots-with-galaaz-320848058857)
-* [Ruby Plotting with Galaaz: An example of tightly coupling Ruby and R in GraalVM](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021)
-* [How to do reproducible research in Ruby with gKnit](https://towardsdatascience.com/how-to-do-reproducible-research-in-ruby-with-gknit-c26d2684d64e)
-* [R for Data Science](https://r4ds.had.co.nz/)
-* [Advanced R](https://adv-r.hadley.nz/)
 
 # Tidyverse and dplyr
 
@@ -141,8 +133,8 @@ _dplyr_ is one of the many packages that are part of the tidyverse.  It is:
 > 4. summarise() reduces multiple values down to a single summary.
 > 5. arrange() changes the ordering of the rows.
 
-Very often R is used interatively and users use _dplyr_ to manipulate a single dataset and
-thus no programming with _dplyr_ is needed. When users want to replicate their work for
+Very often R is used interactively and users use _dplyr_ to manipulate a single dataset
+without programming. When users want to replicate their work for
 multiple datasets, programming becomes necessary.
 
 # Programming with dplyr
@@ -190,14 +182,25 @@ filter(df, my_var == 1)
 
 As a result of this, programming with _dplyr_ requires learning a set of new ideas and concepts.
 In this vignette Hardley goes on showing how to program ever more difficult problems with _dplyr_, 
-showing the problems it faces and how to solve them.
+showing the problems it faces and the new concepts needed to solve them.
 
 In this blog, we will look at all the problems presented by Harley on the vignette and show how
 those same problems can be solved using Galaaz and the Ruby language. 
 
-This blog is organized as follows: first we show how to write expressions using Galaaz, then 
-we show how Ruby and R can be integrated and how R functions are transparently called from
-Ruby. 
+This blog is organized as follows: first we show how to write expressions using Galaaz.  
+Expressions are a fundamental concept in _dplyr_ and are not part of basic Ruby.  We extend
+the Ruby language create a manipulate expressions that will be used by _dplyr_ functions. 
+
+Then we show very succintly how Ruby and R can be integrated and how R functions are 
+transparently called from Ruby. Galaaz [user manual](https://github.com/rbotafogo/galaaz/wiki)
+(still in development) goes in much deeper detail about this integration.
+
+Next in section "Data manipulation wiht _dplyr_" we go through all the problems on the 
+_dplyr_ vignette and look at how they are solved in Galaaz.  We then discuss why programming
+with Galaaz and _dplyr_ is easier than programming with _dplyr_ in plain R.
+
+The following section looks at another more advanced problem and shows that Galaaz can still
+handle it without any difficulty.  We then provide further reading and concluding remarks.
 
 # Writing Expressions in Galaaz
 
@@ -206,24 +209,42 @@ Galaaz extends Ruby to work with expressions, similar to R's expressions build w
 formulae.  For instance, in mathematics, the expression $y = sin(x)$ describes a function but cannot
 be computed unless the value of $x$ is bound to some value. 
 
-Let's take a look at some of those expressions in Ruby:
+Expressions are fundamental in _dplyr_ programming as they are the input to _dplyr_ functions,
+for instance, as we will see shortly, if a data frame has a column named 'x' and we want 
+to add another column, y, to this dataframe that has the values of 'x' times 2, then we would
+call a _dplyr_ function with the expression 'y = x * 2'.
+
+## A note on notation
+
+This blog was written in Rmarkdown and automatically converted to HTML or PDF (depending on
+where you are reading this blog) with gKnit (a tool provided by Galaaz). In Rmarkdown, it is
+possible to write text and code blocks that are executed to generate the final report. Code
+blocks appear inside a 'box' and the result of their execution appear either in another type 
+of 'box' with a different background (HTML) or as normal text (PDF).  Every output line from
+the code execution is preceeded by '##'.
 
 ## Expressions from operators
 
-The code bellow creates an expression summing two symbols. Note that :a and :b are Ruby symbols and
-are not bound to any value at the time of expression definition:
+The code below creates an expression summing two symbols. Note that :a and :b are Ruby symbols and
+are not bound to any values at the time of expression definition:
 
 ```{ruby expressions}
 exp1 = :a + :b
 puts exp1
 ```
-We can build any complex mathematical expression such as:
+In Galaaz, we can build any complex mathematical expression such as:
 
 ```{ruby expr2}
 exp2 = (:a + :b) * 2.0 + :c ** 2 / :z
 puts exp2
 ```
-The 'L' after two indicates that 2 is an integer.
+Expressions are printed with the same format as the equivalent R expressions. The 'L' after 
+2 indicates that 2 is an integer. 
+
+The R developer should note that in R, if she writes the
+number '2', the R interpreter will convert it to float. In order to get an interger she
+should write '2L'. Galaaz follows Ruby notation and '2' is an integer, while '2.0' is a
+float.
 
 It is also possible to use inequality operators in building expressions:
 
@@ -235,7 +256,7 @@ Expressions' definition can also make use of normal Ruby variables without any p
 
 ```{ruby expr_with_var}
 x = 20
-y = 30
+y = 30.0
 exp_var = (:a + :b) * x <= :z - y
 puts exp_var
 ```
@@ -249,10 +270,12 @@ exp4 = (:a + :b).ge :z
 puts exp4
 ```
 
-Two type of expression, however, can only be created with the functional representation 
-of the operators,  those are expressions involving '==', and '='.  In order to write an 
-expression involving '==' we
-need to use the method '.eq' and for '=' we need the function '.assign'
+Two types of expressions, however, can only be created with the functional representation 
+of the operators.  Those are expressions involving '==', and '='. This is the case since
+those symbols have special meaning in Ruby and should not be redefined.
+
+In order to write an expression involving '==' we
+need to use the method '.eq' and for '=' we need the function '.assign':
 
 ```{ruby expr5}
 exp5 = (:a + :b).eq :z
@@ -263,24 +286,24 @@ puts exp5
 exp6 = :y.assign :a + :b
 puts exp6
 ```
-In general we think that using the functional notation is preferable to using the 
-symbolic notation as otherwise, we end up writing invalid expressions such as
+Users should be careful when writing expressions not to inadvertently use '==' or '=' as 
+this will generate an error, that might be a bit cryptic (in future releases of Galaza, we 
+plan to improve the error message).
 
 ```{ruby exp_wrong, warning=FALSE}
 exp_wrong = (:a + :b) == :z
 puts exp_wrong
 ```
-and it might be difficult to understand what is going on here.  The problem lies with the fact that
-when using '==' we are comparing expression (:a + :b) to expression :z with '=='.  When the 
-comparison is executed, the system tries to evaluate :a, :b and :z, and those symbols at 
-this time are not bound to anything and we get a "object 'a' not found" message.
-If we only use functional notation, this type of error will not occur.
+The problem lies with the fact that
+when using '==' we are comparing expression (:a + :b) to expression :z with '=='.  When this 
+comparison is executed, the system tries to evaluate :a, :b and :z, and those symbols, at 
+this time, are not bound to anything giving the "object 'a' not found" message.
 
 ## Expressions with R methods
 
 It is often necessary to create an expression that uses a method or function.  For instance, in
 mathematics, it's quite natural to write an expressin such as $y = sin(x)$. In this case, the
-'sin' function is part of the expression and should not immediately be executed. When we want 
+'sin' function is part of the expression and should not be immediately executed. When we want 
 the function to be part of the expression, we call the function preceeding it
 by the letter E, such as 'E.sin(x)'
 
@@ -288,32 +311,37 @@ by the letter E, such as 'E.sin(x)'
 exp7 = :y.assign E.sin(:x)
 puts exp7
 ```
-
-Expressions can also be written using '.' notation:
+Function expressions can also be written using '.' notation:
 
 ```{ruby expression_with_dot}
 exp8 = :y.assign :x.sin
 puts exp8
 ```
-
-When a function has multiple arguments, the first one can be used before the '.':
+When a function has multiple arguments, the first one can be used before the '.'.  For instance,
+the R concatenate function 'c', that concatenates two or more arguments can be part of 
+an expression as:
 
 ```{ruby expression_multiple_args}
 exp9 = :x.c(:y)
 puts exp9
 ```
+Note that this gives an OO feeling to the code, as if we were saying 'x' concatenates 'y'. As a
+side note, '.' notation can be used as the R pipe operator '%>%', but is more general than the
+pipe.
 
 ## Evaluating an Expression
 
-Expressions can be evaluated by calling function 'eval' with a binding. A binding can be provided
-with a list:
+Although we are mainly focusing on expressions to pass them to _dplyr_ functions, expressions 
+can be evaluated by calling function 'eval' with a binding. 
+
+A binding can be provided with a list or a data frame as shown below:
 
 ```{ruby eval_expression_list}
 exp = (:a + :b) * 2.0 + :c ** 2 / :z
 puts exp.eval(R.list(a: 10, b: 20, c: 30, z: 40))
 ```
 
-... with a data frame:
+with a data frame:
 
 ```{ruby eval_expression_df}
 df = R.data__frame(
@@ -333,8 +361,8 @@ this post, we do not have enough space to write a complete manual on Galaaz
 (a short manual can be found at: https://www.rubydoc.info/gems/galaaz/0.4.9), so we will 
 present only a few examples scripts using Galaaz.
 
-Basically, to call an R function from Ruby with Galaaz, one only needs to preceed the function
-with 'R.'.  For instance, to create a vector in R, the 'c' function is used.  From Galaaz, a
+Basically, to call an R function from Ruby with Galaaz, one only needs to preced the function
+with 'R.'.  For instance, to create a vector in R, the 'c' function is used. In Galaaz, a
 vector can be created by using 'R.c':
 
 ```{ruby vector}
@@ -364,24 +392,63 @@ puts exp10
 
 # Data manipulation wiht _dplyr_
 
+In this section we will give a brief tour _dplyr_'s usage in Galaaz and how to manipulate 
+data in Ruby with it.  This section will follow [_dplyr_'s vignette](https://dplyr.tidyverse.org/articles/dplyr.html) that explores the nycflights13 data set. This dataset contains all 336776 
+flights that departed from New York City in 2013. The data comes from the US Bureau of 
+Transportation Statistics.
+
+Let's start by taking a look at this dataset:
+
+```{ruby nycflights13}
+R.library('nycflights13')
+# check it's dimension
+puts ~:flights.dim
+# and the structure
+~:flights.str
+```
+
+Now, let's use a first verb of _dplyr_: 'filter'. This verb, obviously, will filter the data
+by the given expression. In the next block, we filter by columns 'month' and 'day'. The
+first argument to the filter function is symbol ':flights'. A Ruby symbol, when given to
+an R function will convert to the R variable of the same name, in this case 'flights', that
+holds the nycflights13 data frame. 
+
+The second and third arguments are expressions that will be used by the filter function to
+filter by columns, looking for entries in which the month and day are equal to 1.
+
+```{ruby filter}
+puts R.filter(:flights, (:month.eq 1), (:day.eq 1))
+```
+
+
+## Programming with _dplyr_: problems and how to solve them in Galaaz
+
 In this section we look at the list of problems that Hardley describes in the "Programming with dplyr"
 vignette and show how those problems are solved and coded with Galaaz. Readers interested in
-how those problems are treated in _dplyr_ should read the vignette and use it as comparison with
+how those problems are treated in _dplyr_ should read the vignette and use it as a comparison with
 this blog.
 
 ## Filtering using expressions
 
-Now that we know how to write expression and call R functions let's do some data manipulation in
-Galaaz.  Let's first start by creating the same data frame that we created previously in section
-"Programming with dplyr":
+Now that we know how to write expressions and call R functions, let's do some data manipulation in
+Galaaz.  Let's first start by creating a data frame. In R, the 'data.frame' function creates a
+data frame.  In Ruby, writing 'data.frame' will not parse as a single object. To call R 
+functions that have a '.' in them, we need to substitute the '.' with '__'. So, method
+'data.frame' in R, is called in Galaaz as 'R.data\_\_frame':
 
 ```{ruby df}
 df = R.data__frame(x: (1..3), y: (3..1))
 puts df
 ```
-The 'filter' function can be called on this data frame either by using 'R.filter(df, ...)' or 
-by using dot notation.  We prefer to use dot notation as shown bellow.  The argument to 'filter'
-in Galaaz should be an expression. Note that if we gave to filter a Ruby expression such as
+
+_dplyr_ provides the 'filter' function, that filters data in a data brame. The 'filter' 
+function can be called on this data frame either by using 'R.filter(df, ...)' or 
+by using dot notation.  
+
+-------FIX---------
+
+We prefer to use dot notation as shown bellow.  The argument to 'filter' should be an 
+expression. Note that if we gave to filter a Ruby expression such as
 'x == 1', we would get an error, since there is no variable 'x' defined and if 'x' was a variable
 then 'x == 1' would either be 'true' or 'false'. Our goal is to filter our data frame returning
 all rows in which the 'x' value is equal to 1. To express this we want: ':x.eq 1', where :x will
@@ -754,6 +821,20 @@ end
 
 puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year")).as__data__frame
 ```
+
+# Further reading
+
+For more information on GraalVM, TruffleRuby, fastR, R and Galaaz check out the following sites/posts:
+
+* [GraalVM Home](https://www.graalvm.org/)
+* [TruffleRuby](https://github.com/oracle/truffleruby)
+* [FastR](https://github.com/oracle/fastr)
+* [Faster R with FastR](https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb)
+* [How to make Beautiful Ruby Plots with Galaaz](https://medium.freecodecamp.org/how-to-make-beautiful-ruby-plots-with-galaaz-320848058857)
+* [Ruby Plotting with Galaaz: An example of tightly coupling Ruby and R in GraalVM](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021)
+* [How to do reproducible research in Ruby with gKnit](https://towardsdatascience.com/how-to-do-reproducible-research-in-ruby-with-gknit-c26d2684d64e)
+* [R for Data Science](https://r4ds.had.co.nz/)
+* [Advanced R](https://adv-r.hadley.nz/)
 
 # Conclusion
 
