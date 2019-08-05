@@ -64,9 +64,10 @@ module R
 
   def self.install_rlibs(*libs)
 
-    packages = R.c(libs)
+    packages = R.c(*libs)
 
     new_packages = packages[!(packages._ :in, R.installed__packages[:all, "Package"])]
+    puts new_packages
     
     if(new_packages.size > 0)
       
