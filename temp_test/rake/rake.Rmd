@@ -1,0 +1,129 @@
+---
+title: "Using Rake with Galaaz"
+author:
+    - "Rodrigo Botafogo"
+date: "17/10/2019"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+params:
+  rake_clean: FALSE
+  rake_clobber: FALSE	
+---
+
+```{r, echo = FALSE}
+print(params$rake_clean)
+```
+
+# Using Rake with Galaaz
+
+One of the main uses of gKnit and other tools such as Jupyter notebooks is to guarantee 
+reproducibility. However, although having all the code in a notebook or gKnit file is very
+important, compilation of the notebook is only guarantee to be reproducible if the 
+environment in which the notebook is being compiled is exactly the same as the one in which
+it was generated.
+
+Rake is a build tool written in Ruby, similar to Make, and very useful in rebuilding the 
+environment.  Running Rake within Galaaz is possible and highly recommended.  This section
+will go through Rake's basic and show how it can be integrated with Galaaz in code block.
+
+## A first Rake script
+
+To execute rake in a code block, first "require 'rake'" and then call "extend Rake::DSL". 
+Rake provides 'task's that can be defined and later executed.  In the next block, we define
+a 'hello' task that just prints our usual "Hello World" string.  In order to execute a
+task we use the command "Rake.application[\<task name\>].invoke":
+
+```{ruby rake_hello}
+require 'rake'
+extend Rake::DSL
+
+# Create a rake application
+rake = Rake.application
+# and init the application
+rake.init
+
+desc "Task to print 'Hello World'"
+task :hello do
+  puts "Hello World"
+end
+
+rake['hello'].invoke
+```
+Rake ensures that tasks are only executed when needed. If a task has already been executed
+once, then, in general, the task should not run a seccond time. Rake tasks become more
+interesting when they have dependencies.  When a taks has a dependency, rake will check
+and execute the dependencies when needed.  In the next block, we define a 'default' taks
+that depends on the hello task.  Since this task, has already been executed previously,
+invoking the default task will do nothing.
+
+```{ruby rake_default}
+task :default => 'hello'
+
+rake['default'].invoke
+```
+
+If we want a task to be executed a second time, the 'reenable' command should be called on the
+task. Note that we need to reenable both the 'hello' and the 'default' tasks if we want to 
+invoke the default task for a second time. Observe also that invoking the 'default' will 
+now also execute its dependent 'hello' task.
+
+
+```{ruby rake_reenable}
+rake['hello'].reenable
+rake['default'].reenable
+rake['default'].invoke
+```
+## Using Rake to download a file if it isn't already available
+
+Let's now make a little bit more useful task. In the next block, our task will be to download
+a file from the internet. In this code block we use two new types of taks: _directory_ and _file_.
+The _directory_ task creates a directory if it does not already exists, and the _file_ task
+will only execute if the given file does not exists or if its older than its dependencies.
+
+In this example the output_dir ('files/') will be created in the current directory if it does not
+exist, then the file ('files/flights14.csv') will be downloaded. gKnitting this Rmd file a second
+time will not create the directory again nor download the file a second time. On the first round
+of gKnitting, just after this block, you should see the messages "Downloading file" and
+"Downloading done!", on subsequent rounds of gKnitting, those messages should not be printed.
+
+```{ruby rake_download}
+require 'open-uri'
+output_dir = 'files/'
+output_file = output_dir + 'flights14.csv'
+
+desc "Create the output directory if it does not exist"
+directory output_dir
+
+desc "Download the flights14 file from github"
+file output_file => [output_dir] do
+  puts "Downloading file"
+  input = "https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv"
+  output = "flights14.csv"
+  
+  File.open(output_dir + output, "wb") do |file|
+    file.write open(input).read
+  end
+  puts "Downloading done!"
+end
+
+rake[output_file].invoke
+```
+## Cleaning the environment
+
+In this next block, all the files in the 'output_dir' directory will be deleted:
+
+```{ruby rake_clean}
+require 'rake/clean'
+
+CLEAN.include("#{output_dir}/*.*")
+CLOBBER.include('*~', "#{output_dir}/*.*", '*.html', '*.md')
+
+# check to see if parameter 'rake_clean' is set to TRUE or FALSE and
+# clean if TRUE
+if (~:params).rake_clean >> 0
+  puts "Cleaning the environment"
+  rake['clean'].invoke
+end
+```

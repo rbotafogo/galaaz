@@ -8,7 +8,7 @@ Gem::Specification.new do |gem|
   gem.name    = $gem_name
   gem.version = $version
   gem.date    = Date.today.to_s
-  gem.executables << 'galaaz' << 'gstudio' << 'gknit' << 'grun' << 'gknit-templates'
+  gem.executables << 'galaaz' << 'gstudio' << 'gknit' << 'grun' << 'gknit-draft'
   gem.summary     = "Tightly coupling Ruby and R"
   gem.description = <<-EOF
 Galaaz brings the power of R to the Ruby community. Galaaz 

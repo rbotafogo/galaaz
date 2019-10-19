@@ -378,27 +378,31 @@ $(document).ready(function () {
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<pre class="r"><code>df &lt;- tibble(x = 1:3, y = 3:1)
-print(df)</code></pre>
-<pre><code>## Warning in max(tier_widths): no non-missing arguments to max; returning -
-## Inf
+<p>A tibble in R</p>
+<pre class="r"><code># df &lt;- tibble(x = 1:3, y = 3:1)
+# print(df)
 
-## Warning in max(tier_widths): no non-missing arguments to max; returning -
-## Inf</code></pre>
-<pre><code>## [38;5;246m# A tibble: 3 x 2[39m
-## [38;5;246m# … with 2 more variables: x [3m[38;5;246m&lt;int&gt;[38;5;246m[23m, y [3m[38;5;246m&lt;int&gt;[38;5;246m[23m[39m</code></pre>
-<pre class="r"><code>print(filter(df, x == 1))</code></pre>
-<pre><code>## Warning in max(tier_widths): no non-missing arguments to max; returning -
-## Inf
-
-## Warning in max(tier_widths): no non-missing arguments to max; returning -
-## Inf</code></pre>
-<pre><code>## [38;5;246m# A tibble: 1 x 2[39m
-## [38;5;246m# … with 2 more variables: x [3m[38;5;246m&lt;int&gt;[38;5;246m[23m, y [3m[38;5;246m&lt;int&gt;[38;5;246m[23m[39m</code></pre>
-<pre class="r"><code>#&gt; # A tibble: 1 x 2
+# print(filter(df, x == 1))
+#&gt; # A tibble: 1 x 2
 #&gt;       x     y
 #&gt;   &lt;int&gt; &lt;int&gt;
 #&gt; 1     1     3</code></pre>
+<p>A tibble running in Ruby</p>
+<pre class="ruby"><code>require 'rake'
+extend Rake::DSL
+
+task :default =&gt; 'title'
+
+task :title do
+  puts &quot;Hello World&quot;
+end
+
+#Rake::Task.define_task 'title' do
+#  puts &quot;Hello World&quot;
+#end
+
+Rake.application['default'].invoke</code></pre>
+<pre><code>## Hello World</code></pre>
 </div>
 
 

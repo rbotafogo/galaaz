@@ -116,4 +116,12 @@ EOF
 
 exec "Rscript --jvm --polyglot -e '#{code}'"
 
-
+=begin
+# how to call rmarkdown::render with a parameter list
+# all params need to be defined in the YAML header
+rmarkdown::render("#{options[:input_file]}", output_format = #{options[:output_format]}, 
+                  output_file = #{options[:output_file]}, 
+                  output_dir = #{options[:output_dir]}, 
+                  clean = #{options[:clean]},
+                  params = list(rake_clean = TRUE))
+=end

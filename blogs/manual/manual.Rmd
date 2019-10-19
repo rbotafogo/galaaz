@@ -204,11 +204,9 @@ puts vec.class
 ```
 Every object created by a call to an R function will be of a type that inherits from
 R::Object. In R, there is also a function 'class'. In order to access that function we
-have two options, either use the 'R.' scoping rule or we can call method 'rclass' to 
-the R::Object:
+can call method 'rclass' in the R::Object:
 
 ```{ruby rclass}
-puts R.class(vec)
 puts vec.rclass
 ```
 When working with R::Object(s), it is possible to use the '.' operator to pipe operations.
@@ -1370,10 +1368,14 @@ Galaaz.
 
 For these
 examples, we will investigate the nycflights13 data set available on the package by the
-same name.  We use function 'R.install_and_loads' that checks if the library is available 
+same name.  We use function 'R.install\_and\_loads' that checks if the library is available 
 locally, and if not, installs it. This data frame contains all 336,776 flights that 
 departed from New York City in 2013. The data comes from the US Bureau of 
 Transportation Statistics.
+
+Dplyr uses 'tibbles' in place of data frames; unfortunately, tibbles do not print yet properly in
+Galaaz due to a bug in fastR.  In order to print a tibble we need to convert it to a data frame
+using the 'as\_\_data__frame' method.
 
 ```{ruby nycflights13}
 R.install_and_loads('nycflights13')
