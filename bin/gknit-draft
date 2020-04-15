@@ -86,7 +86,10 @@ GKnit.draft(file: #{options[:file]}, template: %Q(#{options[:template]}),
             is_package: #{is_r_package}, edit: true)
 Ruby
 
-exec %Q(ruby --polyglot --jvm --experimental-options --single-threaded -I../lib -e "#{code}")
+libx = File.expand_path('../../lib', __FILE__)
+exec %Q(ruby --polyglot --jvm -I#{libx} -e "#{code}")
+
+# exec %Q(ruby --polyglot --jvm --experimental-options --single-threaded -I../lib -e "#{code}")
 
 =begin
 puts "=========="

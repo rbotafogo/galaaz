@@ -23,6 +23,9 @@
 ##########################################################################################
 
 
-# Dir.chdir(File.dirname(File.expand_path('.', __FILE__)))
+libx = File.expand_path('../../lib', __FILE__)
+exec "ruby --polyglot --jvm -I#{libx} -S #{ARGV[0]}"
 
-exec "ruby --polyglot --jvm --experimental-options --single-threaded -I../lib -S #{ARGV[0]}"
+# Dir.chdir(File.dirname(File.expand_path('.', __FILE__)))
+# exec "ruby --polyglot --jvm --experimental-options --single-threaded -I../lib -S #{ARGV[0]}"
+

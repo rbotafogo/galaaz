@@ -36,13 +36,16 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-Dir.chdir(File.dirname(File.expand_path('.', __FILE__)))
+# Dir.chdir(File.dirname(File.expand_path('.', __FILE__)))
 
+bin_dir = File.expand_path('..', __FILE__)
+libx = File.expand_path('../../lib', __FILE__)
 
 if options[:pry]
   puts "Loading PRY and Galaaz... Please wait!"
-  exec "ruby --polyglot --jvm --experimental-options --single-threaded -I../lib -S pry -r ./gstudio_pry.rb"
+  #exec "ruby --polyglot --jvm -I#{libx} -S pry -r #{bin_dir}/gstudio_pry.rb"
+  exec "ruby --polyglot --jvm --experimental-options --single-threaded -I#{libx} -S pry -r #{bin_dir}/gstudio_pry.rb"  
 else
   puts "Loading IRB and Galaaz... Please wait!"
-  exec "ruby --polyglot --jvm --experimental-options --single-threaded -I../lib -S irb -r ./gstudio_irb.rb"
+  exec "ruby --polyglot --jvm -I#{libx} -S irb -r #{bin_dir}/gstudio_irb.rb"
 end

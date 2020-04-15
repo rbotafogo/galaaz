@@ -417,7 +417,7 @@ The second and third arguments are expressions that will be used by the filter f
 filter by columns, looking for entries in which the month and day are equal to 1.
 
 ```{ruby filter}
-puts R.filter(:flights, (:month.eq 1), (:day.eq 1))
+puts R.filter(:flights, (:month.eq 1), (:day.eq 1)).as__data__frame
 ```
 
 

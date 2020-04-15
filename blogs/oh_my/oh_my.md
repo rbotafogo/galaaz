@@ -75,11 +75,11 @@ keyword 'attr_reader' and a colom before the variables name:
 
 
 
-```
-## class Trajectories
-##   attr_reader :times
-##   attr_reader :matrix
-## end
+```ruby
+class Trajectories
+  attr_reader :times
+  attr_reader :matrix
+end
 ```
 
 
@@ -87,27 +87,27 @@ In order to create a new instance of object Trajectories we call method new on t
 we can store the result in a varible (not an instance variable) as bellow:
 
 
-```
-## @traj = Trajectories.new
+```ruby
+@traj = Trajectories.new
 ```
 
 We now have in variable '@traj' a Trajectories object.  In Ruby, printing variable 'traj' will 
 only print the class name of the object and not it contents as in R.  
 
 
-```
-## puts @traj
+```ruby
+puts @traj
 ```
 
 ```
-## #<GalaazUtil::Trajectories:0x628>
+## #<RC::Trajectories:0x2e0>
 ```
 
 To see the contents of an object, one needs to access its components using the '.' operator:
 
 
-```
-## puts @traj.times
+```ruby
+puts @traj.times
 ```
 
 # Constructor
@@ -120,24 +120,24 @@ a 'times' value and a 'matrix' value and they are used to initialize the value o
 instance variables:
 
 
-```
-## class Trajectories
-##   
-##   attr_reader :times
-##   attr_reader :matrix
-## 
-##   #----------------------------------------------------------
-##   # Initializes the Trajectories class.  Takes two parameters
-##   # @param times
-##   # @param matrix
-##   #----------------------------------------------------------
-##   
-##   def initialize(times: nil, matrix: nil)
-##     @times = times
-##     @matrix = matrix
-##   end
-## 
-## end
+```ruby
+class Trajectories
+  
+  attr_reader :times
+  attr_reader :matrix
+
+  #----------------------------------------------------------
+  # Initializes the Trajectories class.  Takes two parameters
+  # @param times
+  # @param matrix
+  #----------------------------------------------------------
+  
+  def initialize(times: nil, matrix: nil)
+    @times = times
+    @matrix = matrix
+  end
+
+end
 ```
 
 Up to this point, everything described is pure Ruby code and has absolutely no relationship
@@ -154,12 +154,12 @@ When passing arguments to an R function in R one uses the '=' sign after the slo
 one uses the ':' operator after parameter's name as we can see bellow:
 
 
-```
-## # Create a Trajectories passing a times vector, but no matrix parameter
-## @traj = Trajectories.new(times: R.c(1, 2, 3, 4))
-## 
-## # Create a Trajectories with times and matrix
-## @traj2 = Trajectories.new(times: R.c(1, 3), matrix: R.matrix((1..4), ncol: 2))
+```ruby
+# Create a Trajectories passing a times vector, but no matrix parameter
+@traj = Trajectories.new(times: R.c(1, 2, 3, 4))
+
+# Create a Trajectories with times and matrix
+@traj2 = Trajectories.new(times: R.c(1, 3), matrix: R.matrix((1..4), ncol: 2))
 ```
 
 # Access to Instance Variables (to reach a slot)
@@ -173,8 +173,8 @@ that everything is fine:
 
 
 
-```
-## puts @traj.times
+```ruby
+puts @traj.times
 ```
 
 ```
@@ -185,10 +185,10 @@ We now have the expected value.  Note that the 'times' vector is printed exactly
 if we were using GNU R.  Let's now take a look at variable 'traj2':
 
 
-```
-## puts @traj2.times
-## puts
-## puts @traj2.matrix
+```ruby
+puts @traj2.times
+puts
+puts @traj2.matrix
 ```
 
 ```
@@ -228,34 +228,34 @@ Cochin and Saint-Anne.  We first show the code in R and the corresponding Galaaz
 This same code in Galaaz becomes:
 
 
-```
-## @trajPitie = Trajectories.new
-## 
-## @trajCochin = Trajectories.new(times: R.c(1,3,4,5),
-##                                matrix: R.rbind(
-##                                R.c(15,15.1, 15.2, 15.2),
-##                                R.c(16,15.9, 16,16.4),
-##                                R.c(15.2, R::NA, 15.3, 15.3),
-##                                R.c(15.7, 15.6, 15.8, 16)))
-## 
-## @trajStAnne =
-##   Trajectories.new(times: R.c((1..10), R.c(6..16) * 2),
-##                    matrix: (R.rbind(
-##                              R.matrix(R.seq(16, 19, length: 21), ncol: 21,
-##                                       nrow: 50, byrow: true),
-##                              R.matrix(R.seq(15.8, 18, length: 21), ncol: 21,
-##                                       nrow: 30, byrow: true)) + R.rnorm(21*80, 0, 0.2)))
+```ruby
+@trajPitie = Trajectories.new
+
+@trajCochin = Trajectories.new(times: R.c(1,3,4,5),
+                               matrix: R.rbind(
+                               R.c(15,15.1, 15.2, 15.2),
+                               R.c(16,15.9, 16,16.4),
+                               R.c(15.2, R::NA, 15.3, 15.3),
+                               R.c(15.7, 15.6, 15.8, 16)))
+
+@trajStAnne =
+  Trajectories.new(times: R.c((1..10), R.c(6..16) * 2),
+                   matrix: (R.rbind(
+                             R.matrix(R.seq(16, 19, length: 21), ncol: 21,
+                                      nrow: 50, byrow: true),
+                             R.matrix(R.seq(15.8, 18, length: 21), ncol: 21,
+                                      nrow: 30, byrow: true)) + R.rnorm(21*80, 0, 0.2)))
 ```
 
 Let's check that the 'times' and 'matrix' instance variables were correctly set:
 
 
-```
-## puts @trajCochin.times
-## puts
-## puts @trajCochin.matrix
-## puts
-## puts @trajStAnne.times
+```ruby
+puts @trajCochin.times
+puts
+puts @trajCochin.matrix
+puts
+puts @trajStAnne.times
 ```
 
 ```
@@ -284,35 +284,35 @@ In the example bellow, a class TrajectoriesBis is created with default value 1 f
 matrix with no elements in matrix.
 
 
-```
-## class TrajectoriesBis
-## 
-##   attr_reader :times
-##   attr_reader :matrix
-## 
-##   #----------------------------------------------------------
-##   # Initializes the Trajectories class.  Takes two parameters
-##   # @param times
-##   # @param matrix
-##   #----------------------------------------------------------
-## 
-##   def initialize(times: 1, matrix: R.matrix(0))
-##     @times = times
-##     @matrix = matrix
-##   end
-##   
-## end
-## 
-## @traj_bis = TrajectoriesBis.new
+```ruby
+class TrajectoriesBis
+
+  attr_reader :times
+  attr_reader :matrix
+
+  #----------------------------------------------------------
+  # Initializes the Trajectories class.  Takes two parameters
+  # @param times
+  # @param matrix
+  #----------------------------------------------------------
+
+  def initialize(times: 1, matrix: R.matrix(0))
+    @times = times
+    @matrix = matrix
+  end
+  
+end
+
+@traj_bis = TrajectoriesBis.new
 ```
 
 Let's take a look at our new class:
 
 
-```
-## puts @traj_bis.times
-## puts
-## puts @traj_bis.matrix
+```ruby
+puts @traj_bis.times
+puts
+puts @traj_bis.matrix
 ```
 
 ```
@@ -326,34 +326,34 @@ Note that '@traj_bis.times' is the numeric 1, and what we actually want is a vec
 with [1] in it.
 
 
-```
-## class TrajectoriesBis
-## 
-##   attr_reader :times
-##   attr_reader :matrix
-## 
-##   #----------------------------------------------------------
-##   # Initializes the Trajectories class.  Takes two parameters
-##   # @param times [R::Vector] should be an R vector.
-##   # @param matrix [R::Matrix] should be an R matrix.
-##   #----------------------------------------------------------
-## 
-##   # Use R.c to convert number 1 to a vector
-##   def initialize(times: R.c(1), matrix: R.matrix(0))
-##     @times = times
-##     @matrix = matrix
-##   end
-##   
-## end
-## 
-## @traj_bis = TrajectoriesBis.new
+```ruby
+class TrajectoriesBis
+
+  attr_reader :times
+  attr_reader :matrix
+
+  #----------------------------------------------------------
+  # Initializes the Trajectories class.  Takes two parameters
+  # @param times [R::Vector] should be an R vector.
+  # @param matrix [R::Matrix] should be an R matrix.
+  #----------------------------------------------------------
+
+  # Use R.c to convert number 1 to a vector
+  def initialize(times: R.c(1), matrix: R.matrix(0))
+    @times = times
+    @matrix = matrix
+  end
+  
+end
+
+@traj_bis = TrajectoriesBis.new
 ```
 
 
-```
-## puts @traj_bis.times
-## puts
-## puts @traj_bis.matrix
+```ruby
+puts @traj_bis.times
+puts
+puts @traj_bis.matrix
 ```
 
 ```
@@ -417,43 +417,43 @@ Ruby's print is defined inside the Kernel class, so, in order to call Ruby's pri
 definition of Trajectories's print we need to write 'Kernel.print'.
 
 
-```
-## class Trajectories
-##   
-##   attr_reader :times
-##   attr_reader :matrix
-## 
-## 
-##   #----------------------------------------------------------
-##   # Initializes the Trajectories class.  Takes two parameters
-##   # @param times [R::Vector] should be an R vector.
-##   # @param matrix [R::Matrix] should be an R matrix.
-##   #----------------------------------------------------------
-## 
-##   def initialize(times: nil, matrix: nil)
-##     @times = times
-##     @matrix = matrix
-##   end
-## 
-##   #----------------------------------------------------------
-##   # 
-##   #----------------------------------------------------------
-##   
-##   def print
-##     puts("*** Class Trajectories, method Print *** ")
-##     Kernel.print("times = ")
-##     puts @times
-##     puts("traj =")
-##     puts @matrix
-##     puts("******* End Print (trajectories) ******* ")
-##   end
-##   
-## end
+```ruby
+class Trajectories
+  
+  attr_reader :times
+  attr_reader :matrix
+
+
+  #----------------------------------------------------------
+  # Initializes the Trajectories class.  Takes two parameters
+  # @param times [R::Vector] should be an R vector.
+  # @param matrix [R::Matrix] should be an R matrix.
+  #----------------------------------------------------------
+
+  def initialize(times: nil, matrix: nil)
+    @times = times
+    @matrix = matrix
+  end
+
+  #----------------------------------------------------------
+  # 
+  #----------------------------------------------------------
+  
+  def print
+    puts("*** Class Trajectories, method Print *** ")
+    Kernel.print("times = ")
+    puts @times
+    puts("traj =")
+    puts @matrix
+    puts("******* End Print (trajectories) ******* ")
+  end
+  
+end
 ```
 
 
-```
-## @trajCochin.print
+```ruby
+@trajCochin.print
 ```
 
 ```
@@ -523,75 +523,78 @@ features of Galaaz, some we have already seen, others will be described now:
 
 
 
-```
-## class Trajectories
-## 
-##   #----------------------------------------------------------
-##   #
-##   #----------------------------------------------------------
-## 
-##   def show
-##     puts("*** Class Trajectories, method Show *** ")
-##     Kernel.print("times = ")
-##     puts @times
-##     nrow_show = [10, @matrix.nrow << 0].min
-##     ncol_show = R.min(10, @matrix.ncol) << 0
-##     puts("* Traj (limited to a matrix 10x10) = ")
-##     puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
-##     puts("******* End Show (trajectories) ******* ")
-##   end
-##   
-## end
+```ruby
+class Trajectories
+
+  #----------------------------------------------------------
+  #
+  #----------------------------------------------------------
+
+  def show
+    puts("*** Class Trajectories, method Show *** ")
+    Kernel.print("times = ")
+    puts @times
+    nrow_show = [10, @matrix.nrow << 0].min
+    ncol_show = R.min(10, @matrix.ncol) << 0
+    puts("* Traj (limited to a matrix 10x10) = ")
+    puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
+    puts("******* End Show (trajectories) ******* ")
+  end
+  
+end
 ```
 
 
-```
-## @trajStAnne.show
+```ruby
+@trajStAnne.show
 ```
 
 ```
-## *** Class Trajectories, method Show *** 
-## times =  [1]  1  2  3  4  5  6  7  8  9 10 12 14 16 18 20 22 24 26 28 30 32
-## * Traj (limited to a matrix 10x10) = 
-##       [,1]    [,2]    [,3]    [,4]    [,5]    [,6]    [,7]    [,8]   
-##  [1,] "16.20" "15.61" "16.22" "16.34" "16.16" "16.75" "16.72" "17.25"
-##  [2,] "15.65" "16.44" "16.32" "16.58" "16.78" "17.04" "17.00" "16.88"
-##  [3,] "16.12" "16.23" "16.42" "16.51" "16.67" "16.77" "17.05" "16.98"
-##  [4,] "15.82" "16.22" "16.48" "16.79" "16.52" "16.71" "16.90" "17.06"
-##  [5,] "15.92" "16.39" "16.33" "16.61" "16.56" "16.81" "16.76" "17.25"
-##  [6,] "15.89" "16.03" "16.43" "16.09" "16.70" "16.80" "17.06" "16.95"
-##  [7,] "15.83" "16.03" "16.43" "16.79" "16.27" "16.79" "16.68" "16.98"
-##  [8,] "15.90" "16.38" "16.27" "16.59" "16.41" "16.17" "16.91" "17.22"
-##  [9,] "15.90" "15.83" "16.50" "16.24" "16.46" "16.52" "16.65" "16.94"
-## [10,] "15.99" "15.94" "16.70" "16.41" "16.51" "16.62" "16.98" "16.67"
-##       [,9]    [,10]  
-##  [1,] "17.17" "16.92"
-##  [2,] "17.23" "17.46"
-##  [3,] "17.13" "17.17"
-##  [4,] "17.31" "17.39"
-##  [5,] "17.17" "17.63"
-##  [6,] "17.31" "17.05"
-##  [7,] "17.11" "17.54"
-##  [8,] "17.55" "17.58"
-##  [9,] "16.86" "16.85"
-## [10,] "17.65" "17.45"
-## ******* End Show (trajectories) *******
+## Message:
+##  Method << not found in R environment
+```
+
+```
+## Message:
+##  /home/rbotafogo/desenv/galaaz/lib/R_interface/rsupport.rb:90:in `eval'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/rsupport.rb:270:in `exec_function_name'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/robject.rb:170:in `method_missing'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:113:in `show'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:103:in `get_binding'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:102:in `eval'
+## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:102:in `exec_ruby'
+## /home/rbotafogo/desenv/galaaz/lib/gknit/knitr_engine.rb:650:in `block in initialize'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `call'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/ruby_callback.rb:77:in `callback'
+## (eval):3:in `function(...) {\n          rb_method(...)'
+## unknown.r:1:in `in_dir'
+## unknown.r:1:in `block_exec'
+## /usr/local/lib/graalvm-ce-java11-20.0.0/languages/R/library/knitr/R/block.R:92:in `call_block'
+## /usr/local/lib/graalvm-ce-java11-20.0.0/languages/R/library/knitr/R/block.R:6:in `process_group.block'
+## /usr/local/lib/graalvm-ce-java11-20.0.0/languages/R/library/knitr/R/block.R:3:in `<no source>'
+## unknown.r:1:in `withCallingHandlers'
+## unknown.r:1:in `process_file'
+## unknown.r:1:in `<no source>'
+## unknown.r:1:in `<no source>'
+## <REPL>:4:in `<repl wrapper>'
+## <REPL>:1
 ```
 
 Our show method has the same problem as SS4, i.e., if an empty trajectories object is created and
 we try to 'show' it, it will generate an error.  Let's see it:
 
 
-```
-## @empty_traj = Trajectories.new
-```
-
-
-```
-## @empty_traj.show
+```ruby
+@empty_traj = Trajectories.new
 ```
 
+
+```ruby
+@empty_traj.show
 ```
-## undefined method `nrow' for nil:NilClass
+
+```
+## Message:
+##  undefined method `nrow' for nil:NilClass
 ```
 
