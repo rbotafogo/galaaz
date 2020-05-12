@@ -21,6 +21,8 @@ fontsize: 11pt
 ---
 
 ```{r setup, echo=FALSE, message = FALSE}
+#R.options(crayon__enabled: false)
+options(crayon.enabled = FALSE)
 library('dplyr')
 library('tibble')
 ```
@@ -417,7 +419,7 @@ The second and third arguments are expressions that will be used by the filter f
 filter by columns, looking for entries in which the month and day are equal to 1.
 
 ```{ruby filter}
-puts R.filter(:flights, (:month.eq 1), (:day.eq 1)).as__data__frame
+puts R.filter(:flights, (:month.eq 1), (:day.eq 1))
 ```
 
 
@@ -571,13 +573,13 @@ df <- data.frame(
   b = sample(5)
 )
 
-as.data.frame(df) 
+as.data.frame(df)
 
 d2 <- df %>%
   group_by(g1) %>%
   summarise(a = mean(a))
 	       
-as.data.frame(d2)	       
+as.data.frame(d2)
 
 d2 <- df %>%
   group_by(g2) %>%
@@ -617,12 +619,12 @@ def my_summarize(df, group_var)
     summarize(a: :a.mean)
 end
 
-puts my_summarize(:df, :g1).as__data__frame
+puts my_summarize(:df, :g1)
 ```
 It works!!! Well, let's make sure this was not just some coincidence
 
 ```{ruby group_g2}
-puts my_summarize(:df, :g2).as__data__frame
+puts my_summarize(:df, :g2)
 ```
 
 Great, everything is fine! No magic, no new functions, no complexities, just normal, standard Ruby
@@ -737,7 +739,7 @@ def my_summarise3(df, *group_vars)
     summarise(a: E.mean(:a))
 end
 
-puts my_summarise3((~:df), :g1, :g2).as__data__frame
+puts my_summarise3((~:df), :g1, :g2)
 ```
 
 # Why does R require NSE and Galaaz does not?
@@ -788,7 +790,7 @@ In the following examples, we show the use of functions 'group\_by\_at', 'summar
 features of characters in the Starwars movies:
 
 ```{ruby starwars}
-puts (~:starwars).head.as__data__frame
+puts (~:starwars).head
 ```
 The grouped_mean function bellow will receive a grouping variable and calculate summaries for
 the value\_variables given:
@@ -819,7 +821,7 @@ def grouped_mean(data, grouping_variables, value_variables)
     rename_at(value_variables, E.funs(E.paste0("mean_", value_variables)))
 end
 
-puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year")).as__data__frame
+puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year"))
 ```
 
 # Further reading

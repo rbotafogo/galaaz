@@ -22,6 +22,7 @@ fontsize: 11pt
 ---
 
 ```{ruby setup, echo=FALSE}
+R.options(crayon__enabled: false)
 R.install_and_loads('kableExtra')
 ```
 
@@ -1384,7 +1385,7 @@ R.library('dplyr')
 
 ```{ruby flights}
 flights = ~:flights
-puts flights.head.as__data__frame
+puts flights.head
 ```
 
 ## Filtering rows with Filter
@@ -1393,7 +1394,7 @@ In this example we filter the flights data set by giving to the filter function 
 the first :month.eq 1
 
 ```{ruby filter_rows}
-puts flights.filter((:month.eq 1), (:day.eq 1)).head.as__data__frame
+puts flights.filter((:month.eq 1), (:day.eq 1)).head
 ```
 
 ## Logical Operators
@@ -1401,7 +1402,7 @@ puts flights.filter((:month.eq 1), (:day.eq 1)).head.as__data__frame
 All flights that departed in November of December
 
 ```{ruby nov_dec}
-puts flights.filter((:month.eq 11) | (:month.eq 12)).head.as__data__frame
+puts flights.filter((:month.eq 11) | (:month.eq 12)).head
 ```
 
 The same as above, but using the 'in' operator. In R, it is possible to define many operators
@@ -1410,7 +1411,7 @@ operators from Galaaz the '._' method is used, where the first argument is the o
 symbol, in this case ':in' and the second argument is the vector:
 
 ```{ruby in_op}
-puts flights.filter(:month._ :in, R.c(11, 12)).head.as__data__frame
+puts flights.filter(:month._ :in, R.c(11, 12)).head
 ```
 
 ## Filtering with NA (Not Available)
@@ -1422,20 +1423,20 @@ what is obtained from data frame.
 
 ```{ruby na_tibble}
 df = R.tibble(x: R.c(1, R::NA, 3))
-puts df.as__data__frame
+puts df
 ```
 
 Now filtering by :x > 1 shows all lines that satisfy this condition, where the row with R:NA does
 not.
 
 ```{ruby filter_na}
-puts df.filter(:x > 1).as__data__frame
+puts df.filter(:x > 1)
 ```
 
 To match an NA use method 'is__na'
 
 ```{ruby with_na}
-puts df.filter((:x.is__na) | (:x > 1)).as__data__frame
+puts df.filter((:x.is__na) | (:x > 1))
 ```
 
 ## Arrange Rows with arrange
@@ -1443,13 +1444,13 @@ puts df.filter((:x.is__na) | (:x > 1)).as__data__frame
 Arrange reorders the rows of a data frame by the given arguments.
 
 ```{ruby arrange}
-puts flights.arrange(:year, :month, :day).head.as__data__frame
+puts flights.arrange(:year, :month, :day).head
 ```
 
 To arrange in descending order, use function 'desc'
 
 ```{ruby desc_arrange}
-puts flights.arrange(:dep_delay.desc).head.as__data__frame
+puts flights.arrange(:dep_delay.desc).head
 ```
 
 ## Selecting columns
@@ -1457,19 +1458,19 @@ puts flights.arrange(:dep_delay.desc).head.as__data__frame
 To select specific columns from a dataset we use function 'select':
 
 ```{ruby select}
-puts flights.select(:year, :month, :day).head.as__data__frame
+puts flights.select(:year, :month, :day).head
 ```
 
 It is also possible to select column in a given range
 
 ```{ruby select_range}
-puts flights.select(:year.up_to :day).head.as__data__frame
+puts flights.select(:year.up_to :day).head
 ```
 
 Select all columns that start with a given name sequence
 
 ```{ruby select_starts_with}
-puts flights.select(E.starts_with('arr')).head.as__data__frame
+puts flights.select(E.starts_with('arr')).head
 ```
 
 Other functions that can be used:
@@ -1486,7 +1487,7 @@ Other functions that can be used:
 A helper function that comes in handy when we just want to rearrange column order is 'Everything':
 
 ```{ruby everything}
-puts flights.select(:year, :month, :day, E.everything).head.as__data__frame
+puts flights.select(:year, :month, :day, E.everything).head
 ```
 
 ## Add variables to a dataframe with 'mutate'
@@ -1498,14 +1499,14 @@ flights_sm = flights.
                       :distance,
                       :air_time)
 
-puts flights_sm.head.as__data__frame
+puts flights_sm.head
 ```
 
 ```{ruby mutate}
 flights_sm = flights_sm.
                mutate(gain: :dep_delay - :arr_delay,
                       speed: :distance / :air_time * 60)
-puts flights_sm.head.as__data__frame
+puts flights_sm.head
 ```
 
 ## Summarising data
@@ -1514,14 +1515,14 @@ Function 'summarise' calculates summaries for the data frame. When no 'group_by'
 a single value is obtained from the data frame:
 
 ```{ruby summarise}
-puts flights.summarise(delay: E.mean(:dep_delay, na__rm: true)).as__data__frame
+puts flights.summarise(delay: E.mean(:dep_delay, na__rm: true))
 ```
 
-When a data frame is groupe with 'group_by' summaries apply to the given group:
+When a data frame is grouped with 'group_by' summaries apply to the given group:
 
 ```{ruby summarise_group_by}
 by_day = flights.group_by(:year, :month, :day)
-puts by_day.summarise(delay: :dep_delay.mean(na__rm: true)).head.as__data__frame
+puts by_day.summarise(delay: :dep_delay.mean(na__rm: true)).head
 ```
 
 Next we put many operations together by pipping them one after the other:
@@ -1535,7 +1536,7 @@ delays = flights.
              delay: :arr_delay.mean(na__rm: true)).
            filter(:count > 20, :dest != "NHL")
 
-puts delays.as__data__frame.head
+puts delays.head
 ```
 
 # Using Data Table
@@ -1833,13 +1834,13 @@ def my_summarize(df, group_var)
     summarize(a: :a.mean)
 end
 
-puts my_summarize(:df, :g1).as__data__frame
+puts my_summarize(:df, :g1)
 ```
 
 It works!!! Well, let's make sure this was not just some coincidence
 
 ```{ruby group_g2}
-puts my_summarize(:df, :g2).as__data__frame
+puts my_summarize(:df, :g2)
 ```
 
 Great, everything is fine! No magic, no new functions, no complexities, just normal, standard Ruby
@@ -1956,7 +1957,7 @@ def my_summarise3(df, *group_vars)
     summarise(a: E.mean(:a))
 end
 
-puts my_summarise3((~:df), :g1, :g2).as__data__frame
+puts my_summarise3((~:df), :g1, :g2)
 ```
 
 ## Why does R require NSE and Galaaz does not?
@@ -2007,7 +2008,7 @@ In the following examples, we show the use of functions 'group\_by\_at', 'summar
 features of characters in the Starwars movies:
 
 ```{ruby starwars}
-puts (~:starwars).head.as__data__frame
+puts (~:starwars).head
 ```
 The grouped_mean function bellow will receive a grouping variable and calculate summaries for
 the value\_variables given:
@@ -2038,7 +2039,7 @@ def grouped_mean(data, grouping_variables, value_variables)
     rename_at(value_variables, E.funs(E.paste0("mean_", value_variables)))
 end
 
-puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year")).as__data__frame
+puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year"))
 ```
 
 
