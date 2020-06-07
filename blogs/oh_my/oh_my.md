@@ -100,7 +100,7 @@ puts @traj
 ```
 
 ```
-## #<RC::Trajectories:0x2e0>
+## #<RC::Trajectories:0x2d8>
 ```
 
 To see the contents of an object, one needs to access its components using the '.' operator:
@@ -557,7 +557,7 @@ end
 ```
 ## Message:
 ##  /home/rbotafogo/desenv/galaaz/lib/R_interface/rsupport.rb:90:in `eval'
-## /home/rbotafogo/desenv/galaaz/lib/R_interface/rsupport.rb:270:in `exec_function_name'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/rsupport.rb:268:in `exec_function_name'
 ## /home/rbotafogo/desenv/galaaz/lib/R_interface/robject.rb:170:in `method_missing'
 ## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:113:in `show'
 ## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:103:in `get_binding'
@@ -569,9 +569,9 @@ end
 ## (eval):3:in `function(...) {\n          rb_method(...)'
 ## unknown.r:1:in `in_dir'
 ## unknown.r:1:in `block_exec'
-## /usr/local/lib/graalvm-ce-java11-20.0.0/languages/R/library/knitr/R/block.R:92:in `call_block'
-## /usr/local/lib/graalvm-ce-java11-20.0.0/languages/R/library/knitr/R/block.R:6:in `process_group.block'
-## /usr/local/lib/graalvm-ce-java11-20.0.0/languages/R/library/knitr/R/block.R:3:in `<no source>'
+## /home/rbotafogo/R/x86_64-pc-linux-gnu-library/fastr-20.1.0-3.6/knitr/R/block.R:92:in `call_block'
+## /home/rbotafogo/R/x86_64-pc-linux-gnu-library/fastr-20.1.0-3.6/knitr/R/block.R:6:in `process_group.block'
+## /home/rbotafogo/R/x86_64-pc-linux-gnu-library/fastr-20.1.0-3.6/knitr/R/block.R:3:in `<no source>'
 ## unknown.r:1:in `withCallingHandlers'
 ## unknown.r:1:in `process_file'
 ## unknown.r:1:in `<no source>'
