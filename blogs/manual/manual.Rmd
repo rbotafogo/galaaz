@@ -6,11 +6,6 @@ tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
 date: "2019"
 bibliography: "/home/rbotafogo/Bibliography/stats.bib"
 output:
-  html_document:
-    self_contained: true
-    keep_md: true
-  md_document:
-    variant: markdown_github
   pdf_document:
     includes:
       in_header: "../../sty/galaaz.sty"
@@ -18,6 +13,11 @@ output:
     number_sections: yes
     toc: true
     toc_depth: 3
+  html_document:
+    self_contained: true
+    keep_md: true
+  md_document:
+    variant: markdown_github
 fontsize: 11pt
 ---
 

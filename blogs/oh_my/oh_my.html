@@ -7,6 +7,7 @@
 <meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
 <meta name="author" content="Rodrigo Botafogo" />
@@ -71,9 +72,7 @@ h6 {
 </style>
 
 
-</head>
 
-<body>
 
 <style type="text/css">
 .main-container {
@@ -87,7 +86,6 @@ code {
 }
 img {
   max-width:100%;
-  height: auto;
 }
 .tabbed-pane {
   padding-top: 12px;
@@ -104,8 +102,6 @@ summary {
 </style>
 
 
-
-<div class="container-fluid main-container">
 
 <!-- tabsets -->
 
@@ -163,20 +159,17 @@ summary {
 }
 </style>
 
-<script>
-$(document).ready(function () {
-  window.buildTabsets("TOC");
-});
-
-$(document).ready(function () {
-  $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
-  });
-});
-</script>
-
 <!-- code folding -->
 
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
 
 
 
@@ -186,9 +179,9 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Extending R with classes, modules, procs, lambdas, oh my!</h1>
-<h4 class="author"><em>Rodrigo Botafogo</em></h4>
-<h4 class="author"><em>Daniel Mossé - University of Pittsburgh</em></h4>
-<h4 class="date"><em>November 19th, 2018</em></h4>
+<h4 class="author">Rodrigo Botafogo</h4>
+<h4 class="author">Daniel Mossé - University of Pittsburgh</h4>
+<h4 class="date">November 19th, 2018</h4>
 
 </div>
 
@@ -227,7 +220,7 @@ end</code></pre>
 <pre class="ruby"><code>@traj = Trajectories.new</code></pre>
 <p>We now have in variable ‘<span class="citation">@traj</span>’ a Trajectories object. In Ruby, printing variable ‘traj’ will only print the class name of the object and not it contents as in R.</p>
 <pre class="ruby"><code>puts @traj</code></pre>
-<pre><code>## #&lt;RC::Trajectories:0x2e0&gt;</code></pre>
+<pre><code>## #&lt;RC::Trajectories:0x2d8&gt;</code></pre>
 <p>To see the contents of an object, one needs to access its components using the ‘.’ operator:</p>
 <pre class="ruby"><code>puts @traj.times</code></pre>
 </div>
@@ -498,7 +491,7 @@ end</code></pre>
 ##  Method &lt;&lt; not found in R environment</code></pre>
 <pre><code>## Message:
 ##  /home/rbotafogo/desenv/galaaz/lib/R_interface/rsupport.rb:90:in `eval'
-## /home/rbotafogo/desenv/galaaz/lib/R_interface/rsupport.rb:270:in `exec_function_name'
+## /home/rbotafogo/desenv/galaaz/lib/R_interface/rsupport.rb:268:in `exec_function_name'
 ## /home/rbotafogo/desenv/galaaz/lib/R_interface/robject.rb:170:in `method_missing'
 ## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:113:in `show'
 ## /home/rbotafogo/desenv/galaaz/lib/util/exec_ruby.rb:103:in `get_binding'
@@ -510,9 +503,9 @@ end</code></pre>
 ## (eval):3:in `function(...) {\n          rb_method(...)'
 ## unknown.r:1:in `in_dir'
 ## unknown.r:1:in `block_exec'
-## /usr/local/lib/graalvm-ce-java11-20.0.0/languages/R/library/knitr/R/block.R:92:in `call_block'
-## /usr/local/lib/graalvm-ce-java11-20.0.0/languages/R/library/knitr/R/block.R:6:in `process_group.block'
-## /usr/local/lib/graalvm-ce-java11-20.0.0/languages/R/library/knitr/R/block.R:3:in `&lt;no source&gt;'
+## /home/rbotafogo/R/x86_64-pc-linux-gnu-library/fastr-20.1.0-3.6/knitr/R/block.R:92:in `call_block'
+## /home/rbotafogo/R/x86_64-pc-linux-gnu-library/fastr-20.1.0-3.6/knitr/R/block.R:6:in `process_group.block'
+## /home/rbotafogo/R/x86_64-pc-linux-gnu-library/fastr-20.1.0-3.6/knitr/R/block.R:3:in `&lt;no source&gt;'
 ## unknown.r:1:in `withCallingHandlers'
 ## unknown.r:1:in `process_file'
 ## unknown.r:1:in `&lt;no source&gt;'
@@ -543,6 +536,23 @@ $(document).ready(function () {
 
 
 </script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
 <script>

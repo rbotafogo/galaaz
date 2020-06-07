@@ -14,7 +14,8 @@ cran/*
 *.aux
 *.svg
 *.png
-
+*.Rhistory
+*.md
 
 *.svg
 *.png

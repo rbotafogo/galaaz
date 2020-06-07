@@ -1,4 +1,4 @@
- require 'galaaz'
+require 'galaaz'
 require 'ggplot'
 require 'pp'
 

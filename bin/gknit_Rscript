@@ -7,56 +7,25 @@ options = {}
 
 OptionParser.new do |opts|
   opts.banner = "Usage: gknit [options]"
-  opts.on("-f", "--filename FILE", "The input file to be rendered.  
-This value can also be provided without the '-f' or '--filename' 
-flag by just giving the name of the file as an input parameter.") do |opt|
+  opts.on("-f", "--filename FILE", "The input file to be rendered.  This value can also be provided without the '-f' or '--filename' flag by just giving the name of the file as an input parameter.") do |opt|
     options[:input_file] = opt
   end
-  opts.on("--output_format OUT_FORMAT",
-          "The R Markdown output format to convert to. The option 'all' 
-will render all formats defined within the file. The option 
-can be the name of a format (e.g. 'html_document') and that 
-will render the document to that single format. One can also 
-use a vector of format names to render to multiple formats. 
-Alternatively, you can pass an output format object (e.g. 
-html_document()). If using NULL then the output format is the 
-first one defined in the YAML frontmatter in the input file 
-(this defaults to HTML if no format is specified there).") do |opt|
+  opts.on("--output_format OUT_FORMAT", "The R Markdown output format to convert to. The option 'all' will render all formats defined within the file. The option can be the name of a format (e.g. 'html_document') and that will render the document to that single format. One can also use a vector of format names to render to multiple formats. Alternatively, you can pass an output format object (e.g. html_document()). If using NULL then the output format is the first one defined in the YAML frontmatter in the input file (this defaults to HTML if no format is specified there).") do |opt|
     options[:output_format] = opt
   end
-  opts.on("-o", "--output_file OUT_FILE", "The name of the output file. 
-If using nil then the output filename will be based on filename for 
-the input file. If a filename is provided, a path to the output file 
-can also be provided. Note that the output_dir option allows for 
-specifying the output file path as well, however, if also specifying 
-the path, the directory must exist.") do |opt|
+  opts.on("-o", "--output_file OUT_FILE", "The name of the output file. If using nil then the output filename will be based on filename for the input file. If a filename is provided, a path to the output file can also be provided. Note that the output_dir option allows for specifying the output file path as well, however, if also specifying the path, the directory must exist.") do |opt|
     options[:output_file] = opt
   end
-  opts.on("-d", "--output_dir OUT_DIR", "The output directory for 
-the rendered output_file. This allows for a choice of an alternate 
-directory to which the output file should be written (the default 
-output directory is that of the input file). If a path is provided 
-with a filename in output_file the directory specified here will 
-take precedence. Please note that any directory path provided will 
-create any necessary directories if they do not exist.") do |opt|
+  opts.on("-d", "--output_dir OUT_DIR", "The output directory for the rendered output_file. This allows for a choice of an alternate directory to which the output file should be written (the default output directory is that of the input file). If a path is provided with a filename in output_file the directory specified here will take precedence. Please note that any directory path provided will create any necessary directories if they do not exist.") do |opt|
     options[:output_dir] = opt
   end
-  opts.on("-a", "--output_options OUT_OPT", "List of output options 
-that can override the options specified in metadata (e.g. could be 
-used to force self_contained or mathjax = 'local'). Note that this 
-is only valid when the output format is read from metadata (i.e. 
-not a custom format object passed to output_format).") do |opt|
+  opts.on("-a", "--output_options OUT_OPT", "List of output options that can override the options specified in metadata (e.g. could be used to force self_contained or mathjax = 'local'). Note that this is only valid when the output format is read from metadata (i.e. not a custom format object passed to output_format).") do |opt|
     options[:output_options] = opt
   end
-  opts.on("-i", "--intermediates_dir INTER_DIR", "FEATURE NOT YET 
-IMPLEMENTED! Intermediate files directory. If a path is specified 
-then intermediate files will be written to that path. If nil, 
-intermediate files are written to the same directory as the input 
-file.") do |opt|
+  opts.on("-i", "--intermediates_dir INTER_DIR", "FEATURE NOT YET IMPLEMENTED! Intermediate files directory. If a path is specified then intermediate files will be written to that path. If nil, intermediate files are written to the same directory as the input file.") do |opt|
     options[:intermediates_dir] = opt
   end
-  opts.on("-n", "--no_clean", "Will not clean intermediate files 
-that are created during rendering.") do |opt|
+  opts.on("-n", "--no_clean", "Will not clean intermediate files that are created during rendering.") do |opt|
     options[:clean] = opt
   end
 end.parse!
@@ -81,7 +50,7 @@ raise "File #{options[:input_file]} does not exist!" if !File.exist?(options[:in
 #=========================================================================================
 
 options[:output_format] =
-  (options[:output_format].nil?)? "nil" : "\"#{options[:output_format]}\""
+  (options[:output_format].nil?)? "NULL" : "\"#{options[:output_format]}\""
 
 #=========================================================================================
 # Checks the output_file option. If none, pass NULL to the render function. Output
@@ -89,7 +58,7 @@ options[:output_format] =
 #=========================================================================================
 
 options[:output_file] =
-  (options[:output_file].nil?)? "nil" : "\"#{options[:output_file]}\""
+  (options[:output_file].nil?)? "NULL" : "\"#{options[:output_file]}\""
 
 #=========================================================================================
 # Checks if an output directory was given. If given and directory does not exist,
@@ -101,7 +70,7 @@ if (!options[:output_dir].nil?)
   options[:output_dir] = "\"#{options[:output_dir]}\""
 else
   # If not, pass NULL to the render function
-  options[:output_dir] = "nil"
+  options[:output_dir] = "NULL"
 end
 
 #=========================================================================================
@@ -117,10 +86,10 @@ if (!options[:intermediates_dir].nil?)
     options[:intermediates_dir] = "\"#{options[:intermediates_dir]}\""
   end
 else
-  options[:intermediates_dir] = "nil"
+  options[:intermediates_dir] = "NULL"
 end
 
-options[:clean] = (options[:clean].nil?)? "true" : "false" 
+options[:clean] = (options[:clean].nil?)? "TRUE" : "FALSE" 
 
 #=========================================================================================
 # Sends message to user that the gKniting process has started
@@ -133,22 +102,19 @@ puts "   * Output directory: \t #{options[:output_dir]}"
 puts "   * Clean: \t\t #{options[:clean]}"
 
 
-# Code to be evaluated by the polyglot Ruby script
+# Code to be evaluated by the R script
 code = <<EOF
-require %q(galaaz)
-require %q(gknit)
+eval.polyglot("ruby", "$LOAD_PATH.unshift %q(/home/rbotafogo/desenv/galaaz/lib)")
+eval.polyglot("ruby", "require %q(gknit)")
 
-R::Rmarkdown.render(
-     %q(#{options[:input_file]}),
-     output_format: #{options[:output_format]},
-     output_file: #{options[:output_file]},
-     output_dir: #{options[:output_dir]},
-     clean: #{options[:clean]}
-) 
+rmarkdown::render("#{options[:input_file]}", output_format = #{options[:output_format]}, 
+                  output_file = #{options[:output_file]}, 
+                  output_dir = #{options[:output_dir]}, 
+                  clean = #{options[:clean]})
 EOF
 
-libx = File.expand_path('../../lib', __FILE__)
-exec "ruby --polyglot --jvm --experimental-options --single-threaded -I#{libx} -e '#{code}'"
+
+exec "Rscript --jvm --polyglot -e '#{code}'"
 
 =begin
 # how to call rmarkdown::render with a parameter list

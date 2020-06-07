@@ -24,6 +24,42 @@
 require 'galaaz'
 # require 'gknit'
 
+describe "error" do
+# describe R::DataFrame do
+
+  context "Bootsraping" do
+
+    it "should error with R" do
+      vec = R.c(2)
+      puts vec
+      # expect(vec[1]).to eq 2
+    end
+
+=begin
+    it "should error with Ruby" do
+      expect(1).to eq 2
+    end
+    
+    before(:each) do
+      R.len = 10
+      R.sd = 20
+      R.vec = R.c(1, 2, 3, 4)
+    end
+
+    it "should inline r objects in 'expressions'" do
+      e1 = :len + :sd + 5 + R.c(1, 2, 3, 4)
+      expect(e1.rclass).to eq "integer"
+      expect(e1.eval).to eq R.c(36, 37, 38, 39)
+      # expect(e1.eval).not_to eq R.c(35, 37, 38, 39)
+    end
+=end
+    
+  end
+  
+end
+
+
+=begin
 Polyglot.eval("R", <<-R)
 library(plotly)
 m <- highlight_key(mpg)
@@ -31,6 +67,7 @@ p <- ggplot(m, aes(displ, hwy)) + geom_point()
 gg <- highlight(ggplotly(p), "plotly_selected")
 crosstalk::bscols(gg, DT::datatable(m))
 R
+=end
 
 # GKnit.draft(file: "rmd_test.Rmd", template: 'acm_article'))
 # GKnit.draft(file: "rmd_test.Rmd", template: 'acm_article2', package: 'rticles')

@@ -209,8 +209,6 @@ module R
     
     #----------------------------------------------------------------------------------------
     # @param function [R function (Interop)] R function to execute
-    # @param internal [Boolean] true if returning to an internal object, i.e., does not
-    # wrap the return object in a Ruby object
     # @args [Array] Array of arguments for the function
     #----------------------------------------------------------------------------------------
     
@@ -235,7 +233,7 @@ module R
           res = @@exec_from_ruby.call(R::Object.method(:build), function, pl)
           # R::Object.build(R::Support.eval("do.call").call(function, pl))
         end
-        
+
         @@exec_counter = @@exec_counter - 1
         
         # When execution counter back to 0, print the captured output if the length
@@ -249,12 +247,12 @@ module R
             end
           end
         end
-        
+
       rescue StandardError => e
         R::Support.stop_capture.call(@@con) if (@@exec_counter == 0)
         raise e
       end
-      
+
       res
       
     end
@@ -266,7 +264,7 @@ module R
     
     def self.exec_function_name(function_name, *args)
       # @TODO: should check all that can go wrong when calling eval(function_name) to
-      # raise the proper exception
+      # raise the proper exception      
       f = R::Support.eval(function_name)
       R::Support.exec_function(f, *args)
     end
