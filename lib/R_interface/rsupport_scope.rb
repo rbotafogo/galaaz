@@ -30,7 +30,8 @@ module R
       dataframe = args[0]
       
       args.each_with_index do |arg, index|
-        arg.names.each { |n| attrs << n.to_sym }
+        # Galaaz 2.0: Unbox names into a Ruby array to avoid method_missing recursion
+        (arg.names.unboxed_get).each { |n| attrs << n.to_sym }
       end
 
       Class.new do

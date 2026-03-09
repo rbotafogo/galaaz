@@ -34,13 +34,13 @@ module R
     # @param index [Array] The vector index.
     #--------------------------------------------------------------------------------------
 
-    def [](index)
-
+    def [](*index)
       # dealing with double indexing function '[['
-      if (index.is_a? Array)
+      # If we have multiple indices, or a single array index, use [[
+      if (index.size > 1) || (index[0].is_a? Array)
         R::Support.exec_function(R::Support.dbk_index, @r_interop, *index)
       else
-        R::Support.exec_function_name("`[`", @r_interop, index)
+        R::Support.exec_function_name("`[`", @r_interop, *index)
       end
     end
     
@@ -52,17 +52,21 @@ module R
     # values, for ex., R.c(2, 3, 5)
     #--------------------------------------------------------------------------------------
 
-    def []=(index, values)
+    def []=(*args)
+      values = args.pop
+      index = args
 
-      # dealing with double indexing function '[['
-      if (index.is_a? Array)
-        setR_name("`[[<-`", *index, values)
+      # Assign result back to same handle so the object is updated in place (R's x[i] <- v semantics)
+      if (index.size > 1) || (index[0].is_a? Array)
+        all_args = [@r_interop, *index, values].map { |a| R::Support.parse_arg(a) }.join(", ")
+        R.bridge.eval_r("#{@r_interop} <- `[[<-`(#{all_args})")
       else
-        setR_name("`[<-`", index, values)
+        idx_r = R::Support.parse_arg(index[0])
+        vals_r = R::Support.parse_arg(values)
+        R.bridge.eval_r("#{@r_interop} <- `[<-`(#{@r_interop}, #{idx_r}, #{vals_r})")
       end
-      
+
       self
-      
     end
 
     #--------------------------------------------------------------------------------------
@@ -70,7 +74,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def size
-      length >> 0
+      length.unboxed_get(0)
     end
     
   end

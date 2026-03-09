@@ -24,10 +24,8 @@
 require 'singleton'
 require 'fileutils'
 
+# Load these before anything else to ensure bridge is initialized and libraries are present
 R.install_and_loads('knitr', 'rmarkdown')
-
-# dir = File.dirname(File.expand_path('.', __FILE__))
-# src = "#{dir}/R/eng_ruby.R"
 
 class KnitrEngine
 
@@ -402,7 +400,7 @@ class KnitrEngine
 
   def units
     opt_units = (@options[["units"]])
-    (opt_units.is__null >> 0) ? "in" : opt_units
+    (opt_units.is__null.unboxed_get(0)) ? "in" : opt_units
   end
 
   #--------------------------------------------------------------------------------------
@@ -423,7 +421,7 @@ class KnitrEngine
     @keep = @options.fig__keep
     @keep_idx = nil
     
-    if (@keep.is__numeric >> 0)
+    if (@keep.is__numeric.unboxed_get(0))
       @keep_idx = @keep
       @keep = "index"
     end
@@ -436,8 +434,8 @@ class KnitrEngine
 
   def file_ext
     # guess plot file type if it is NULL
-    if (((@keep != 'none') >> 0) && (@options.fig__ext.is__null >> 0))
-      @fig__ext = (R.knitr_dev2ext(@options.dev) >> 0)
+    if (((@keep != 'none').unboxed_get(0)) && (@options.fig__ext.is__null.unboxed_get(0)))
+      @fig__ext = (R.knitr_dev2ext(@options.dev).unboxed_get(0))
     end
     
   end
@@ -451,11 +449,11 @@ class KnitrEngine
     @options = options
 
     # Chunk options
-    @label = (options['label'] >> 0)
+    @label = (options['label'].unboxed_get(0))
     
     # Text results
     @eval = options['eval'] 
-    @echo = (options['echo'] >> 0)
+    @echo = (options['echo'].unboxed_get(0))
     @results = options['results'] 
     @collapse = options['collapse'] 
     @warning = options['warning'] 
@@ -478,12 +476,12 @@ class KnitrEngine
     @class__source = options['class_source'] 
     
     # Plots
-    @fig__path = (options['fig.path'] >> 0)
+    @fig__path = (options['fig.path'].unboxed_get(0))
     # @fig__keep = options['fig.keep'] # can be a vector
     @fig__show = options['fig.show'] 
     @dev = options['dev'] 
     # @dev__args = options['dev.args'] # can be a vector
-    @fig__ext = (options['fig.ext'] >> 0)
+    @fig__ext = (options['fig.ext'].unboxed_get(0))
     @dpi = options['dpi'] 
     @fig__width = options['fig.width'] 
     @fig__height = options['fig.height'] 
@@ -521,7 +519,7 @@ class KnitrEngine
 
     # create temporary file for storing plots
     # TODO: should remove this directory afterwards
-    @tmp_fig = (R.tempfile() >> 0)
+    @tmp_fig = (R.tempfile().unboxed_get(0))
     
   end
 
@@ -571,15 +569,15 @@ class KnitrEngine
     # gets a plot snapshot.  Uses function plot_snapshot from package 'evaluate'
     plot = R.evaluate_plot_snapshot
 
-    if (!(plot.is__null >> 0))
+    if (!(plot.is__null.unboxed_get(0)))
       # create directory for the graphics files if does not already exists
-      # unless (R.dir__exists(@fig__path) >> 0)
+      # unless (R.dir__exists(@fig__path).unboxed_get(0))
       unless File.directory?(@fig__path)
         FileUtils.mkdir_p(@fig__path)
       end
 
       @options.dev.each do |dev_type|
-        KnitrEngine.device(dev_type >> 0, @filename,
+        KnitrEngine.device(dev_type.unboxed_get(0), @filename,
                            width: @options.fig__width,
                            height: @options.fig__height, units: units)
         R.print(plot)
@@ -600,7 +598,7 @@ class KnitrEngine
   #--------------------------------------------------------------------------------------
   
   def add(spec)
-    (~:knit_engines).set.call(spec)
+    R.knitr___knit_engines[:set].call(spec)
   end
 
   #--------------------------------------------------------------------------------------
@@ -638,7 +636,7 @@ class KnitrEngine
         process_options(options)
         
         # opens a device for the current chunk for plot recording
-        KnitrEngine.device(@options.dev >> 0, @tmp_fig)
+        KnitrEngine.device(@options.dev.unboxed_get(0), @tmp_fig)
         
         # dv gets the current device
         dv = R.dev__cur

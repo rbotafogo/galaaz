@@ -1,0 +1,73 @@
+O Gemini disse
+This is a comprehensive Technical Design Document for Galaaz 2.0. You can save this as a Markdown file (e.g., Galaaz_2.0_Full_Specs.md) and provide it to your gemini-cli. It contains the complete architectural logic we’ve developed to replace the GraalVM/FastR shared heap with a high-performance JRuby/Standard-R bridge.
+
+Design Specification: Galaaz 2.0 (The "Shadow Vector" Bridge)
+1. Vision & Problem Statement
+Original State: Galaaz relied on GraalVM's "FastR" to share a single memory heap between Ruby and R. This allowed "Zero-Copy" data sharing and direct execution of Ruby Procs inside R loops.
+The Problem: Oracle stopped supporting FastR (last version JDK 17). Modern Java (JDK 21+) and standard R live in separate OS processes.
+The Solution: A high-speed, binary-interchange bridge using Linux Shared Memory (/dev/shm) and Implicit Vectorization to mimic the "feel" of a shared heap while running on a standard JVM.
+
+2. Core Infrastructure: The "RAM-Disk" Transport
+To avoid the overhead of network sockets or slow disk I/O, Galaaz 2.0 uses the Linux RAM-disk (/dev/shm).
+
+Binary Interchange: Data is never converted to strings (CSV/JSON). It is dumped as raw binary (Little Endian).
+
+Format: * Homogeneous Vectors: Raw C-style arrays (e.g., double[]).
+
+Complex DataFrames: Apache Arrow (Feather) for multi-column, multi-type efficiency.
+
+Signaling Protocol: A "Flag-Flipping" byte in a memory-mapped file synchronizes the two processes (0 = R Idle, 1 = Ruby Processing, 2 = R Picking up Result).
+
+3. The "Shadow Vector" Logic (Performance Engine)
+The greatest risk in a multi-process bridge is "Ping-Pong Latency" (calling Ruby for every single row in an R loop). Galaaz 2.0 solves this via Shadow Vectorization.
+
+The Mechanism:
+When a user calls an R function with a Ruby block (e.g., ~:df.sapply { |x| x + 1 }):
+
+Intercept: Ruby captures the method name (sapply) and the block.
+
+Bulk Pull: Instead of R calling Ruby 1,000,000 times, Ruby pulls the entire column into the JVM.
+
+Vectorized Execution: Ruby executes the block on a JRuby Vector Object (using Numo::NArray or Java DoubleArray). Because these libraries are vectorized, x + 1 runs a single, optimized loop in Ruby/Java at near-C speeds.
+
+Bulk Push: The resulting vector is sent back to R in one binary blob.
+
+R Finalization: Ruby tells R to run the original function (sapply) on the already-processed data. R handles the final "shaping" (simplifying to a vector vs. keeping a list).
+
+4. Scaling: "Chunked Paging" for Massive Data
+If a dataset exceeds the JVM's available Heap memory:
+
+Implicit Chunking: Galaaz automatically breaks the 100M+ row dataset into 1M-row "Pages."
+
+Processing: It processes one Page in Ruby, pushes to R, and clears memory before the next Page. This prevents OutOfMemoryError while maintaining high throughput.
+
+5. Advanced Logic: The "Stitch" Method (Contextual Overlap)
+R functions like "Moving Averages" or "Lag/Lead" require a row to know about its neighbors.
+
+The Halo/Buffer: When chunking data, Galaaz includes a "Halo" of N rows from the previous/next chunk.
+
+Overlap: Ruby processes the chunk using the Halo for context. The "seams" are discarded when the results are merged back into the R environment.
+
+6. DSL & Symbol Preservation
+The "Beauty" of Galaaz is that it distinguishes between a Symbol (the name) and a Variable (the value).
+
+Symbols (:area): Passed to R as a quoted name/identifier. This prevents R's "Non-Standard Evaluation" from accidentally evaluating a column name as a variable.
+
+The ~ Operator:
+
+~:var → Triggers a binary Pull from R to Ruby.
+
++:y =~ +:x → Generates an R Formula string (no data movement).
+
+R-Native Functions: If a call doesn't include a Ruby block, it stays entirely in R (Zero data movement).
+
+7. Implementation Guidelines for gemini-cli
+When generating code based on this spec:
+
+Prioritize java.nio.MappedByteBuffer for the fastest possible I/O between JRuby and /dev/shm.
+
+Use method_missing as a generic relay to ensure any R package function (even those not yet written) can be called from Ruby.
+
+Implement a "Callback Registry" in Ruby to map R-side callback IDs to specific Ruby Proc objects.
+
+Ensure Thread Safety: Since JRuby is multi-threaded, the bridge must handle concurrent R calls without corrupting the RAM-disk files.

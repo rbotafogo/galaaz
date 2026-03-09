@@ -32,7 +32,43 @@ module R
     include ExecBinOp
     include LogicalOperators
     
+    def rclass
+      res = R::Support.exec_function("class", R::Support.exec_function("eval", self))
+      res.respond_to?(:>>) ? (res >> nil)[0] : res
+    end
+
+    def typeof
+      res = R::Support.exec_function("typeof", R::Support.exec_function("eval", self))
+      res.respond_to?(:>>) ? (res >> nil)[0] : res
+    end
+    
+    def exec_bin_oper(operator, other_object)
+      # Use infix notation: lhs operator rhs, but evaluate self
+      op = operator.delete("`")
+      
+      var_name = R::Support.generate_var_name
+      lhs = "eval(#{@r_interop})"
+      
+      # If other object is a symbol, evaluate it too
+      rhs = if other_object.is_a?(R::RSymbol)
+              "eval(#{other_object.r_interop})"
+            else
+              R::Support.parse_arg(other_object)
+            end
+      
+      R.bridge.eval_r("#{var_name} <- #{lhs} #{op} #{rhs}")
+      R::Object.build(var_name)
+    end
+    
+    def exec_uni_oper(operator)
+      op = operator.delete("`").strip
+      var_name = R::Support.generate_var_name
+      R.bridge.eval_r("#{var_name} <- #{op}(eval(#{@r_interop}))")
+      R::Object.build(var_name)
+    end
+    
 =begin    
+    #--------------------------------------------------------------------------------------
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------

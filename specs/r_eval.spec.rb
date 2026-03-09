@@ -58,20 +58,19 @@ describe R do
 
     it "R vectors can be indexed by the indexing method of the host language" do
       var = R::Support.eval("'Hello'")
-      expect(var[0]).to eq "Hello"
+      expect(var[1]).to eq "Hello"
     end
 
-    it "should retrieve named R objects to Ruby variables using eval. Returned value should be an Interop" do
+    it "should retrieve named R objects to Ruby variables using eval. Returned value should be an R::Object" do
       # retrieve x and hyp from R and attribute it to local Ruby variables
       x = R::Support.eval("x")
       # hyp is an R function and works like a named function in Ruby
       hyp = R::Support.eval("hyp")
 
-      # is is a foreign object
-      expect(Truffle::Interop.foreign?(x)).to be true
-      # we can index the object starting at 0.  This is a property offered by
-      # Interop API
-      expect(x[0]).to eq 1.0
+      # In Galaaz 2.0 we get R::Object wrappers (no Truffle interop)
+      expect(x).to be_a(R::Object)
+      # Indexing: R uses 1-based; we can get first element with [1] or >> 0
+      expect(x[1]).to eq 1.0
 
       # calling a named function or block is done by use of the 'call' method
       expect(hyp.call(3, 4)).to eq 5.0
@@ -87,8 +86,8 @@ describe R do
 
       expect(x.is_a? R::Vector).to eq true
       expect(x.length).to eq 3
-      # it is not a foreign object. It's an R::Vectors
-      expect(Truffle::Interop.foreign?(x)).to be false
+      # In Galaaz 2.0 we always get R::Object subclasses (e.g. R::Vector), not raw interop
+      expect(x).to be_a(R::Vector)
       # Values are indexed starting with 1, the same as R notation
       expect(x[1]).to eq 1.0
     end

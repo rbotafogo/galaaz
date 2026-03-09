@@ -34,7 +34,15 @@ module R
     #--------------------------------------------------------------------------------------  
 
     def exec_bin_oper(operator, other_object)
-      R::Support.exec_function_name(operator, @r_interop, other_object)
+      # Use infix notation: lhs operator rhs
+      # We need to strip backticks from operator if present
+      op = operator.delete("`")
+      
+      var_name = R::Support.generate_var_name
+      rhs = R::Support.parse_arg(other_object)
+      
+      R.bridge.eval_r("#{var_name} <- #{@r_interop} #{op} #{rhs}")
+      R::Object.build(var_name)
     end
        
     #--------------------------------------------------------------------------------------
@@ -135,6 +143,8 @@ module R
       exec_bin_oper("`==`", other_object)
     end
 
+    alias_method :eql, :eq
+
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -193,6 +203,13 @@ module R
       return R::Support.exec_function_name("`~`", other_object) if
         ((self.is_a? Symbol) && (self == :all))
       exec_bin_oper("`~`", other_object)
+    end
+
+    def _(op, other_object)
+      operator = op.to_s.gsub(/__/,".")
+      # If it's a standard letter-based operator like 'in', wrap in %
+      operator = "%#{operator}%" if operator =~ /^[a-zA-Z.]+$/
+      exec_bin_oper(operator, other_object)
     end
 
   end

@@ -27,26 +27,32 @@ module GKnit
   #
   #--------------------------------------------------------------------------------------
   
-  Polyglot.eval("R", <<-R)
+  def self.template_path(gem, family, template)
+    full_filename = Dir.glob("gknit-templates*", base: "#{Gem.default_dir}/gems")
+    template_path = "#{Gem.default_dir}/gems/#{full_filename[0]}/#{family}/#{template}"
+  end
+  
+  # Register the template_path method as a callback
+  @template_path_cb = R::Support.register_callback(GKnit.singleton_method(:template_path))
+
+  R.bridge.eval_r(<<-R)
     ruby_template = function(gem, family, template, type, ...) {
     print(gem)
     print(family)
     print(template)
     print(type)
-    data_dir = eval.polyglot("ruby", "GKnit")$template_path(gem, family, template)
+    
+    # Use the new callback mechanism
+    cat('--G_CALLBACK--#{@template_path_cb}--', gem, '|', family, '|', template, '--\\n', sep='')
+    flush.console()
+    data_dir <- readLines('/dev/shm/galaaz_callback_fifo', n=1)
+    # The returned value from Ruby will be quoted, we might need to eval/parse it
+    data_dir <- eval(parse(text=data_dir))
+
     print(data_dir)
     invoke(type, list(template = "template.tex", pandoc_args = paste0("--data-dir=", data_dir), ...))
   }
   R
-
-  #--------------------------------------------------------------------------------------
-  #
-  #--------------------------------------------------------------------------------------
-
-  def self.template_path(gem, family, template)
-    full_filename = Dir.glob("gknit-templates*", base: "#{Gem.default_dir}/gems")
-    template_path = "#{Gem.default_dir}/gems/#{full_filename[0]}/#{family}/#{template}"
-  end
   
   #--------------------------------------------------------------------------------------
   #
@@ -63,9 +69,9 @@ module GKnit
     # TODO: if package is a rubygem, then look there somehow
     if (is_package)
       template_path =
-        R.system__file("rmarkdown", "templates", template, package: package) >> 0
+        R.system__file("rmarkdown", "templates", template, package: package).unboxed_get(0)
       raise "The template '#{template}' was not found in the package '#{package}'" if
-        !(R.nzchar(template_path) >> 0)
+        !(R.nzchar(template_path).unboxed_get(0))
     else
       full_filename = Dir.glob("gknit-templates*", base: "#{Gem.default_dir}/gems")
       template_path = "#{Gem.default_dir}/gems/#{full_filename[0]}/#{template}"
@@ -80,14 +86,14 @@ module GKnit
 
     template_meta = R::Yaml::yaml__load(R.read_utf8(template_yaml))
     raise "template.yaml must contain 'name' and 'description' fields" if
-      (template_meta.name.is__null || template_meta.description.is__null) >> 0
+      (template_meta.name.is__null || template_meta.description.is__null).unboxed_get(0)
     puts "Creating template:"
-    puts "Template name: #{template_meta.name >> 0}"
-    puts "Description: #{template_meta.description >> 0}"
+    puts "Template name: #{template_meta.name.unboxed_get(0)}"
+    puts "Description: #{template_meta.description.unboxed_get(0)}"
 
     if (create_dir == 'default')
       # check if template asks for new directory
-      create_dir = template_meta.create_dir.isTRUE >> 0
+      create_dir = template_meta.create_dir.isTRUE.unboxed_get(0)
 
       if (create_dir)
         raise "The directory '#{file_basename}' already exists" if Dir.exist?(file_basename)

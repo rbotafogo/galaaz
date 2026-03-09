@@ -1,351 +1,116 @@
-# -*- coding: utf-8 -*-
-
-##########################################################################################
-# @author Rodrigo Botafogo
-#
-# Copyright © 2018 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
-# and distribute this software and its documentation, without fee and without a signed 
-# licensing agreement, is hereby granted, provided that the above copyright notice, this 
-# paragraph and the following two paragraphs appear in all copies, modifications, and 
-# distributions.
-#
-# IN NO EVENT SHALL RODRIGO BOTAFOGO BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, 
-# INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING OUT OF THE USE OF 
-# THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF RODRIGO BOTAFOGO HAS BEEN ADVISED OF THE 
-# POSSIBILITY OF SUCH DAMAGE.
-#
-# RODRIGO BOTAFOGO SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE 
-# SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED "AS IS". 
-# RODRIGO BOTAFOGO HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, 
-# OR MODIFICATIONS.
-##########################################################################################
-
+# robject.rb
 require_relative 'r_methods'
 
 module R
-  
-  #--------------------------------------------------------------------------------------
-  # 
-  #--------------------------------------------------------------------------------------
-
   class Object
+    include IndexedObject
+    include BinaryOperators
+    include ExecBinOp
+    include UnaryOperators
+    include ExecUniOp
     
     attr_reader :r_interop
-    attr_accessor :statement
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
+    attr_accessor :expression
 
-    def initialize(r_interop)
+    def initialize(r_interop, expression = nil)
       @r_interop = r_interop
+      @expression = expression
     end
 
-    #--------------------------------------------------------------------------------------
-    # Checks for equality between two R::Objects.  This method is used by rspec's
-    # expectation. It returns a Ruby true or false and not an R::Vector with [TRUE] or
-    # [FALSE]
-    #--------------------------------------------------------------------------------------
+    def self.build(r_interop, expression = nil, r_class: nil)
+      # Check for Ruby object handles first
+      if r_interop.is_a?(String) && r_interop.start_with?("rb_obj_")
+        return R::Support.get_ruby_object(r_interop)
+      end
 
-    def ==(other_object)
-      res =
-        R::Support.exec_function_name('identical', @r_interop,
-                                      R::Support.parse_arg(other_object))
-      return nil if (res.length >> 0) == 0
-      res >> 0
-    end
+      # If we got a basic Ruby type, it's already unboxed
+      return r_interop if r_interop.is_a?(Numeric) || r_interop.is_a?(TrueClass) ||
+                         r_interop.is_a?(FalseClass) || r_interop.nil? || r_interop.is_a?(Symbol)
 
-    #--------------------------------------------------------------------------------------
-    # Use eql to check for equality between two objects and receive in return an R::Vector
-    #--------------------------------------------------------------------------------------
+      if r_interop.is_a?(String) && r_interop.start_with?("g2_v")
+        return new(r_interop, expression) unless R.bridge.ready?
 
-    def eql(other_object)
-      # exec_bin_oper("`==`", other_object)
-      R::Support.exec_function_name("`==`", @r_interop,
-                                    R::Support.parse_arg(other_object))
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # @param r_interop [Interop] pointer to an R object
-    # @return the R object wrapped in a Ruby class
-    #--------------------------------------------------------------------------------------
-
-    def self.build(r_interop)
-
-      # if the value is actually not an r_interop, then just return it: native Ruby
-      # object
-      if (!Truffle::Interop.foreign?(r_interop))
-        # puts "I'm native"
-        return r_interop
-      # a matrix is also a vector... test should come before
-      elsif (R::Support.eval("is.matrix").call(r_interop) == true)
-        # puts "1"
-        R::Matrix.new(r_interop)
-      elsif (R::Support.eval("is.atomic").call(r_interop) == true)
-        # puts "2"
-        Vector.new(r_interop)
-      elsif (R::Support.eval("is.function").call(r_interop) == true)
-        # puts "3"
-        Closure.new(r_interop)
-      elsif (R::Support.eval("is.data.frame").call(r_interop) == true)
-        # puts "4"
-        DataFrame.new(r_interop)
-      elsif (R::Support.eval("is.list").call(r_interop) == true)
-        # puts "5"
-        List.new(r_interop)
-      elsif (R::Support.eval("typeof").call(r_interop) == "language")
-        # @TODO: tests are passing both when we use Language.new
-        # and RExpression.new.  Check what should be and write
-        # discriminating tests.
-        # print "robject buid: language\n"
-        # R::Support.print_foreign(r_interop)
-        # puts "6"
-        Language.new(r_interop)
-        # RExpression.new(r_interop)
-      elsif (R::Support.eval("typeof").call(r_interop) == "expression")
-        # puts "7"
-        RExpression.new(r_interop)
-      elsif (R::Support.eval("typeof").call(r_interop) == "name")
-        # puts "8"
-        p "i'm of type name"
-        Name.new(r_interop)
-      elsif (R::Support.eval("typeof").call(r_interop) == "symbol")
-        # puts "9"
-        RSymbol.new(r_interop)
-      elsif (R::Support.eval("typeof").call(r_interop) == "environment")
-        # puts "10"
-        Environment.new(r_interop)
-      else # Generic type
-        # puts "11"
-        p "Generic type: #{R::Support.eval("typeof").call(r_interop).to_s}"
+        begin
+          r_class_arg = r_class
+          r_class = r_class.to_s.strip
+          r_class = nil if r_class.nil? || r_class.empty?
+          r_class ||= R.bridge.eval_r("paste(class(#{r_interop}), collapse=' ')").gsub(/^\[1\] /, "").gsub(/"/, "").strip
+          if ENV['GALAAZ_DEBUG']
+            puts "DEBUG: Object.build r_interop=#{r_interop.inspect} r_class_arg=#{r_class_arg.inspect} r_class=#{r_class.inspect}"
+          end
+          obj = case
+                when r_class.include?("data.frame") || r_class.include?("tbl_df")
+                  R::DataFrame.new(r_interop, expression)
+                when r_class.include?("matrix") || r_class.include?("array")
+                  R::Matrix.new(r_interop, expression)
+                when r_class.include?("numeric") || r_class.include?("integer") ||
+                     r_class.include?("logical") || r_class.include?("character")
+                  obj = R::Vector.new(r_interop)
+                  obj.expression = expression if expression
+                  obj
+                when r_class.include?("list")
+                  R::List.new(r_interop, expression)
+                when r_class.include?("function")
+                  R::Closure.new(r_interop, expression)
+                when r_class == "name" || r_class == "symbol"
+                  R::RSymbol.new(r_interop, expression)
+                when r_class == "expression"
+                  R::RExpression.new(r_interop, expression)
+                else
+                  puts "DEBUG: Object.build fell through to else (r_class=#{r_class.inspect})" if ENV['GALAAZ_DEBUG']
+                  new(r_interop, expression)
+                end
+          puts "DEBUG: Object.build returning #{obj.class}" if ENV['GALAAZ_DEBUG']
+          return obj
+        rescue => e
+          puts "DEBUG: Object.build rescue: #{e.message}" if ENV['GALAAZ_DEBUG']
+          return new(r_interop, expression)
+        end
+      else
+        # Fallback for already unboxed or unexpected strings
         r_interop
       end
-
     end
-
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def method_missing(symbol, *args, &block)
-      name = R::Support.convert_symbol2r(symbol)
-
-      # Need to raise a NoMethodError when method_missing is called by an implicit
-      # call to "to_ary".  The explanation for that is:
-      # Okay, I've found the source of the behaviour. IOOperations.puts will attempt to
-      # coerce an argument to an array and print its contents, and R::Vector responds to
-      # to_ary but returns the empty array which results in no output.
-      #
-      # Previously IOOperations.puts only checked the type of the argument, and did not
-      # attempt coercion, but that meant we didn't match MRI's behaviour and had some test
-      # failures in other gems. I'd suggest either removing the to_ary methods on
-      # R::Object and R::Vector or implementing them more fully. I see from the comments on
-      # those methods that you needed them for RSpec, it might worth seeing if those problems
-      # still occur and we can look a better way to resolve those.      
-      raise NoMethodError if name == "to_ary"
-
-      case
-      when block_given?
-        R::Support.new_scope(symbol, self, *args, &block)
-      when name =~ /(.*)=$/
-        method_missing_assign($1, args[0])
-      when name == "eval"
-        # R function 'eval' needs to be called in a special way, since it expects
-        # the second argument to be an environment.  If the arguments are packed
-        # into a list, then there is no second argument and the function fails to
-        # use the second argument as environment
-        R::Support.r_evaluate(@r_interop, *args)
-      when args.length == 0
-        # no arguments: 2 options: either a named item of the object or apply the function
-        # to the object
-        # if name is a named item of the object, then return the named item
-        named = R::Support.eval("`%in%`").
-                  call(name, R::Support.eval("names").call(@r_interop))
-        (false === named || !(true === named || named[0])) ?
-          R::Support.exec_function_name(name, @r_interop) :
-          R::Support.exec_function_name("`[[`", @r_interop, name)
-      else
-        args.unshift(@r_interop)
-        R::Support.exec_function_name(name, *args)
-      end
-        
-    end
-    
-    #----------------------------------------------------------------------------------------
-    # We use the following notation to access binary R functions such as %in%:
-    # R.vec_ "in", list.
-    # @param args [Array] The first element of the array is an R infix function, the other
-    # arguments are the list of arguments for the function.
-    #----------------------------------------------------------------------------------------
-
-    def _(*args)
-      name = "`%#{args.shift.to_s}%`"
-      args.unshift(@r_interop)
-      R::Support.exec_function_name(name, *args)
-    end
-
-    #--------------------------------------------------------------------------------------
-    # Sets the current object self interop pointer to the returned value of the execution
-    # of the given method with arguments. This method should be called when R will copy
-    # the parameter, but in Ruby we want to hide the copying.
-    # @param [Interop] Interop pointer to R function
-    # @param [Array] Array of arguments 
-    #--------------------------------------------------------------------------------------
-
-    def setR(method, *args)
-      @r_interop = R::Support.exec_function_i(method, @r_interop, *args)
-      self
-    end
-
-    #--------------------------------------------------------------------------------------
-    # 
-    #--------------------------------------------------------------------------------------
-
-    def setR_name(method_name, *args)
-      method = R::Support.eval(method_name)
-      setR(method, *args)
-      self
-    end
-
-    #--------------------------------------------------------------------------------------
-    # Sets the names attribute of the object
-    # @param [R::Object] names_vector is an RVector with the list of names.
-    #--------------------------------------------------------------------------------------
-
-    def names=(names_vector)
-      setR_name("`names<-`", names_vector)
-    end
-
-    def names(*args)
-      return R::Support.exec_function_name("names", @r_interop) if (args.length == 0)
-      setR_name("`names<-`", *args)
-      self
-    end
-        
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def rclass=(class_name)
-      setR_name("`class<-`", class_name)
-    end
-    
-    def rclass
-      R::Support.exec_function_name("class", @r_interop)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def comment=(comment_text)
-      setR_name("`comment<-`", comment_text)
-    end
-    
-    def comment
-      R::Support.exec_function_name("comment", @r_interop)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def dim=(numeric_vector)
-      setR_name("`dim<-`", numeric_vector)
-    end
-
-    def dim
-      R::Support.exec_function_name("dim", @r_interop)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def dimnames=(names_vector)
-      setR_name("`dimnames<-`", names_vector)
-    end
-
-    def dimnames
-      R::Support.exec_function_name("dimnames", @r_interop)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    # @bug Needed to create method R.row__names because dispatch is not working properly
-    #--------------------------------------------------------------------------------------
-
-    # since we need to call a method and the method changes the object, then we need to
-    # change our internal pointer also @r_interop.  Ideally, just setting the row.names
-    # should work.
-    def row__names=(names_vector)
-      setR_name("`row.names<-`", names_vector)
-    end
-
-    def row__names
-      R::Support.exec_function_name("row.names", @r_interop)
-    end
-      
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def tsp=(numeric_vector)
-      setR_name("`tsp<-`", numeric_vector)
-    end
-
-    def tsp
-      R::Support.exec_function_name("tsp", @r_interop)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-    
-    def attr=(which: w, value: v)
-      value = (R::Support.interop(value) ? value.r_interop : value)
-      # setR(@@set_attr, which, value)
-      setR_name("`attr<-`", which, value)
-    end
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def pp
-      R.print(@r_interop)
-    end
-
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
-    def pretty_print(obj)
-      puts self
-    end
-    
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
 
     def to_s
-
-      begin
-        cap = nil
-        cap = R::Support.capture2.call(r_interop)
-        str = String.new
-        (0...(cap.size - 1)).each do |i|
-          str << cap[i] << "\n"
-        end
-        str << cap[cap.size - 1] if cap.size >= 1
-        str
-      rescue StandardError => e
-        puts e
-      end
-      
+      return super unless R.bridge.ready?
+      R.bridge.print_r(@r_interop)
     end
 
-  end
+    def rclass
+      res = R::Support.exec_function("class", self)
+      res.respond_to?(:>>) ? (res >> nil)[0] : res
+    end
 
-    
+    def typeof
+      res = R::Support.exec_function("typeof", self)
+      res.respond_to?(:>>) ? (res >> nil)[0] : res
+    end
+
+    def ==(other)
+      return true if self.equal?(other)
+      if other.is_a?(R::Object)
+        res = R.bridge.eval_r("isTRUE(all.equal(#{@r_interop}, #{other.r_interop}))")
+        return res == "[1] TRUE"
+      elsif other.is_a?(Numeric) || other.is_a?(String) || other.is_a?(TrueClass) || 
+            other.is_a?(FalseClass) || other.nil? || other.is_a?(Symbol)
+        val = (self >> nil)
+        if val.is_a?(Array)
+          return val[0] == other if val.size == 1
+          return val.include?(other) if other.is_a?(String)
+        end
+        return val == other
+      else
+        super
+      end
+    end
+
+    def call(*args)
+      R::Support.exec_function(self, *args)
+    end
+
+    def method_missing(symbol, *args)
+      R::Support.process_missing(symbol, self, *args)
+    end
+  end
 end

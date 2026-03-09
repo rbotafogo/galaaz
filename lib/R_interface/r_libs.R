@@ -8,7 +8,7 @@ if (!('data.table' %in% installed.packages()[, "Package"])) {
 }
 
 library('formula.tools')
-library('lobstr')
-library('rlang')
-library('purrr')
+# library('lobstr')
+# library('rlang')
+# library('purrr')
 

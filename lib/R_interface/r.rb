@@ -21,14 +21,31 @@
 # OR MODIFICATIONS.
 ##########################################################################################
 
+require 'fileutils'
+
 # Load required R libraries
 dir = File.dirname(File.expand_path('.', __FILE__))
-Polyglot.eval_file('R', "#{dir}/r_libs.R")
+# Polyglot.eval_file('R', "#{dir}/r_libs.R") # Disabled for 2.0 Shadow Bridge
 
-require_relative 'robject'
+# Bridge and Support first
+require_relative 'shadow_bridge'
 require_relative 'rsupport'
 
+# Operator modules next (so R::Object can include them)
+require_relative 'rbinary_operators'
+require_relative 'runary_operators'
+require_relative 'rlogical_operators'
+require_relative 'rindexed_object'
+require_relative 'rmd_indexed_object'
+
+# Now R::Object
+require_relative 'robject'
+
 module R
+  # Initialize the ShadowBridge for Galaaz 2.0
+  def self.bridge
+    R::ShadowBridge.instance
+  end
 
   RCONSTANTS = ["LETTERS", "letters", "month.abb", "month.name", "pi"]
 
@@ -66,19 +83,14 @@ module R
 
     packages = R.c(*libs)
 
-    new_packages = packages[!(packages._ :in, R.installed__packages[:all, "Package"])]
+    new_packages = packages[!(packages._ :in, R.installed__packages(nil)[:all, "Package"])]
     
-    if(new_packages.size > 0)
-      
-      # package 'data_table' cannot be installed by install.packages.  FastR implements
-      # install.fastr.packages for installing 'data_table'
-      if ((R.c('data.table')._ :in, new_packages) >> 0)
-        new_packages = new_packages[!'data_table']
-        R.install__fastr__packages('data_table')
-      end
-      
+    if(new_packages.length > 0)
       puts "The following packages are missing and will be installed:\n #{new_packages}"
-      R.install__packages(new_packages)
+      # Ensure local library directory exists
+      lib_dir = File.expand_path("~/R/x86_64-pc-linux-gnu-library/galaaz")
+      FileUtils.mkdir_p(lib_dir) unless Dir.exist?(lib_dir)
+      R.install__packages(new_packages, repos: "https://cloud.r-project.org", lib: lib_dir)
     end
     
   end
@@ -93,13 +105,6 @@ module R
   end
   
 end
-
-# Binary operators: '+', '-', etc
-require_relative 'rbinary_operators'
-# Unary operators: '!', '@-', etc
-require_relative 'runary_operators'
-# Logical operators
-require_relative 'rlogical_operators'
 
 # Ruby class extensions.  Extends Symbol to allow the creation of
 # expressions using Symbol: (:x > 10)

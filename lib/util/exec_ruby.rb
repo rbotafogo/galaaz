@@ -80,13 +80,13 @@ module GalaazUtil
     # RubyChunk.init
     
     # read the chunk code
-    code = R.paste(options.code, collapse: "\n") >> 0
+    code = R.paste(options.code, collapse: "\n").unboxed_get(0)
     
     # the output should be a list with the proper structure to pass to
     # function engine_output.  We first add the souce code from the block to
     # the list
     out_list = R.list(R.structure(R.list(src: code), class: 'source')) if
-      options.echo >> 0
+      options.echo.unboxed_get(0)
 
     begin
 
@@ -98,8 +98,8 @@ module GalaazUtil
       # Execute the Ruby code in the scope of class RubyChunk. This is done
       # so that instance variables created in one chunk can be used again on
       # another chunk
-      # RChunk.instance_eval(code) if (options[["eval"]] >> 0)
-      eval(code, RCbinding, __FILE__, __LINE__ + 1) if (options[["eval"]] >> 0)
+      # RChunk.instance_eval(code) if (options[["eval"]].unboxed_get(0))
+      eval(code, RCbinding, __FILE__, __LINE__ + 1) if (options[["eval"]].unboxed_get(0))
       
       # add the returned value to the list
       # this should have captured everything in the evaluation code
@@ -111,13 +111,13 @@ module GalaazUtil
     rescue StandardError => e
 
       # print the error message
-      if (options.message >> 0)
+      if (options.message.unboxed_get(0))
         message = R.list(R.structure(R.list(message: e.message), class: 'message'))
         out_list = R.c(out_list, message)
       end
 
       # Print the backtrace of the error message
-      if (options.warning >> 0)
+      if (options.warning.unboxed_get(0))
         bt = ""
         e.backtrace.each { |line| bt << line + "\n"}
         warning = R.list(R.structure(R.list(message: bt), class: 'message'))
@@ -125,7 +125,7 @@ module GalaazUtil
       end
 
     rescue SyntaxError => e
-      STDERR.puts "A syntax error occured in ruby block '#{options.label >> 0}'"
+      STDERR.puts "A syntax error occured in ruby block '#{options.label.unboxed_get(0)}'"
       raise SyntaxError.new(e)
       
     ensure
@@ -133,7 +133,7 @@ module GalaazUtil
       $stdout = STDOUT
     end
     
-    (options.include >> 0)? out_list : R.list
+    (options.include.unboxed_get(0))? out_list : R.list
     
   end
   

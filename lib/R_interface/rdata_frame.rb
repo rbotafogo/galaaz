@@ -1,102 +1,47 @@
-# -*- coding: utf-8 -*-
-
-##########################################################################################
-# @author Rodrigo Botafogo
-#
-# Copyright © 2018 Rodrigo Botafogo. All Rights Reserved. Permission to use, copy, modify, 
-# and distribute this software and its documentation, without fee and without a signed 
-# licensing agreement, is hereby granted, provided that the above copyright notice, this 
-# paragraph and the following two paragraphs appear in all copies, modifications, and 
-# distributions.
-#
-# IN NO EVENT SHALL RODRIGO BOTAFOGO BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, 
-# INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING OUT OF THE USE OF 
-# THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF RODRIGO BOTAFOGO HAS BEEN ADVISED OF THE 
-# POSSIBILITY OF SUCH DAMAGE.
-#
-# RODRIGO BOTAFOGO SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE 
-# SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED "AS IS". 
-# RODRIGO BOTAFOGO HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, 
-# OR MODIFICATIONS.
-##########################################################################################
-
+# rdata_frame.rb
 module R
-
   class DataFrame < Object
     include IndexedObject
     include MDIndexedObject
-
-    #--------------------------------------------------------------------------------------
-    # Calls the R.qplot adding the data: parameter
-    #--------------------------------------------------------------------------------------
 
     def qplot(*args)
       print R.qplot(*args, data: self)
     end
 
-    #--------------------------------------------------------------------------------------
-    #
-    #--------------------------------------------------------------------------------------
-
     def method_missing_assign(column_name, arg)
-      setR_name("`[<-`", R.empty_symbol, column_name, arg)
+      # Functional form: df <- `[[<-`(df, i = 'col', value = val)
+      res = R::Support.exec_function("`[[<-`", self, i: column_name, value: arg)
+      @r_interop = res.r_interop
+      res
     end
-
-    #--------------------------------------------------------------------------------------
-    # subset assign a vector with an index to a value
-    # @param index [Array] The vector index
-    # @param values [R::Object] The values to assign to the index.  Note that
-    # index can span multiple
-    # values, for ex., R.c(2, 3, 5)
-    #--------------------------------------------------------------------------------------
 
     def []=(index, *args)
       values = args[-1]
-      idx2 = (args.size > 1)? args[-2] : false
-      
-      # dealing with double indexing function '[['
-      if (index.is_a? Array)
-        setR_name("`[[<-`", R.empty_symbol, *index, values)
+      res = if index.is_a? Array
+        R::Support.exec_function("`[[<-`", self, i: index, value: values)
       else
-        idx2 ? setR_name("`[<-`", index, idx2, values) :
-          setR_name("`[<-`", R.empty_symbol, index, values)
+        idx2 = (args.size > 1) ? args[-2] : nil
+        if idx2
+          R::Support.exec_function("`[<-`", self, i: index, j: idx2, value: values)
+        else
+          R::Support.exec_function("`[<-`", self, i: index, value: values)
+        end
       end
-      
+      @r_interop = res.r_interop
       self
-      
     end
+
     
-    #--------------------------------------------------------------------------------------
-    # Goes through each row of the dataframe and return the whole row as the first element
-    # and the row name (Ruby string) as the second
-    #--------------------------------------------------------------------------------------
-
     def each_row
-
-      # nrow is the R function that return the number of rows in the dataset.  This
-      # function returns a R::Vector, so we need to extract its first element (<< 0)
       (1..nrow >> 0).each do |i|
         yield self[i, :all], self.rownames[i] >> 0
       end
-
     end
 
-    #--------------------------------------------------------------------------------------
-    # Goes through each column of the dataframe and return the whole column as the first
-    # element and the column name (Ruby string) as the second
-    #--------------------------------------------------------------------------------------
-
     def each_column
-      
-      # ncol is the R function that return the number of columns in the dataset.  This
-      # function returns a R::Vector, so we need to extract its first element (<< 0)
       (1..ncol >> 0).each do |i|
         yield self[:all, i], self.names[i] >> 0
       end
-      
     end
-
   end
-  
 end

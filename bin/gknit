@@ -148,7 +148,8 @@ R::Rmarkdown.render(
 EOF
 
 libx = File.expand_path('../../lib', __FILE__)
-exec "ruby --polyglot --jvm --experimental-options --single-threaded -I#{libx} -e '#{code}'"
+jvm_args = "-J--add-opens=java.base/java.nio=ALL-UNNAMED"
+exec "GALAAZ_DEBUG=1 jruby #{jvm_args} -I#{libx} -e '#{code}'"
 
 =begin
 # how to call rmarkdown::render with a parameter list

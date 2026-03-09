@@ -125,7 +125,7 @@ module LightBlueTheme
   
 end
 
-R.awt
+# R.awt
 
 plot = R.grid__arrange(
   LightBlueTheme.graph_title("Cars: wt x mpg"),
@@ -137,7 +137,8 @@ plot = R.grid__arrange(
   heights: R.c(0.050, 0.025, 0.85, 0.05)
 )
 
-plot.print
+# plot.print
+R.ggsave("cars_plot.png", plot)
 
 =begin
 sleep(5)

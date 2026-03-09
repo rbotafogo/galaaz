@@ -57,11 +57,11 @@ module R
 
     def >>(index)
       raise IndexError.new("index #{index} out of list bounds: 0...#{index - 1}") if
-        (index > (length - 1) >> 0)
+        (index > (length - 1).unboxed_get(0))
       raise ArgumentError.new("Indexed element is not a vector") if
         !self[[index + 1]].is_a? R::Vector
-      return nil if (self[[index + 1]].is__null >> 0)
-      self[[index + 1]] >> 0
+      return nil if (self[[index + 1]].is__null.unboxed_get(0))
+      self[[index + 1]].unboxed_get(0)
     end
 
     #--------------------------------------------------------------------------------------
@@ -73,10 +73,10 @@ module R
 
       # length is a R::Vector, in order to extract its size as a Ruby number we need to
       # use the >> operator
-      (1..length >> 0).each do |i|
+      (1..length.unboxed_get(0)).each do |i|
         yield self[[i]]
       end
-      
+
     end
 
     #--------------------------------------------------------------------------------------
@@ -84,13 +84,12 @@ module R
     #--------------------------------------------------------------------------------------
 
     def each_with_index
-      
-      (1..length >> 0).each do |i|
+
+      (1..length.unboxed_get(0)).each do |i|
         yield self[[i]], i
       end
-      
-    end
-    
+
+    end    
   end
   
   

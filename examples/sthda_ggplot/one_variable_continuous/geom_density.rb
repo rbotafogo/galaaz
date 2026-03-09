@@ -38,6 +38,8 @@ a = wdata.ggplot(E.aes(x: :weight))
 # Aggregate the data by sex
 mu = R.aggregate(wdata.weight, by: R.list(wdata.sex), FUN: :mean)
 mu.names = R.c("sex", "grp_mean")
+puts "MU CLASS: #{R.bridge.eval_r("paste(class(#{mu.r_interop}), collapse=' ')")}"
+puts "MU NAMES: #{R.bridge.eval_r("names(#{mu.r_interop})")}"
 puts mu
 
 R.awt

@@ -48,9 +48,8 @@ module R
     def initialize(object)
       @object = object
       
-      # ruby_callback_method is a method that returns an R function that returns an R
-      # function that calls back this object callback method (look at callback bellow)
-      @r_function = R::Support.ruby_callback_method.call(method(:callback))
+      # Use parse_arg to generate the R function that calls back this object's callback method
+      @r_function = R::Support.parse_arg(method(:callback))
     end
     
     #--------------------------------------------------------------------------------------

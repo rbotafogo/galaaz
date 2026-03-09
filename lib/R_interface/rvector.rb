@@ -44,14 +44,41 @@ module R
     # When indexing with '[' or '[[' an R object is returned.  Sometimes we need to have
     # access to an umboxed Ruby element, for instance, in an numeric array, we might want
     # to receive the actual number that can be used in a Ruby method.  In this case, we
-    # use the '<<' operator.
+    # use the '>>' operator.
     # @return the Ruby element at the given index in the vector
     #--------------------------------------------------------------------------------------
 
-    def >>(index)
-      raise IndexError.new("index #{index} out of array bounds: -#{index - 1}...#{index - 1}") if
-        (index >= @r_interop.size) 
-      @r_interop[index]
+    def unboxed_get(index = nil)
+      if index.nil?
+        # Unbox whole vector to Ruby array
+        return R.bridge.pull_vector(@r_interop)
+      end
+
+      # For indexed unboxing, use binary transport
+      idx = index
+      len_raw = R.bridge.eval_r("length(#{@r_interop})")
+      len = len_raw.match(/\[1\] (.*)/)[1].to_i
+      
+      raise IndexError.new("index #{idx} out of array bounds: 0...#{len-1}") if
+        (idx >= len) 
+      
+      # Determine type
+      type_raw = R.bridge.eval_r("typeof(#{@r_interop})")
+      type = type_raw.match(/\[1\] \"(.*)\"/)[1] rescue "double"
+      
+      if type == 'integer'
+        data = R.bridge.pull_integer_vector(@r_interop, 1, idx, 1)
+      else
+        data = R.bridge.pull_double_vector(@r_interop, 1, idx, 1)
+      end
+      data[0]
+    end
+
+    alias_method :>>, :unboxed_get
+
+    # Return Ruby array so RSpec/eq and array conversion don't forward to_ary to R
+    def to_ary
+      self >> nil
     end
 
     #--------------------------------------------------------------------------------------
@@ -59,32 +86,75 @@ module R
     #--------------------------------------------------------------------------------------
 
     def pop
-      self >> 0
+      # Return unboxed first element as a Ruby scalar
+      unboxed_get(0)
     end
     
-    #--------------------------------------------------------------------------------------
-    # @bug
-    # Each cannot return a Enumerator because R is single threaded.  When this restriction
-    # is removed, make each return self.to_enum
-    #--------------------------------------------------------------------------------------
+    CHUNK_SIZE = 1_000_000 # 1M rows per page
 
-    def each(result = :vec)
+    def stitch(halo: 0, &block)
+      # 1. Get length
+      len_raw = R.bridge.eval_r("length(#{@r_interop})")
+      len = len_raw.match(/\[1\] (.*)/)[1].to_i
+      
+      # 2. Allocate result vector in R
+      res_name = R::Support.generate_var_name
+      R.bridge.eval_r("#{res_name} <- numeric(#{len})")
 
-      case result
+      # 3. Process in chunks with Halo
+      offset = 0
+      while offset < len
+        current_chunk_size = [CHUNK_SIZE, len - offset].min
+        
+        # Calculate extended range for Halo
+        # R indices start at 1, but pull_double_vector uses 0-based offset
+        pull_offset = [0, offset - halo].max
+        pull_end = [len, offset + current_chunk_size + halo].min
+        actual_pull_size = pull_end - pull_offset
+        
+        # 3.1 Pull chunk with Halo
+        data = R.bridge.pull_double_vector(@r_interop, len, pull_offset, actual_pull_size)
+        
+        # 3.2 Process in Ruby
+        # The block receives the data with halo. 
+        # It's up to the block to handle the context, 
+        # but the result should be the same size as data.
+        result_data_with_halo = block.call(data)
+        
+        # 3.3 Extract the "inner" part (discard halo results)
+        # The offset of our chunk within the pulled data is (offset - pull_offset)
+        inner_start = offset - pull_offset
+        inner_result = result_data_with_halo[inner_start, current_chunk_size]
+        
+        # 3.4 Push only the inner chunk back to R
+        R.bridge.push_double_vector(inner_result, res_name, offset, len)
+        
+        offset += current_chunk_size
+      end
+      
+      # 4. Return as R::Object (wrapped as Vector)
+      R::Object.build(res_name)
+    end
+
+    def map(&block)
+      stitch(halo: 0) do |data|
+        data.map(&block)
+      end
+    end
+
+    def each(mode = :vec)
+      case mode
       when :vec
-        # length is a R::Vector, in order to extract its size as a Numeric we need to
-        # use the >> operator
-        (1..length >> 0).each do |i|
+        (1..length.unboxed_get(0)).each do |i|
           yield self[i]
         end
       when :native
-        (0...length >> 0).each do |i|
-          yield self >> i
+        (0...length.unboxed_get(0)).each do |i|
+          yield unboxed_get(i)
         end
       else
-        raise "Type #{result} is unknown for method :each"
+        raise "Type #{mode.inspect} is unknown for method :each"
       end
-      
     end
 
     #--------------------------------------------------------------------------------------
@@ -94,12 +164,12 @@ module R
     def each_with_index(result = :vec)
       case result
       when :vec
-        (1..length >> 0).each do |i|
+        (1..length.unboxed_get(0)).each do |i|
           yield self[i], i
         end
       when :native
-        (0...length >> 0).each do |i|
-          yield self >> i, i
+        (0...length.unboxed_get(0)).each do |i|
+          yield unboxed_get(i), i
         end
       else
         raise "Type #{result} is unknown for method :each"

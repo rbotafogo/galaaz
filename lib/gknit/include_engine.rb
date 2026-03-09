@@ -38,10 +38,10 @@ class IncludeEngine < KnitrEngine
     @engine = Proc.new do |options|
 
       # check if require should be relative or not
-      req = (options[['relative']].is__null | options[['relative']].isTRUE) >> 0
+      req = (options[['relative']].is__null | options[['relative']].isTRUE).unboxed_get(0)
       
       # load the content of the file in options.code
-      options.code = GalaazUtil.inline_file(options.label >> 0, req)
+      options.code = GalaazUtil.inline_file(options.label.unboxed_get(0), req)
 
       @base_engine.call(options)
     end
