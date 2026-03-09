@@ -38,9 +38,9 @@ module R
       # dealing with double indexing function '[['
       # If we have multiple indices, or a single array index, use [[
       if (index.size > 1) || (index[0].is_a? Array)
-        R::Support.exec_function(R::Support.dbk_index, @r_interop, *index)
+        ::R::Support.exec_function(::R::Support.dbk_index, @r_interop, *index)
       else
-        R::Support.exec_function_name("`[`", @r_interop, *index)
+        ::R::Support.exec_function_name("`[`", @r_interop, *index)
       end
     end
     
@@ -58,12 +58,12 @@ module R
 
       # Assign result back to same handle so the object is updated in place (R's x[i] <- v semantics)
       if (index.size > 1) || (index[0].is_a? Array)
-        all_args = [@r_interop, *index, values].map { |a| R::Support.parse_arg(a) }.join(", ")
-        R.bridge.eval_r("#{@r_interop} <- `[[<-`(#{all_args})")
+        all_args = [@r_interop, *index, values].map { |a| ::R::Support.parse_arg(a) }.join(", ")
+        ::R.bridge.eval_r("#{@r_interop} <- `[[<-`(#{all_args})")
       else
-        idx_r = R::Support.parse_arg(index[0])
-        vals_r = R::Support.parse_arg(values)
-        R.bridge.eval_r("#{@r_interop} <- `[<-`(#{@r_interop}, #{idx_r}, #{vals_r})")
+        idx_r = ::R::Support.parse_arg(index[0])
+        vals_r = ::R::Support.parse_arg(values)
+        ::R.bridge.eval_r("#{@r_interop} <- `[<-`(#{@r_interop}, #{idx_r}, #{vals_r})")
       end
 
       self

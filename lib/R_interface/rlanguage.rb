@@ -6,6 +6,10 @@ module R
     include ExpBinOp
     include IndexedObject
 
+    def class
+      ::R::Language
+    end
+
     attr_accessor :expression
     
     def self.build(function_name, *args)
@@ -13,8 +17,8 @@ module R
       op = function_name.delete("`").strip
       
       # We build the string expression by parsing arguments
-      lhs = R::Support.parse_arg(args[0])
-      rhs = R::Support.parse_arg(args[1])
+      lhs = ::R::Support.parse_arg(args[0])
+      rhs = ::R::Support.parse_arg(args[1])
       if op == ":"
         expr = "#{lhs}#{op}#{rhs}"
       else
@@ -22,7 +26,7 @@ module R
       end
       
       # Allocate object without calling initialize (which calls bridge)
-      res = R::Language.allocate
+      res = ::R::Language.allocate
       res.instance_variable_set(:@r_interop, expr)
       res.expression = expr
       res

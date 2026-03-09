@@ -29,14 +29,18 @@ module R
 
   class List < Object
     include IndexedObject
-    include Enumerable
-    
+    include ::Enumerable
+
+    def class
+      ::R::List
+    end
+
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
     
     def +(other_object)
-      R::Support.exec_function_name("`+`", @r_interop, other_object.r_interop)
+      ::R::Support.exec_function_name("`+`", @r_interop, other_object.r_interop)
     end
 
     #--------------------------------------------------------------------------------------
@@ -59,7 +63,7 @@ module R
       raise IndexError.new("index #{index} out of list bounds: 0...#{index - 1}") if
         (index > (length - 1).unboxed_get(0))
       raise ArgumentError.new("Indexed element is not a vector") if
-        !self[[index + 1]].is_a? R::Vector
+        !self[[index + 1]].is_a?(::R::Vector)
       return nil if (self[[index + 1]].is__null.unboxed_get(0))
       self[[index + 1]].unboxed_get(0)
     end

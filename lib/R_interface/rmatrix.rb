@@ -40,6 +40,9 @@ module R
     # logical operators. Can either be binary or unary
     include LogicalOperators
 
+    def class
+      ::R::Matrix
+    end
   end
   
 end

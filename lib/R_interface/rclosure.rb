@@ -25,12 +25,16 @@ module R
 
   class Closure < Object
 
+    def class
+      ::R::Closure
+    end
+
     #----------------------------------------------------------------------------------------
     #
     #----------------------------------------------------------------------------------------
     
     def call(*args)
-      R::Support.exec_function(@r_interop, *args)
+      ::R::Support.exec_function(@r_interop, *args)
     end
 
   end

@@ -30,8 +30,12 @@ module R
     include UnaryOperators
     include ExecUniOp
     include LogicalOperators
-    include Enumerable
-    
+    include ::Enumerable
+
+    def class
+      ::R::Vector
+    end
+
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -51,25 +55,25 @@ module R
     def unboxed_get(index = nil)
       if index.nil?
         # Unbox whole vector to Ruby array
-        return R.bridge.pull_vector(@r_interop)
+        return ::R.bridge.pull_vector(@r_interop)
       end
 
       # For indexed unboxing, use binary transport
       idx = index
-      len_raw = R.bridge.eval_r("length(#{@r_interop})")
+      len_raw = ::R.bridge.eval_r("length(#{@r_interop})")
       len = len_raw.match(/\[1\] (.*)/)[1].to_i
       
       raise IndexError.new("index #{idx} out of array bounds: 0...#{len-1}") if
         (idx >= len) 
       
       # Determine type
-      type_raw = R.bridge.eval_r("typeof(#{@r_interop})")
+      type_raw = ::R.bridge.eval_r("typeof(#{@r_interop})")
       type = type_raw.match(/\[1\] \"(.*)\"/)[1] rescue "double"
       
       if type == 'integer'
-        data = R.bridge.pull_integer_vector(@r_interop, 1, idx, 1)
+        data = ::R.bridge.pull_integer_vector(@r_interop, 1, idx, 1)
       else
-        data = R.bridge.pull_double_vector(@r_interop, 1, idx, 1)
+        data = ::R.bridge.pull_double_vector(@r_interop, 1, idx, 1)
       end
       data[0]
     end
@@ -94,12 +98,12 @@ module R
 
     def stitch(halo: 0, &block)
       # 1. Get length
-      len_raw = R.bridge.eval_r("length(#{@r_interop})")
+      len_raw = ::R.bridge.eval_r("length(#{@r_interop})")
       len = len_raw.match(/\[1\] (.*)/)[1].to_i
       
       # 2. Allocate result vector in R
-      res_name = R::Support.generate_var_name
-      R.bridge.eval_r("#{res_name} <- numeric(#{len})")
+      res_name = ::R::Support.generate_var_name
+      ::R.bridge.eval_r("#{res_name} <- numeric(#{len})")
 
       # 3. Process in chunks with Halo
       offset = 0
@@ -113,7 +117,7 @@ module R
         actual_pull_size = pull_end - pull_offset
         
         # 3.1 Pull chunk with Halo
-        data = R.bridge.pull_double_vector(@r_interop, len, pull_offset, actual_pull_size)
+        data = ::R.bridge.pull_double_vector(@r_interop, len, pull_offset, actual_pull_size)
         
         # 3.2 Process in Ruby
         # The block receives the data with halo. 
@@ -127,13 +131,13 @@ module R
         inner_result = result_data_with_halo[inner_start, current_chunk_size]
         
         # 3.4 Push only the inner chunk back to R
-        R.bridge.push_double_vector(inner_result, res_name, offset, len)
+        ::R.bridge.push_double_vector(inner_result, res_name, offset, len)
         
         offset += current_chunk_size
       end
       
       # 4. Return as R::Object (wrapped as Vector)
-      R::Object.build(res_name)
+      ::R::Object.build(res_name)
     end
 
     def map(&block)

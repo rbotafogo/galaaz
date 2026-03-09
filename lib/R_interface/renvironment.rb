@@ -30,6 +30,10 @@ module R
   class Environment < Object
     include IndexedObject
 
+    def class
+      ::R::Environment
+    end
+
     #--------------------------------------------------------------------------------------
     #
     #--------------------------------------------------------------------------------------
@@ -52,7 +56,7 @@ module R
 
     def method_missing(symbol, *args, &block)
 
-      name = R::Support.convert_symbol2r(symbol)
+      name = ::R::Support.convert_symbol2r(symbol)
 
       case
       when name =~ /(.*)=$/

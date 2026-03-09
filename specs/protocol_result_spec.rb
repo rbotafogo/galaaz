@@ -119,4 +119,61 @@ describe "Result protocol (Phase 5)" do
       expect(v[1]).to eq 10
     end
   end
+
+  # Phase A (BasicObject migration): ensure R::Object has the explicit Ruby surface
+  # we need. Run with protocol + minimal set to catch regressions.
+  context "R::Object Ruby surface (Phase A — BasicObject migration)" do
+
+    let(:vec) { R.c(1, 2, 3) }
+    let(:lst) { R.list(1, "a") }
+
+    it "responds to class and returns the concrete Ruby class" do
+      expect(vec).to respond_to(:class)
+      expect(vec.class).to eq R::Vector
+      expect(lst.class).to eq R::List
+    end
+
+    it "responds to to_s and returns a string (R print output)" do
+      expect(vec).to respond_to(:to_s)
+      expect(vec.to_s).to be_a(String)
+      expect(vec.to_s).to match(/[1-3]/)
+    end
+
+    it "responds to respond_to? and reports explicit and forwarded methods" do
+      expect(vec).to respond_to(:respond_to?)
+      expect(vec.respond_to?(:r_interop)).to eq true
+      expect(vec.respond_to?(:length)).to eq true
+      expect(vec.respond_to?(:class)).to eq true
+      expect(vec.respond_to?(:>>)).to eq true
+      expect(vec.respond_to?(:[])).to eq true
+    end
+
+    it "responds to is_a? and kind_of? with correct type checks" do
+      expect(vec).to respond_to(:is_a?)
+      expect(vec).to respond_to(:kind_of?)
+      expect(vec.is_a?(R::Vector)).to eq true
+      expect(vec.is_a?(R::Object)).to eq true
+      expect(vec.kind_of?(R::Vector)).to eq true
+      expect(vec.is_a?(R::List)).to eq false
+    end
+
+    it "responds to instance_of? with correct class check" do
+      expect(vec).to respond_to(:instance_of?)
+      expect(vec.instance_of?(R::Vector)).to eq true
+      expect(vec.instance_of?(R::Object)).to eq false
+    end
+
+    it "responds to inspect and returns a string with class and handle" do
+      expect(vec).to respond_to(:inspect)
+      expect(vec.inspect).to be_a(String)
+      expect(vec.inspect).to include("R::Vector")
+      expect(vec.inspect).to include("r_interop")
+    end
+
+    it "responds to object_id and returns an integer" do
+      expect(vec).to respond_to(:object_id)
+      expect(vec.object_id).to be_a(Integer)
+      expect(vec.object_id).to eq vec.__id__
+    end
+  end
 end
