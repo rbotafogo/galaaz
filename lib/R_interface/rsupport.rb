@@ -191,15 +191,18 @@ module R
     end
 
     # Run an R call: f_name(args...). Builds assignment, gets envelope from bridge, then unboxes or builds R::Object per envelope type and f_name.
-    def self.exec_function(function, *args)
+    # When unbox: false, scalar results are returned as R::Object (e.g. so .length is vector length).
+    # kwargs (e.g. i:, value:) are merged into args for R named-argument calls like `[[<-`(df, i=..., value=...).
+    def self.exec_function(function, *args, unbox: true, **kwargs)
       f_name = function.respond_to?(:r_interop) ? function.r_interop : function
 
-      if args.empty? && (f_name.include?("::") || f_name.start_with?("g2_v"))
+      if args.empty? && kwargs.empty? && (f_name.include?("::") || f_name.start_with?("g2_v"))
         return self.eval(f_name)
       end
 
       var_name = self.generate_var_name
-      r_args = args.map { |arg| self.parse_arg(arg) }
+      all_args = kwargs.empty? ? args : args + [kwargs]
+      r_args = all_args.map { |arg| self.parse_arg(arg) }
       # eval(expr, envir): R expects expr as expression; parse_arg on Language returns bare string -> wrap in parse(text=...) so envir is used
       if f_name == "eval" && args.size == 2 && !r_args[0].to_s.start_with?("g2_v", "quote(")
         r_args[0] = "parse(text=#{r_args[0].to_s.inspect})"
@@ -222,7 +225,7 @@ module R
         if envelope[:type] == :scalar_character && val.is_a?(String) && val =~ /^rb_obj_\d+$/
           return get_ruby_object(val)
         end
-        unbox = f_name != "c" && f_name != "hyp" && f_name != "length" && f_name != "`[`" && f_name != "`[[`" && f_name != "expr"
+        unbox = unbox && f_name != "c" && f_name != "hyp" && f_name != "length" && f_name != "`[`" && f_name != "`[[`" && f_name != "expr"
         if unbox
           return val
         end
@@ -245,8 +248,22 @@ module R
     # Entry point for method_missing: handle setters (x=), eval, or dispatch to R (function / field / method with receiver).
     def self.process_missing(symbol, internal, *args)
       name = self.convert_symbol2r(symbol)
+      if ENV['GALAAZ_DEBUG_EVAL'] && name == "expr" && args.size >= 1
+        puts "[GALAAZ_DEBUG_EVAL] R.expr(...) called:"
+        puts "  args[0].class = #{args[0].class}, args[0].inspect = #{args[0].inspect}"
+      end
       return process_missing_setter(name, internal, args) if name =~ /(.*)=$/
       return process_missing_eval(name, internal, args) if name == "eval"
+      # R.expr(expression_text): build R expression from string/SymbolExprString via parse(text=...), return R::Object.
+      if name == "expr" && args.size == 1
+        arg = args[0]
+        if arg.is_a?(SymbolExprString) || (arg.is_a?(String) && !arg.start_with?("g2_v"))
+          str = arg.to_s
+          var_name = self.generate_var_name
+          R.bridge.eval_r("#{var_name} <- parse(text=#{str.inspect})[[1]]")
+          return R::Object.build(var_name)
+        end
+      end
       process_missing_dispatch(name, internal, args)
     end
 
@@ -281,10 +298,23 @@ module R
           expr = "quote(#{expr})"
         end
         var_name = self.generate_var_name
-        R.bridge.eval_r("#{var_name} <- eval(#{expr}, #{env})")
+        r_code = "#{var_name} <- eval(#{expr}, #{env})"
+        if ENV['GALAAZ_DEBUG_EVAL']
+          puts "[GALAAZ_DEBUG_EVAL] expr.eval(env) path:"
+          puts "  internal.class = #{internal.class}"
+          puts "  internal.r_interop = #{internal.r_interop.inspect}" if internal.respond_to?(:r_interop)
+          puts "  internal.expression = #{internal.expression.inspect}" if internal.respond_to?(:expression)
+          puts "  parse_arg(internal) => expr = #{expr.inspect}"
+          puts "  parse_arg(args[0]) => env = #{env.inspect}"
+          puts "  R code sent: #{r_code}"
+        end
+        R.bridge.eval_r(r_code)
         return R::Object.build(var_name)
       end
-      return self.eval(args[0]) if args.size == 1
+      if args.size == 1
+        expr_arg = args[0].is_a?(SymbolExprString) ? args[0].to_s : args[0]
+        return self.eval(expr_arg)
+      end
       self.exec_function(name, *args)
     end
 
@@ -312,6 +342,11 @@ module R
 
       is_func = R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE"
       return self.exec_function(name, internal, *args) if is_func
+
+      # Environment: missing name should raise NoMethodError (like Ruby), not call name(env) in R.
+      if internal.is_a?(::R::Environment)
+        ::Kernel.raise(::NoMethodError, "undefined method `#{name}' for #{internal.inspect}")
+      end
 
       self.exec_function(name, internal, *args)
     end

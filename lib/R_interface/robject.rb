@@ -95,6 +95,8 @@ module R
                   obj
                 when r_class.include?("list")
                   ::R::List.new(r_interop, expression)
+                when r_class.include?("environment")
+                  ::R::Environment.new(r_interop, expression)
                 when r_class.include?("function")
                   ::R::Closure.new(r_interop, expression)
                 when r_class == "name" || r_class == "symbol"

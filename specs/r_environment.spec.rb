@@ -122,16 +122,17 @@ describe R::Environment do
       R.x = R.c(1, 2, 3, 4)
     end
 
-    it "should evaluate an expression in the context of a data maks" do
+    it "should evaluate an expression in the context of a data mask" do
+      # Replicate R: data with values (not expressions), then eval(expr, mask).
+      # R: data <- list(e1 = 10, e2 = 20, e3 = c(1,2,3,4)); mask <- as_data_mask(data); e4 <- parse(text="e1 + e2 + e3")[[1]]; eval_tidy(e4, mask)
       myenv = R.env
-      myenv.e1 = R.expr(:len)
-      myenv.e2 = R.expr(:sd)
-      myenv.e3 = R.expr(R.c(1, 2, 3, 4))
-      
+      myenv.e1 = 10
+      myenv.e2 = 20
+      myenv.e3 = R.c(1, 2, 3, 4)
+
       e4 = R.expr(:e1 + :e2 + :e3)
       expect(e4.to_s).to eq "e1 + e2 + e3"
-      expect(e4.eval(myenv.new_data_mask)).to eq R.c(31, 32, 33, 34)
-
+      expect(e4.eval(myenv)).to eq R.c(31, 32, 33, 34)
     end
     
   end

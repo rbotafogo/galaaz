@@ -39,7 +39,7 @@ module R
     #--------------------------------------------------------------------------------------
     
     def set(key, value)
-      R.assign(key.to_s, value, pos: self)
+      ::R.assign(key.to_s, value, pos: self)
     end
     
     #--------------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ module R
     #--------------------------------------------------------------------------------------
 
     def get(key)
-      R.get(key.to_s, pos: self)
+      ::R.get(key.to_s, pos: self)
     end
 
     #--------------------------------------------------------------------------------------
@@ -55,12 +55,14 @@ module R
     #--------------------------------------------------------------------------------------
 
     def method_missing(symbol, *args, &block)
-
       name = ::R::Support.convert_symbol2r(symbol)
 
       case
       when name =~ /(.*)=$/
         set($1, args[0])
+      when name == "env_names"
+        # Call R's env_names(env) from Environment so .length is vector length (1), not string length.
+        ::R::Support.exec_function("env_names", self, unbox: false)
       else
         super(symbol, *args, &block)
       end

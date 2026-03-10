@@ -1,4 +1,23 @@
 # ruby_extensions.rb
+
+# Ruby-only expression string builder: :a + :b => "a + b", chaining :a + :b + :c => "a + b + c".
+# No R calls; used so R.expr(:e1 + :e2 + :e3) receives a string after Ruby evaluation.
+class SymbolExprString
+  def initialize(part)
+    @str = part.to_s.gsub(/__/, ".")
+  end
+
+  def +(other)
+    other_str = other.respond_to?(:to_expr_str) ? other.to_expr_str : other.to_s.gsub(/__/, ".")
+    SymbolExprString.new("#{@str} + #{other_str}")
+  end
+
+  def to_s
+    @str
+  end
+  alias to_expr_str to_s
+end
+
 module R
   module ExpBinOp
     def exec_bin_oper(operator, other_object)
@@ -20,7 +39,7 @@ class Symbol
   include R::BinaryOperators
   include R::ExpBinOp
   include R::LogicalOperators
-  
+
   def +@
     var_name = R::Support.generate_var_name
     R.bridge.eval_r("#{var_name} <- as.name('#{self.to_s.gsub(/__/,".")}')")
