@@ -45,15 +45,14 @@ describe R do
 
     it "Interop pointers can be operated through eval" do
       var = R::Support.eval("5L")
-      # calling method 'class' on var returns a vector of size one with a string that
-      # contains the class of the object
-      expect("integer").to eq R::Support.eval("class").call(var).to_s
+      # class(var) returns length-1 character (boxed); unbox to scalar for comparison
+      expect("integer").to eq (R::Support.eval("class").call(var) >> 0)
     end
     
     it "A number evaluated in R is automatically unboxed as float in Ruby" do
       var = R::Support.eval("4")
       expect(4.0).to eq var
-      expect("numeric").to eq R::Support.eval("class").call(var).to_s
+      expect("numeric").to eq (R::Support.eval("class").call(var) >> 0)
     end
 
     it "R vectors can be indexed by the indexing method of the host language" do

@@ -70,13 +70,24 @@ module R
       # Determine type
       type_raw = ::R.bridge.eval_r("typeof(#{@r_interop})")
       type = type_raw.match(/\[1\] \"(.*)\"/)[1] rescue "double"
-      
-      if type == 'integer'
+
+      case type
+      when 'integer'
         data = ::R.bridge.pull_integer_vector(@r_interop, 1, idx, 1)
+        data[0]
+      when 'character'
+        # Use eval_r to extract the single element as text (avoids binary transport)
+        raw = ::R.bridge.eval_r("#{@r_interop}[[#{idx + 1}]]")
+        m = raw.match(/\[1\]\s*"(.*)"/)
+        m ? m[1] : raw.sub(/\A\[1\]\s*/, '').strip
+      when 'logical'
+        # Use eval_r to extract the single element as text
+        raw = ::R.bridge.eval_r("#{@r_interop}[[#{idx + 1}]]")
+        raw.strip.include?("TRUE") ? true : false
       else
         data = ::R.bridge.pull_double_vector(@r_interop, 1, idx, 1)
+        data[0]
       end
-      data[0]
     end
 
     alias_method :>>, :unboxed_get

@@ -22,7 +22,7 @@ module R
     # Methods we explicitly define (Phase A / BasicObject). respond_to?(sym) is true for these and for any symbol we forward to R.
     EXPLICIT_RUBY_SURFACE = [
       :r_interop, :expression, :expression=,
-      :[], :[]=, :>>, :unboxed_get, :length, :size,
+      :[], :[]=, :>>, :unboxed_get, :to_ruby, :to_ary, :length, :size,
       :class, :to_s, :rclass, :typeof, :inspect, :object_id, :__id__,
       :==, :equal?, :call, :nil?, :pretty_print,
       :instance_variable_set, :instance_variable_get,
@@ -176,7 +176,9 @@ module R
     def unboxed_get(index = nil)
       val = ::R::Support.eval(@r_interop)
       return val unless val.is_a?(::R::Object)
-      return val.unboxed_get(index) unless val.instance_of?(::R::Object)
+      # Only delegate when the receiver overrides unboxed_get (Vector, List); otherwise
+      # we would recurse (e.g. DataFrame inherits Object#unboxed_get).
+      return val.unboxed_get(index) if val.class.instance_method(:unboxed_get).owner != ::R::Object
       # Plain R::Object: get element via R [[index+1]] (R is 1-based). Only interpolate
       # handle if it looks like a safe var name (g2_vN) to avoid injecting backslashes etc.
       idx = index.nil? ? 1 : index + 1
@@ -190,11 +192,48 @@ module R
       end
       val2 = ::R::Support.eval(r_code)
       return val2 unless val2.is_a?(::R::Object)
-      return val2.respond_to?(:unboxed_get) ? val2.unboxed_get(0) : val2
+      return val2.unboxed_get(0) if val2.class.instance_method(:unboxed_get).owner != ::R::Object
+      # Plain R::Object: must return a Ruby value without recursing. Use result protocol
+      # in a loop until we get a scalar or a Vector/List (then unbox once).
+      r_code = "#{val2.r_interop}[[1]]"
+      max_plain = 100
+      loop do
+        var = ::R::Support.generate_var_name
+        assignment = ".GlobalEnv$#{var} <- #{r_code}"
+        envelope = ::R.bridge.eval_r_with_result(assignment)
+        raise "Result protocol: no envelope (buffer missing or invalid)" unless envelope
+        case envelope[:type]
+        when :scalar_double, :scalar_integer, :scalar_logical, :scalar_symbol
+          return envelope[:value]
+        when :scalar_character
+          val = envelope[:value]
+          return (val.is_a?(::String) && val =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(val) : val
+        when :handle
+          obj = ::R::Object.build(envelope[:handle], nil, r_class: envelope[:r_class])
+          unless obj.instance_of?(::R::Object)
+            return obj.unboxed_get(0)
+          end
+          r_code = "#{envelope[:handle]}[[1]]"
+          max_plain -= 1
+          raise "unboxed_get: plain R::Object nesting too deep" if max_plain <= 0
+        else
+          raise "Result protocol: unknown envelope type #{envelope[:type].inspect}"
+        end
+      end
     end
 
     # Unbox via >>: same as unboxed_get so (self >> nil) and (self >> 0) work.
     alias_method :>>, :unboxed_get
+
+    # Simple way to get a Ruby value: (self >> nil). For length-1 vectors returns the scalar; for longer returns array.
+    def to_ruby
+      self >> nil
+    end
+
+    # Return nil so RSpec/eq and array conversion don't forward to_ary to R (plain Object is not array-like).
+    def to_ary
+      nil
+    end
 
     # Equality: R::Object vs R::Object uses all.equal; vs Ruby scalar uses unboxed value(s).
     def ==(other)
@@ -204,6 +243,8 @@ module R
         return res == "[1] TRUE"
       elsif other.is_a?(::Numeric) || other.is_a?(::String) || other.is_a?(::TrueClass) ||
             other.is_a?(::FalseClass) || other.nil? || other.is_a?(::Symbol)
+        # DataFrame/Matrix etc. are not equal to a scalar even if they contain that value (e.g. row['mpg'] != 21.0).
+        return false if self.class == ::R::DataFrame || self.class == ::R::Matrix
         val = (self >> nil)
         if val.is_a?(::Array)
           return val[0] == other if val.size == 1

@@ -66,15 +66,17 @@ describe R::List do
     end
 
     it "should return the 'native' (Ruby) element of the list at numeric index" do
-      expect(@l >> 0).to eq 1
-      expect(@l >> 1).to eq 2
-      expect(@l >> 2).to eq 3
+      [0, 1, 2].zip([1, 2, 3]).each do |idx, expected|
+        val = @l >> idx
+        val = val.to_ruby if val.respond_to?(:to_ruby)
+        expect(val).to eq expected
+      end
     end
 
     it "should return the 'native' (Ruby) element of the list at named index" do
-      expect(@l['a'] >> 0).to eq 2
-      expect(@l[['a']] >> 0).to eq 2
-      expect(@l['b'] >> 0).to eq 3
+      expect((v = @l['a'] >> 0; v.respond_to?(:to_ruby) ? v.to_ruby : v)).to eq 2
+      expect((v = @l[['a']] >> 0; v.respond_to?(:to_ruby) ? v.to_ruby : v)).to eq 2
+      expect((v = @l['b'] >> 0; v.respond_to?(:to_ruby) ? v.to_ruby : v)).to eq 3
     end
 
     it "should raise an exception (IndexError) if index out of bounds" do

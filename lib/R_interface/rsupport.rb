@@ -171,14 +171,17 @@ module R
           flush.console()
           while(TRUE) {
             res_str <- readLines('/dev/shm/galaaz_callback_fifo', n=1)
-            if (startsWith(res_str, '--G_CMD--')) {
-              cmd <- sub('--G_CMD--', '', res_str)
-              cat(capture2(eval(parse(text=cmd))), sep='\\n')
+            if (length(res_str) < 1L) next
+            line <- res_str[1]
+            if (startsWith(line, '--G_CMD--')) {
+              cmd <- trimws(sub('--G_CMD--', '', line))
+              if (nchar(cmd) > 0L) cat(capture2(eval(parse(text=cmd))), sep='\\n')
               cat('--G_CMD_END--\\n')
               flush.console()
-            } else if (startsWith(res_str, '--G_RET--')) {
-              res_handle <- sub('--G_RET--', '', res_str)
-              return(eval(parse(text=res_handle)))
+            } else if (startsWith(line, '--G_RET--')) {
+              res_handle <- trimws(sub('--G_RET--', '', line))
+              if (nchar(res_handle) > 0L) return(eval(parse(text=res_handle)))
+              return(invisible(NULL))
             }
           }
         }"
@@ -190,10 +193,9 @@ module R
       end
     end
 
-    # Run an R call: f_name(args...). Builds assignment, gets envelope from bridge, then unboxes or builds R::Object per envelope type and f_name.
-    # When unbox: false, scalar results are returned as R::Object (e.g. so .length is vector length).
-    # kwargs (e.g. i:, value:) are merged into args for R named-argument calls like `[[<-`(df, i=..., value=...).
-    def self.exec_function(function, *args, unbox: true, **kwargs)
+    # Run an R call: f_name(args...). Builds assignment, gets envelope from bridge, returns R::Object (boxed).
+    # Unbox with .to_ruby, .unboxed_get(0), or >> 0. kwargs (e.g. i:, value:) are merged into args for R named-argument calls like `[[<-`(df, i=..., value=...).
+    def self.exec_function(function, *args, unbox: false, **kwargs)
       f_name = function.respond_to?(:r_interop) ? function.r_interop : function
 
       if args.empty? && kwargs.empty? && (f_name.include?("::") || f_name.start_with?("g2_v"))
@@ -218,16 +220,11 @@ module R
 
       case envelope[:type]
       when :scalar_double, :scalar_integer, :scalar_logical, :scalar_character
-        # Return raw scalar for pure scalars; box c, hyp, length for R objects.
-        # Never unbox numeric/logical for `[` or `[[` so single-cell extractions stay R::Object and .all__equal works.
-        # Exception: always unwrap rb_obj_* handles (stored Ruby objects) even from `[[`.
+        # Always return R::Object (boxed). Callers unbox with .to_ruby, .unboxed_get(0), or >> 0.
+        # Exception: unwrap rb_obj_* handles (stored Ruby objects).
         val = envelope[:value]
         if envelope[:type] == :scalar_character && val.is_a?(String) && val =~ /^rb_obj_\d+$/
           return get_ruby_object(val)
-        end
-        unbox = unbox && f_name != "c" && f_name != "hyp" && f_name != "length" && f_name != "`[`" && f_name != "`[[`" && f_name != "`$`" && f_name != "expr"
-        if unbox
-          return val
         end
         r_class = { scalar_double: "numeric", scalar_integer: "integer", scalar_logical: "logical", scalar_character: "character" }[envelope[:type]]
         return R::Object.build(var_name, r_expr, r_class: r_class)
