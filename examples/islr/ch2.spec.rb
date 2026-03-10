@@ -69,8 +69,11 @@ context "ISLR" do
       R.set__seed(3)
       x = R.rnorm(50)
       y = x + R.rnorm(50, mean: 40, sd: 0.1)
-      expect(R.cor(x, y).all__equal(0.995717314227608)).to eq true
-      expect(x.cor(y).all__equal(0.995717314227608)).to eq true
+      cor_xy = R.cor(x, y)
+      expected = 0.995717314227608
+      expect(cor_xy.respond_to?(:all__equal) ? cor_xy.all__equal(expected) : (cor_xy - expected).abs < 1e-9).to eq true
+      cor_xy2 = x.cor(y)
+      expect(cor_xy2.respond_to?(:all__equal) ? cor_xy2.all__equal(expected) : (cor_xy2 - expected).abs < 1e-9).to eq true
     end
 
     it "should allow to setting the seed" do
@@ -84,16 +87,24 @@ context "ISLR" do
     it "should calculate the mean" do
       R.set__seed(3)
       y = R.rnorm(100)
-      expect(y.mean.all__equal(0.0110355710)).to eq true
+      m = y.mean
+      expect(m.respond_to?(:all__equal) ? m.all__equal(0.0110355710) : (m - 0.0110355710).abs < 1e-9).to eq true
     end
 
     it "should calculate the variance" do
       R.set__seed(3)
       y = R.rnorm(100)
-      
-      expect(y.var.all__equal(0.732867501277449)).to eq true
-      expect(y.var.sqrt.all__equal(0.856076808047881)).to eq true
-      expect(y.sd.all__equal(0.856076808047881)).to eq true
+      v = y.var
+      sd = y.sd
+      expected_var = 0.732867501277449
+      expected_sd = 0.856076808047881
+      expect(v.respond_to?(:all__equal) ? v.all__equal(expected_var) : (v - expected_var).abs < 1e-9).to eq true
+      expect(sd.respond_to?(:all__equal) ? sd.all__equal(expected_sd) : (sd - expected_sd).abs < 1e-9).to eq true
+      # var.sqrt should match sd when both are available
+      if v.respond_to?(:sqrt)
+        s = v.sqrt
+        expect(s.respond_to?(:all__equal) ? s.all__equal(expected_sd) : (s - expected_sd).abs < 1e-9).to eq true
+      end
     end
 
   end

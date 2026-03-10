@@ -9,7 +9,8 @@ module R
     end
 
     def qplot(*args)
-      print R.qplot(*args, data: self)
+      # Use R's print so the plot is displayed on the R device with a single argument (avoids "invalid printing digits" from extra args).
+      ::R.print(::R.qplot(*args, data: self))
     end
 
     def method_missing_assign(column_name, arg)

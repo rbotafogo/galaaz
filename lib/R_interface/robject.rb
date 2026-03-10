@@ -169,6 +169,33 @@ module R
       res.respond_to?(:>>) ? (res >> nil)[0] : res
     end
 
+    # Unbox this R object to a Ruby value. Used when the receiver is a plain R::Object
+    # (e.g. from a callback or list element that wasn't built as Vector/List). Re-evaluates
+    # the handle so we get the proper wrapper (scalar or Vector/List); delegates to that
+    # type's unboxed_get when possible; otherwise indexes in R with [[index+1]] for a scalar.
+    def unboxed_get(index = nil)
+      val = ::R::Support.eval(@r_interop)
+      return val unless val.is_a?(::R::Object)
+      return val.unboxed_get(index) unless val.instance_of?(::R::Object)
+      # Plain R::Object: get element via R [[index+1]] (R is 1-based). Only interpolate
+      # handle if it looks like a safe var name (g2_vN) to avoid injecting backslashes etc.
+      idx = index.nil? ? 1 : index + 1
+      handle = @r_interop.to_s
+      if handle =~ /\Ag2_v\d+\z/
+        r_code = "#{handle}[[#{idx}]]"
+      else
+        var = ::R::Support.generate_var_name
+        ::R.bridge.eval_r("#{var} <- #{::R::Support.parse_arg(self)}")
+        r_code = "#{var}[[#{idx}]]"
+      end
+      val2 = ::R::Support.eval(r_code)
+      return val2 unless val2.is_a?(::R::Object)
+      return val2.respond_to?(:unboxed_get) ? val2.unboxed_get(0) : val2
+    end
+
+    # Unbox via >>: same as unboxed_get so (self >> nil) and (self >> 0) work.
+    alias_method :>>, :unboxed_get
+
     # Equality: R::Object vs R::Object uses all.equal; vs Ruby scalar uses unboxed value(s).
     def ==(other)
       return true if self.equal?(other)

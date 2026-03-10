@@ -598,7 +598,8 @@ class KnitrEngine
   #--------------------------------------------------------------------------------------
   
   def add(spec)
-    R.knitr___knit_engines[:set].call(spec)
+    # Use [[ so R returns the engine function; single bracket [ returns a list, not callable
+    R.knitr___knit_engines[["set"]].call(spec)
   end
 
   #--------------------------------------------------------------------------------------

@@ -225,7 +225,7 @@ module R
         if envelope[:type] == :scalar_character && val.is_a?(String) && val =~ /^rb_obj_\d+$/
           return get_ruby_object(val)
         end
-        unbox = unbox && f_name != "c" && f_name != "hyp" && f_name != "length" && f_name != "`[`" && f_name != "`[[`" && f_name != "expr"
+        unbox = unbox && f_name != "c" && f_name != "hyp" && f_name != "length" && f_name != "`[`" && f_name != "`[[`" && f_name != "`$`" && f_name != "expr"
         if unbox
           return val
         end

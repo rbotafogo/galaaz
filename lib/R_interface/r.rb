@@ -133,6 +133,8 @@ require_relative 'renvironment'
 require_relative 'rlanguage'
 # Definition of R Symbol
 require_relative 'rsymbol'
+# Device for ggplot (png/svg, plot_snapshot, save_plot)
+require_relative 'rdevice'
 # Access to package symbols
 require_relative 'rpkg'
 

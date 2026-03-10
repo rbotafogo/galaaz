@@ -59,6 +59,9 @@ file.") do |opt|
 that are created during rendering.") do |opt|
     options[:clean] = opt
   end
+  opts.on("--debugR", "Log all R code sent to the bridge to galaaz_r_scripts.log (full scripts, sequential).") do
+    ENV["GALAAZ_DEBUG_R"] = "1"
+  end
 end.parse!
 
 # Sets the directory
@@ -148,8 +151,9 @@ R::Rmarkdown.render(
 EOF
 
 libx = File.expand_path('../../lib', __FILE__)
-jvm_args = "-J--add-opens=java.base/java.nio=ALL-UNNAMED"
-exec "GALAAZ_DEBUG=1 jruby #{jvm_args} -I#{libx} -e '#{code}'"
+# Same JVM opts as bin/run_rspec / bin/run_example (for Apache Arrow)
+jvm_args = "-J--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED"
+exec "jruby #{jvm_args} -I#{libx} -e '#{code}'"
 
 =begin
 # how to call rmarkdown::render with a parameter list

@@ -44,8 +44,12 @@ module R
     CMD_SCRIPT_BASE = "/dev/shm/galaaz_cmd"     # temp R scripts: CMD_SCRIPT_BASE_<seq>.R
     CALLBACK_FIFO = "/dev/shm/galaaz_callback_fifo" # R reads --G_CMD-- / --G_RET-- when in a Ruby callback
 
+    # Log files go under logs/ (relative to process cwd) to keep project root clean
+    LOG_DIR = "logs"
+
     def initialize
       puts "DEBUG: Initializing ShadowBridge instance #{self.object_id}" if ENV['GALAAZ_DEBUG']
+      FileUtils.mkdir_p(LOG_DIR) unless Dir.exist?(LOG_DIR)
       @bridge_ready = false
       @in_callback = false
       @last_sent_code = nil
@@ -73,11 +77,28 @@ module R
     # Start the R subprocess and a thread that logs its stderr.
     def start_r_process
       @stdin, @stdout, @stderr, @wait_thr = Open3.popen3("R --vanilla --quiet --slave")
+      if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
+        r_pid = @wait_thr.pid rescue nil
+        File.write(log_path("galaaz_r_pid.txt"), "R process PID: #{r_pid}\n") if r_pid
+      end
       Thread.new do
         while line = @stderr.gets
-          File.open("galaaz_r_stderr.log", "a") { |f| f.puts "[R STDERR] #{line}" }
+          File.open(log_path("galaaz_r_stderr.log"), "a") { |f| f.puts "[R STDERR] #{line}" }
         end
       end
+    end
+
+    # Read one line from R stdout; when GALAAZ_DEBUG_R=1, tee it to galaaz_r_stdout.log for independent monitoring.
+    def read_stdout_line
+      line = @stdout.gets
+      if line && (ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true")
+        File.open(log_path("galaaz_r_stdout.log"), "a") { |f| f.write(line) }
+      end
+      line
+    end
+
+    def log_path(basename)
+      File.join(LOG_DIR, basename)
     end
 
     # Load R libraries, define capture2/missing_arg, inject galaaz_result, set lib path.
@@ -92,6 +113,9 @@ module R
       lib_dir = File.expand_path("~/R/x86_64-pc-linux-gnu-library/galaaz")
       FileUtils.mkdir_p(lib_dir) unless Dir.exist?(lib_dir)
       eval_r(".libPaths(c('#{lib_dir}', .libPaths()))")
+      eval_r("library(evaluate)")
+      galaaz_device_path = File.expand_path(File.join(File.dirname(__FILE__), 'galaaz_device.R'))
+      eval_r("source('#{galaaz_device_path.gsub("'", "\\\\'")}')")
     end
 
     # Define in R the galaaz_result() function that writes one length-prefixed envelope to RESULT_FIFO.
@@ -179,7 +203,20 @@ module R
     # Append one line to galaaz_trace.log when GALAAZ_TRACE=1 (for debugging "R process is dead").
     def trace_log(method, code)
       @command_seq += 1
-      File.open("galaaz_trace.log", "a") { |f| f.puts "[#{@command_seq}] #{method}: #{code.to_s.strip[0..500]}#{'...' if code.to_s.length > 500}" }
+      File.open(log_path("galaaz_trace.log"), "a") { |f| f.puts "[#{@command_seq}] #{method}: #{code.to_s.strip[0..500]}#{'...' if code.to_s.length > 500}" }
+    end
+
+    # When GALAAZ_DEBUG_R=1, log every R script we send to galaaz_r_scripts.log (full content, sequential).
+    def log_r_script_if_debug(label, script_content)
+      return unless ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
+      ts = Time.now.strftime("%Y-%m-%d %H:%M:%S.%L")
+      @script_seq ||= 0
+      File.open(log_path("galaaz_r_scripts.log"), "a") do |f|
+        f.puts ""
+        f.puts "========== #{ts} seq=#{@script_seq} #{label} =========="
+        f.puts script_content
+        f.puts "========== end #{label} =========="
+      end
     end
 
     # Evaluate R code. No result envelope; returns stdout (or from callback path, output until --G_CMD_END--).
@@ -195,11 +232,11 @@ module R
     #handling nested --G_CALLBACK-- and --G_ERR--.
     def eval_r_in_callback(code)
       ts = Time.now.strftime("%H:%M:%S.%L")
-      File.open("galaaz_r_debug.log", "a") { |f| f.puts "[#{ts}][JRuby Nested] #{code}" }
+      File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][JRuby Nested] #{code}" }
       File.write(CALLBACK_FIFO, "--G_CMD--#{code.gsub("\n", "\\n")}\n")
       output = ""
-      while line = @stdout.gets
-        File.open("galaaz_r_debug.log", "a") { |f| f.puts "[#{ts}][R stdout Nested] #{line}" }
+      while line = read_stdout_line
+        File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][R stdout Nested] #{line}" }
         if line.start_with?('--G_CALLBACK--')
           process_callback(line)
           next
@@ -229,19 +266,24 @@ module R
     # Handles --G_CALLBACK-- and --G_ERR--.
     def eval_r_top_level(code)
       ts = Time.now.strftime("%H:%M:%S.%L")
-      File.open("galaaz_r_debug.log", "a") { |f| f.puts "[#{ts}][JRuby] #{code.lines.first.strip}#{'...' if code.lines.size > 1}" }
+      File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][JRuby] #{code.lines.first.strip}#{'...' if code.lines.size > 1}" }
       r_cmd = build_eval_r_cmd(code)
       @script_seq += 1
       tmp_r = "#{CMD_SCRIPT_BASE}_#{@script_seq}.R"
-      File.write(tmp_r, <<~R)
+      script_content = <<~R
         tryCatch({
           #{r_cmd}
         }, error = function(e) {
-          cat('--G_ERR--', e$message, '\\n', sep='')
+          msg <- conditionMessage(e)
+          tb <- paste(capture.output(traceback()), collapse = "\\n")
+          cat('--G_ERR--', msg, '\\n', sep='')
+          if (nchar(tb) > 0) cat('--G_TRACE--', tb, '\\n', sep='')
         }, finally = {
           cat('--G_END--\\n')
         })
       R
+      File.write(tmp_r, script_content)
+      log_r_script_if_debug("eval_r", script_content)
       raise "R process is dead. Cannot evaluate code.\nLast command (eval_r): #{@last_sent_code.inspect}" unless @wait_thr.alive?
       @last_sent_code = code
       trace_log("eval_r", code) if ENV["GALAAZ_TRACE"]
@@ -254,20 +296,25 @@ module R
     # (drain then raise). Return collected output.
     def read_stdout_until_g_end(code)
       output = ""
-      while line = @stdout.gets
+      while line = read_stdout_line
         raise "R process died (stdout EOF). Last command (eval_r): #{@last_sent_code.inspect}" if line.nil?
         ts = Time.now.strftime("%H:%M:%S.%L")
-        File.open("galaaz_r_debug.log", "a") { |f| f.puts "[#{ts}][R stdout] #{line}" }
+        File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][R stdout] #{line}" }
         if line.start_with?('--G_CALLBACK--')
           process_callback(line)
           next
         end
         if line.start_with?('--G_ERR--')
           error_msg = line.sub('--G_ERR--', '').strip
-          while drain = @stdout.gets
+          trace_line = read_stdout_line
+          trace_msg = (trace_line && trace_line.start_with?('--G_TRACE--')) ? trace_line.sub('--G_TRACE--', '').strip.gsub("\\n", "\n") : nil
+          while (drain = read_stdout_line)
             break if drain.strip == '--G_END--'
           end
-          raise "R Error: #{error_msg}\nCode: #{code}"
+          full_msg = "R Error: #{error_msg}"
+          full_msg += "\nCode: #{code}" if code && !code.empty?
+          full_msg += "\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
+          raise full_msg
         end
         break if line.include?('--G_END--')
         output << line unless line.start_with?('--G_')
@@ -291,7 +338,7 @@ module R
       result
     rescue => e
       @last_envelope_nil_reason = "rescue_#{e.class}_#{e.message[0..80]}"
-      File.open("galaaz_r_debug.log", "a") { |f| f.puts "[read_result_envelope_from_io] #{e.message}" }
+      File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[read_result_envelope_from_io] #{e.message}" }
       nil
     end
 
@@ -374,12 +421,22 @@ module R
         tmp_fifo.fcntl(Fcntl::F_SETFL, tmp_fifo.fcntl(Fcntl::F_GETFL) & ~Fcntl::O_NONBLOCK)
       end
       File.write(CALLBACK_FIFO, "--G_CMD--#{r_cmd.gsub("\n", "\\n")}\n")
-      while line = @stdout.gets
+      while line = read_stdout_line
         if line.start_with?('--G_CALLBACK--')
           process_callback(line)
           next
         end
-        raise "R Error (nested): #{line.sub('--G_ERR--', '').strip}" if line.start_with?('--G_ERR--')
+        if line.start_with?('--G_ERR--')
+          err_msg = line.sub('--G_ERR--', '').strip
+          trace_line = read_stdout_line
+          trace_msg = (trace_line && trace_line.start_with?('--G_TRACE--')) ? trace_line.sub('--G_TRACE--', '').strip.gsub("\\n", "\n") : nil
+          while (drain = read_stdout_line)
+            break if drain.include?('--G_CMD_END--') || drain.include?('--G_END--')
+          end
+          full = "R Error (nested): #{err_msg}"
+          full += "\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
+          raise full
+        end
         break if line.include?('--G_CMD_END--')
       end
       if tmp_fifo
@@ -426,20 +483,25 @@ module R
     def write_eval_r_with_result_script(r_cmd)
       @script_seq += 1
       @tmp_r_path = "#{CMD_SCRIPT_BASE}_#{@script_seq}.R"
-      File.write(@tmp_r_path, <<~R)
+      script_content = <<~R
         tryCatch({
           #{r_cmd}
         }, error = function(e) {
-          cat('--G_ERR--', e$message, '\\n', sep='')
+          msg <- conditionMessage(e)
+          tb <- paste(capture.output(traceback()), collapse = "\\n")
+          cat('--G_ERR--', msg, '\\n', sep='')
+          if (nchar(tb) > 0) cat('--G_TRACE--', tb, '\\n', sep='')
         }, finally = {
           cat('--G_END--\\n')
         })
       R
+      File.write(@tmp_r_path, script_content)
+      log_r_script_if_debug("eval_r_with_result", script_content)
     end
 
     # Read @stdout until --G_END-- for eval_r_with_result (handles CALLBACK and G_ERR; no output collection).
     def read_stdout_until_g_end_for_result
-      while line = @stdout.gets
+      while line = read_stdout_line
         raise "R process died (stdout EOF). Last command (eval_r_with_result): #{@last_sent_code.inspect}" if line.nil?
         if line.start_with?('--G_CALLBACK--')
           process_callback(line)
@@ -447,11 +509,15 @@ module R
         end
         if line.start_with?('--G_ERR--')
           error_msg = line.sub('--G_ERR--', '').strip
-          while drain = @stdout.gets
+          trace_line = read_stdout_line
+          trace_msg = (trace_line && trace_line.start_with?('--G_TRACE--')) ? trace_line.sub('--G_TRACE--', '').strip.gsub("\\n", "\n") : nil
+          while (drain = read_stdout_line)
             break if drain.strip == '--G_END--'
           end
-          code_hint = @last_sent_code ? " (R code: #{@last_sent_code.strip[0..200]}#{'...' if @last_sent_code.length > 200})" : ""
-          raise "R Error: #{error_msg}#{code_hint}"
+          code_hint = @last_sent_code ? "\nR code: #{@last_sent_code.strip[0..500]}#{'...' if @last_sent_code.length > 500}" : ""
+          full_msg = "R Error: #{error_msg}#{code_hint}"
+          full_msg += "\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
+          raise full_msg
         end
         break if line.strip == '--G_END--'
       end

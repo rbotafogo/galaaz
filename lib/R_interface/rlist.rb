@@ -84,6 +84,11 @@ module R
       elt.unboxed_get(0)
     end
 
+    # Unbox list element to Ruby; delegates to >> so we don't recurse into Object#unboxed_get.
+    def unboxed_get(index = nil)
+      self >> index
+    end
+
     #--------------------------------------------------------------------------------------
     # Each cannot return a Enumerator because R is single threaded.  When this restriction
     # is removed, make each return self.to_enum

@@ -32,12 +32,8 @@ require_relative 'version'
 
 class MakeTask < Rake::TaskLib
 
-  # Create class variables for the polyglot options and libs
-  # not yet possible to run native with R it seems...
-  # @@polyglot_options = "--polyglot --experimental-options --single_threaded"
-  # @@polyglot_options = "--polyglot --jvm --experimental-options --single-threaded"
-  @@polyglot_options = "--polyglot --jvm"
-  @@libs = "-Ilib/" # -Ir_requires/"
+  # JRuby with JVM options required for Apache Arrow (same as bin/run_rspec / bin/run_example)
+  @@jruby_opts = "-I lib -J--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED"
 
   #----------------------------------------------------------------------------------------
   #
@@ -56,13 +52,15 @@ class MakeTask < Rake::TaskLib
   end
 
   #----------------------------------------------------------------------------------------
-  # Actual TruffleRuby command (with options) to run the example
+  # Run example or spec with JRuby (Galaaz 2.0 Shadow Bridge)
   #----------------------------------------------------------------------------------------
 
   def make_task
-    @rspec ?
-      (sh %{ ruby #{@@polyglot_options} #{@@libs} -S rspec #{@filepath}.rb -f documentation }) :
-      (sh %{ ruby #{@@polyglot_options} #{@@libs} -S #{@filepath}.rb })
+    if @rspec
+      sh %{ jruby #{@@jruby_opts} -S rspec #{@filepath}.rb -f documentation }
+    else
+      sh %{ jruby #{@@jruby_opts} #{@filepath}.rb }
+    end
   end
 
   #----------------------------------------------------------------------------------------
@@ -77,8 +75,13 @@ class MakeTask < Rake::TaskLib
   
 end
 
+# JRuby opts for ad-hoc tasks (same as MakeTask)
+JRUBY_OPTS = "-I lib -J--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED"
 
-task :default => "sthda:all"
+# Run each .rb file in a directory (for groups that don't have an all.rb)
+def run_each_file(file_list)
+  file_list.each { |f| sh "jruby #{JRUBY_OPTS} #{f}" }
+end
 
 geoms = FileList['examples/sthda_ggplot/**/*.rb']
 specs = FileList['specs/**/*.rb']
@@ -164,6 +167,35 @@ bugs.each do |f|
     Executes misc #{task_name}
   Desc
 end
+
+#===========================================================================================
+# Aggregate "all" tasks for groups that have multiple files (no single all.rb)
+# sthda:all and islr:all already exist from MakeTask (they run all.rb in that dir)
+#===========================================================================================
+
+desc "Run all misc examples"
+task "misc:all" do
+  run_each_file(misc.to_a)
+end
+
+desc "Run all 50Plots_MasterList examples"
+task "master_list:all" do
+  run_each_file(master_list.to_a)
+end
+
+desc "Run all bug examples"
+task "bugs:all" do
+  run_each_file(bugs.to_a)
+end
+
+#===========================================================================================
+# Run all example groups (sthda_ggplot, misc, 50Plots_MasterList, islr, bugs)
+#===========================================================================================
+
+desc "Run all examples (sthda_ggplot, misc, 50Plots_MasterList, islr, bugs)"
+task "examples:all" => ["sthda:all", "misc:all", "master_list:all", "islr:all", "bugs:all"]
+
+task :default => "examples:all"
 
 #===========================================================================================
 # Creates task for running gknit
