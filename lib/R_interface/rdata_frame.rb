@@ -21,7 +21,7 @@ module R
 
     def []=(index, *args)
       values = args[-1]
-      res = if index.is_a? Array
+      res = if index.is_a? ::Array
         ::R::Support.exec_function("`[[<-`", self, i: index, value: values)
       else
         idx2 = (args.size > 1) ? args[-2] : nil

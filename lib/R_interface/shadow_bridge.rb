@@ -3,6 +3,8 @@ require 'open3'
 require 'java'
 require 'singleton'
 require 'fileutils'
+require 'fcntl'
+require 'monitor'
 
 # Load Arrow JARs before importing
 Dir.glob("/home/rbotafogo/arrow_jars/*.jar").each { |jar| require jar }
@@ -18,10 +20,13 @@ java_import 'org.apache.arrow.vector.ipc.ArrowFileReader'
 module R
   class ShadowBridge
     include Singleton
+    attr_reader :last_envelope_nil_reason
 
     DATA_FILE = "/dev/shm/galaaz_data"
     SYNC_FILE = "/dev/shm/galaaz_sync"
-    RESULT_BUFFER = "/dev/shm/galaaz_result"
+    RESULT_BUFFER = "/dev/shm/galaaz_result"  # deprecated Phase 3: use RESULT_FIFO
+    RESULT_FIFO = "/dev/shm/galaaz_result_fifo"  # Phase 3: one length-prefixed message per galaaz_result() call
+    CMD_SCRIPT_BASE = "/dev/shm/galaaz_cmd"  # Phase 2: unique path per request is CMD_SCRIPT_BASE_<seq>.R
 
     CALLBACK_FIFO = "/dev/shm/galaaz_callback_fifo"
 
@@ -29,11 +34,20 @@ module R
       puts "DEBUG: Initializing ShadowBridge instance #{self.object_id}"
       @bridge_ready = false
       @in_callback = false
+      @last_sent_code = nil   # for "R process is dead" diagnostics
+      @command_seq = 0       # for trace logging
+      @script_seq = 0        # Phase 2: monotonic counter for unique script path per request (under bridge_mutex)
+      @bridge_mutex = Monitor.new  # Phase 4: re-entrant so same thread can nest (e.g. callback calling bridge)
+      @eval_r_with_result_depth = 0   # Phase 4: nested eval_r_with_result share one result FIFO fd
+      @result_fifo_io = nil           # Phase 4: open when depth 1, closed when depth 0
+      @last_envelope_nil_reason = nil # diagnostic when read_result_envelope_from_io returns nil
       # ... rest of initialize
       @allocator = RootAllocator.new
 
       # Setup FIFO for callback responses
       system("mkfifo #{CALLBACK_FIFO}") unless File.exist?(CALLBACK_FIFO)
+      # Phase 3: FIFO for result envelopes (one message per galaaz_result call)
+      system("mkfifo #{RESULT_FIFO}") unless File.exist?(RESULT_FIFO)
 
       # Start R process with a pipe
       @stdin, @stdout, @stderr, @wait_thr = Open3.popen3("R --vanilla --quiet --slave")
@@ -53,10 +67,10 @@ module R
       eval_r("missing_arg <- function() { quote(f(,0))[[2]] }")
       eval_r("capture2 <- function(obj, ...) { tryCatch({ sink(tt <- textConnection('results','w'), split=FALSE, type = c('output', 'message')); print(obj, ...); sink(); results }, finally = { close(tt); }) }")
 
-      # Per-call result protocol: R writes one envelope per result to shared buffer
+      # Per-call result protocol: R writes one length-prefixed envelope per result to FIFO (Phase 3)
       eval_r(<<~GALAAZ_RESULT)
         galaaz_result <- function(x, var_name) {
-          path <- "#{RESULT_BUFFER}"
+          path <- "#{RESULT_FIFO}"
           r_type <- typeof(x)
           r_len <- length(x)
           r_class <- paste(class(x), collapse = " ")
@@ -143,6 +157,12 @@ module R
       @bridge_ready
     end
 
+    # Write to galaaz_trace.log when GALAAZ_TRACE=1 (one line per command for debugging "R process is dead")
+    def trace_log(method, code)
+      @command_seq += 1
+      File.open("galaaz_trace.log", "a") { |f| f.puts "[#{@command_seq}] #{method}: #{code.to_s.strip[0..500]}#{'...' if code.to_s.length > 500}" }
+    end
+
     def eval_r(code)
       puts "DEBUG: R.eval_r(#{code.inspect})" if ENV['GALAAZ_DEBUG']
       # Ensure code is a string
@@ -171,74 +191,99 @@ module R
         return output.strip
       end
 
-      File.open("galaaz_r_debug.log", "a") { |f| f.puts "[#{ts}][JRuby] #{code.lines.first.strip}#{"..." if code.lines.size > 1}" }
-      
-      # Use a unique marker for each evaluation to ensure synchronization
-      # We wrap in tryCatch to catch errors and finally to ensure --G_END-- is sent.
-      # If it's not an assignment, we wrap in print() so source() sends it to stdout.
-      
-      stripped_code = code.strip
-      r_cmd = if stripped_code.empty?
-                "NULL"
-              elsif stripped_code =~ /^(\w+) <- (.*)$/m
-                var = $1
-                expr = $2
-                if var.start_with?("g2_v") && !var.include?("$")
-                  ".GlobalEnv$#{var} <- #{expr}"
-                else
+      @bridge_mutex.synchronize do
+        File.open("galaaz_r_debug.log", "a") { |f| f.puts "[#{ts}][JRuby] #{code.lines.first.strip}#{"..." if code.lines.size > 1}" }
+
+        # Use a unique marker for each evaluation to ensure synchronization
+        # We wrap in tryCatch to catch errors and finally to ensure --G_END-- is sent.
+        # If it's not an assignment, we wrap in print() so source() sends it to stdout.
+
+        stripped_code = code.strip
+        r_cmd = if stripped_code.empty?
+                  "NULL"
+                elsif stripped_code =~ /^(\w+) <- (.*)$/m
+                  var = $1
+                  expr = $2
+                  if var.start_with?("g2_v") && !var.include?("$")
+                    ".GlobalEnv$#{var} <- #{expr}"
+                  else
+                    code
+                  end
+                elsif stripped_code.include?("assign(")
                   code
+                else
+                  "print({#{code}\n})"
                 end
-              elsif stripped_code.include?("assign(")
-                code
-              else
-                "print({#{code}\n})"
-              end
 
-      tmp_r = "/dev/shm/galaaz_cmd.R"
-      File.write(tmp_r, <<~R)
-        tryCatch({
-          #{r_cmd}
-        }, error = function(e) { 
-          cat('--G_ERR--', e$message, '\\n', sep='') 
-        }, finally = {
-          cat('--G_END--\\n')
-        })
-      R
-      
-      unless @wait_thr.alive?
-        raise "R process is dead. Cannot evaluate code."
-      end
+        @script_seq += 1
+        tmp_r = "#{CMD_SCRIPT_BASE}_#{@script_seq}.R"
+        File.write(tmp_r, <<~R)
+          tryCatch({
+            #{r_cmd}
+          }, error = function(e) {
+            cat('--G_ERR--', e$message, '\\n', sep='')
+          }, finally = {
+            cat('--G_END--\\n')
+          })
+        R
 
-      @stdin.puts("source('#{tmp_r}')")
-      @stdin.flush
-
-      output = ""
-      while line = @stdout.gets
-        ts_loop = Time.now.strftime("%H:%M:%S.%L")
-        File.open("galaaz_r_debug.log", "a") { |f| f.puts "[#{ts_loop}][R stdout] #{line}" }
-        
-        if line.start_with?('--G_CALLBACK--')
-          process_callback(line)
-          next
+        unless @wait_thr.alive?
+          raise "R process is dead. Cannot evaluate code.\nLast command (eval_r): #{@last_sent_code.inspect}"
         end
-        if line.start_with?('--G_ERR--')
-          error_msg = line.sub('--G_ERR--', '').strip
-          raise "R Error: #{error_msg}\nCode: #{code}"
+
+        @last_sent_code = code
+        trace_log("eval_r", code) if ENV["GALAAZ_TRACE"]
+        @stdin.puts("source('#{tmp_r}')")
+        @stdin.flush
+
+        output = ""
+        while line = @stdout.gets
+          if line.nil?
+            raise "R process died (stdout EOF). Last command (eval_r): #{@last_sent_code.inspect}"
+          end
+          ts_loop = Time.now.strftime("%H:%M:%S.%L")
+          File.open("galaaz_r_debug.log", "a") { |f| f.puts "[#{ts_loop}][R stdout] #{line}" }
+
+          if line.start_with?('--G_CALLBACK--')
+            process_callback(line)
+            next
+          end
+          if line.start_with?('--G_ERR--')
+            error_msg = line.sub('--G_ERR--', '').strip
+            # Drain stdout to --G_END-- (from the `finally` block) so it doesn't pollute the next call
+            while drain = @stdout.gets
+              break if drain.strip == '--G_END--'
+            end
+            raise "R Error: #{error_msg}\nCode: #{code}"
+          end
+          break if line.include?('--G_END--')
+          output << line unless line.start_with?('--G_')
         end
-        break if line.include?('--G_END--')
-        output << line unless line.start_with?('--G_')
+        output.strip
       end
-      output.strip
     end
 
-    # Phase 3: Read result buffer written by R galaaz_result(). Returns decoded hash or nil.
-    def read_result_envelope
-      return nil unless File.exist?(RESULT_BUFFER)
-      data = File.binread(RESULT_BUFFER)
-      return nil if data.nil? || data.bytesize < 5
-      total_len = data.unpack1("V")
-      return nil if total_len < 5 || total_len > data.bytesize
-      envelope = data.byteslice(4, total_len - 4)
+    # Phase 3: Read one length-prefixed envelope from an open FIFO (or file) IO. Returns decoded hash or nil.
+    def read_result_envelope_from_io(io)
+      @last_envelope_nil_reason = nil
+      return (@last_envelope_nil_reason = "io_nil"; nil) unless io
+      raw_len = io.read(4)
+      return (@last_envelope_nil_reason = "raw_len_nil_or_short"; nil) if raw_len.nil? || raw_len.bytesize < 4
+      total_len = raw_len.unpack1("V")
+      return (@last_envelope_nil_reason = "total_len_#{total_len}_lt_5"; nil) if total_len < 5
+      envelope = io.read(total_len - 4)
+      return (@last_envelope_nil_reason = "envelope_nil_or_short"; nil) if envelope.nil? || envelope.bytesize < total_len - 4
+      result = parse_envelope_bytes(envelope)
+      @last_envelope_nil_reason = "parse_nil_type_#{envelope.getbyte(0)}" if result.nil?
+      result
+    rescue => e
+      @last_envelope_nil_reason = "rescue_#{e.class}_#{e.message[0..80]}"
+      File.open("galaaz_r_debug.log", "a") { |f| f.puts "[read_result_envelope_from_io] #{e.message}" }
+      nil
+    end
+
+    # Parse envelope bytes (after 4-byte length prefix). Same format as Result_Protocol.md.
+    def parse_envelope_bytes(envelope)
       return nil if envelope.bytesize < 5
       type_code = envelope.getbyte(0)
       len = envelope.byteslice(1, 4).unpack1("V")
@@ -270,7 +315,7 @@ module R
         class_len = payload.byteslice(4 + handle_len, 4).unpack1("V")
         return nil if payload.bytesize < 4 + handle_len + 4 + class_len
         r_class = payload.byteslice(4 + handle_len + 4, class_len).force_encoding("UTF-8").strip
-        puts "DEBUG: read_result_envelope type=handle handle=#{handle.inspect} r_class=#{r_class.inspect}" if ENV['GALAAZ_DEBUG']
+        puts "DEBUG: parse_envelope_bytes type=handle handle=#{handle.inspect} r_class=#{r_class.inspect}" if ENV['GALAAZ_DEBUG']
         { type: :handle, handle: handle, r_class: r_class }
       when 5 # scalar symbol
         return nil if payload.bytesize < 4
@@ -282,12 +327,10 @@ module R
       else
         nil
       end
-    rescue => e
-      File.open("galaaz_r_debug.log", "a") { |f| f.puts "[read_result_envelope] #{e.message}" }
-      nil
     end
 
     # Phase 3: Send assignment code + galaaz_result, wait for --G_END--, return envelope or nil.
+    # Phase 4: re-entrant lock; when @in_callback, send via CALLBACK_FIFO and read from shared or local result FIFO.
     def eval_r_with_result(assignment_code)
       stripped = assignment_code.strip
       # Only for .GlobalEnv$var <- expr or var <- expr with var = g2_v*
@@ -296,35 +339,105 @@ module R
         puts "DEBUG: eval_r_with_result no match for assignment_code=#{assignment_code.inspect}" if ENV['GALAAZ_DEBUG']
         return nil
       end
+
       var = m[1]
       expr = m[2]
       r_cmd = ".GlobalEnv$#{var} <- #{expr}; galaaz_result(.GlobalEnv$#{var}, '#{var}')"
-      tmp_r = "/dev/shm/galaaz_cmd.R"
-      File.write(tmp_r, <<~R)
-        tryCatch({
-          #{r_cmd}
-        }, error = function(e) {
-          cat('--G_ERR--', e$message, '\\n', sep='')
-        }, finally = {
-          cat('--G_END--\\n')
-        })
-      R
-      unless @wait_thr.alive?
-        raise "R process is dead. Cannot evaluate code."
-      end
-      @stdin.puts("source('#{tmp_r}')")
-      @stdin.flush
-      while line = @stdout.gets
-        if line.start_with?('--G_CALLBACK--')
-          process_callback(line)
-          next
+
+      if @in_callback
+        # Phase 4: nested call from callback; send via CALLBACK_FIFO, read one envelope.
+        return @bridge_mutex.synchronize do
+          fifo_io = @result_fifo_io
+          tmp_fifo = nil
+          if fifo_io.nil?
+            # Outer was eval_r (no persistent FIFO fd). Open with O_RDWR *before* sending the
+            # command: this makes us both reader and writer, so R's file(path,"wb") finds a
+            # reader immediately and doesn't block. read() also won't return premature EOF
+            # because we hold the write end open until we're done.
+            tmp_fifo = File.open(RESULT_FIFO, File::RDWR | Fcntl::O_NONBLOCK)
+            tmp_fifo.fcntl(Fcntl::F_SETFL, tmp_fifo.fcntl(Fcntl::F_GETFL) & ~Fcntl::O_NONBLOCK)
+          end
+          File.write(CALLBACK_FIFO, "--G_CMD--#{r_cmd.gsub("\n", "\\n")}\n")
+          while line = @stdout.gets
+            if line.start_with?('--G_CALLBACK--')
+              process_callback(line)
+              next
+            end
+            raise "R Error (nested): #{line.sub('--G_ERR--', '').strip}" if line.start_with?('--G_ERR--')
+            break if line.include?('--G_CMD_END--')
+          end
+          if tmp_fifo
+            begin
+              read_result_envelope_from_io(tmp_fifo)
+            ensure
+              tmp_fifo.close
+            end
+          else
+            read_result_envelope_from_io(fifo_io)
+          end
         end
-        raise "R Error: #{line.sub('--G_ERR--', '').strip}" if line.start_with?('--G_ERR--')
-        break if line.include?('--G_END--')
       end
-      env = read_result_envelope
-      puts "DEBUG: eval_r_with_result read_result_envelope=#{env.inspect}" if ENV['GALAAZ_DEBUG']
-      env
+
+      @bridge_mutex.synchronize do
+        @eval_r_with_result_depth += 1
+        if @eval_r_with_result_depth == 1
+          @result_fifo_io = File.open(RESULT_FIFO, File::RDONLY | Fcntl::O_NONBLOCK)
+          @result_fifo_io.fcntl(Fcntl::F_SETFL, @result_fifo_io.fcntl(Fcntl::F_GETFL) & ~Fcntl::O_NONBLOCK)
+        end
+        fifo_io = @result_fifo_io
+        begin
+          @script_seq += 1
+          tmp_r = "#{CMD_SCRIPT_BASE}_#{@script_seq}.R"
+          File.write(tmp_r, <<~R)
+            tryCatch({
+              #{r_cmd}
+            }, error = function(e) {
+              cat('--G_ERR--', e$message, '\\n', sep='')
+            }, finally = {
+              cat('--G_END--\\n')
+            })
+          R
+          unless @wait_thr.alive?
+            raise "R process is dead. Cannot evaluate code.\nLast command (eval_r_with_result): #{@last_sent_code.inspect}"
+          end
+
+          @last_sent_code = r_cmd
+          trace_log("eval_r_with_result", r_cmd) if ENV["GALAAZ_TRACE"]
+          @stdin.puts("source('#{tmp_r}')")
+          @stdin.flush
+          while line = @stdout.gets
+            if line.nil?
+              raise "R process died (stdout EOF). Last command (eval_r_with_result): #{@last_sent_code.inspect}"
+            end
+            if line.start_with?('--G_CALLBACK--')
+              process_callback(line)
+              next
+            end
+            if line.start_with?('--G_ERR--')
+              error_msg = line.sub('--G_ERR--', '').strip
+              # Drain stdout to --G_END-- (from the `finally` block) so it doesn't pollute the next call
+              while drain = @stdout.gets
+                break if drain.strip == '--G_END--'
+              end
+              raise "R Error: #{error_msg}"
+            end
+            break if line.strip == '--G_END--'
+          end
+          # Consume our result from FIFO before any further checks that might raise (avoids leaving message for next thread)
+          env = read_result_envelope_from_io(fifo_io)
+          unless @wait_thr.alive?
+            raise "R process died during command. Last command (eval_r_with_result): #{@last_sent_code.inspect}"
+          end
+          puts "DEBUG: eval_r_with_result read_result_envelope=#{env.inspect}" if ENV['GALAAZ_DEBUG']
+          env
+        ensure
+          @eval_r_with_result_depth -= 1
+          if @eval_r_with_result_depth == 0
+            @result_fifo_io&.close
+            @result_fifo_io = nil
+          end
+        end
+      end
     end
 
     def process_callback(line)
@@ -349,16 +462,16 @@ module R
         @in_callback = old_in_callback
       end
       
-      # Send result back to R via FIFO
-      # Ensure result is converted to an R string
-      File.write(CALLBACK_FIFO, R::Support.parse_arg(result) + "\n")
+      # Send result back to R via FIFO (--G_RET-- so R returns from the callback)
+      File.write(CALLBACK_FIFO, "--G_RET--#{R::Support.parse_arg(result)}\n")
     end
 
     def pull_vector(var_name)
       type_raw = eval_r("typeof(#{var_name})")
       type = type_raw.match(/\[1\] \"(.*)\"/)[1] rescue "double"
       len_raw = eval_r("length(#{var_name})")
-      len = len_raw.match(/\[1\] (.*)/)[1].to_i
+      m = len_raw.match(/\[1\] (.*)/)
+      len = m ? m[1].to_i : 0
       return [] if len == 0
 
       case type

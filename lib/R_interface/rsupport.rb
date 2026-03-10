@@ -37,7 +37,14 @@ module R
       puts "DEBUG: Support.eval(#{string.inspect})" if ENV['GALAAZ_DEBUG']
       
       var_name = self.generate_var_name
-      r_code = string.to_s
+      # Use .expression when present, or handle so eval(handle) runs; never to_s (that returns R's printed output, not valid R code)
+      r_code = if string.respond_to?(:expression) && string.expression
+                 string.expression.to_s
+               elsif string.respond_to?(:r_interop) && string.r_interop.is_a?(::String) && string.r_interop.start_with?("g2_v")
+                 string.r_interop
+               else
+                 string.to_s
+               end
       
       # Determine if we need to wrap in braces or use eval()
       # If it's a handle, we MUST use eval() in R to get its value if it's a symbol
@@ -77,9 +84,11 @@ module R
 
       case arg
       when Hash
-        arg.map do |k, v| 
-          key = k.to_s.gsub(/__/,".")
-          "#{key} = #{self.parse_arg(v)}"
+        arg.map do |k, v|
+          key = k.to_s.gsub(/__/, ".")
+          # R list names with spaces or special chars must be backtick-quoted
+          key_r = (key =~ /\A[a-zA-Z._][a-zA-Z0-9._]*\z/) ? key : "`#{key.gsub('`', '\\`')}`"
+          "#{key_r} = #{self.parse_arg(v)}"
         end.join(", ")
       when Array
         "c(#{arg.map { |v| self.parse_arg(v) }.join(", ")})"
@@ -134,7 +143,8 @@ module R
       when nil
         "NULL"
       else
-        arg.to_s
+        handle = self.register_ruby_object(arg)
+        "'#{handle}'"
       end
     end
 
@@ -148,20 +158,38 @@ module R
 
       var_name = self.generate_var_name
       r_args = args.map { |arg| self.parse_arg(arg) }
-      
+      # eval(expr, envir): R expects expr as expression; parse_arg on Language returns bare string -> wrap in parse(text=...) so envir is used
+      if f_name == "eval" && args.size == 2 && !r_args[0].to_s.start_with?("g2_v", "quote(")
+        r_args[0] = "parse(text=#{r_args[0].to_s.inspect})"
+      end
+
       r_expr = "#{f_name}(#{r_args.join(", ")})"
       assignment = "#{var_name} <- #{r_expr}"
       envelope = R.bridge.eval_r_with_result(assignment)
-      raise "Result protocol: no envelope (buffer missing or invalid)" unless envelope
+      unless envelope
+        reason = R.bridge.respond_to?(:last_envelope_nil_reason) && R.bridge.last_envelope_nil_reason
+        raise "Result protocol: no envelope (buffer missing or invalid)#{reason ? " [#{reason}]" : ''}"
+      end
 
       case envelope[:type]
       when :scalar_double, :scalar_integer, :scalar_logical, :scalar_character
-        return envelope[:value] if f_name != "c" && f_name != "hyp" && f_name != "`[`" && f_name != "length"
+        # Return raw scalar for pure scalars; box c, hyp, length for R objects.
+        # Never unbox numeric/logical for `[` or `[[` so single-cell extractions stay R::Object and .all__equal works.
+        # Exception: always unwrap rb_obj_* handles (stored Ruby objects) even from `[[`.
+        val = envelope[:value]
+        if envelope[:type] == :scalar_character && val.is_a?(String) && val =~ /^rb_obj_\d+$/
+          return get_ruby_object(val)
+        end
+        unbox = f_name != "c" && f_name != "hyp" && f_name != "length" && f_name != "`[`" && f_name != "`[[`"
+        if unbox
+          return val
+        end
         r_class = { scalar_double: "numeric", scalar_integer: "integer", scalar_logical: "logical", scalar_character: "character" }[envelope[:type]]
         return R::Object.build(var_name, r_expr, r_class: r_class)
       when :scalar_symbol
         return envelope[:value]
       when :handle
+        # Never unbox single-cell for `[`; keep as R::Object so .all__equal and other R methods work.
         return R::Object.build(envelope[:handle], r_expr, r_class: envelope[:r_class])
       else
         raise "Result protocol: unknown envelope type #{envelope[:type].inspect}"
@@ -178,18 +206,26 @@ module R
       when /(.*)=$/
         var = $1
         rhs = self.parse_arg(args[0])
-        if internal.is_a?(R::Object) && var == "names"
+        if internal.is_a?(R::Object)
           handle = internal.r_interop
-          R.bridge.eval_r("#{handle} <- `names<-`(#{handle}, #{rhs})")
+          # Ruby uses rclass= to avoid the keyword 'class'; R uses class<-
+          r_var = (var == "rclass") ? "class" : var
+          # Try the standard R replacement function `var<-` (e.g. `dim<-`, `names<-`, `class<-`).
+          # Fall back to `$<-` (list/data.frame element assignment) when no such function exists.
+          R.bridge.eval_r(<<~RCODE)
+            #{handle} <- tryCatch(
+              `#{r_var}<-`(#{handle}, #{rhs}),
+              error = function(e) `$<-`(#{handle}, '#{var}', #{rhs})
+            )
+          RCODE
         else
           R.bridge.eval_r(".GlobalEnv$#{var} <- #{rhs}")
         end
       when "eval"
         if internal.is_a?(R::Object) && args.size >= 1
-          # obj.eval(expr) -> eval(quote(expr), obj)
-          expr_arg = args[0]
-          env = self.parse_arg(internal)
-          expr = self.parse_arg(expr_arg)
+          # obj.eval(env) -> eval(obj, env): evaluate expression (receiver) in context of env (argument)
+          expr = self.parse_arg(internal)
+          env = self.parse_arg(args[0])
 
           # Wrap in quote if it's not a handle or already quoted
           unless expr.start_with?("g2_v") || expr.start_with?("quote(")
@@ -216,6 +252,11 @@ module R
         if internal.is_a?(R::Object)
           handle = internal.r_interop
 
+          # "length" on an object is always the R function (get number of elements), not list$length
+          if name == "length"
+            return self.exec_function("length", internal, *args)
+          end
+
           # Check if 'name' is a function
           is_func = R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE"
           if is_func
@@ -226,7 +267,7 @@ module R
           is_field = R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
           if is_field
             res = self.exec_function_name("`$`", internal, name)
-            return res.call(*args) unless args.empty?
+            return res.call(*args) if !args.empty? && res.respond_to?(:call)
             return res
           end
 
@@ -243,6 +284,14 @@ module R
     @callbacks = {}
     @ruby_objects = {}
     @ruby_obj_id = 0
+    @ruby_object_id = 0
+
+    def self.register_ruby_object(obj)
+      @ruby_object_id += 1
+      id = @ruby_object_id
+      @ruby_objects[id] = obj
+      "rb_obj_#{id}"
+    end
 
     def self.register_callback(proc)
       @ruby_obj_id += 1

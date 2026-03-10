@@ -51,7 +51,7 @@ describe R::DataFrame do
       
       info = R.data__frame(
         grade: (3..1),
-        desc: R.c("Excellent", "Good", "Poor"),
+        desc: R.factor(R.c("Excellent", "Good", "Poor")),
         fail: R.c(false, false, true)
       )
       
@@ -67,7 +67,7 @@ describe R::DataFrame do
       
       expect(table2.grade[2]).to eq 2
       expect(table2.desc.levels[1]).to eq "Excellent"
-      expect(table2.fail[4]).to eq true
+      expect(table2.fail[4]).to eq false
       
     end
 
@@ -324,7 +324,7 @@ describe R::DataFrame do
   context "Bootsraping" do
     
     before(:each) do
-      @df = R.data__frame(x: R.rep((1..3), each: 2), y: (6..1), z: (~:letters)[(1..6)])
+      @df = R.data__frame(x: R.rep((1..3), each: 2), y: (6..1), z: R.factor((~:letters)[(1..6)]))
       R.set__seed(10)
     end
     

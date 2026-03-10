@@ -60,12 +60,28 @@ module R
     #--------------------------------------------------------------------------------------
 
     def >>(index)
-      raise IndexError.new("index #{index} out of list bounds: 0...#{index - 1}") if
-        (index > (length - 1).unboxed_get(0))
-      raise ArgumentError.new("Indexed element is not a vector") if
-        !self[[index + 1]].is_a?(::R::Vector)
-      return nil if (self[[index + 1]].is__null.unboxed_get(0))
-      self[[index + 1]].unboxed_get(0)
+      if index.nil?
+        # Unbox single element for == comparison (e.g. expect(list).to eq val)
+        len = length
+        len = len.is_a?(::R::Vector) ? len.unboxed_get(0) : len
+        return self unless len.is_a?(::Integer) && len == 1
+        elt = self[[ [1] ]]
+        return elt unless elt.is_a?(::R::Object)
+        return nil if (elt.is__null.respond_to?(:unboxed_get) ? elt.is__null.unboxed_get(0) : elt.is__null)
+        return elt.is_a?(::R::Vector) ? elt.unboxed_get(0) : elt
+      end
+      bound = length
+      bound = bound.is_a?(::R::Vector) ? bound.unboxed_get(0) : bound
+      bound = bound.is_a?(::Integer) ? bound - 1 : 0
+      bound = 0 if bound.nil? || bound < 0
+      ::Kernel.raise(::IndexError.new("index #{index} out of list bounds: 0...#{bound}")) if index > bound
+      elt = self[[ [index + 1] ]]
+      # list[[i]] can return unboxed scalar (Integer, Float, etc.) when protocol unboxes length-1
+      return elt unless elt.is_a?(::R::Object)
+      ::Kernel.raise(::ArgumentError.new("Indexed element is not a vector")) unless elt.is_a?(::R::Vector)
+      null_check = elt.is__null
+      return nil if (null_check.respond_to?(:unboxed_get) ? null_check.unboxed_get(0) : null_check)
+      elt.unboxed_get(0)
     end
 
     #--------------------------------------------------------------------------------------
@@ -75,10 +91,11 @@ module R
 
     def each
 
-      # length is a R::Vector, in order to extract its size as a Ruby number we need to
-      # use the >> operator
-      (1..length.unboxed_get(0)).each do |i|
-        yield self[[i]]
+      len = length
+      len = len.is_a?(::R::Vector) ? len.unboxed_get(0) : len
+      (1..len).each do |i|
+        # In Ruby list[[i]] is list.[]( [i] ) → single Array arg → we use R's [[ (element)
+        yield self[[ [i] ]]
       end
 
     end
@@ -89,8 +106,10 @@ module R
 
     def each_with_index
 
-      (1..length.unboxed_get(0)).each do |i|
-        yield self[[i]], i
+      len = length
+      len = len.is_a?(::R::Vector) ? len.unboxed_get(0) : len
+      (1..len).each do |i|
+        yield self[[ [i] ]], i
       end
 
     end    

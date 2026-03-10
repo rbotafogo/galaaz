@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Run a small subset of specs (see Documentation/Spec_Subsets.md).
+# Usage: bin/run_rspec_subset <number>
+# Example: bin/run_rspec_subset 1
+
+set -e
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+SUBNUM="${1:?Usage: bin/run_rspec_subset <number> [rspec-args...]}"
+[ "$#" -ge 1 ] && shift
+
+case "$SUBNUM" in
+  1)  SPECS="specs/protocol_result_spec.rb" ;;
+  2)  SPECS="specs/r_vector_creation.spec.rb" ;;
+  3)  SPECS="specs/r_eval.spec.rb" ;;
+  4)  SPECS="specs/r_vector_subsetting.spec.rb" ;;
+  5)  SPECS="specs/r_list.spec.rb" ;;
+  6)  SPECS="specs/r_vector_operators.spec.rb" ;;
+  7)  SPECS="specs/r_dataframe.spec.rb" ;;
+  8)  SPECS="specs/r_matrix.spec.rb" ;;
+  9)  SPECS="specs/r_vector_object.spec.rb" ;;
+  10) SPECS="specs/r_vector_functions.spec.rb" ;;
+  11) SPECS="specs/r_language.spec.rb" ;;
+  12) SPECS="specs/r_formula.spec.rb" ;;
+  13) SPECS="specs/r_function.spec.rb" ;;
+  14) SPECS="specs/r_list_apply.spec.rb" ;;
+  15) SPECS="specs/r_nse.spec.rb" ;;
+  16) SPECS="specs/ruby_expression.spec.rb" ;;
+  17) SPECS="specs/r_environment.spec.rb" ;;
+  18) SPECS="specs/r_devices.spec.rb specs/r_plots.spec.rb" ;;
+  *)
+    echo "Unknown subset: $SUBNUM (use 1–18). See Documentation/Spec_Subsets.md"
+    exit 1
+    ;;
+esac
+
+exec "$ROOT/bin/run_rspec" $SPECS "$@"

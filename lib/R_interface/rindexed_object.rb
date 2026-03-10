@@ -36,12 +36,23 @@ module R
 
     def [](*index)
       # dealing with double indexing function '[['
-      # If we have multiple indices, or a single array index, use [[
+      # If we have multiple indices, or a single array index, use [[ or `[` for names
       if (index.size > 1) || (index[0].is_a? Array)
-        ::R::Support.exec_function(::R::Support.dbk_index, @r_interop, *index)
+        args = (index.size > 1) ? index : index[0]
+        # For DataFrame with two indices: R's [[i,j]] is row i, col j. R's [[ does not accept character indices; use `[` for row/col names.
+        if args.size == 2 && self.is_a?(::R::DataFrame) && (args[0].is_a?(::String) || args[0].is_a?(::Symbol) || args[1].is_a?(::String) || args[1].is_a?(::Symbol))
+          ::R::Support.exec_function(::R::Support.md_index, @r_interop, *args)
+        else
+          ::R::Support.exec_function(::R::Support.dbk_index, @r_interop, *args)
+        end
       else
         ::R::Support.exec_function_name("`[`", @r_interop, *index)
       end
+    rescue ::RuntimeError => e
+      if e.message.to_s.include?("incorrect number of subscripts")
+        ::Kernel.raise(::ArgumentError, e.message)
+      end
+      ::Kernel.raise(e)
     end
     
     #--------------------------------------------------------------------------------------

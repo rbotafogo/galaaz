@@ -14,13 +14,30 @@ module R
       :r_interop, :expression, :expression=,
       :[], :[]=, :>>, :unboxed_get, :length, :size,
       :class, :to_s, :rclass, :typeof, :inspect, :object_id, :__id__,
-      :==, :equal?, :call,
+      :==, :equal?, :call, :nil?, :pretty_print,
+      :instance_variable_set, :instance_variable_get,
       :is_a?, :kind_of?, :instance_of?, :respond_to?,
       :method_missing
     ].freeze
 
     attr_reader :r_interop
     attr_accessor :expression
+
+    def instance_variable_set(name, value)
+      ::Object.instance_method(:instance_variable_set).bind(self).call(name, value)
+    end
+
+    def instance_variable_get(name)
+      ::Object.instance_method(:instance_variable_get).bind(self).call(name)
+    end
+
+    def nil?
+      false
+    end
+
+    def pretty_print(pp)
+      pp.text(inspect)
+    end
 
     def initialize(r_interop, expression = nil)
       @r_interop = r_interop
@@ -45,6 +62,8 @@ module R
           r_class = r_class.to_s.strip
           r_class = nil if r_class.nil? || r_class.empty?
           r_class ||= ::R.bridge.eval_r("paste(class(#{r_interop}), collapse=' ')").gsub(/^\[1\] /, "").gsub(/"/, "").strip
+          # R NULL -> Ruby nil so we never call >> or other methods on a NULL handle (which can crash R)
+          return nil if r_class.to_s.strip == "NULL"
           if ::ENV['GALAAZ_DEBUG']
             ::Kernel.puts "DEBUG: Object.build r_interop=#{r_interop.inspect} r_class_arg=#{r_class_arg.inspect} r_class=#{r_class.inspect}"
           end

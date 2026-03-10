@@ -61,9 +61,10 @@ module R
       # For indexed unboxing, use binary transport
       idx = index
       len_raw = ::R.bridge.eval_r("length(#{@r_interop})")
-      len = len_raw.match(/\[1\] (.*)/)[1].to_i
-      
-      raise IndexError.new("index #{idx} out of array bounds: 0...#{len-1}") if
+      m = len_raw.match(/\[1\] (.*)/)
+      len = m ? m[1].to_i : 0
+
+      ::Kernel.raise(::IndexError.new("index #{idx} out of array bounds: 0...#{len-1}")) if
         (idx >= len) 
       
       # Determine type
@@ -157,7 +158,7 @@ module R
           yield unboxed_get(i)
         end
       else
-        raise "Type #{mode.inspect} is unknown for method :each"
+        ::Kernel.raise("Type #{mode.inspect} is unknown for method :each")
       end
     end
 
@@ -176,7 +177,7 @@ module R
           yield unboxed_get(i), i
         end
       else
-        raise "Type #{result} is unknown for method :each"
+        ::Kernel.raise("Type #{result} is unknown for method :each")
       end
       
     end

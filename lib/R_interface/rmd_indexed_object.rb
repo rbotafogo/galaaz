@@ -36,7 +36,11 @@ module R
 
     def [](*index)
       if (index.size > 1)
-        R::Support.exec_function(R::Support.md_index, @r_interop, *index)
+        # DataFrame single-cell only when both indices are scalar (one row, one column): use [[ so R returns scalar
+        single_cell = index.size == 2 && self.is_a?(::R::DataFrame) &&
+          index[0].is_a?(::Integer) && (index[1].is_a?(::Integer) || index[1].is_a?(::String))
+        fn = single_cell ? R::Support.dbk_index : R::Support.md_index
+        R::Support.exec_function(fn, @r_interop, *index)
       else
         super(*index)
       end
