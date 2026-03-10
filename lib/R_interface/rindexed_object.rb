@@ -41,12 +41,12 @@ module R
         args = (index.size > 1) ? index : index[0]
         # For DataFrame with two indices: R's [[i,j]] is row i, col j. R's [[ does not accept character indices; use `[` for row/col names.
         if args.size == 2 && self.is_a?(::R::DataFrame) && (args[0].is_a?(::String) || args[0].is_a?(::Symbol) || args[1].is_a?(::String) || args[1].is_a?(::Symbol))
-          ::R::Support.exec_function(::R::Support.md_index, @r_interop, *args)
+          ::R::Support.exec_function(::R::Support.md_index, self, *args)
         else
-          ::R::Support.exec_function(::R::Support.dbk_index, @r_interop, *args)
+          ::R::Support.exec_function(::R::Support.dbk_index, self, *args)
         end
       else
-        ::R::Support.exec_function_name("`[`", @r_interop, *index)
+        ::R::Support.exec_function_name("`[`", self, *index)
       end
     rescue ::RuntimeError => e
       if e.message.to_s.include?("incorrect number of subscripts")

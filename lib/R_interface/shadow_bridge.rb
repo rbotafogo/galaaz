@@ -134,12 +134,14 @@ module R
             payload <- rawConnectionValue(rc)
             close(rc)
           } else if (r_type == "symbol" || r_type == "name") {
-            type_code <- 5L
-            len <- 1L
-            s <- enc2utf8(as.character(x))
+            type_code <- 4L
+            len <- 0L
+            h <- enc2utf8(as.character(var_name))
             rc <- rawConnection(raw(0), "wb")
-            writeBin(as.integer(nchar(s, type = "bytes")), rc, size = 4, endian = "little")
-            writeBin(charToRaw(s), rc)
+            writeBin(as.integer(nchar(h, type = "bytes")), rc, size = 4, endian = "little")
+            writeBin(charToRaw(h), rc)
+            writeBin(as.integer(nchar(r_class, type = "bytes")), rc, size = 4, endian = "little")
+            writeBin(charToRaw(r_class), rc)
             payload <- rawConnectionValue(rc)
             close(rc)
           } else {
@@ -448,7 +450,8 @@ module R
           while drain = @stdout.gets
             break if drain.strip == '--G_END--'
           end
-          raise "R Error: #{error_msg}"
+          code_hint = @last_sent_code ? " (R code: #{@last_sent_code.strip[0..200]}#{'...' if @last_sent_code.length > 200})" : ""
+          raise "R Error: #{error_msg}#{code_hint}"
         end
         break if line.strip == '--G_END--'
       end

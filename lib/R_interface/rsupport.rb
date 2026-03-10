@@ -80,10 +80,43 @@ module R
       when :scalar_symbol
         return envelope[:value]
       when :handle
+        # Protocol spec: eval returns scalar symbol as Ruby Symbol. R sends symbol/name as handle (type 4); unbox here only.
+        r_class = envelope[:r_class].to_s.strip
+        if r_class == "name" || r_class == "symbol"
+          raw = R.bridge.eval_r("as.character(#{envelope[:handle]})").to_s
+          m = raw.match(/\[1\]\s*"([^"]*)"/)
+          name = m ? m[1] : raw.strip
+          return name.gsub("::", "___").gsub(".", "__").to_sym
+        end
         return R::Object.build(envelope[:handle], nil, r_class: envelope[:r_class])
       else
         raise "Result protocol: unknown envelope type #{envelope[:type].inspect}"
       end
+    end
+
+    # String suitable for expression display (to_s). For R::Language use stored expression; for other R::Object
+    # use R's deparse() so display reflects the current value (not the creating R code stored in .expression).
+    def self.expression_display_arg(arg)
+      puts "DEBUG expression_display_arg: arg=#{arg.inspect} class=#{arg.class}" if ENV["GALAAZ_DEBUG"]
+      return arg.expression if arg.is_a?(R::Language) && arg.respond_to?(:expression) && arg.expression
+      return self.get_deparse_string(arg) if arg.is_a?(R::Object)
+      self.parse_arg(arg).to_s
+    end
+
+    # R-side deparse of an R::Object to a single string (e.g. "c(1L, 2L, 3L, 4L)").
+    # Relies on R evaluating deparse() correctly on the object.
+    def self.get_deparse_string(arg)
+      puts "DEBUG get_deparse_string: called for #{arg.r_interop.inspect}" if ENV["GALAAZ_DEBUG"]
+      dep = self.exec_function("deparse", arg)
+      puts "DEBUG get_deparse_string: deparse result class=#{dep.class} value=#{dep.inspect}" if ENV["GALAAZ_DEBUG"]
+      str = self.exec_function("paste0", dep, { collapse: "" })
+      return str.to_s if str.is_a?(::String)
+      raw = R.bridge.eval_r("paste0(#{str.r_interop}, collapse='')").to_s
+      puts "DEBUG get_deparse_string: eval_r paste0 raw=#{raw.inspect}" if ENV["GALAAZ_DEBUG"]
+      m = raw.match(/\[1\]\s*"([^"]*)"/)
+      result = m ? m[1] : raw.strip
+      puts "DEBUG get_deparse_string: returning #{result.inspect}" if ENV["GALAAZ_DEBUG"]
+      result
     end
 
     # Turn a Ruby value into an R code fragment (string): handles, scalars, hashes -> list(), arrays -> c(), Procs -> R callback stub, etc.
@@ -189,7 +222,7 @@ module R
         if envelope[:type] == :scalar_character && val.is_a?(String) && val =~ /^rb_obj_\d+$/
           return get_ruby_object(val)
         end
-        unbox = f_name != "c" && f_name != "hyp" && f_name != "length" && f_name != "`[`" && f_name != "`[[`"
+        unbox = f_name != "c" && f_name != "hyp" && f_name != "length" && f_name != "`[`" && f_name != "`[[`" && f_name != "expr"
         if unbox
           return val
         end
@@ -237,6 +270,9 @@ module R
 
     # Handle obj.eval(env) or R.eval(code): expression in context, or single-arg R.eval.
     def self.process_missing_eval(name, internal, args)
+      if internal.is_a?(R::Object) && name == "eval" && args.empty?
+        return self.exec_function("eval", internal)
+      end
       if internal.is_a?(R::Object) && args.size >= 1
         expr = self.parse_arg(internal)
         env = self.parse_arg(args[0])
@@ -265,15 +301,17 @@ module R
       handle = internal.r_interop
       return self.exec_function("length", internal, *args) if name == "length"
 
-      is_func = R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE"
-      return self.exec_function(name, internal, *args) if is_func
-
+      # Prefer component/field access (obj.beta => obj$beta, returns value e.g. float) over calling a global function (beta()).
+      # Otherwise names like "beta" would call stats::beta(a,b) instead of returning the list component.
       is_field = R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
       if is_field
         res = self.exec_function_name("`$`", internal, name)
         return res.call(*args) if !args.empty? && res.respond_to?(:call)
         return res
       end
+
+      is_func = R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE"
+      return self.exec_function(name, internal, *args) if is_func
 
       self.exec_function(name, internal, *args)
     end

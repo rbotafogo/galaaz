@@ -15,20 +15,15 @@ module R
     def self.build(function_name, *args)
       # function_name is something like '`+`' or '`~`'
       op = function_name.delete("`").strip
-      
-      # We build the string expression by parsing arguments
       lhs = ::R::Support.parse_arg(args[0])
       rhs = ::R::Support.parse_arg(args[1])
-      if op == ":"
-        expr = "#{lhs}#{op}#{rhs}"
-      else
-        expr = "#{lhs} #{op} #{rhs}"
-      end
-      
-      # Allocate object without calling initialize (which calls bridge)
+      r_expr = (op == ":") ? "#{lhs}#{op}#{rhs}" : "#{lhs} #{op} #{rhs}"
+      lhs_display = ::R::Support.expression_display_arg(args[0])
+      rhs_display = ::R::Support.expression_display_arg(args[1])
+      expr_display = (op == ":") ? "#{lhs_display}#{op}#{rhs_display}" : "#{lhs_display} #{op} #{rhs_display}"
       res = ::R::Language.allocate
-      res.instance_variable_set(:@r_interop, expr)
-      res.expression = expr
+      res.instance_variable_set(:@r_interop, r_expr)
+      res.expression = expr_display
       res
     end
 

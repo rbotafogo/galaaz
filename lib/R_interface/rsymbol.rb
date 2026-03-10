@@ -45,12 +45,20 @@ module R
       res = ::R::Support.exec_function("typeof", ::R::Support.exec_function("eval", self))
       res.respond_to?(:>>) ? (res >> nil)[0] : res
     end
-    
+
+    # Symbol name as string (e.g. "read.table") for call[[1]].to_s.
+    def to_s
+      return super unless ::R.bridge.ready?
+      raw = ::R.bridge.eval_r("as.character(#{@r_interop})").to_s
+      m = raw.match(/\[1\]\s*"([^"]*)"/)
+      m ? m[1] : raw.strip
+    end
+
     def exec_bin_oper(operator, other_object)
       # Use infix notation: lhs operator rhs, but evaluate self
       op = operator.delete("`")
       
-      var_name = R::Support.generate_var_name
+      var_name = ::R::Support.generate_var_name
       lhs = "eval(#{@r_interop})"
       
       # If other object is a symbol, evaluate it too
