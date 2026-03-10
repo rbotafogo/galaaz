@@ -1,11 +1,19 @@
 # rsupport.rb
+#
+# R::Support provides the core translation layer between Ruby and R: symbol conversion,
+# argument parsing (parse_arg), evaluation (eval), and dispatching (exec_function,
+# process_missing). process_missing is the entry point when an R::Object or the R
+# module receives an unknown method: it handles setters (x=), eval, and generic
+# calls (function, field access, or method with receiver as first arg).
+#
 require 'singleton'
 
 module R
   def self.empty_symbol
     ""
   end
-  
+
+  # Singleton representing R's NA; used when R returns NA and we keep it as a sentinel in Ruby.
   class NotAvailable
     def to_s; "NA"; end
     def r_interop; "NA"; end
@@ -15,16 +23,16 @@ module R
   module Support
     @@var_id = 0
 
+    # Generate a unique R-side variable name (e.g. g2_v1, g2_v2) for assignment results.
     def self.generate_var_name
       @@var_id += 1
       "g2_v#{@@var_id}"
     end
 
+    # Convert a Ruby method name to the R name: __ => ., ___ => ::, rclass => class, eql => ==.
     def self.convert_symbol2r(symbol)
       name = symbol.to_s
-      # Support R namespaces with triple underscore knitr___knit_engines => knitr::knit_engines
       name.gsub!(/___/, "::")
-      # Support dots with double underscore
       name.gsub!(/__/, ".")
       case name
       when "rclass" then "class"
@@ -33,11 +41,12 @@ module R
       end
     end
 
+    # Evaluate an R expression (string, Language, or handle). Returns a scalar value or R::Object.build(...).
+    # Uses .expression or .r_interop when present so we never treat R's printed output as code.
     def self.eval(string)
       puts "DEBUG: Support.eval(#{string.inspect})" if ENV['GALAAZ_DEBUG']
-      
+
       var_name = self.generate_var_name
-      # Use .expression when present, or handle so eval(handle) runs; never to_s (that returns R's printed output, not valid R code)
       r_code = if string.respond_to?(:expression) && string.expression
                  string.expression.to_s
                elsif string.respond_to?(:r_interop) && string.r_interop.is_a?(::String) && string.r_interop.start_with?("g2_v")
@@ -77,8 +86,8 @@ module R
       end
     end
 
+    # Turn a Ruby value into an R code fragment (string): handles, scalars, hashes -> list(), arrays -> c(), Procs -> R callback stub, etc.
     def self.parse_arg(arg)
-      # Prefer handle so R sees current state; expression is for display/literal
       return arg.r_interop if arg.respond_to?(:r_interop) && arg.r_interop
       return arg.expression if arg.respond_to?(:expression) && arg.expression
 
@@ -148,10 +157,10 @@ module R
       end
     end
 
+    # Run an R call: f_name(args...). Builds assignment, gets envelope from bridge, then unboxes or builds R::Object per envelope type and f_name.
     def self.exec_function(function, *args)
       f_name = function.respond_to?(:r_interop) ? function.r_interop : function
-      
-      # If no arguments and it looks like a namespaced object or handle, just eval it
+
       if args.empty? && (f_name.include?("::") || f_name.start_with?("g2_v"))
         return self.eval(f_name)
       end
@@ -200,84 +209,73 @@ module R
       alias_method :exec_function_name, :exec_function
     end
 
+    # Entry point for method_missing: handle setters (x=), eval, or dispatch to R (function / field / method with receiver).
     def self.process_missing(symbol, internal, *args)
       name = self.convert_symbol2r(symbol)
-      case name
-      when /(.*)=$/
-        var = $1
-        rhs = self.parse_arg(args[0])
-        if internal.is_a?(R::Object)
-          handle = internal.r_interop
-          # Ruby uses rclass= to avoid the keyword 'class'; R uses class<-
-          r_var = (var == "rclass") ? "class" : var
-          # Try the standard R replacement function `var<-` (e.g. `dim<-`, `names<-`, `class<-`).
-          # Fall back to `$<-` (list/data.frame element assignment) when no such function exists.
-          R.bridge.eval_r(<<~RCODE)
-            #{handle} <- tryCatch(
-              `#{r_var}<-`(#{handle}, #{rhs}),
-              error = function(e) `$<-`(#{handle}, '#{var}', #{rhs})
-            )
-          RCODE
-        else
-          R.bridge.eval_r(".GlobalEnv$#{var} <- #{rhs}")
-        end
-      when "eval"
-        if internal.is_a?(R::Object) && args.size >= 1
-          # obj.eval(env) -> eval(obj, env): evaluate expression (receiver) in context of env (argument)
-          expr = self.parse_arg(internal)
-          env = self.parse_arg(args[0])
+      return process_missing_setter(name, internal, args) if name =~ /(.*)=$/
+      return process_missing_eval(name, internal, args) if name == "eval"
+      process_missing_dispatch(name, internal, args)
+    end
 
-          # Wrap in quote if it's not a handle or already quoted
-          unless expr.start_with?("g2_v") || expr.start_with?("quote(")
-            puts "DEBUG: Quoting expression: #{expr}" if ENV['GALAAZ_DEBUG']
-            expr = "quote(#{expr})"
-          end
-
-          var_name = self.generate_var_name
-          R.bridge.eval_r("#{var_name} <- eval(#{expr}, #{env})")
-          return R::Object.build(var_name)
-        elsif args.size == 1
-          # R.eval(code)
-          return self.eval(args[0])
-        else
-          self.exec_function(name, *args)
-        end
+    # Handle obj.var = rhs or R.var = rhs: use `var<-` or `$<-` on R::Object, else .GlobalEnv assignment.
+    def self.process_missing_setter(name, internal, args)
+      var = name[/^(.*)=$/, 1]
+      rhs = self.parse_arg(args[0])
+      if internal.is_a?(R::Object)
+        handle = internal.r_interop
+        r_var = (var == "rclass") ? "class" : var
+        R.bridge.eval_r(<<~RCODE)
+          #{handle} <- tryCatch(
+            `#{r_var}<-`(#{handle}, #{rhs}),
+            error = function(e) `$<-`(#{handle}, '#{var}', #{rhs})
+          )
+        RCODE
       else
-        # Optimized check for namespaced functions or existing R objects
-        if internal == R && args.empty? && (name.include?("::") || name.start_with?("g2_v"))
-          return R::Object.build(name)
-        end
-
-        # If calling on an R::Object, check if it's a function or a field
-        if internal.is_a?(R::Object)
-          handle = internal.r_interop
-
-          # "length" on an object is always the R function (get number of elements), not list$length
-          if name == "length"
-            return self.exec_function("length", internal, *args)
-          end
-
-          # Check if 'name' is a function
-          is_func = R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE"
-          if is_func
-            return self.exec_function(name, internal, *args)
-          end
-
-          # Check if it's a field/column access (like df$column)
-          is_field = R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
-          if is_field
-            res = self.exec_function_name("`$`", internal, name)
-            return res.call(*args) if !args.empty? && res.respond_to?(:call)
-            return res
-          end
-
-          # Fallback: call as function with self as first arg (tidyverse style)
-          return self.exec_function(name, internal, *args)
-        else
-          # Calling on R module
-          self.exec_function(name, *args)
-        end
+        R.bridge.eval_r(".GlobalEnv$#{var} <- #{rhs}")
       end
+    end
+
+    # Handle obj.eval(env) or R.eval(code): expression in context, or single-arg R.eval.
+    def self.process_missing_eval(name, internal, args)
+      if internal.is_a?(R::Object) && args.size >= 1
+        expr = self.parse_arg(internal)
+        env = self.parse_arg(args[0])
+        unless expr.start_with?("g2_v") || expr.start_with?("quote(")
+          puts "DEBUG: Quoting expression: #{expr}" if ENV['GALAAZ_DEBUG']
+          expr = "quote(#{expr})"
+        end
+        var_name = self.generate_var_name
+        R.bridge.eval_r("#{var_name} <- eval(#{expr}, #{env})")
+        return R::Object.build(var_name)
+      end
+      return self.eval(args[0]) if args.size == 1
+      self.exec_function(name, *args)
+    end
+
+    # Dispatch: R module (eval handle/namespace or exec_function) or R::Object (length / function / field / fallback).
+    def self.process_missing_dispatch(name, internal, args)
+      if internal == R && args.empty? && (name.include?("::") || name.start_with?("g2_v"))
+        return R::Object.build(name)
+      end
+
+      unless internal.is_a?(R::Object)
+        return self.exec_function(name, *args)
+      end
+
+      handle = internal.r_interop
+      return self.exec_function("length", internal, *args) if name == "length"
+
+      is_func = R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE"
+      return self.exec_function(name, internal, *args) if is_func
+
+      is_field = R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
+      if is_field
+        res = self.exec_function_name("`$`", internal, name)
+        return res.call(*args) if !args.empty? && res.respond_to?(:call)
+        return res
+      end
+
+      self.exec_function(name, internal, *args)
     end
 
 
@@ -286,6 +284,7 @@ module R
     @ruby_obj_id = 0
     @ruby_object_id = 0
 
+    # Store a Ruby object for passing to R; returns handle string "rb_obj_<id>" for use in R.
     def self.register_ruby_object(obj)
       @ruby_object_id += 1
       id = @ruby_object_id
@@ -293,6 +292,7 @@ module R
       "rb_obj_#{id}"
     end
 
+    # Register a Proc/Method to be invoked from R (e.g. in outer()); returns callback id for the R stub.
     def self.register_callback(proc)
       @ruby_obj_id += 1
       id = @ruby_obj_id
@@ -300,10 +300,12 @@ module R
       id
     end
 
+    # Retrieve the Ruby proc registered for a callback id (from --G_CALLBACK--id--...).
     def self.get_callback(id)
       @callbacks[id.to_i]
     end
 
+    # Retrieve the Ruby object for a handle "rb_obj_<id>" returned from R.
     def self.get_ruby_object(id_str)
       id = id_str.sub("rb_obj_", "").to_i
       @ruby_objects[id]

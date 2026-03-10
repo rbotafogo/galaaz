@@ -1,4 +1,14 @@
 # robject.rb
+#
+# R::Object is the Ruby proxy for an R value. It inherits from BasicObject so that most
+# method calls (e.g. .dim, .names, .length) are forwarded to R via method_missing.
+#
+# Each instance holds @r_interop (the R-side handle, e.g. "g2_v42") and optionally
+# @expression (source expression for Language objects). Object.build(...) turns a handle
+# into the appropriate subclass: DataFrame, Matrix, Vector, List, Closure, RSymbol,
+# RExpression, or a plain Object for other R types. Handles "rb_obj_*" are unwrapped
+# to the stored Ruby object; R NULL becomes Ruby nil.
+#
 require_relative 'r_methods'
 
 module R
@@ -23,18 +33,22 @@ module R
     attr_reader :r_interop
     attr_accessor :expression
 
+    # Delegate to Kernel#instance_variable_set so that instance vars work despite BasicObject.
     def instance_variable_set(name, value)
       ::Object.instance_method(:instance_variable_set).bind(self).call(name, value)
     end
 
+    # Delegate to Kernel#instance_variable_get so that instance vars work despite BasicObject.
     def instance_variable_get(name)
       ::Object.instance_method(:instance_variable_get).bind(self).call(name)
     end
 
+    # R objects are never nil; R NULL is converted to Ruby nil in Object.build.
     def nil?
       false
     end
 
+    # Used by pp/inspect-style pretty printing.
     def pretty_print(pp)
       pp.text(inspect)
     end
@@ -44,8 +58,10 @@ module R
       @expression = expression
     end
 
+    # Factory: build the right Ruby wrapper for an R value. Returns a subclass (DataFrame, Vector, etc.),
+    # or the unwrapped Ruby value for rb_obj_* handles and for R NULL. Pass r_class to avoid an R class() call.
     def self.build(r_interop, expression = nil, r_class: nil)
-      # Check for Ruby object handles first
+      # Ruby object handles stored in R: unwrap to the original Ruby object.
       if r_interop.is_a?(::String) && r_interop.start_with?("rb_obj_")
         return ::R::Support.get_ruby_object(r_interop)
       end
@@ -101,6 +117,7 @@ module R
       end
     end
 
+    # Printed representation of the R object (as R would print it).
     def to_s
       return super unless ::R.bridge.ready?
       ::R.bridge.print_r(@r_interop)
@@ -111,40 +128,46 @@ module R
       ::R::Object
     end
 
+    # true for EXPLICIT_RUBY_SURFACE and for any other symbol (forwarded to R via method_missing).
     def respond_to?(sym, include_private = false)
       sym = sym.to_sym
       return true if EXPLICIT_RUBY_SURFACE.include?(sym)
-      # Any other symbol may be forwarded to R via method_missing
       true
     end
 
+    # Type check against Ruby modules/classes (e.g. obj.is_a?(R::DataFrame)).
     def is_a?(mod)
       return false unless mod.is_a?(::Module)
       !!(self.class <= mod)
     end
     alias_method :kind_of?, :is_a?
 
+    # Exact class check (e.g. obj.instance_of?(R::Object)).
     def instance_of?(mod)
       return false unless mod.is_a?(::Module)
       self.class == mod
     end
 
+    # Debug string: class, object id, and @r_interop handle.
     def inspect
       "#<#{self.class}:#{__id__.to_s(16)} @r_interop=#{@r_interop.inspect}>"
     end
 
     alias_method :object_id, :__id__
 
+    # R's class() of this object; unwrapped to a single string when length 1.
     def rclass
       res = ::R::Support.exec_function("class", self)
       res.respond_to?(:>>) ? (res >> nil)[0] : res
     end
 
+    # R's typeof() of this object; unwrapped to a single string when length 1.
     def typeof
       res = ::R::Support.exec_function("typeof", self)
       res.respond_to?(:>>) ? (res >> nil)[0] : res
     end
 
+    # Equality: R::Object vs R::Object uses all.equal; vs Ruby scalar uses unboxed value(s).
     def ==(other)
       return true if self.equal?(other)
       if other.is_a?(::R::Object)
@@ -163,10 +186,12 @@ module R
       end
     end
 
+    # Call this object as an R function with the given args (e.g. obj.call(1, 2)).
     def call(*args)
       ::R::Support.exec_function(self, *args)
     end
 
+    # Forward unknown methods to R: process_missing(symbol, self, *args) builds and runs the R call.
     def method_missing(symbol, *args)
       ::R::Support.process_missing(symbol, self, *args)
     end
