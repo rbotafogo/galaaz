@@ -29,6 +29,9 @@ require_relative 'nil_null_spec'
 # Unboxing: single scalar/list, nested list, depth limit
 require_relative 'unboxing_spec'
 
+# Field access: obj.name uses R [[ not $ (avoids "$ operator is invalid for atomic vectors")
+require_relative 'field_access_spec'
+
 # Specification for Functions
 require_relative 'r_function.spec'
 

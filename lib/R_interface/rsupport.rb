@@ -334,11 +334,12 @@ module R
       handle = internal.r_interop
       return self.exec_function("length", internal, *args) if name == "length"
 
-      # Prefer component/field access (obj.beta => obj$beta, returns value e.g. float) over calling a global function (beta()).
-      # Otherwise names like "beta" would call stats::beta(a,b) instead of returning the list component.
+      # Prefer component/field access (obj.beta => obj[["beta"]]) over calling a global function (beta()).
+      # Use [[ instead of $ so we avoid "$ operator is invalid for atomic vectors" when receiver is atomic;
+      # [[ on list/data.frame/env returns the element; result protocol maps NA/NULL as appropriate.
       is_field = R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
       if is_field
-        res = self.exec_function_name("`$`", internal, name)
+        res = self.exec_function_name("`[[`", internal, name)
         return res.call(*args) if !args.empty? && res.respond_to?(:call)
         return res
       end
