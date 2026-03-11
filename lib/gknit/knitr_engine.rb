@@ -366,14 +366,21 @@ class KnitrEngine
         knitr:::dev2ext(x)
     }
 
-    #" Capture snapshot of current device.
-    #"
-    #" There's currently no way to capture when a graphics device changes,
-    #" except to check its contents after the evaluation of every expression.
-    #" This means that only the last plot of a series will be captured.
+    #" Capture snapshot of current device (base R recordPlot; same as galaaz_device.R).
+    #" evaluate:::plot_snapshot() does not exist in the evaluate package, so use recordPlot().
     #"
     evaluate_plot_snapshot = function() {
-        evaluate:::plot_snapshot()
+        recordPlot()
+    }
+
+    # Save a recorded plot to a file in one R call (open device, replayPlot, dev.off) so device state is consistent.
+    save_recorded_plot = function(path, plot, width, height, dev, res, units) {
+        if (dev == "png" || dev == "pdf") {
+            if (dev == "png") do.call(png, list(path, width = width, height = height, res = res, units = units))
+            else do.call(pdf, list(path, width = width, height = height))
+            replayPlot(plot)
+            dev.off()
+        }
     }
 
     knitr_wrap = function(x, options) {
@@ -434,8 +441,9 @@ class KnitrEngine
 
   def file_ext
     # guess plot file type if it is NULL
+    # knitr's dev2ext(options) expects the full options list (it uses options$fig.ext and options$dev); passing only @options.dev (atomic) causes "$ operator is invalid for atomic vectors"
     if (((@keep != 'none').unboxed_get(0)) && (@options.fig__ext.is__null.unboxed_get(0)))
-      @fig__ext = (R.knitr_dev2ext(@options.dev).unboxed_get(0))
+      @fig__ext = (R.knitr_dev2ext(@options).unboxed_get(0))
     end
     
   end
@@ -566,25 +574,26 @@ class KnitrEngine
   
   def capture_plot
 
-    # gets a plot snapshot.  Uses function plot_snapshot from package 'evaluate'
+    # gets a plot snapshot (base R recordPlot via evaluate_plot_snapshot)
     plot = R.evaluate_plot_snapshot
 
     if (!(plot.is__null.unboxed_get(0)))
       # create directory for the graphics files if does not already exists
-      # unless (R.dir__exists(@fig__path).unboxed_get(0))
       unless File.directory?(@fig__path)
         FileUtils.mkdir_p(@fig__path)
       end
 
-      @options.dev.each do |dev_type|
-        KnitrEngine.device(dev_type.unboxed_get(0), @filename,
-                           width: @options.fig__width,
-                           height: @options.fig__height, units: units)
-        R.print(plot)
-        R.dev__off
-        return plot
-      end
-      
+      # use absolute path so the file is created where Ruby expects and include_graphics can find it
+      filename_abs = File.expand_path(@filename)
+      # Save in one R call (open device, replayPlot, dev.off) so the file is actually written
+      w = (@options.fig__width >> 0) rescue 480
+      h = (@options.fig__height >> 0) rescue 480
+      res = (@options.dpi >> 0) rescue 72
+      dev_str = @options.dev.respond_to?(:>>) ? (@options.dev >> 0) : @options.dev.to_s
+      dev_str = dev_str.to_s.split.first if dev_str.respond_to?(:to_s)
+      units_str = (units.respond_to?(:>>) ? (units >> 0) : units).to_s rescue "in"
+      R.save_recorded_plot(filename_abs, plot, w, h, dev_str, res, units_str)
+      return plot
     end
 
     false
@@ -663,13 +672,12 @@ class KnitrEngine
         # plot will be captured.  Not a very serious problem for now.
         # Captures the last plot in the Ruby block. 
         if (capture_plot)
-          plot = R.knitr_wrap(R.knit_print(R.include_graphics(@filename)), @options)
-          
-          # add to the output the result of plot.  Whatever is included after the
-          # engine_output output will appear 'as.is' in the report.  The 'plot'
-          # variable is a command that in rmarkdown includes the image in the
-          # report
-          out = R.c(out, plot)
+          # use same absolute path as in capture_plot so knitr can find the file
+          fig_path = File.expand_path(@filename)
+          if File.exist?(fig_path)
+            plot = R.knitr_wrap(R.knit_print(R.include_graphics(fig_path)), @options)
+            out = R.c(out, plot)
+          end
         end
 
         out

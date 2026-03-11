@@ -136,18 +136,24 @@ puts "   * Output directory: \t #{options[:output_dir]}"
 puts "   * Clean: \t\t #{options[:clean]}"
 
 
-# Code to be evaluated by the polyglot Ruby script
+# Code to be evaluated by the polyglot Ruby script.
+# Run render with the input file's directory as current so figure paths (e.g. oh_my_files/figure-html/)
+# are created and found inside the document directory (e.g. blogs/oh_my/).
+input_file = options[:input_file]
+input_dir = File.dirname(input_file)
 code = <<EOF
 require %q(galaaz)
 require %q(gknit)
 
-R::Rmarkdown.render(
-     %q(#{options[:input_file]}),
-     output_format: #{options[:output_format]},
-     output_file: #{options[:output_file]},
-     output_dir: #{options[:output_dir]},
-     clean: #{options[:clean]}
-) 
+Dir.chdir(#{input_dir.inspect}) do
+  R::Rmarkdown.render(
+       %q(#{input_file}),
+       output_format: #{options[:output_format]},
+       output_file: #{options[:output_file]},
+       output_dir: #{options[:output_dir]},
+       clean: #{options[:clean]}
+  )
+end
 EOF
 
 libx = File.expand_path('../../lib', __FILE__)

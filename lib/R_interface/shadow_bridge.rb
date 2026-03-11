@@ -44,8 +44,9 @@ module R
     CMD_SCRIPT_BASE = "/dev/shm/galaaz_cmd"     # temp R scripts: CMD_SCRIPT_BASE_<seq>.R
     CALLBACK_FIFO = "/dev/shm/galaaz_callback_fifo" # R reads --G_CMD-- / --G_RET-- when in a Ruby callback
 
-    # Log files go under logs/ (relative to process cwd) to keep project root clean
-    LOG_DIR = "logs"
+    # Log files: use absolute path so they work when process chdirs (e.g. gknit to Rmd dir).
+    # From lib/R_interface/ go up to project/gem root, then logs/
+    LOG_DIR = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'logs'))
 
     def initialize
       puts "DEBUG: Initializing ShadowBridge instance #{self.object_id}" if ENV['GALAAZ_DEBUG']
@@ -75,8 +76,13 @@ module R
     end
 
     # Start the R subprocess and a thread that logs its stderr.
+    # When GALAAZ_DEBUG_R=1, set GALAAZ_R_RECEIVED_LOG so R can log each command it receives in the callback (for matching Ruby send vs R receive).
     def start_r_process
-      @stdin, @stdout, @stderr, @wait_thr = Open3.popen3("R --vanilla --quiet --slave")
+      env = ENV.to_h
+      if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
+        env["GALAAZ_R_RECEIVED_LOG"] = File.expand_path(log_path("galaaz_r_received.log"))
+      end
+      @stdin, @stdout, @stderr, @wait_thr = Open3.popen3(env, "R --vanilla --quiet --slave")
       if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
         r_pid = @wait_thr.pid rescue nil
         File.write(log_path("galaaz_r_pid.txt"), "R process PID: #{r_pid}\n") if r_pid
@@ -233,7 +239,11 @@ module R
     def eval_r_in_callback(code)
       ts = Time.now.strftime("%H:%M:%S.%L")
       File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][JRuby Nested] #{code}" }
-      File.write(CALLBACK_FIFO, "--G_CMD--#{code.gsub("\n", "\\n")}\n")
+      payload = "--G_CMD--#{code.gsub("\n", "\\n")}\n"
+      if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
+        File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][RUBY_SEND_EXACT] #{payload.inspect}" }
+      end
+      File.write(CALLBACK_FIFO, payload)
       output = ""
       while line = read_stdout_line
         File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][R stdout Nested] #{line}" }
@@ -420,7 +430,13 @@ module R
         tmp_fifo = File.open(RESULT_FIFO, File::RDWR | Fcntl::O_NONBLOCK)
         tmp_fifo.fcntl(Fcntl::F_SETFL, tmp_fifo.fcntl(Fcntl::F_GETFL) & ~Fcntl::O_NONBLOCK)
       end
-      File.write(CALLBACK_FIFO, "--G_CMD--#{r_cmd.gsub("\n", "\\n")}\n")
+      payload = "--G_CMD--#{r_cmd.gsub("\n", "\\n")}\n"
+      if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
+        ts = Time.now.strftime("%H:%M:%S.%L")
+        File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][RUBY_SEND_RESULT_EXACT] #{r_cmd}" }
+        File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][RUBY_SEND_RESULT_PAYLOAD] #{payload.inspect}" }
+      end
+      File.write(CALLBACK_FIFO, payload)
       while line = read_stdout_line
         if line.start_with?('--G_CALLBACK--')
           process_callback(line)

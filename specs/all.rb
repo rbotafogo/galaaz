@@ -32,6 +32,9 @@ require_relative 'unboxing_spec'
 # Field access: obj.name uses R [[ not $ (avoids "$ operator is invalid for atomic vectors")
 require_relative 'field_access_spec'
 
+# Scalar character: bridge unescapes \n and \" so Ruby gets real newlines/quotes
+require_relative 'scalar_character_spec'
+
 # Specification for Functions
 require_relative 'r_function.spec'
 

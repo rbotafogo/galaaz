@@ -181,6 +181,12 @@ module R
             line <- res_str[1]
             if (startsWith(line, '--G_CMD--')) {
               cmd <- trimws(sub('--G_CMD--', '', line))
+              recv_log <- Sys.getenv('GALAAZ_R_RECEIVED_LOG', '')
+              if (nchar(recv_log) > 0L) tryCatch({
+                write('---CMD---\\n', file=recv_log, append=TRUE)
+                write(cmd, file=recv_log, append=TRUE)
+                write('\\n', file=recv_log, append=TRUE)
+              }, error=function(e) NULL)
               if (nchar(cmd) > 0L) cat(capture2(eval(parse(text=cmd))), sep='\\n')
               cat('--G_CMD_END--\\n')
               flush.console()

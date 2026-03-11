@@ -81,6 +81,8 @@ module GalaazUtil
     
     # read the chunk code
     code = R.paste(options.code, collapse: "\n").unboxed_get(0)
+    # If the string arrived with literal \n (e.g. from R→Ruby transport), convert to real newlines so eval does not hit "unexpected backslash"
+    code = code.gsub("\\n", "\n") if code.is_a?(String)
     
     # the output should be a list with the proper structure to pass to
     # function engine_output.  We first add the souce code from the block to
