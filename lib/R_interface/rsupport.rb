@@ -20,8 +20,14 @@ module R
   end
   NA = NotAvailable.new
 
+  # Raised when unboxing recurses beyond MAX_UNBOX_DEPTH (prevents stack/memory exhaustion).
+  class UnboxDepthError < RuntimeError; end
+
   module Support
     @@var_id = 0
+
+    # Maximum recursion depth when unboxing lists. Beyond this we raise UnboxDepthError.
+    MAX_UNBOX_DEPTH = 100
 
     # Generate a unique R-side variable name (e.g. g2_v1, g2_v2) for assignment results.
     def self.generate_var_name

@@ -52,41 +52,49 @@ module R
     end
 
     #--------------------------------------------------------------------------------------
-    # When indexing with '[' or '[[' an R object is returned.  Sometimes we need to have
-    # access to an umboxed Ruby element, for instance, in an numeric array, we might want
-    # to receive the actual number that can be used in a Ruby method.  In this case, we
-    # use the '<<' operator.
-    # @return the Ruby element at the given index in the vector
+    # Unbox list to Ruby. Recurses until only Ruby values (no R::Object in result).
+    # - index.nil? → whole list → Array of unboxed elements (single list → [x]).
+    # - index i   → list[[i+1]] unboxed (one Ruby value).
+    # Raises R::UnboxDepthError when recursion exceeds MAX_UNBOX_DEPTH (can be expensive).
     #--------------------------------------------------------------------------------------
-
-    def >>(index)
-      if index.nil?
-        # Unbox single element for == comparison (e.g. expect(list).to eq val)
-        len = length
-        len = len.is_a?(::R::Vector) ? len.unboxed_get(0) : len
-        return self unless len.is_a?(::Integer) && len == 1
-        elt = self[[ [1] ]]
-        return elt unless elt.is_a?(::R::Object)
-        return nil if (elt.is__null.respond_to?(:unboxed_get) ? elt.is__null.unboxed_get(0) : elt.is__null)
-        return elt.is_a?(::R::Vector) ? elt.unboxed_get(0) : elt
+    def unboxed_get(index = nil, depth = 0)
+      if depth >= ::R::Support::MAX_UNBOX_DEPTH
+        ::Kernel.raise(::R::UnboxDepthError, "unbox: list too deep (max depth #{::R::Support::MAX_UNBOX_DEPTH} exceeded)")
       end
-      bound = length
-      bound = bound.is_a?(::R::Vector) ? bound.unboxed_get(0) : bound
-      bound = bound.is_a?(::Integer) ? bound - 1 : 0
-      bound = 0 if bound.nil? || bound < 0
+      if index.nil?
+        # Whole list → Array of unboxed elements (recurse into each element).
+        len_val = length
+        n = len_val.is_a?(::R::Vector) ? len_val.unboxed_get(0) : len_val
+        n = n.to_i if n.respond_to?(:to_i)
+        return [] unless n.is_a?(::Integer) && n >= 1
+        arr = []
+        (1..n).each do |i|
+          elt = self[[ [i] ]]
+          if elt.nil?
+            arr << nil
+          elsif !elt.is_a?(::R::Object)
+            arr << elt
+          else
+            arr << (elt.is__null.unboxed_get(0) ? nil : elt.unboxed_get(nil, depth + 1))
+          end
+        end
+        return arr
+      end
+
+      # Single element at index
+      bound_val = length
+      bound = bound_val.is_a?(::R::Vector) ? bound_val.unboxed_get(0) : bound_val
+      bound = bound.to_i - 1 if bound.respond_to?(:to_i)
+      bound = 0 if bound.nil? || !bound.is_a?(::Integer) || bound < 0
       ::Kernel.raise(::IndexError.new("index #{index} out of list bounds: 0...#{bound}")) if index > bound
       elt = self[[ [index + 1] ]]
-      # list[[i]] can return unboxed scalar (Integer, Float, etc.) when protocol unboxes length-1
       return elt unless elt.is_a?(::R::Object)
-      ::Kernel.raise(::ArgumentError.new("Indexed element is not a vector")) unless elt.is_a?(::R::Vector)
-      null_check = elt.is__null
-      return nil if (null_check.respond_to?(:unboxed_get) ? null_check.unboxed_get(0) : null_check)
-      elt.unboxed_get(0)
+      return nil if (elt.is__null.respond_to?(:unboxed_get) ? elt.is__null.unboxed_get(0) : elt.is__null)
+      elt.unboxed_get(nil, depth + 1)
     end
 
-    # Unbox list element to Ruby; delegates to >> so we don't recurse into Object#unboxed_get.
-    def unboxed_get(index = nil)
-      self >> index
+    def >>(index)
+      unboxed_get(index, 0)
     end
 
     #--------------------------------------------------------------------------------------

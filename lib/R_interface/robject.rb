@@ -160,43 +160,74 @@ module R
     # R's class() of this object; unwrapped to a single string when length 1.
     def rclass
       res = ::R::Support.exec_function("class", self)
-      res.respond_to?(:>>) ? (res >> nil)[0] : res
+      val = res.respond_to?(:>>) ? (res >> nil) : res
+      val.is_a?(::Array) ? val[0] : val
     end
 
     # R's typeof() of this object; unwrapped to a single string when length 1.
     def typeof
       res = ::R::Support.exec_function("typeof", self)
-      res.respond_to?(:>>) ? (res >> nil)[0] : res
+      val = res.respond_to?(:>>) ? (res >> nil) : res
+      val.is_a?(::Array) ? val[0] : val
     end
 
-    # Unbox this R object to a Ruby value. Used when the receiver is a plain R::Object
-    # (e.g. from a callback or list element that wasn't built as Vector/List). Re-evaluates
-    # the handle so we get the proper wrapper (scalar or Vector/List); delegates to that
-    # type's unboxed_get when possible; otherwise indexes in R with [[index+1]] for a scalar.
-    def unboxed_get(index = nil)
+    # Unbox this R object to a Ruby value. Recurses until only Ruby values (no R::Object).
+    # Plain R::Object: re-evaluates handle; if list (typeof=="list") iterates [[i]] and recurses;
+    # if atomic uses [[index+1]] and result protocol (never uses $ on atomic). Raises UnboxDepthError when depth exceeded.
+    def unboxed_get(index = nil, depth = 0)
+      if depth >= ::R::Support::MAX_UNBOX_DEPTH
+        ::Kernel.raise(::R::UnboxDepthError, "unbox: list too deep (max depth #{::R::Support::MAX_UNBOX_DEPTH} exceeded)")
+      end
       val = ::R::Support.eval(@r_interop)
       return val unless val.is_a?(::R::Object)
-      # Only delegate when the receiver overrides unboxed_get (Vector, List); otherwise
-      # we would recurse (e.g. DataFrame inherits Object#unboxed_get).
-      return val.unboxed_get(index) if val.class.instance_method(:unboxed_get).owner != ::R::Object
-      # Plain R::Object: get element via R [[index+1]] (R is 1-based). Only interpolate
-      # handle if it looks like a safe var name (g2_vN) to avoid injecting backslashes etc.
-      idx = index.nil? ? 1 : index + 1
+      return val.unboxed_get(index, depth) if val.class.instance_method(:unboxed_get).owner != ::R::Object
+
       handle = @r_interop.to_s
-      if handle =~ /\Ag2_v\d+\z/
-        r_code = "#{handle}[[#{idx}]]"
-      else
+      safe_handle = handle =~ /\Ag2_v\d+\z/
+
+      # Whole object (index.nil?): plain Object may be a list in R — use typeof/length, never $
+      if index.nil?
+        type_str = self.typeof.to_s.strip
+        len_obj = self.length
+        n = len_obj.respond_to?(:unboxed_get) ? len_obj.unboxed_get(0) : len_obj
+        n = n.to_i if n.respond_to?(:to_i)
+        if type_str == "list" && n.is_a?(::Integer) && n >= 1
+          list_handle = handle
+          unless safe_handle
+            list_handle = ::R::Support.generate_var_name
+            ::R.bridge.eval_r("#{list_handle} <- #{::R::Support.parse_arg(self)}")
+          end
+          arr = []
+          (1..n).each do |i|
+            elt = ::R::Support.eval("#{list_handle}[[#{i}]]")
+            if elt.nil?
+              arr << nil
+            elsif !elt.is_a?(::R::Object)
+              arr << elt
+            else
+              arr << (elt.is__null.unboxed_get(0) ? nil : elt.unboxed_get(nil, depth + 1))
+            end
+          end
+          return arr
+        end
+        # Atomic (or length 0): treat as single element for consistency
+        index = 0
+      end
+
+      idx = index + 1
+      r_code = safe_handle ? "#{handle}[[#{idx}]]" : nil
+      unless r_code
         var = ::R::Support.generate_var_name
         ::R.bridge.eval_r("#{var} <- #{::R::Support.parse_arg(self)}")
         r_code = "#{var}[[#{idx}]]"
       end
       val2 = ::R::Support.eval(r_code)
       return val2 unless val2.is_a?(::R::Object)
-      return val2.unboxed_get(0) if val2.class.instance_method(:unboxed_get).owner != ::R::Object
-      # Plain R::Object: must return a Ruby value without recursing. Use result protocol
-      # in a loop until we get a scalar or a Vector/List (then unbox once).
+      return val2.unboxed_get(nil, depth + 1) if val2.class.instance_method(:unboxed_get).owner != ::R::Object
+
+      # Plain R::Object single element: use result protocol until scalar or Vector/List
       r_code = "#{val2.r_interop}[[1]]"
-      max_plain = 100
+      max_plain = ::R::Support::MAX_UNBOX_DEPTH - depth
       loop do
         var = ::R::Support.generate_var_name
         assignment = ".GlobalEnv$#{var} <- #{r_code}"
@@ -206,16 +237,18 @@ module R
         when :scalar_double, :scalar_integer, :scalar_logical, :scalar_symbol
           return envelope[:value]
         when :scalar_character
-          val = envelope[:value]
-          return (val.is_a?(::String) && val =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(val) : val
+          v = envelope[:value]
+          return (v.is_a?(::String) && v =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(v) : v
         when :handle
           obj = ::R::Object.build(envelope[:handle], nil, r_class: envelope[:r_class])
           unless obj.instance_of?(::R::Object)
-            return obj.unboxed_get(0)
+            return obj.unboxed_get(nil, depth + 1)
           end
           r_code = "#{envelope[:handle]}[[1]]"
           max_plain -= 1
-          raise "unboxed_get: plain R::Object nesting too deep" if max_plain <= 0
+          if max_plain <= 0
+            ::Kernel.raise(::R::UnboxDepthError, "unbox: list too deep (max depth #{::R::Support::MAX_UNBOX_DEPTH} exceeded)")
+          end
         else
           raise "Result protocol: unknown envelope type #{envelope[:type].inspect}"
         end
@@ -224,6 +257,11 @@ module R
 
     # Unbox via >>: same as unboxed_get so (self >> nil) and (self >> 0) work.
     alias_method :>>, :unboxed_get
+
+    # Unboxing semantics (>> nil / to_ruby / unboxed_get(nil)): recurse until result contains only Ruby
+    # values (Integer, Float, String, true/false, Array, nil). List → Array (single list → [x]).
+    # Atomic length 1 → scalar; length > 1 → Array. Can be expensive for large/deep structures.
+    # Raises R::UnboxDepthError when recursion exceeds MAX_UNBOX_DEPTH.
 
     # Simple way to get a Ruby value: (self >> nil). For length-1 vectors returns the scalar; for longer returns array.
     def to_ruby

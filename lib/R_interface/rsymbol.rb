@@ -38,12 +38,14 @@ module R
 
     def rclass
       res = ::R::Support.exec_function("class", ::R::Support.exec_function("eval", self))
-      res.respond_to?(:>>) ? (res >> nil)[0] : res
+      val = res.respond_to?(:>>) ? (res >> nil) : res
+      val.is_a?(::Array) ? val[0] : val
     end
 
     def typeof
       res = ::R::Support.exec_function("typeof", ::R::Support.exec_function("eval", self))
-      res.respond_to?(:>>) ? (res >> nil)[0] : res
+      val = res.respond_to?(:>>) ? (res >> nil) : res
+      val.is_a?(::Array) ? val[0] : val
     end
 
     # Symbol name as string (e.g. "read.table") for call[[1]].to_s.

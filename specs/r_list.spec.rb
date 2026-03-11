@@ -83,8 +83,9 @@ describe R::List do
       expect { @l >> 4 }.to raise_error(IndexError)
     end
 
-    it "should raise an exception (Argument error) if indexed element is not a vector" do
-      expect { @l >> 3 }.to raise_error(ArgumentError)
+    it "should unbox list element (including nested list) to Ruby array" do
+      # @l >> 3 is the 4th element (c: R.list(4, 5, 6)); with recursive unboxing we get [4, 5, 6]
+      expect(@l >> 3).to eq [4, 5, 6]
     end
 
     it "should return nil if named index does not exists" do

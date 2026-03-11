@@ -45,17 +45,16 @@ module R
     end
     
     #--------------------------------------------------------------------------------------
-    # When indexing with '[' or '[[' an R object is returned.  Sometimes we need to have
-    # access to an umboxed Ruby element, for instance, in an numeric array, we might want
-    # to receive the actual number that can be used in a Ruby method.  In this case, we
-    # use the '>>' operator.
-    # @return the Ruby element at the given index in the vector
+    # Unbox vector to Ruby. Atomic vectors: length 1 → scalar, length > 1 → Array of scalars.
+    # Recursion depth is checked; vectors do not recurse into R::Object (elements are scalars).
     #--------------------------------------------------------------------------------------
-
-    def unboxed_get(index = nil)
+    def unboxed_get(index = nil, depth = 0)
+      if depth >= ::R::Support::MAX_UNBOX_DEPTH
+        ::Kernel.raise(::R::UnboxDepthError, "unbox: list too deep (max depth #{::R::Support::MAX_UNBOX_DEPTH} exceeded)")
+      end
       if index.nil?
-        # Unbox whole vector to Ruby array
-        return ::R.bridge.pull_vector(@r_interop)
+        arr = ::R.bridge.pull_vector(@r_interop)
+        return (arr.length == 1 ? arr[0] : arr)
       end
 
       # For indexed unboxing, use binary transport
@@ -92,9 +91,11 @@ module R
 
     alias_method :>>, :unboxed_get
 
-    # Return Ruby array so RSpec/eq and array conversion don't forward to_ary to R
+    # Return Ruby array so RSpec/eq and array conversion don't forward to_ary to R.
+    # Must always return an Array (length-1 vector unboxes to scalar via >> nil, so wrap in [v]).
     def to_ary
-      self >> nil
+      v = self >> nil
+      v.is_a?(::Array) ? v : [v]
     end
 
     #--------------------------------------------------------------------------------------
