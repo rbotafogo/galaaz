@@ -70,3 +70,36 @@ module E
     res
   end
 end
+
+#--------------------------------------------------------------------------------------
+# NilClass: R NULL is converted to Ruby nil. So nil must respond to is__null / isTRUE
+# so that code like obj.is__null.unboxed_get(0) does not raise when obj is nil.
+#--------------------------------------------------------------------------------------
+module R
+  # Result object for nil.is__null so that nil.is__null.unboxed_get(0) => true.
+  class NullCheckResult
+    def initialize(bool)
+      @bool = bool
+    end
+    def unboxed_get(_index = nil)
+      @bool
+    end
+    # For (nil.is__null | x).unboxed_get(0): true | x => true; false | x => x
+    def |(other)
+      @bool ? self : other
+    end
+  end
+  NULL_IS_NULL = NullCheckResult.new(true).freeze
+  NULL_IS_FALSE = NullCheckResult.new(false).freeze
+end
+
+class NilClass
+  # R NULL becomes Ruby nil; treat nil as null so .is__null.unboxed_get(0) works.
+  def is__null
+    R::NULL_IS_NULL
+  end
+  # R's isTRUE(NULL) is FALSE; so nil.isTRUE.unboxed_get(0) => false.
+  def isTRUE
+    R::NULL_IS_FALSE
+  end
+end

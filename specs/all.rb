@@ -23,6 +23,9 @@
 
 require_relative 'r_eval.spec'
 
+# Nil/null: nil.is__null and nil.isTRUE (R NULL → Ruby nil)
+require_relative 'nil_null_spec'
+
 # Specification for Functions
 require_relative 'r_function.spec'
 
