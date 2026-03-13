@@ -483,13 +483,15 @@ class KnitrEngine
     @background = options['background'] 
     @class__source = options['class_source'] 
     
-    # Plots
-    @fig__path = (options['fig.path'].unboxed_get(0))
+    # Plots - avoid unboxed_get in callback as it uses RESULT_FIFO which fails with "invalid connection"
+    @fig__path = options['fig.path']
+    @fig__path = @fig__path.to_s if @fig__path.respond_to?(:to_s)
     @fig__keep = options['fig.keep'] # can be a vector; use options['fig.keep'] not options.fig__keep to avoid R's fig.keep() which triggers invalid connection
     @fig__show = options['fig.show'] 
     @dev = options['dev'] 
     # @dev__args = options['dev.args'] # can be a vector
-    @fig__ext = (options['fig.ext'].unboxed_get(0))
+    @fig__ext = options['fig.ext']
+    @fig__ext = @fig__ext.to_s if @fig__ext.respond_to?(:to_s)
     @dpi = options['dpi'] 
     @fig__width = options['fig.width'] 
     @fig__height = options['fig.height'] 
@@ -662,7 +664,9 @@ class KnitrEngine
         res = GalaazUtil.exec_ruby(@options)
         
         # function engine_output will format whatever is in out inside a white box
-        out = R.engine_output(@options, out: res) if @echo
+        # DISABLED: knitr's engine_output always fails with "invalid connection" in callback
+        # out = R.engine_output(@options, out: res) if @echo
+        out = res
         
         # ouputs the data in RubyChunk '@outputs' variable. Everything that should
         # be processed by 'pandoc' and not appear in the output block from

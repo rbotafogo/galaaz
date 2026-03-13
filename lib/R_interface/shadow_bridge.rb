@@ -61,6 +61,7 @@ module R
       @result_fifo_io = nil
       @last_envelope_nil_reason = nil
       @allocator = RootAllocator.new
+      @callback_seq = 0  # Sequence counter for callback command/response matching
 
       setup_fifos
       start_r_process
@@ -234,6 +235,10 @@ module R
       @bridge_ready
     end
 
+    def in_callback?
+      @in_callback
+    end
+
     # Append one line to galaaz_trace.log when GALAAZ_TRACE=1 (for debugging "R process is dead").
     def trace_log(method, code)
       @command_seq += 1
@@ -317,14 +322,16 @@ module R
     #handling nested --G_CALLBACK-- and --G_ERR--.
     def eval_r_in_callback(code)
       ts = Time.now.strftime("%H:%M:%S.%L")
-      File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][JRuby Nested] #{code}" }
-      payload = "--G_CMD--#{code.gsub("\n", "\\n")}\n"
+      @callback_seq += 1
+      seq = @callback_seq
+      File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][JRuby Nested] seq=#{seq} #{code}" }
+      payload = "--G_CMD--seq=#{seq}--#{code.gsub("\n", "\\n")}\n"
       if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
         File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][RUBY_SEND_EXACT] #{payload.inspect}" }
       end
       File.write(CALLBACK_FIFO, payload)
-      debug_r_console("RUBY", "callback: #{code.strip[0..200]}#{'...' if code.length > 200}")
-      log_hang_point("eval_r_in_callback: waiting for stdout until --G_CMD_END--")
+      debug_r_console("RUBY", "callback seq=#{seq}: #{code.strip[0..200]}#{'...' if code.length > 200}")
+      log_hang_point("eval_r_in_callback seq=#{seq}: waiting for stdout until --G_CMD_END--")
       output = ""
       while line = read_stdout_line
         File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][R stdout Nested] #{line}" }
@@ -333,9 +340,17 @@ module R
           next
         end
         if line.start_with?('--G_ERR--')
-          raise "R Error (Nested): #{line.sub('--G_ERR--', '').strip}\nCode: #{code}"
+          raise "R Error (Nested): #{line.sub('--G_ERR--', '').strip}\nCode: seq=#{seq} #{code}"
         end
-        break if line.include?('--G_CMD_END--')
+        # Check for matching sequence number in --G_CMD_END--
+        if line =~ /--G_CMD_END--seq=#{seq}--/
+          break
+        end
+        # Also break on legacy --G_CMD_END-- for backward compatibility
+        if line.include?('--G_CMD_END--') && !line.include?('seq=')
+          File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][SEQ_MISMATCH] Expected seq=#{seq}, got legacy --G_CMD_END--" }
+          break
+        end
         output << line unless line.start_with?('--G_')
       end
       output.strip
@@ -500,7 +515,7 @@ module R
 
     # Send "var <- expr; galaaz_result(var)" to R, wait for --G_END--, read one envelope from RESULT_FIFO.
     # Only accepts assignment_code of the form "g2_v* <- ..." or ".GlobalEnv$g2_v* <- ..."; returns nil otherwise.
-    # When @in_callback: FALL BACK to simple eval_r (no binary protocol) to avoid FIFO coordination issues
+    # When @in_callback: use callback-safe protocol (stdout-based) to avoid "invalid connection" errors
     def eval_r_with_result(assignment_code)
       r_cmd = build_eval_r_with_result_cmd(assignment_code)
       return nil unless r_cmd

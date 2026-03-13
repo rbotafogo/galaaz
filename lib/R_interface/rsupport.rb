@@ -180,7 +180,12 @@ module R
             if (length(res_str) < 1L) next
             line <- res_str[1]
             if (startsWith(line, '--G_CMD--')) {
-              cmd <- trimws(sub('--G_CMD--', '', line))
+              # Extract sequence number if present (regmatches returns list; use [[1]] for sub)
+              seq_match <- regmatches(line, regexpr('--G_CMD--seq=([0-9]+)--', line))
+              seq_num <- if (length(seq_match) > 0L && length(seq_match[[1]]) > 0L) sub('--G_CMD--seq=([0-9]+)--', '\\\\1', seq_match[[1]]) else '0'
+              # Extract actual command
+              cmd_part <- sub('--G_CMD--(seq=[0-9]+--)?', '', line)
+              cmd <- trimws(cmd_part)
               recv_log <- Sys.getenv('GALAAZ_R_RECEIVED_LOG', '')
               if (nchar(recv_log) > 0L) tryCatch({
                 write('---CMD---\\n', file=recv_log, append=TRUE)
@@ -188,17 +193,19 @@ module R
                 write('\\n', file=recv_log, append=TRUE)
               }, error=function(e) NULL)
               # Log that we're about to execute a command
-              cat('[R_CALLBACK]', 'Executing:', substr(cmd, 1, 50), '...\\n')
+              cat('[R_CALLBACK]', 'seq=', seq_num, 'Executing:', substr(cmd, 1, 50), '...\\n', sep='')
               # Wrap entire command handling in tryCatch to ensure --G_CMD_END-- is always sent
+              # Use capture.output with explicit print() to ensure output is captured
               tryCatch({
                 if (nchar(cmd) > 0L) {
-                  result <- capture2(eval(parse(text=cmd)))
+                  result <- capture.output(print(eval(parse(text=cmd))))
                   cat(result, sep='\\n')
                 }
               }, error=function(e) {
                 cat('--G_ERR--', conditionMessage(e), '\\n', sep='')
               }, finally={
-                cat('--G_CMD_END--\\n')
+                # Include sequence number in response for synchronization
+                cat('--G_CMD_END--seq=', seq_num, '--\\n', sep='')
                 flush.console()
               })
             } else if (startsWith(line, '--G_RET--')) {
@@ -361,14 +368,23 @@ module R
         # Debug dump must not block the is_field check (e.g. if R throws "invalid connection" when inspecting the object).
         File.open(R.bridge.log_path("galaaz_obj_debug.log"), "a") { |f| f.puts "[#{Time.now.strftime('%H:%M:%S.%L')}] log_object_in_r(#{handle}) failed: #{e.message}" }
       end
-      is_field = R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
+      # In callback, eval_r can fail with "invalid connection" - wrap in begin/rescue
+      is_field = begin
+        R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
+      rescue RuntimeError => e
+        e.message.include?("invalid connection") ? false : raise
+      end
       if is_field
         res = self.exec_function_name("`[[`", internal, name)
         return res.call(*args) if !args.empty? && res.respond_to?(:call)
         return res
       end
 
-      is_func = R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE"
+      is_func = begin
+        R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE"
+      rescue RuntimeError => e
+        e.message.include?("invalid connection") ? false : raise
+      end
       return self.exec_function(name, internal, *args) if is_func
 
       # Environment: missing name should raise NoMethodError (like Ruby), not call name(env) in R.
