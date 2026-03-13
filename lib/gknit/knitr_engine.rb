@@ -425,7 +425,7 @@ class KnitrEngine
   #--------------------------------------------------------------------------------------
 
   def fig_keep
-    @keep = @options.fig__keep
+    @keep = @fig__keep
     @keep_idx = nil
     
     if (@keep.is__numeric.unboxed_get(0))
@@ -441,11 +441,11 @@ class KnitrEngine
 
   def file_ext
     # guess plot file type if it is NULL
-    # knitr's dev2ext(options) expects the full options list (it uses options$fig.ext and options$dev); passing only @options.dev (atomic) causes "$ operator is invalid for atomic vectors"
-    if (((@keep != 'none').unboxed_get(0)) && (@options.fig__ext.is__null.unboxed_get(0)))
+    # Use @fig__ext (already set from options['fig.ext']) to avoid calling R's fig.ext(options) which triggers invalid connection
+    fig_ext_empty = @fig__ext.nil? || (@fig__ext.respond_to?(:to_s) && @fig__ext.to_s.strip.empty?)
+    if (((@keep != 'none').unboxed_get(0)) && fig_ext_empty)
       @fig__ext = (R.knitr_dev2ext(@options).unboxed_get(0))
     end
-    
   end
 
   #--------------------------------------------------------------------------------------
@@ -485,7 +485,7 @@ class KnitrEngine
     
     # Plots
     @fig__path = (options['fig.path'].unboxed_get(0))
-    # @fig__keep = options['fig.keep'] # can be a vector
+    @fig__keep = options['fig.keep'] # can be a vector; use options['fig.keep'] not options.fig__keep to avoid R's fig.keep() which triggers invalid connection
     @fig__show = options['fig.show'] 
     @dev = options['dev'] 
     # @dev__args = options['dev.args'] # can be a vector
@@ -586,10 +586,10 @@ class KnitrEngine
       # use absolute path so the file is created where Ruby expects and include_graphics can find it
       filename_abs = File.expand_path(@filename)
       # Save in one R call (open device, replayPlot, dev.off) so the file is actually written
-      w = (@options.fig__width >> 0) rescue 480
-      h = (@options.fig__height >> 0) rescue 480
-      res = (@options.dpi >> 0) rescue 72
-      dev_str = @options.dev.respond_to?(:>>) ? (@options.dev >> 0) : @options.dev.to_s
+      w = (@fig__width >> 0) rescue 480
+      h = (@fig__height >> 0) rescue 480
+      res = (@dpi >> 0) rescue 72
+      dev_str = @dev.respond_to?(:>>) ? (@dev >> 0) : @dev.to_s
       dev_str = dev_str.to_s.split.first if dev_str.respond_to?(:to_s)
       units_str = (units.respond_to?(:>>) ? (units >> 0) : units).to_s rescue "in"
       R.save_recorded_plot(filename_abs, plot, w, h, dev_str, res, units_str)
@@ -631,6 +631,8 @@ class KnitrEngine
   #--------------------------------------------------------------------------------------
 
   def initialize
+
+    @chunk_index = 0
     
   #--------------------------------------------------------------------------------------
   # Basic engine for processing a chunk
@@ -644,9 +646,11 @@ class KnitrEngine
 
         # process the chunk options.
         process_options(options)
+        @chunk_index += 1
+        $stderr.puts "[gknit] Processing chunk #{@chunk_index}: #{@label}"
         
-        # opens a device for the current chunk for plot recording
-        KnitrEngine.device(@options.dev.unboxed_get(0), @tmp_fig)
+        # opens a device for the current chunk for plot recording (use @dev not @options.dev to avoid R's dev(options))
+        KnitrEngine.device(@dev.unboxed_get(0), @tmp_fig)
         
         # dv gets the current device
         dv = R.dev__cur

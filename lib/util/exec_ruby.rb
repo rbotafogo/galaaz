@@ -79,8 +79,10 @@ module GalaazUtil
 
     # RubyChunk.init
     
-    # read the chunk code
-    code = R.paste(options.code, collapse: "\n").unboxed_get(0)
+    # read the chunk code: use file to avoid result protocol returning handle for long/multi-line strings in callback
+    chunk_code_file = "/dev/shm/galaaz_chunk_code.txt"
+    R.bridge.eval_r("writeLines(paste(#{options.r_interop}[['code']], collapse='\\n'), '#{chunk_code_file}')")
+    code = File.read(chunk_code_file)
     # If the string arrived with literal \n (e.g. from R→Ruby transport), convert to real newlines so eval does not hit "unexpected backslash"
     code = code.gsub("\\n", "\n") if code.is_a?(String)
     
@@ -88,7 +90,7 @@ module GalaazUtil
     # function engine_output.  We first add the souce code from the block to
     # the list
     out_list = R.list(R.structure(R.list(src: code), class: 'source')) if
-      options.echo.unboxed_get(0)
+      options['echo'].unboxed_get(0)
 
     begin
 
@@ -113,13 +115,13 @@ module GalaazUtil
     rescue StandardError => e
 
       # print the error message
-      if (options.message.unboxed_get(0))
+      if (options['message'].unboxed_get(0))
         message = R.list(R.structure(R.list(message: e.message), class: 'message'))
         out_list = R.c(out_list, message)
       end
 
       # Print the backtrace of the error message
-      if (options.warning.unboxed_get(0))
+      if (options['warning'].unboxed_get(0))
         bt = ""
         e.backtrace.each { |line| bt << line + "\n"}
         warning = R.list(R.structure(R.list(message: bt), class: 'message'))
@@ -127,7 +129,7 @@ module GalaazUtil
       end
 
     rescue SyntaxError => e
-      STDERR.puts "A syntax error occured in ruby block '#{options.label.unboxed_get(0)}'"
+      STDERR.puts "A syntax error occured in ruby block '#{options['label'].unboxed_get(0)}'"
       raise SyntaxError.new(e)
       
     ensure
@@ -135,7 +137,7 @@ module GalaazUtil
       $stdout = STDOUT
     end
     
-    (options.include.unboxed_get(0))? out_list : R.list
+    (options['include'].unboxed_get(0))? out_list : R.list
     
   end
   

@@ -59,7 +59,7 @@ file.") do |opt|
 that are created during rendering.") do |opt|
     options[:clean] = opt
   end
-  opts.on("--debugR", "Log all R code sent to the bridge to galaaz_r_scripts.log (full scripts, sequential).") do
+  opts.on("--debugR", "Log R/Ruby bridge traffic to logs; print only [RUBY] (commands sent) to stderr. Full R output is in logs/galaaz_r_stdout.log.") do
     ENV["GALAAZ_DEBUG_R"] = "1"
   end
 end.parse!

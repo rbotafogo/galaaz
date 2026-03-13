@@ -187,9 +187,20 @@ module R
                 write(cmd, file=recv_log, append=TRUE)
                 write('\\n', file=recv_log, append=TRUE)
               }, error=function(e) NULL)
-              if (nchar(cmd) > 0L) cat(capture2(eval(parse(text=cmd))), sep='\\n')
-              cat('--G_CMD_END--\\n')
-              flush.console()
+              # Log that we're about to execute a command
+              cat('[R_CALLBACK]', 'Executing:', substr(cmd, 1, 50), '...\\n')
+              # Wrap entire command handling in tryCatch to ensure --G_CMD_END-- is always sent
+              tryCatch({
+                if (nchar(cmd) > 0L) {
+                  result <- capture2(eval(parse(text=cmd)))
+                  cat(result, sep='\\n')
+                }
+              }, error=function(e) {
+                cat('--G_ERR--', conditionMessage(e), '\\n', sep='')
+              }, finally={
+                cat('--G_CMD_END--\\n')
+                flush.console()
+              })
             } else if (startsWith(line, '--G_RET--')) {
               res_handle <- trimws(sub('--G_RET--', '', line))
               if (nchar(res_handle) > 0L) return(eval(parse(text=res_handle)))
@@ -343,6 +354,13 @@ module R
       # Prefer component/field access (obj.beta => obj[["beta"]]) over calling a global function (beta()).
       # Use [[ instead of $ so we avoid "$ operator is invalid for atomic vectors" when receiver is atomic;
       # [[ on list/data.frame/env returns the element; result protocol maps NA/NULL as appropriate.
+      begin
+        R.bridge.log_connections_in_r if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
+        R.bridge.log_object_in_r(handle) if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true" || ENV["GALAAZ_DEBUG_OBJECT"].to_s == "1" || ENV["GALAAZ_DEBUG_OBJECT"].to_s == "true"
+      rescue StandardError => e
+        # Debug dump must not block the is_field check (e.g. if R throws "invalid connection" when inspecting the object).
+        File.open(R.bridge.log_path("galaaz_obj_debug.log"), "a") { |f| f.puts "[#{Time.now.strftime('%H:%M:%S.%L')}] log_object_in_r(#{handle}) failed: #{e.message}" }
+      end
       is_field = R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
       if is_field
         res = self.exec_function_name("`[[`", internal, name)

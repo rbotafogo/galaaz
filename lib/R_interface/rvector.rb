@@ -75,10 +75,14 @@ module R
         data = ::R.bridge.pull_integer_vector(@r_interop, 1, idx, 1)
         data[0]
       when 'character'
-        # Use eval_r to extract the single element as text (avoids binary transport)
-        raw = ::R.bridge.eval_r("#{@r_interop}[[#{idx + 1}]]")
-        m = raw.match(/\[1\]\s*"(.*)"/)
-        m ? m[1] : raw.sub(/\A\[1\]\s*/, '').strip
+        # Single path: result protocol (raw binary envelope). No parsing of printed output.
+        var_name = ::R::Support.generate_var_name
+        assignment = ".GlobalEnv$#{var_name} <- #{@r_interop}[[#{idx + 1}]]"
+        envelope = ::R.bridge.eval_r_with_result(assignment)
+        raise "Result protocol: no envelope for character element #{@r_interop}[[#{idx + 1}]]" unless envelope
+        raise "Result protocol: expected scalar_character, got #{envelope[:type]}" unless envelope[:type] == :scalar_character
+        v = envelope[:value]
+        (v.is_a?(::String) && v =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(v) : v
       when 'logical'
         # Use eval_r to extract the single element as text
         raw = ::R.bridge.eval_r("#{@r_interop}[[#{idx + 1}]]")
