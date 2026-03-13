@@ -689,6 +689,11 @@ class KnitrEngine
 
         out
         
+      rescue StandardError, RuntimeError => e
+        # Format error with newlines so R/knitr displays it on multiple lines (not semicolon-joined).
+        formatted = e.message.to_s
+        formatted += "\n\n--- Ruby backtrace ---\n" + e.backtrace.join("\n") if e.backtrace && !e.backtrace.empty?
+        R.list(R.simpleMessage(formatted))
       ensure
         # closes the current device
         # R.dev__off(dv)

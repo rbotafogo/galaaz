@@ -100,7 +100,7 @@ puts @traj
 ```
 
 ```
-## #<RC::Trajectories:0x4c38cd16>;
+## #<RC::Trajectories:0x7ddcb0dc>;
 ```
 
 To see the contents of an object, one needs to access its components using the '.' operator:
@@ -528,11 +528,11 @@ end
 ```
 
 ```
-## R Error (Nested): object 'g2_v804' not found; Code: seq=4211 isTRUE('nrow' %in% names(g2_v804)) || (is.environment(g2_v804) && isTRUE(exists('nrow', envir = g2_v804, inherits = FALSE)))
+## R Error (Nested): object 'g2_v804' not found; Code: seq=4211 isTRUE('nrow' %in% names(g2_v804)) || (is.environment(g2_v804) && isTRUE(exists('nrow', envir = g2_v804, inherits = FALSE))); --- R traceback ---; No traceback available
 ```
 
 ```
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:343:in 'eval_r_in_callback'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:317:in 'eval_r'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:373:in 'process_missing_dispatch'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:294:in 'process_missing'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/robject.rb:304:in 'method_missing'; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:123:in 'show'; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in 'exec_ruby'; org/jruby/RubyKernel.java:1268:in 'eval'; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in 'exec_ruby'; /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:664:in 'block in initialize'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:748:in 'process_callback'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:709:in 'read_stdout_until_g_end_for_result'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:669:in 'eval_r_with_result_top_level'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:527:in 'block in eval_r_with_result'; org/jruby/ext/monitor/Monitor.java:85:in 'synchronize'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:527:in 'eval_r_with_result'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:245:in 'exec_function'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in 'method_missing'; -e:5:in 'block in <main>'; org/jruby/RubyDir.java:441:in 'chdir'; -e:4:in '<main>';
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:348:in 'eval_r_in_callback'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:317:in 'eval_r'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:375:in 'process_missing_dispatch'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:296:in 'process_missing'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/robject.rb:304:in 'method_missing'; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:123:in 'show'; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in 'exec_ruby'; org/jruby/RubyKernel.java:1268:in 'eval'; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in 'exec_ruby'; /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:664:in 'block in initialize'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in 'process_callback'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in 'read_stdout_until_g_end_for_result'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in 'eval_r_with_result_top_level'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in 'block in eval_r_with_result'; org/jruby/ext/monitor/Monitor.java:85:in 'synchronize'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in 'eval_r_with_result'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in 'exec_function'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in 'method_missing'; -e:5:in 'block in <main>'; org/jruby/RubyDir.java:441:in 'chdir'; -e:4:in '<main>';
 ```
 
 Our show method has the same problem as SS4, i.e., if an empty trajectories object is created and

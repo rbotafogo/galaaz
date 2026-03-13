@@ -340,7 +340,12 @@ module R
           next
         end
         if line.start_with?('--G_ERR--')
-          raise "R Error (Nested): #{line.sub('--G_ERR--', '').strip}\nCode: seq=#{seq} #{code}"
+          err_msg = line.sub('--G_ERR--', '').strip
+          trace_line = read_stdout_line
+          trace_msg = (trace_line && trace_line.start_with?('--G_TRACE--')) ? trace_line.sub('--G_TRACE--', '').strip.gsub("\\n", "\n") : nil
+          full = "R Error (Nested): #{err_msg}\n\nCode: seq=#{seq} #{code}"
+          full += "\n\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
+          raise full
         end
         # Check for matching sequence number in --G_CMD_END--
         if line =~ /--G_CMD_END--seq=#{seq}--/
@@ -419,8 +424,8 @@ module R
             break if drain.strip == '--G_END--'
           end
           full_msg = "R Error: #{error_msg}"
-          full_msg += "\nCode: #{code}" if code && !code.empty?
-          full_msg += "\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
+          full_msg += "\n\nCode:\n#{code}" if code && !code.empty?
+          full_msg += "\n\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
           raise full_msg
         end
         break if line.include?('--G_END--')
@@ -588,7 +593,7 @@ module R
             break if drain.include?('--G_CMD_END--') || drain.include?('--G_END--')
           end
           full = "R Error (nested): #{err_msg}"
-          full += "\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
+          full += "\n\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
           raise full
         end
         break if line.include?('--G_CMD_END--')
@@ -716,9 +721,9 @@ module R
           while (drain = read_stdout_line)
             break if drain.strip == '--G_END--'
           end
-          code_hint = @last_sent_code ? "\nR code: #{@last_sent_code.strip[0..500]}#{'...' if @last_sent_code.length > 500}" : ""
+          code_hint = @last_sent_code ? "\n\nR code:\n#{@last_sent_code.strip[0..500]}#{'...' if @last_sent_code.length > 500}" : ""
           full_msg = "R Error: #{error_msg}#{code_hint}"
-          full_msg += "\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
+          full_msg += "\n\n--- R traceback ---\n#{trace_msg}" if trace_msg && !trace_msg.empty?
           raise full_msg
         end
         break if line.strip == '--G_END--'

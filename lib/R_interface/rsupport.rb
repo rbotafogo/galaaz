@@ -203,6 +203,8 @@ module R
                 }
               }, error=function(e) {
                 cat('--G_ERR--', conditionMessage(e), '\\n', sep='')
+                tb <- paste(capture.output(traceback()), collapse = '\\\\\\\\n')
+                if (nchar(tb) > 0L) cat('--G_TRACE--', tb, '\\n', sep='')
               }, finally={
                 # Include sequence number in response for synchronization
                 cat('--G_CMD_END--seq=', seq_num, '--\\n', sep='')
