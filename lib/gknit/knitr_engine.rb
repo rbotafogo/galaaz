@@ -664,9 +664,8 @@ class KnitrEngine
         res = GalaazUtil.exec_ruby(@options)
         
         # function engine_output will format whatever is in out inside a white box
-        # DISABLED: knitr's engine_output always fails with "invalid connection" in callback
-        # out = R.engine_output(@options, out: res) if @echo
-        out = res
+        # (exec_ruby now uses simpleMessage/simpleWarning so conditionMessage() works in engine_output)
+        out = @echo ? R.engine_output(@options, out: res) : res
         
         # ouputs the data in RubyChunk '@outputs' variable. Everything that should
         # be processed by 'pandoc' and not appear in the output block from

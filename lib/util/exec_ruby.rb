@@ -114,18 +114,18 @@ module GalaazUtil
       
     rescue StandardError => e
 
-      # print the error message
+      # Use R's simpleMessage/simpleWarning so knitr's engine_output can call conditionMessage() on them
+      # Call R.simpleMessage / R.simpleWarning (not R.exec_function) so the R code is simpleMessage(...) not exec_function(...)
       if (options['message'].unboxed_get(0))
-        message = R.list(R.structure(R.list(message: e.message), class: 'message'))
-        out_list = R.c(out_list, message)
+        msg_cond = R.simpleMessage(e.message.to_s)
+        out_list = R.c(out_list, msg_cond)
       end
 
-      # Print the backtrace of the error message
       if (options['warning'].unboxed_get(0))
         bt = ""
         e.backtrace.each { |line| bt << line + "\n"}
-        warning = R.list(R.structure(R.list(message: bt), class: 'message'))
-        out_list = R.c(out_list, warning)
+        warn_cond = R.simpleWarning(bt)
+        out_list = R.c(out_list, warn_cond)
       end
 
     rescue SyntaxError => e
