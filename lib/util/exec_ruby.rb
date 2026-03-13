@@ -87,10 +87,16 @@ module GalaazUtil
     code = code.gsub("\\n", "\n") if code.is_a?(String)
     
     # the output should be a list with the proper structure to pass to
-    # function engine_output.  We first add the souce code from the block to
-    # the list
-    out_list = R.list(R.structure(R.list(src: code), class: 'source')) if
-      options['echo'].unboxed_get(0)
+    # function engine_output.  We first add the source code from the block to
+    # the list. Pass src as a character vector of lines (not one string with \n)
+    # so knitr preserves line breaks and indentation in the rendered chunk.
+    if options['echo'].unboxed_get(0)
+      src_lines = code.lines.map(&:chomp)
+      src_lines = [" "] if src_lines.empty?
+      out_list = R.list(R.structure(R.list(src: R.c(*src_lines)), class: 'source'))
+    else
+      out_list = R.list
+    end
 
     begin
 
