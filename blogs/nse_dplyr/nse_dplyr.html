@@ -642,7 +642,10 @@ cryptic (in future releases of Galaza, we plan to improve the error
 message).</p>
 <pre class="ruby"><code>exp_wrong = (:a + :b) == :z
 puts exp_wrong</code></pre>
-<pre><code>## R Error (Nested): object &#39;a&#39; not found; Code: seq=1796 .GlobalEnv$g2_v699 &lt;- { a + b; --- R traceback ---; No traceback available</code></pre>
+<pre><code>## R Error (Nested): object &#39;a&#39; not found; 
+## Code: seq=1796 .GlobalEnv$g2_v699 &lt;- { a + b; 
+## --- R traceback ---; 
+## No traceback available</code></pre>
 <p>The problem lies with the fact that when using ‘==’ we are comparing
 expression (:a + :b) to expression :z with ‘==’. When this comparison is
 executed, the system tries to evaluate :a, :b and :z, and those symbols,
@@ -665,14 +668,42 @@ puts exp7</code></pre>
 <pre class="ruby"><code>exp8 = :y.assign :x.sin
 puts exp8</code></pre>
 <pre><code>## undefined method &#39;sin&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;; org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:664:in &#39;block in initialize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; -e:5:in &#39;block in &lt;main&gt;&#39;; org/jruby/RubyDir.java:441:in &#39;chdir&#39;; -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;; 
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
+## -e:5:in &#39;block in &lt;main&gt;&#39;; 
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
+## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
 <p>When a function has multiple arguments, the first one can be used
 before the ‘.’. For instance, the R concatenate function ‘c’, that
 concatenates two or more arguments can be part of an expression as:</p>
 <pre class="ruby"><code>exp9 = :x.c(:y)
 puts exp9</code></pre>
 <pre><code>## undefined method &#39;c&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;; org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:664:in &#39;block in initialize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; -e:5:in &#39;block in &lt;main&gt;&#39;; org/jruby/RubyDir.java:441:in &#39;chdir&#39;; -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;; 
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
+## -e:5:in &#39;block in &lt;main&gt;&#39;; 
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
+## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
 <p>Note that this gives an OO feeling to the code, as if we were saying
 ‘x’ concatenates ‘y’. As a side note, ‘.’ notation can be used as the R
 pipe operator ‘%&gt;%’, but is more general than the pipe.</p>
@@ -753,7 +784,21 @@ puts ~:flights.dim
 # and the structure
 ~:flights.str</code></pre>
 <pre><code>## undefined method &#39;dim&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:115:in &#39;exec_ruby&#39;; org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:664:in &#39;block in initialize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; -e:5:in &#39;block in &lt;main&gt;&#39;; org/jruby/RubyDir.java:441:in &#39;chdir&#39;; -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:115:in &#39;exec_ruby&#39;; 
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
+## -e:5:in &#39;block in &lt;main&gt;&#39;; 
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
+## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
 <p>Now, let’s use a first verb of <em>dplyr</em>: ‘filter’. This verb,
 obviously, will filter the data by the given expression. In the next
 block, we filter by columns ‘month’ and ‘day’. The first argument to the
@@ -879,7 +924,8 @@ no relationship with the symbol ‘:a’ used in the definition of
 ‘mutate_y’ above:</p>
 <pre class="ruby"><code>a = 10
 mutate_y(df1)</code></pre>
-<pre><code>## R Error (Nested): ℹ In argument: `y &lt;- a + x`.; Code: seq=6143 .GlobalEnv$g2_v2321 &lt;- mutate(g2_v2233, y &lt;- a + x)</code></pre>
+<pre><code>## R Error (Nested): ℹ In argument: `y &lt;- a + x`.; 
+## Code: seq=6143 .GlobalEnv$g2_v2321 &lt;- mutate(g2_v2233, y &lt;- a + x)</code></pre>
 </div>
 <div id="different-expressions" class="section level2">
 <h2>Different expressions</h2>
@@ -951,12 +997,42 @@ end
 
 puts my_summarize(:df, :g1)</code></pre>
 <pre><code>## undefined method &#39;group_by&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:118:in &#39;my_summarize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:122:in &#39;exec_ruby&#39;; org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:664:in &#39;block in initialize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; -e:5:in &#39;block in &lt;main&gt;&#39;; org/jruby/RubyDir.java:441:in &#39;chdir&#39;; -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:118:in &#39;my_summarize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:122:in &#39;exec_ruby&#39;; 
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
+## -e:5:in &#39;block in &lt;main&gt;&#39;; 
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
+## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
 <p>It works!!! Well, let’s make sure this was not just some
 coincidence</p>
 <pre class="ruby"><code>puts my_summarize(:df, :g2)</code></pre>
 <pre><code>## undefined method &#39;group_by&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:118:in &#39;my_summarize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;; org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:664:in &#39;block in initialize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; -e:5:in &#39;block in &lt;main&gt;&#39;; org/jruby/RubyDir.java:441:in &#39;chdir&#39;; -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:118:in &#39;my_summarize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;; 
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
+## -e:5:in &#39;block in &lt;main&gt;&#39;; 
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
+## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
 <p>Great, everything is fine! No magic, no new functions, no
 complexities, just normal, standard Ruby code. If you’ve ever done NSE
 in R, this certainly feels much safer and easy to implement.</p>

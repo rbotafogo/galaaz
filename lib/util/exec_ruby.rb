@@ -121,16 +121,16 @@ module GalaazUtil
     rescue StandardError => e
 
       # Use R's simpleMessage/simpleWarning so knitr's engine_output can call conditionMessage() on them
-      # Call R.simpleMessage / R.simpleWarning (not R.exec_function) so the R code is simpleMessage(...) not exec_function(...)
+      # g_simpleMessage transforms "; " to newlines then calls simpleMessage (defined in R engine setup)
       if (options['message'].unboxed_get(0))
-        msg_cond = R.simpleMessage(e.message.to_s)
+        msg_cond = R.g_simpleMessage(e.message.to_s)
         out_list = R.c(out_list, msg_cond)
       end
 
       if (options['warning'].unboxed_get(0))
         bt = ""
         e.backtrace.each { |line| bt << line + "\n"}
-        warn_cond = R.simpleWarning(bt)
+        warn_cond = R.g_simpleWarning(bt)
         out_list = R.c(out_list, warn_cond)
       end
 

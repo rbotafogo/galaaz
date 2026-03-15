@@ -367,6 +367,18 @@ class KnitrEngine
     }
 
     #" Capture snapshot of current device (base R recordPlot; same as galaaz_device.R).
+    # g_simpleMessage: same signature as simpleMessage; transforms "; " to newlines then calls base::simpleMessage
+    .GlobalEnv$g_simpleMessage = function(message) {
+        message <- gsub("; ", "; \n", message, fixed = TRUE)
+        base::simpleMessage(message)
+    }
+
+    # g_simpleWarning: same signature as simpleWarning; transforms "; " to newlines then calls base::simpleWarning
+    .GlobalEnv$g_simpleWarning = function(message) {
+        message <- gsub("; ", "; \n", message, fixed = TRUE)
+        base::simpleWarning(message)
+    }
+
     #" evaluate:::plot_snapshot() does not exist in the evaluate package, so use recordPlot().
     #"
     evaluate_plot_snapshot = function() {
