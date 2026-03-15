@@ -593,12 +593,12 @@ text (PDF). Every output line from the code execution is preceeded by
 of expression definition:</p>
 <pre class="ruby"><code>exp1 = :a + :b
 puts exp1</code></pre>
-<pre><code>## a + b;</code></pre>
+<pre><code>## a + b</code></pre>
 <p>In Galaaz, we can build any complex mathematical expression such
 as:</p>
 <pre class="ruby"><code>exp2 = (:a + :b) * 2.0 + :c ** 2 / :z
 puts exp2</code></pre>
-<pre><code>## a + b * 2.0 + c ^ 2L / z;</code></pre>
+<pre><code>## a + b * 2.0 + c ^ 2L / z</code></pre>
 <p>Expressions are printed with the same format as the equivalent R
 expressions. The ‘L’ after 2 indicates that 2 is an integer.</p>
 <p>The R developer should note that in R, if she writes the number ‘2’,
@@ -609,21 +609,21 @@ integer, while ‘2.0’ is a float.</p>
 expressions:</p>
 <pre class="ruby"><code>exp3 = (:a + :b) &gt;= :z
 puts exp3</code></pre>
-<pre><code>## a + b &gt;= z;</code></pre>
+<pre><code>## a + b &gt;= z</code></pre>
 <p>Expressions’ definition can also make use of normal Ruby variables
 without any problem:</p>
 <pre class="ruby"><code>x = 20
 y = 30.0
 exp_var = (:a + :b) * x &lt;= :z - y
 puts exp_var</code></pre>
-<pre><code>## a + b * 20L &lt;= z - 30.0;</code></pre>
+<pre><code>## a + b * 20L &lt;= z - 30.0</code></pre>
 <p>Galaaz provides both symbolic representations for operators, such as
 (&gt;, &lt;, !=) as functional notation for those operators such as
 (.gt, .ge, etc.). So the same expression written above can also be
 written as</p>
 <pre class="ruby"><code>exp4 = (:a + :b).ge :z
 puts exp4</code></pre>
-<pre><code>## a + b &gt;= z;</code></pre>
+<pre><code>## a + b &gt;= z</code></pre>
 <p>Two types of expressions, however, can only be created with the
 functional representation of the operators. Those are expressions
 involving ‘==’, and ‘=’. This is the case since those symbols have
@@ -632,19 +632,22 @@ special meaning in Ruby and should not be redefined.</p>
 method ‘.eq’ and for ‘=’ we need the function ‘.assign’:</p>
 <pre class="ruby"><code>exp5 = (:a + :b).eq :z
 puts exp5</code></pre>
-<pre><code>## a + b == z;</code></pre>
+<pre><code>## a + b == z</code></pre>
 <pre class="ruby"><code>exp6 = :y.assign :a + :b
 puts exp6</code></pre>
-<pre><code>## y &lt;- a + b;</code></pre>
+<pre><code>## y &lt;- a + b</code></pre>
 <p>Users should be careful when writing expressions not to inadvertently
 use ‘==’ or ‘=’ as this will generate an error, that might be a bit
 cryptic (in future releases of Galaza, we plan to improve the error
 message).</p>
 <pre class="ruby"><code>exp_wrong = (:a + :b) == :z
 puts exp_wrong</code></pre>
-<pre><code>## R Error (Nested): object &#39;a&#39; not found; 
-## Code: seq=1796 .GlobalEnv$g2_v699 &lt;- { a + b; 
-## --- R traceback ---; 
+<pre><code>## R Error (Nested): object &#39;a&#39; not found
+## 
+## Code: seq=1796 .GlobalEnv$g2_v699 &lt;- { a + b
+##  }
+## 
+## --- R traceback ---
 ## No traceback available</code></pre>
 <p>The problem lies with the fact that when using ‘==’ we are comparing
 expression (:a + :b) to expression :z with ‘==’. When this comparison is
@@ -663,47 +666,47 @@ expression, we call the function preceeding it by the letter E, such as
 ‘E.sin(x)’</p>
 <pre class="ruby"><code>exp7 = :y.assign E.sin(:x)
 puts exp7</code></pre>
-<pre><code>## y &lt;- sin(x);</code></pre>
+<pre><code>## y &lt;- sin(x)</code></pre>
 <p>Function expressions can also be written using ‘.’ notation:</p>
 <pre class="ruby"><code>exp8 = :y.assign :x.sin
 puts exp8</code></pre>
 <pre><code>## undefined method &#39;sin&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;; 
-## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
-## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
-## -e:5:in &#39;block in &lt;main&gt;&#39;; 
-## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
-## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:756:in &#39;process_callback&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:717:in &#39;read_stdout_until_g_end_for_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:677:in &#39;eval_r_with_result_top_level&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;block in eval_r_with_result&#39;
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;eval_r_with_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:250:in &#39;exec_function&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;
+## -e:5:in &#39;block in &lt;main&gt;&#39;
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;
+## -e:4:in &#39;&lt;main&gt;&#39;</code></pre>
 <p>When a function has multiple arguments, the first one can be used
 before the ‘.’. For instance, the R concatenate function ‘c’, that
 concatenates two or more arguments can be part of an expression as:</p>
 <pre class="ruby"><code>exp9 = :x.c(:y)
 puts exp9</code></pre>
 <pre><code>## undefined method &#39;c&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;; 
-## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
-## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
-## -e:5:in &#39;block in &lt;main&gt;&#39;; 
-## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
-## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:756:in &#39;process_callback&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:717:in &#39;read_stdout_until_g_end_for_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:677:in &#39;eval_r_with_result_top_level&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;block in eval_r_with_result&#39;
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;eval_r_with_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:250:in &#39;exec_function&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;
+## -e:5:in &#39;block in &lt;main&gt;&#39;
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;
+## -e:4:in &#39;&lt;main&gt;&#39;</code></pre>
 <p>Note that this gives an OO feeling to the code, as if we were saying
 ‘x’ concatenates ‘y’. As a side note, ‘.’ notation can be used as the R
 pipe operator ‘%&gt;%’, but is more general than the pipe.</p>
@@ -717,7 +720,7 @@ function ‘eval’ with a binding.</p>
 below:</p>
 <pre class="ruby"><code>exp = (:a + :b) * 2.0 + :c ** 2 / :z
 puts exp.eval(R.list(a: 10, b: 20, c: 30, z: 40))</code></pre>
-<pre><code>## 72.5;</code></pre>
+<pre><code>## 72.5</code></pre>
 <p>with a data frame:</p>
 <pre class="ruby"><code>df = R.data__frame(
   a: R.c(1, 2, 3),
@@ -726,7 +729,9 @@ puts exp.eval(R.list(a: 10, b: 20, c: 30, z: 40))</code></pre>
   z: R.c(1000, 2000, 3000))
 
 puts exp.eval(df)</code></pre>
-<pre><code>## 31.0; 62.0; 93.0;</code></pre>
+<pre><code>## 31.0
+## 62.0
+## 93.0</code></pre>
 </div>
 </div>
 <div id="using-galaaz-to-call-r-functions" class="section level1">
@@ -743,12 +748,19 @@ in R, the ‘c’ function is used. In Galaaz, a vector can be created by
 using ‘R.c’:</p>
 <pre class="ruby"><code>vec = R.c(1.0, 2, 3)
 puts vec</code></pre>
-<pre><code>## [1] 1 2 3;</code></pre>
+<pre><code>## [1] 1 2 3</code></pre>
 <p>A list is created in R with the ‘list’ function, so in Galaaz we
 do:</p>
 <pre class="ruby"><code>list = R.list(a: 1.0, b: 2, c: 3)
 puts list</code></pre>
-<pre><code>## $a; [1] 1; $b; [1] 2; $c; [1] 3;</code></pre>
+<pre><code>## $a
+## [1] 1
+## 
+## $b
+## [1] 2
+## 
+## $c
+## [1] 3</code></pre>
 <p>Note that we can use named arguments in our list. The same code in R
 would be:</p>
 <pre class="r"><code>lst = list(a = 1, b = 2L, c = 3L)
@@ -767,7 +779,7 @@ which is <span class="math inline">\(y = 0.850...\)</span>. In this
 case, we will use ‘R.sin’:</p>
 <pre class="ruby"><code>exp10 = :y.assign R.sin(45)
 puts exp10</code></pre>
-<pre><code>## y &lt;- 0.850903524534118;</code></pre>
+<pre><code>## y &lt;- 0.850903524534118</code></pre>
 </div>
 <div id="data-manipulation-wiht-dplyr" class="section level1">
 <h1>Data manipulation wiht <em>dplyr</em></h1>
@@ -784,21 +796,21 @@ puts ~:flights.dim
 # and the structure
 ~:flights.str</code></pre>
 <pre><code>## undefined method &#39;dim&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:115:in &#39;exec_ruby&#39;; 
-## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
-## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
-## -e:5:in &#39;block in &lt;main&gt;&#39;; 
-## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
-## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:115:in &#39;exec_ruby&#39;
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:756:in &#39;process_callback&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:717:in &#39;read_stdout_until_g_end_for_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:677:in &#39;eval_r_with_result_top_level&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;block in eval_r_with_result&#39;
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;eval_r_with_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:250:in &#39;exec_function&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;
+## -e:5:in &#39;block in &lt;main&gt;&#39;
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;
+## -e:4:in &#39;&lt;main&gt;&#39;</code></pre>
 <p>Now, let’s use a first verb of <em>dplyr</em>: ‘filter’. This verb,
 obviously, will filter the data by the given expression. In the next
 block, we filter by columns ‘month’ and ‘day’. The first argument to the
@@ -809,7 +821,23 @@ function will convert to the R variable of the same name, in this case
 the filter function to filter by columns, looking for entries in which
 the month and day are equal to 1.</p>
 <pre class="ruby"><code>puts R.filter(:flights, (:month.eq 1), (:day.eq 1))</code></pre>
-<pre><code>## # A tibble: 842 × 19;     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time;    &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;          &lt;int&gt;;  1  2013     1     1      517            515         2      830            819;  2  2013     1     1      533            529         4      850            830;  3  2013     1     1      542            540         2      923            850;  4  2013     1     1      544            545        -1     1004           1022;  5  2013     1     1      554            600        -6      812            837;  6  2013     1     1      554            558        -4      740            728;  7  2013     1     1      555            600        -5      913            854;  8  2013     1     1      557            600        -3      709            723;  9  2013     1     1      557            600        -3      838            846; 10  2013     1     1      558            600        -2      753            745; # ℹ 832 more rows; # ℹ 11 more variables: arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;,; #   tailnum &lt;chr&gt;, origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;,; #   hour &lt;dbl&gt;, minute &lt;dbl&gt;, time_hour &lt;dttm&gt;;</code></pre>
+<pre><code>## # A tibble: 842 × 19
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;          &lt;int&gt;
+##  1  2013     1     1      517            515         2      830            819
+##  2  2013     1     1      533            529         4      850            830
+##  3  2013     1     1      542            540         2      923            850
+##  4  2013     1     1      544            545        -1     1004           1022
+##  5  2013     1     1      554            600        -6      812            837
+##  6  2013     1     1      554            558        -4      740            728
+##  7  2013     1     1      555            600        -5      913            854
+##  8  2013     1     1      557            600        -3      709            723
+##  9  2013     1     1      557            600        -3      838            846
+## 10  2013     1     1      558            600        -2      753            745
+## # ℹ 832 more rows
+## # ℹ 11 more variables: arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;,
+## #   tailnum &lt;chr&gt;, origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;,
+## #   hour &lt;dbl&gt;, minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</code></pre>
 <div id="programming-with-dplyr-problems-and-how-to-solve-them-in-galaaz" class="section level2">
 <h2>Programming with <em>dplyr</em>: problems and how to solve them in
 Galaaz</h2>
@@ -830,7 +858,10 @@ functions that have a ‘.’ in them, we need to substitute the ‘.’ with
 ‘R.data__frame’:</p>
 <pre class="ruby"><code>df = R.data__frame(x: (1..3), y: (3..1))
 puts df</code></pre>
-<pre><code>##   x y; 1 1 3; 2 2 2; 3 3 1;</code></pre>
+<pre><code>##   x y
+## 1 1 3
+## 2 2 2
+## 3 3 1</code></pre>
 <p><em>dplyr</em> provides the ‘filter’ function, that filters data in a
 data brame. The ‘filter’ function can be called on this data frame
 either by using ‘R.filter(df, …)’ or by using dot notation.</p>
@@ -844,7 +875,8 @@ returning all rows in which the ‘x’ value is equal to 1. To express this
 we want: ‘:x.eq 1’, where :x will be interpreted by filter as the ‘x’
 column.</p>
 <pre class="ruby"><code>puts df.filter(:x.eq 1)</code></pre>
-<pre><code>##   x y; 1 1 3;</code></pre>
+<pre><code>##   x y
+## 1 1 3</code></pre>
 <p>In R, and when coding with ‘tidyverse’, arguments to a function are
 usually not <em>referencially transparent</em>. That is, you can’t
 replace a value with a seemingly equivalent object that you’ve defined
@@ -860,7 +892,8 @@ variable that resolves to ‘:x’ and it becomes equivalent to (:x.eq 1)
 which is what we want.</p>
 <pre class="ruby"><code>my_var = :x
 puts df.filter(my_var.eq 1)</code></pre>
-<pre><code>##   x y; 1 1 3;</code></pre>
+<pre><code>##   x y
+## 1 1 3</code></pre>
 <p>As stated by Hardley</p>
 <blockquote>
 <p>dplyr code is ambiguous. Depending on what variables are defined
@@ -882,11 +915,13 @@ x = 2
 
 # looking for values where the &#39;x&#39; column is equal to the &#39;y&#39; column
 puts df.filter(:x.eq :y)</code></pre>
-<pre><code>##   x y; 1 2 2;</code></pre>
+<pre><code>##   x y
+## 1 2 2</code></pre>
 <pre class="ruby"><code># looking for values where the &#39;x&#39; column is equal to the &#39;y&#39; variable
 # in this case, the number 1
 puts df.filter(:x.eq y)</code></pre>
-<pre><code>##   x y; 1 1 3;</code></pre>
+<pre><code>##   x y
+## 1 1 3</code></pre>
 </div>
 <div id="writing-a-function-that-applies-to-different-data-sets" class="section level2">
 <h2>Writing a function that applies to different data sets</h2>
@@ -917,14 +952,18 @@ end</code></pre>
 <p>Here we create a data frame that has only one column named ‘x’:</p>
 <pre class="ruby"><code>df1 = R.data__frame(x: (1..3))
 puts df1</code></pre>
-<pre><code>##   x; 1 1; 2 2; 3 3;</code></pre>
+<pre><code>##   x
+## 1 1
+## 2 2
+## 3 3</code></pre>
 <p>Note that method mutate_y will fail independetly from the fact that
 variable ‘a’ is defined and in the scope of the method. Variable ‘a’ has
 no relationship with the symbol ‘:a’ used in the definition of
 ‘mutate_y’ above:</p>
 <pre class="ruby"><code>a = 10
 mutate_y(df1)</code></pre>
-<pre><code>## R Error (Nested): ℹ In argument: `y &lt;- a + x`.; 
+<pre><code>## R Error (Nested): ℹ In argument: `y &lt;- a + x`.
+## 
 ## Code: seq=6143 .GlobalEnv$g2_v2321 &lt;- mutate(g2_v2233, y &lt;- a + x)</code></pre>
 </div>
 <div id="different-expressions" class="section level2">
@@ -997,42 +1036,42 @@ end
 
 puts my_summarize(:df, :g1)</code></pre>
 <pre><code>## undefined method &#39;group_by&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:118:in &#39;my_summarize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:122:in &#39;exec_ruby&#39;; 
-## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
-## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
-## -e:5:in &#39;block in &lt;main&gt;&#39;; 
-## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
-## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:118:in &#39;my_summarize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:122:in &#39;exec_ruby&#39;
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:756:in &#39;process_callback&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:717:in &#39;read_stdout_until_g_end_for_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:677:in &#39;eval_r_with_result_top_level&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;block in eval_r_with_result&#39;
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;eval_r_with_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:250:in &#39;exec_function&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;
+## -e:5:in &#39;block in &lt;main&gt;&#39;
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;
+## -e:4:in &#39;&lt;main&gt;&#39;</code></pre>
 <p>It works!!! Well, let’s make sure this was not just some
 coincidence</p>
 <pre class="ruby"><code>puts my_summarize(:df, :g2)</code></pre>
 <pre><code>## undefined method &#39;group_by&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:118:in &#39;my_summarize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;; 
-## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in &#39;process_callback&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in &#39;read_stdout_until_g_end_for_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in &#39;eval_r_with_result_top_level&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;block in eval_r_with_result&#39;; 
-## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in &#39;eval_r_with_result&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in &#39;exec_function&#39;; 
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;; 
-## -e:5:in &#39;block in &lt;main&gt;&#39;; 
-## org/jruby/RubyDir.java:441:in &#39;chdir&#39;; 
-## -e:4:in &#39;&lt;main&gt;&#39;;</code></pre>
+<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:118:in &#39;my_summarize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in &#39;exec_ruby&#39;
+## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in &#39;exec_ruby&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:676:in &#39;block in initialize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:756:in &#39;process_callback&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:717:in &#39;read_stdout_until_g_end_for_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:677:in &#39;eval_r_with_result_top_level&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;block in eval_r_with_result&#39;
+## org/jruby/ext/monitor/Monitor.java:85:in &#39;synchronize&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:535:in &#39;eval_r_with_result&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:250:in &#39;exec_function&#39;
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in &#39;method_missing&#39;
+## -e:5:in &#39;block in &lt;main&gt;&#39;
+## org/jruby/RubyDir.java:441:in &#39;chdir&#39;
+## -e:4:in &#39;&lt;main&gt;&#39;</code></pre>
 <p>Great, everything is fine! No magic, no new functions, no
 complexities, just normal, standard Ruby code. If you’ve ever done NSE
 in R, this certainly feels much safer and easy to implement.</p>
@@ -1068,7 +1107,10 @@ end
 
 puts my_summarise2((~:df), :a)
 puts my_summarise2((~:df), :a * :b)</code></pre>
-<pre><code>##   mean sum n; 1    3  15 5;   mean sum n; 1    9  45 5;</code></pre>
+<pre><code>##   mean sum n
+## 1    3  15 5
+##   mean sum n
+## 1    9  45 5</code></pre>
 <p>Once again, there is no need to use any special theory or functions.
 The only point to be careful about is the use of ‘E’ to build
 expressions from functions ‘mean’, ‘sum’ and ‘n’.</p>
@@ -1113,7 +1155,18 @@ end
 
 puts my_mutate((~:df), :a)
 puts my_mutate((~:df), :b)</code></pre>
-<pre><code>##   g1 g2 a b mean_a sum_a; 1  1  1 3 3      3    15; 2  1  2 2 1      3    15; 3  2  1 5 2      3    15; 4  2  2 4 5      3    15; 5  2  1 1 4      3    15;   g1 g2 a b mean_b sum_b; 1  1  1 3 3      3    15; 2  1  2 2 1      3    15; 3  2  1 5 2      3    15; 4  2  2 4 5      3    15; 5  2  1 1 4      3    15;</code></pre>
+<pre><code>##   g1 g2 a b mean_a sum_a
+## 1  1  1 3 3      3    15
+## 2  1  2 2 1      3    15
+## 3  2  1 5 2      3    15
+## 4  2  2 4 5      3    15
+## 5  2  1 1 4      3    15
+##   g1 g2 a b mean_b sum_b
+## 1  1  1 3 3      3    15
+## 2  1  2 2 1      3    15
+## 3  2  1 5 2      3    15
+## 4  2  2 4 5      3    15
+## 5  2  1 1 4      3    15</code></pre>
 <p>It really seems that “Non Standard Evaluation” is actually quite
 standard in Galaaz! But, you might have noticed a small change in the
 way the arguments to the mutate method were called. In a previous
@@ -1136,7 +1189,14 @@ number of paramenters the paramenter is preceded by ’*’:</p>
 end
 
 puts my_summarise3((~:df), :g1, :g2)</code></pre>
-<pre><code>## # A tibble: 4 × 3; # Groups:   g1 [2];      g1    g2     a;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;; 1     1     1     3; 2     1     2     2; 3     2     1     3; 4     2     2     4;</code></pre>
+<pre><code>## # A tibble: 4 × 3
+## # Groups:   g1 [2]
+##      g1    g2     a
+##   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1     1     1     3
+## 2     1     2     2
+## 3     2     1     3
+## 4     2     2     4</code></pre>
 </div>
 </div>
 <div id="why-does-r-require-nse-and-galaaz-does-not" class="section level1">
@@ -1193,7 +1253,17 @@ arguments.</p>
 argument. The data frame used in ‘starwars’ that describes features of
 characters in the Starwars movies:</p>
 <pre class="ruby"><code>puts (~:starwars).head</code></pre>
-<pre><code>## # A tibble: 6 × 14;   name      height  mass hair_color skin_color eye_color birth_year sex   gender;   &lt;chr&gt;      &lt;int&gt; &lt;dbl&gt; &lt;chr&gt;      &lt;chr&gt;      &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt; ; 1 Luke Sky…    172    77 blond      fair       blue            19   male  mascu…; 2 C-3PO        167    75 &lt;NA&gt;       gold       yellow         112   none  mascu…; 3 R2-D2         96    32 &lt;NA&gt;       white, bl… red             33   none  mascu…; 4 Darth Va…    202   136 none       white      yellow          41.9 male  mascu…; 5 Leia Org…    150    49 brown      light      brown           19   fema… femin…; 6 Owen Lars    178   120 brown, gr… light      blue            52   male  mascu…; # ℹ 5 more variables: homeworld &lt;chr&gt;, species &lt;chr&gt;, films &lt;list&gt;,; #   vehicles &lt;list&gt;, starships &lt;list&gt;;</code></pre>
+<pre><code>## # A tibble: 6 × 14
+##   name      height  mass hair_color skin_color eye_color birth_year sex   gender
+##   &lt;chr&gt;      &lt;int&gt; &lt;dbl&gt; &lt;chr&gt;      &lt;chr&gt;      &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt; 
+## 1 Luke Sky…    172    77 blond      fair       blue            19   male  mascu…
+## 2 C-3PO        167    75 &lt;NA&gt;       gold       yellow         112   none  mascu…
+## 3 R2-D2         96    32 &lt;NA&gt;       white, bl… red             33   none  mascu…
+## 4 Darth Va…    202   136 none       white      yellow          41.9 male  mascu…
+## 5 Leia Org…    150    49 brown      light      brown           19   fema… femin…
+## 6 Owen Lars    178   120 brown, gr… light      blue            52   male  mascu…
+## # ℹ 5 more variables: homeworld &lt;chr&gt;, species &lt;chr&gt;, films &lt;list&gt;,
+## #   vehicles &lt;list&gt;, starships &lt;list&gt;</code></pre>
 <p>The grouped_mean function bellow will receive a grouping variable and
 calculate summaries for the value_variables given:</p>
 <pre class="r"><code>grouped_mean &lt;- function(data, grouping_variables, value_variables) {
@@ -1243,7 +1313,24 @@ gm = starwars %&gt;%
 end
 
 puts grouped_mean((~:starwars), &quot;eye_color&quot;, E.c(&quot;mass&quot;, &quot;birth_year&quot;))</code></pre>
-<pre><code>## # A tibble: 15 × 4;    eye_color     mean_mass mean_birth_year count;    &lt;chr&gt;             &lt;dbl&gt;           &lt;dbl&gt; &lt;dbl&gt;;  1 black              76.3            33      10;  2 blue               86.5            67.1    19;  3 blue-gray          77              57       1;  4 brown              66.1           109.     21;  5 dark              NaN             NaN       1;  6 gold              NaN             NaN       1;  7 green, yellow     159             NaN       1;  8 hazel              66              34.5     3;  9 orange            282.            231       8; 10 pink              NaN             NaN       1; 11 red                81.4            33.7     5; 12 red, blue         NaN             NaN       1; 13 unknown            31.5           NaN       3; 14 white              48             NaN       1; 15 yellow             81.1            76.4    11;</code></pre>
+<pre><code>## # A tibble: 15 × 4
+##    eye_color     mean_mass mean_birth_year count
+##    &lt;chr&gt;             &lt;dbl&gt;           &lt;dbl&gt; &lt;dbl&gt;
+##  1 black              76.3            33      10
+##  2 blue               86.5            67.1    19
+##  3 blue-gray          77              57       1
+##  4 brown              66.1           109.     21
+##  5 dark              NaN             NaN       1
+##  6 gold              NaN             NaN       1
+##  7 green, yellow     159             NaN       1
+##  8 hazel              66              34.5     3
+##  9 orange            282.            231       8
+## 10 pink              NaN             NaN       1
+## 11 red                81.4            33.7     5
+## 12 red, blue         NaN             NaN       1
+## 13 unknown            31.5           NaN       3
+## 14 white              48             NaN       1
+## 15 yellow             81.1            76.4    11</code></pre>
 </div>
 <div id="further-reading" class="section level1">
 <h1>Further reading</h1>

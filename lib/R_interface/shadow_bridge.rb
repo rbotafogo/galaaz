@@ -44,6 +44,9 @@ module R
     CMD_SCRIPT_BASE = "/dev/shm/galaaz_cmd"     # temp R scripts: CMD_SCRIPT_BASE_<seq>.R
     CALLBACK_FIFO = "/dev/shm/galaaz_callback_fifo" # R reads --G_CMD-- / --G_RET-- when in a Ruby callback
 
+    # Transport placeholder for newlines in callback FIFO (one line = one command; restore newline in R before parse)
+    TRANSPORT_NL = "\uE000" # Unicode private use (U+E000), not in normal text
+
     # Log files: use absolute path so they work when process chdirs (e.g. gknit to Rmd dir).
     # From lib/R_interface/ go up to project/gem root, then logs/
     LOG_DIR = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', 'logs'))
@@ -325,7 +328,7 @@ module R
       @callback_seq += 1
       seq = @callback_seq
       File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][JRuby Nested] seq=#{seq} #{code}" }
-      payload = "--G_CMD--seq=#{seq}--#{code.gsub("\n", "\\n")}\n"
+      payload = "--G_CMD--seq=#{seq}--#{code.gsub("\n", TRANSPORT_NL)}\n"
       if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
         File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][RUBY_SEND_EXACT] #{payload.inspect}" }
       end
@@ -571,7 +574,7 @@ module R
           raise "Failed to open RESULT_FIFO: #{e.class} - #{e.message}"
         end
       end
-      payload = "--G_CMD--#{r_cmd.gsub("\n", "\\n")}\n"
+      payload = "--G_CMD--#{r_cmd.gsub("\n", TRANSPORT_NL)}\n"
       if ENV["GALAAZ_DEBUG_R"].to_s == "1" || ENV["GALAAZ_DEBUG_R"].to_s == "true"
         ts = Time.now.strftime("%H:%M:%S.%L")
         File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][RUBY_SEND_RESULT_EXACT] #{r_cmd}" }
@@ -615,7 +618,7 @@ module R
       assignment = r_cmd.gsub(/;.*$/, '')
       var_name = assignment.match(/\.GlobalEnv\$(\w+) <- /)&.[](1) || assignment.match(/\A(\w+) <- /)&.[](1)
       return nil unless var_name
-      assignment_one_line = assignment.gsub(/\n+/, "; ")
+      assignment_one_line = assignment.gsub("\n", TRANSPORT_NL)
 
       eval_r_in_callback(assignment_one_line)
       type_len = eval_r_in_callback("paste(typeof(#{var_name}), length(#{var_name}))")
@@ -757,7 +760,8 @@ module R
       end
       
       # Send result back to R via FIFO (--G_RET-- so R returns from the callback)
-      File.write(CALLBACK_FIFO, "--G_RET--#{R::Support.parse_arg(result)}\n")
+      ret_arg = R::Support.parse_arg(result).to_s.gsub("\n", TRANSPORT_NL)
+      File.write(CALLBACK_FIFO, "--G_RET--#{ret_arg}\n")
     end
 
     # Pull an R vector into a Ruby array by type (double, integer, logical, character, symbol); uses DATA_FILE or temp files.

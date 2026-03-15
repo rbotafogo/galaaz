@@ -186,6 +186,8 @@ module R
               # Extract actual command
               cmd_part <- sub('--G_CMD--(seq=[0-9]+--)?', '', line)
               cmd <- trimws(cmd_part)
+              # Restore newlines (Ruby sends U+E000 as placeholder so FIFO is one line)
+              cmd <- gsub(\"#{R::ShadowBridge::TRANSPORT_NL}\", \"\\n\", cmd, fixed=TRUE)
               recv_log <- Sys.getenv('GALAAZ_R_RECEIVED_LOG', '')
               if (nchar(recv_log) > 0L) tryCatch({
                 write('---CMD---\\n', file=recv_log, append=TRUE)
@@ -212,6 +214,7 @@ module R
               })
             } else if (startsWith(line, '--G_RET--')) {
               res_handle <- trimws(sub('--G_RET--', '', line))
+              res_handle <- gsub(\"#{R::ShadowBridge::TRANSPORT_NL}\", \"\\n\", res_handle, fixed=TRUE)
               if (nchar(res_handle) > 0L) return(eval(parse(text=res_handle)))
               return(invisible(NULL))
             }
