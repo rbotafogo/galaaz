@@ -56,6 +56,30 @@ class Symbol
   def succ
     self.to_s.succ.to_sym
   end
+
+  # Ruby coercion/path methods: do not treat as R calls; let Symbol behave normally (super => NoMethodError).
+  SYMBOL_RUBY_RESERVED = %i[to_str to_path to_ary to_int to_f to_r to_proc].freeze
+
+  # Unknown methods (e.g. .sin, .cos) are interpreted as R function calls with self as first argument.
+  # So :x.sin => same as E.sin(:x) => R expression sin(x); :y.assign :x.sin works like :y.assign E.sin(:x).
+  def method_missing(method_name, *args)
+    super if SYMBOL_RUBY_RESERVED.include?(method_name)
+    name = R::Support.convert_symbol2r(method_name)
+    r_args = [self, *args].map { |arg| R::Support.parse_arg(arg) }
+    expr = "#{name}(#{r_args.join(", ")})"
+    res = R::Language.allocate
+    res.instance_variable_set(:@r_interop, expr)
+    res.expression = expr
+    res
+  end
+
+  # Claim we respond to unknown methods so :x.sin is handled by method_missing, but return false for
+  # :r_interop, :expression, and Ruby coercion/path methods so parse_arg and stdlib work correctly.
+  def respond_to_missing?(method_name, include_private = false)
+    return false if method_name == :r_interop || method_name == :expression
+    return false if SYMBOL_RUBY_RESERVED.include?(method_name)
+    true
+  end
 end
 
 module E
