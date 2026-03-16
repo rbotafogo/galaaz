@@ -34,10 +34,10 @@ class RbEngine < KnitrEngine
     
     @engine = Proc.new do |options|
 
-      # the 'rb' engine has the code to be executed in the options.label
-      # argument
+      # the 'rb' engine has the code to be executed in the options['label']
+      # argument (use list indexing; options.label would call R's label() which does not exist)
       # options[['code']] = options[['label']]
-      options.code = options.label
+      options.code = options['label']
       # we do not want the code to be returned
       options.echo = false
       
