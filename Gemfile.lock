@@ -6,9 +6,19 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
+    date (3.5.1-java)
     diff-lcs (1.6.2)
     docile (1.4.1)
-    rdoc (5.1.0)
+    erb (6.0.2-java)
+    jar-dependencies (0.5.6)
+      ruby-maven (~> 3.9)
+    psych (5.3.1-java)
+      date
+      jar-dependencies (>= 0.1.7)
+    rdoc (7.2.0)
+      erb
+      psych (>= 4.0.0)
+      tsort
     rspec (3.13.2)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
@@ -22,35 +32,46 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
     rspec-support (3.13.7)
+    ruby-maven (3.9.3)
+      ruby-maven-libs (~> 3.9.9)
+    ruby-maven-libs (3.9.9)
     simplecov (0.22.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
+    tsort (0.2.0)
 
 PLATFORMS
   universal-java
 
 DEPENDENCIES
   galaaz!
-  rdoc (~> 5.0)
+  rdoc (>= 6.1.2.1)
   rspec (~> 3.8)
   simplecov (~> 0.16)
 
 CHECKSUMS
+  date (3.5.1-java) sha256=12e09477dc932afe45bf768cd362bf73026804e0db1e6c314186d6cd0bee3344
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
+  erb (6.0.2-java) sha256=38f0e2e15453963fda1754d6b555b26650631cad72567304d59e6c3d847cd1be
   galaaz (0.5.0)
-  rdoc (5.1.0) sha256=195090065b9afc6d64600e3686b8ab39be7d2eeaa9d98bad5160ce66276e94dc
+  jar-dependencies (0.5.6) sha256=fa184e27cc820880ccafad49116ff9776652996f907121f78bd06c58ad5290f8
+  psych (5.3.1-java) sha256=20a4a81ad01479ef060f604ed75ba42fe673169e67d923b1bae5aa4e13cc5820
+  rdoc (7.2.0) sha256=8650f76cd4009c3b54955eb5d7e3a075c60a57276766ebf36f9085e8c9f23192
   rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587
   rspec-core (3.13.6) sha256=a8823c6411667b60a8bca135364351dda34cd55e44ff94c4be4633b37d828b2d
   rspec-expectations (3.13.5) sha256=33a4d3a1d95060aea4c94e9f237030a8f9eae5615e9bd85718fe3a09e4b58836
   rspec-mocks (3.13.8) sha256=086ad3d3d17533f4237643de0b5c42f04b66348c28bf6b9c2d3f4a3b01af1d47
   rspec-support (3.13.7) sha256=0640e5570872aafefd79867901deeeeb40b0c9875a36b983d85f54fb7381c47c
+  ruby-maven (3.9.3) sha256=f79b8b56fa1cfcffd966d6e7b7afe81d66f1d087ea0536fb51ea10278e72a604
+  ruby-maven-libs (3.9.9) sha256=d03f665b231a6a4731a117282a3598b62a2ad75fa01918df3eaeba3a8df3d9b1
   simplecov (0.22.0) sha256=fe2622c7834ff23b98066bb0a854284b2729a569ac659f82621fc22ef36213a5
   simplecov-html (0.13.2) sha256=bd0b8e54e7c2d7685927e8d6286466359b6f16b18cb0df47b508e8d73c777246
   simplecov_json_formatter (0.1.4) sha256=529418fbe8de1713ac2b2d612aa3daa56d316975d307244399fa4838c601b428
+  tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
 
 BUNDLED WITH
   4.0.7

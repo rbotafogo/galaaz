@@ -84,9 +84,10 @@ module R
     packages = R.c(*libs)
 
     new_packages = packages[!(packages._ :in, R.installed__packages(nil)[:all, "Package"])]
-    
-    if(new_packages.length > 0)
-      puts "The following packages are missing and will be installed:\n #{new_packages}"
+    new_packages_str = new_packages.to_s
+
+    if(new_packages.length > 0 && new_packages_str != "character(0)")
+      puts "The following packages are missing and will be installed:\n #{new_packages_str}"
       # Ensure local library directory exists
       lib_dir = File.expand_path("~/R/x86_64-pc-linux-gnu-library/galaaz")
       FileUtils.mkdir_p(lib_dir) unless Dir.exist?(lib_dir)
