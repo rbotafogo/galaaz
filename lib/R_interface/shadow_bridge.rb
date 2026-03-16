@@ -67,6 +67,7 @@ module R
       @callback_seq = 0  # Sequence counter for callback command/response matching
 
       setup_fifos
+      setup_cmd_script_dir
       start_r_process
       setup_r_environment
       File.write(SYNC_FILE, [0].pack("N"))
@@ -77,6 +78,14 @@ module R
     def setup_fifos
       system("mkfifo #{CALLBACK_FIFO}") unless File.exist?(CALLBACK_FIFO)
       system("mkfifo #{RESULT_FIFO}") unless File.exist?(RESULT_FIFO)
+    end
+
+    # Per-process dir for temp R scripts (isolated, 0700); @cmd_script_base = dir + "/galaaz_cmd".
+    def setup_cmd_script_dir
+      @cmd_script_dir = "/dev/shm/galaaz_#{Process.pid}"
+      FileUtils.mkdir_p(@cmd_script_dir)
+      File.chmod(0700, @cmd_script_dir)
+      @cmd_script_base = "#{@cmd_script_dir}/galaaz_cmd"
     end
 
     # Start the R subprocess and a thread that logs its stderr.
@@ -383,7 +392,7 @@ module R
       File.open(log_path("galaaz_r_debug.log"), "a") { |f| f.puts "[#{ts}][JRuby] #{code.lines.first.strip}#{'...' if code.lines.size > 1}" }
       r_cmd = build_eval_r_cmd(code)
       @script_seq += 1
-      tmp_r = "#{CMD_SCRIPT_BASE}_#{@script_seq}.R"
+      tmp_r = "#{@cmd_script_base}_#{@script_seq}.R"
       script_content = <<~R
         tryCatch({
           #{r_cmd}
@@ -397,6 +406,7 @@ module R
         })
       R
       File.write(tmp_r, script_content)
+      File.chmod(0600, tmp_r)
       log_r_script_if_debug("eval_r", script_content)
       raise "R process is dead. Cannot evaluate code.\nLast command (eval_r): #{@last_sent_code.inspect}" unless @wait_thr.alive?
       @last_sent_code = code
@@ -404,7 +414,11 @@ module R
       debug_r_console("RUBY", "top-level: #{code.lines.first.to_s.strip[0..150]}#{'...' if code.lines.size > 1}")
       @stdin.puts("source('#{tmp_r}')")
       @stdin.flush
-      read_stdout_until_g_end(code)
+      begin
+        read_stdout_until_g_end(code)
+      ensure
+        File.unlink(tmp_r) if File.exist?(tmp_r)
+      end
     end
 
     # Read @stdout until --G_END--; handle --G_CALLBACK-- (process_callback) and --G_ERR-- 
@@ -681,6 +695,7 @@ module R
         puts "DEBUG: eval_r_with_result read_result_envelope=#{env.inspect}" if ENV['GALAAZ_DEBUG']
         env
       ensure
+        File.unlink(@tmp_r_path) if @tmp_r_path && File.exist?(@tmp_r_path)
         @eval_r_with_result_depth -= 1
         if @eval_r_with_result_depth == 0
           @result_fifo_io&.close
@@ -692,7 +707,7 @@ module R
     # Write the tryCatch script for eval_r_with_result; sets @tmp_r_path for the caller to source.
     def write_eval_r_with_result_script(r_cmd)
       @script_seq += 1
-      @tmp_r_path = "#{CMD_SCRIPT_BASE}_#{@script_seq}.R"
+      @tmp_r_path = "#{@cmd_script_base}_#{@script_seq}.R"
       script_content = <<~R
         tryCatch({
           #{r_cmd}
@@ -706,6 +721,7 @@ module R
         })
       R
       File.write(@tmp_r_path, script_content)
+      File.chmod(0600, @tmp_r_path)
       log_r_script_if_debug("eval_r_with_result", script_content)
     end
 
@@ -976,7 +992,7 @@ module R
       end
     end
 
-    # Quit the R process and remove FIFOs and temp files.
+    # Quit the R process and remove FIFOs, temp files, and script dir.
     def close
       begin
         @stdin.puts("q(save='no')")
@@ -987,6 +1003,10 @@ module R
         File.delete(DATA_FILE) if File.exist?(DATA_FILE)
         File.delete(SYNC_FILE) if File.exist?(SYNC_FILE)
         File.delete(CALLBACK_FIFO) if File.exist?(CALLBACK_FIFO)
+        if @cmd_script_dir && Dir.exist?(@cmd_script_dir)
+          Dir.glob(File.join(@cmd_script_dir, "*")).each { |f| File.delete(f) rescue nil }
+          Dir.rmdir(@cmd_script_dir) rescue nil
+        end
       end
     end
   end
