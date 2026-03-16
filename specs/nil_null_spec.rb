@@ -3,7 +3,7 @@
 # .is__null or .isTRUE on nil must not raise and must behave like R's is.null(NULL) / isTRUE(NULL)).
 #
 # Run with: bin/run_rspec specs/nil_null_spec.rb
-# (bundle exec rspec needs JRUBY_OPTS=-J--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED for Arrow)
+# (bundle exec rspec needs JRUBY_OPTS=-J--add-opens=java.base/java.nio=ALL-UNNAMED for Arrow)
 
 require 'galaaz'
 

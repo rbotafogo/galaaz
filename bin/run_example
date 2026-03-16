@@ -6,5 +6,5 @@
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 exec jruby -I "$ROOT/lib" \
-  -J--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED \
+  -J--add-opens=java.base/java.nio=ALL-UNNAMED \
   "$@"

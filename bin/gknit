@@ -158,7 +158,7 @@ EOF
 
 libx = File.expand_path('../../lib', __FILE__)
 # Same JVM opts as bin/run_rspec / bin/run_example (for Apache Arrow)
-jvm_args = "-J--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED"
+jvm_args = "-J--add-opens=java.base/java.nio=ALL-UNNAMED"
 exec "jruby #{jvm_args} -I#{libx} -e '#{code}'"
 
 =begin
