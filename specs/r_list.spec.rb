@@ -108,8 +108,11 @@ describe R::List do
       # the named parameters and not both.
       
       # The following list has only 3 elements and not 4 since the 'all' parameter
-      # was used twice.  This is a limitation of Ruby
-      @l = R.list(a: 1, b: 2, all: 3, all: R.list(i: 4, j: 5, all: 6))
+      # was effectively used twice. This is a limitation of Ruby keyword arguments,
+      # but we build the hash in two steps to avoid duplicate-key literal warnings.
+      l_kwargs = { a: 1, b: 2, all: 3 }
+      l_kwargs[:all] = R.list(i: 4, j: 5, all: 6)
+      @l = R.list(**l_kwargs)
 
       # This list has 4 elements.
       @l1 = R.list(a: 1, b: 2, all: 3, d: R.list(i: 4, j: 5, all: 6))

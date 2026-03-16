@@ -61,6 +61,9 @@ require_relative 'r_matrix.spec'
 # Specification for R::Dataframes
 require_relative 'r_dataframe.spec'
 
+# Specification for Arrow integration (R-side Arrow tables / Feather roundtrips)
+require_relative 'r_arrow_integration.spec'
+
 # Specification for language features
 require_relative 'r_function.spec'
 require_relative 'r_formula.spec'

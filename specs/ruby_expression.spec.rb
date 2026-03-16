@@ -282,7 +282,7 @@ describe Symbol do
 
 
   #========================================================================================
-  xcontext "Tidyverse evaluation" do
+  context "Tidyverse evaluation" do
 
     it "should allow passing expressions to ggplot" do
       require 'ggplot'

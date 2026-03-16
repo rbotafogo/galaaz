@@ -139,5 +139,8 @@ require_relative 'rdevice'
 # Access to package symbols
 require_relative 'rpkg'
 
+# Arrow helpers (tables, datasets, Feather/Parquet IO)
+require_relative 'r_arrow'
+
 # Class to allow R calling back into Ruby
 require_relative 'ruby_callback'
