@@ -141,8 +141,8 @@ module R
       when Array
         "c(#{arg.map { |v| self.parse_arg(v) }.join(", ")})"
       when Symbol
-        # Native Ruby symbols map to R names. :all is a special case for empty index.
-        return "" if arg == :all
+        # :all means "all" in that dimension; R uses missing argument. Bridge defines missing_arg().
+        return "missing_arg()" if arg == :all
         arg.to_s.gsub(/__/,".")
       when String
         # If it's already a handle, don't quote it

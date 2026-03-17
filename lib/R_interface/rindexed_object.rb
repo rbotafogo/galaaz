@@ -40,7 +40,12 @@ module R
       if (index.size > 1) || (index[0].is_a? Array)
         args = (index.size > 1) ? index : index[0]
         # For DataFrame with two indices: R's [[i,j]] is row i, col j. R's [[ does not accept character indices; use `[` for row/col names.
-        if args.size == 2 && self.is_a?(::R::DataFrame) && (args[0].is_a?(::String) || args[0].is_a?(::Symbol) || args[1].is_a?(::String) || args[1].is_a?(::Symbol))
+        # When any index is :all, use `[` (single bracket) so R gets m[i,] or m[,j]; `[[` does not accept missing subscript.
+        # When any index is an R object (e.g. vector), use `[`; `[[` only selects one element ("attempt to select more than one element").
+        use_md = (args.size == 2 && self.is_a?(::R::DataFrame) && (args[0].is_a?(::String) || args[0].is_a?(::Symbol) || args[1].is_a?(::String) || args[1].is_a?(::Symbol))) ||
+                 (args.size == 2 && (args[0] == :all || args[1] == :all)) ||
+                 (args.size == 2 && (args[0].is_a?(::R::Object) || args[1].is_a?(::R::Object)))
+        if use_md
           ::R::Support.exec_function(::R::Support.md_index, self, *args)
         else
           ::R::Support.exec_function(::R::Support.dbk_index, self, *args)
