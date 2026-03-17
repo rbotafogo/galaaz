@@ -200,7 +200,10 @@ module R
               # Use capture.output with explicit print() to ensure output is captured
               tryCatch({
                 if (nchar(cmd) > 0L) {
-                  result <- capture.output(print(eval(parse(text=cmd))))
+                  # Evaluate in .GlobalEnv so g2_v* handles created by Ruby are visible.
+                  # Without this, eval() uses parent.frame() (chunk/engine env) and
+                  # object 'g2_vNNN' not found occurs when indexing vectors/matrices.
+                  result <- capture.output(print(eval(parse(text=cmd), envir = .GlobalEnv)))
                   cat(result, sep='\\n')
                 }
               }, error=function(e) {
@@ -215,7 +218,7 @@ module R
             } else if (startsWith(line, '--G_RET--')) {
               res_handle <- trimws(sub('--G_RET--', '', line))
               res_handle <- gsub(\"#{R::ShadowBridge::TRANSPORT_NL}\", \"\\n\", res_handle, fixed=TRUE)
-              if (nchar(res_handle) > 0L) return(eval(parse(text=res_handle)))
+              if (nchar(res_handle) > 0L) return(eval(parse(text=res_handle), envir = .GlobalEnv))
               return(invisible(NULL))
             }
           }

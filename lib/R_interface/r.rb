@@ -81,19 +81,54 @@ module R
 
   def self.install_rlibs(*libs)
 
+    # Use a fixed local library directory and ensure R can see it
+    lib_dir = File.expand_path("~/R/x86_64-pc-linux-gnu-library/galaaz")
+    FileUtils.mkdir_p(lib_dir) unless Dir.exist?(lib_dir)
+    R.bridge.eval_r(".libPaths(c('#{lib_dir.gsub("'", "\\\\'")}', .libPaths()))")
+
     packages = R.c(*libs)
 
-    new_packages = packages[!(packages._ :in, R.installed__packages(nil)[:all, "Package"])]
+    # installed.packages() returns a matrix; package names are in the row names.
+    # Using [:all, "Package"] on this matrix ends up calling [[ with a missing
+    # row subscript in R, which raises "missing subscript". Instead, rely on
+    # the row names vector for the list of installed packages.
+    installed_mat   = R.installed__packages(nil)
+    installed_names = R.rownames(installed_mat)
+
+    new_packages = packages[!(packages._ :in, installed_names)]
     new_packages_str = new_packages.to_s
 
     if(new_packages.length > 0 && new_packages_str != "character(0)")
-      puts "The following packages are missing and will be installed:\n #{new_packages_str}"
-      # Ensure local library directory exists
-      lib_dir = File.expand_path("~/R/x86_64-pc-linux-gnu-library/galaaz")
-      FileUtils.mkdir_p(lib_dir) unless Dir.exist?(lib_dir)
-      R.install__packages(new_packages, repos: "https://cloud.r-project.org", lib: lib_dir)
+      $stderr.puts "[RUBY] The following packages are missing and will be installed: #{new_packages_str}"
+      $stderr.puts "[RUBY] Installing to: #{lib_dir}"
+      
+      # Get packages as Ruby array using :native mode
+      pkg_list = []
+      new_packages.each(:native) { |pkg| pkg_list << pkg }
+      $stderr.puts "[RUBY] Package list: #{pkg_list.inspect}"
+      
+      # Install each package
+      pkg_list.each do |pkg|
+        $stderr.puts "[RUBY] Installing #{pkg}..."
+        r_cmd = "install.packages('#{pkg.gsub("'", "\\\\'")}', repos='https://cloud.r-project.org', lib='#{lib_dir.gsub("'", "\\\\'")}', dependencies=NA)"
+        $stderr.puts "[RUBY] R command: #{r_cmd}"
+        result = R.bridge.eval_r(r_cmd)
+        $stderr.puts "[RUBY] Install output: #{result.inspect}"
+        if result.to_s.include?("ANTICONF") || result.to_s.include?("Configuration failed")
+          $stderr.puts "[RUBY] WARNING: Package #{pkg} failed to install due to missing system libraries."
+          $stderr.puts "[RUBY] For kableExtra, you may need: libfontconfig1-dev libxml2-dev libfreetype6-dev"
+        end
+      end
+      
+      # Re-check installed packages after install attempt
+      installed_mat = R.installed__packages(nil)
+      installed_names = R.rownames(installed_mat)
+      still_missing = packages[!(packages._ :in, installed_names)]
+      if still_missing.length > 0
+        raise "Failed to install packages: #{still_missing.to_s}. Check stderr output above for [RUBY] debug messages."
+      end
     end
-    
+
   end
 
   #----------------------------------------------------------------------------------------
@@ -102,7 +137,8 @@ module R
 
   def self.install_and_loads(*libs)
     R.install_rlibs(*libs)
-    libs.each { |lib| R.require lib }
+    # Use library() so load failures throw immediately with a clear R error
+    libs.each { |lib| R.library(lib) }
   end
   
 end
