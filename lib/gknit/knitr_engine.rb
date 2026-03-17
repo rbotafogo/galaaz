@@ -27,6 +27,14 @@ require 'fileutils'
 # Load these before anything else to ensure bridge is initialized and libraries are present
 R.install_and_loads('knitr', 'rmarkdown')
 
+# Source the R-side include engine wrapper that reads files before calling Ruby
+# This avoids callback deadlock and escaping issues with file content
+dir = File.dirname(File.expand_path(__FILE__))
+include_engine_r = File.join(dir, '..', 'R_interface', 'include_engine.R')
+if File.exist?(include_engine_r)
+  R.bridge.eval_r("source('#{include_engine_r}')")
+end
+
 class KnitrEngine
 
   attr_reader :options
@@ -708,7 +716,7 @@ class KnitrEngine
         R.list(R.simpleMessage(formatted))
       ensure
         # closes the current device
-        # R.dev__off(dv)
+        R.dev__off(dv)
       end
       
     end

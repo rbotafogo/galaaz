@@ -4,8 +4,14 @@ subtitle: "How to tightly couple Ruby and R in GraalVM"
 author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
 date: "2019"
-bibliography: "/home/rbotafogo/Bibliography/stats.bib"
+bibliography: "../../examples/Bibliography/stats.bib"
 output:
+  html_document:
+    self_contained: true
+    keep_md: true
+    toc: true
+    toc_depth: 3
+    number_sections: true
   pdf_document:
     includes:
       in_header: "../../sty/galaaz.sty"
@@ -13,9 +19,6 @@ output:
     number_sections: yes
     toc: true
     toc_depth: 3
-  html_document:
-    self_contained: true
-    keep_md: true
   md_document:
     variant: markdown_github
 fontsize: 11pt
@@ -1776,6 +1779,7 @@ Bellow we create a data frame and we want to write a function that groups data b
 summarises it by an expression:
 
 ```{r diff_expr}
+library(dplyr)
 set.seed(123)
 
 df <- data.frame(
@@ -2014,6 +2018,7 @@ The grouped_mean function bellow will receive a grouping variable and calculate 
 the value\_variables given:
 
 ```{r grouped_mean}
+library(dplyr)
 grouped_mean <- function(data, grouping_variables, value_variables) {
   data %>%
     group_by_at(grouping_variables) %>%

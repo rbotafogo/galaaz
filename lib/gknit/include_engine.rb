@@ -36,13 +36,9 @@ class IncludeEngine < KnitrEngine
     super
          
     @engine = Proc.new do |options|
-
-      # check if require should be relative or not
-      req = (options[['relative']].is__null | options[['relative']].isTRUE).unboxed_get(0)
-      
-      # load the content of the file in options.code
-      options.code = GalaazUtil.inline_file(options['label'].unboxed_get(0), req)
-
+      # The R-side wrapper (include_engine.R) now reads the file content
+      # and puts it in options[["code"]] before calling this engine.
+      # We just pass through to the base engine which handles execution.
       @base_engine.call(options)
     end
     

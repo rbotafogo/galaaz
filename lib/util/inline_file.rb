@@ -24,6 +24,39 @@
 module GalaazUtil
 
   #========================================================================================
+  # Resolves the path of the file (same logic as inline_file) and returns it. Does not
+  # read the file. Use this when the content will be read by R (e.g. readLines) to avoid
+  # embedding file content in R code.
+  # @param filename [String] same as inline_file
+  # @param relative [String] same as inline_file
+  # @param pwd [String] same as inline_file
+  # @return [String] resolved absolute path
+  #========================================================================================
+  def self.inline_file_path(filename, relative, pwd = Dir.pwd)
+    f = filename.dup
+    f << ".rb" if File.extname(f) == ""
+    file = "#{pwd}/#{f}"
+
+    if (relative == false)
+      $LOAD_PATH.each do |path|
+        begin
+          files = Dir.entries(path)
+        rescue Errno::ENOENT
+          next
+        end
+
+        if files != nil
+          file = "#{path}/#{f}"
+          break if (R.file__exists(file).unboxed_get(0))
+        end
+      end
+    end
+
+    raise Errno::ENOENT, "file #{filename} not found in #{$LOAD_PATH}" unless R.file__exists(file).unboxed_get(0)
+    file
+  end
+
+  #========================================================================================
   # Opens the given filename for reading and returns the file content so that it can be
   # printed as a code chunk in rmarkdown
   # @param filename [String] the name of the file to be found.  If the file has no
@@ -35,41 +68,13 @@ module GalaazUtil
   #========================================================================================
   
   def self.inline_file(filename, relative, pwd = Dir.pwd)
-
-    filename << ".rb" if File.extname(filename) == ""
-    file = "#{pwd}/#{filename}"
-
-    if (relative == false)
-      $LOAD_PATH.each do |path|
-        begin
-          files = Dir.entries(path)
-        rescue Errno::ENOENT
-          next
-        end
-
-        if files != nil
-          file = "#{path}/#{filename}"
-          # break if File.exist?(file)
-          break if (R.file__exists(file).unboxed_get(0))
-        end
+    file = inline_file_path(filename, relative, pwd)
+    code = ""
+    File.open(file, "r") do |fileObj|
+      while (line = fileObj.gets)
+        code << line
       end
     end
-
-    # There is a bug(?) in > RC15 that when the bellow command
-    # is called, there is a call to R Polyglot eval passing to_i 
-    # if File.exist?(file)
-    if (R.file__exists(file).unboxed_get(0))
-      code = ""
-      File.open(file, "r") do |fileObj|
-        while (line = fileObj.gets)
-          code << line
-        end
-      end
-      
-    else
-      raise Errno::ENOENT, "file #{filename} not found in #{$LOAD_PATH}"
-    end
-    
     code
   end
   
