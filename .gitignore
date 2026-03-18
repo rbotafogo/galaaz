@@ -30,3 +30,9 @@ logs/
 *.dump
 
 .RData
+
+# Ruby/Bundler artifacts
+.bundle/
+
+# Vendored JRuby gems installed by Bundler
+vendor/bundle/
