@@ -41,17 +41,14 @@ module NewBridge
       port = @server.addr[1]
 
       if @use_precompiled
-        # Use pre-compiled shared library (fast - no compilation)
-        # Note: This requires Rcpp Modules or manual wrapper generation.
-        # For now, fallback to sourceCpp which has built-in caching.
-        so_escaped = @source_path.gsub("'", "\\\\'")
+        # Use pre-compiled shared library (fallback to sourceCpp - dyn.load needs more work)
+        cpp_escaped = @source_path.gsub("'", "\\\\'")
         r_script = <<~R
           host <- "#{@host}"
           port <- #{port}
           stopifnot(requireNamespace("Rcpp", quietly = TRUE))
           library(Rcpp)
-          # sourceCpp caches compiled code in ~/.Rcpp/ when source hasn't changed
-          sourceCpp("#{so_escaped}")
+          sourceCpp("#{cpp_escaped}")
           galaaz_run_bridge(host, as.integer(port))
         R
       else
