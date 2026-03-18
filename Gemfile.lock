@@ -12,6 +12,7 @@ GEM
     erb (6.0.2-java)
     jar-dependencies (0.5.6)
       ruby-maven (~> 3.9)
+    msgpack (1.8.0-java)
     psych (5.3.1-java)
       date
       jar-dependencies (>= 0.1.7)
@@ -48,6 +49,7 @@ PLATFORMS
 
 DEPENDENCIES
   galaaz!
+  msgpack
   rdoc (>= 6.1.2.1)
   rspec (~> 3.8)
   simplecov (~> 0.16)
@@ -59,6 +61,7 @@ CHECKSUMS
   erb (6.0.2-java) sha256=38f0e2e15453963fda1754d6b555b26650631cad72567304d59e6c3d847cd1be
   galaaz (0.5.0)
   jar-dependencies (0.5.6) sha256=fa184e27cc820880ccafad49116ff9776652996f907121f78bd06c58ad5290f8
+  msgpack (1.8.0-java) sha256=723cdf579b089a68dfd9fd7228fc0caed07865d26fc7224e5381af1fb3292f8a
   psych (5.3.1-java) sha256=20a4a81ad01479ef060f604ed75ba42fe673169e67d923b1bae5aa4e13cc5820
   rdoc (7.2.0) sha256=8650f76cd4009c3b54955eb5d7e3a075c60a57276766ebf36f9085e8c9f23192
   rspec (3.13.2) sha256=206284a08ad798e61f86d7ca3e376718d52c0bc944626b2349266f239f820587

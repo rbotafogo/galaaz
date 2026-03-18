@@ -42,6 +42,7 @@ EOF
   # gem.add_runtime_dependency 'pry', '~> 0.10'
   
   gem.add_development_dependency('rspec', "~> 3.8")
+  gem.add_development_dependency('msgpack')
   gem.add_development_dependency('simplecov', "~> 0.16")
   gem.add_development_dependency('rdoc', ">=6.1.2.1")
   # gem.add_development_dependency('rake', '~> 12.0')
@@ -49,7 +50,7 @@ EOF
   # ensure the gem is built out of versioned files
   # Collect all files that do not end with '~'
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
-            'lib/**/*[!~]', 'specs/**/*[!~]', 'examples/**/*[!~]',
+            'lib/**/*[!~]', 'specs/**/*[!~]', 'ext/**/*[!~]', 'examples/**/*[!~]',
             'r_requires/**/*[!~]', 'bin/**/*[!~]',
             'blogs/**/*[!~]', 'sty/**/*[!~]']
   gem.files = fls
