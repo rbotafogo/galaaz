@@ -9,11 +9,14 @@ require 'new_bridge'
 
 RSpec.describe 'NewBridge Phase 1 REQ/RET' do
   let(:phase1_cpp) { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
+  let(:phase1_so)  { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper.so', __dir__) }
 
   def with_client(cpp)
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
 
-    c = NewBridge::SessionClient.new(cpp_path: cpp)
+    # Prefer pre-compiled .so if available (faster), fallback to .cpp
+    source = File.exist?(phase1_so) ? phase1_so : cpp
+    c = NewBridge::SessionClient.new(source_path: source)
     c.start
     yield c
   ensure

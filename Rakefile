@@ -261,4 +261,56 @@ Rake::TestTask.new do |t|
   t.warning = true
 end
 
+#===========================================================================================
+# New Bridge Gatekeeper compilation tasks
+#===========================================================================================
+
+GATEKEEPER_DIR = "ext/new_bridge"
+GATEKEEPER_SO  = "#{GATEKEEPER_DIR}/galaaz_gatekeeper.so"
+GATEKEEPER_SRC = "#{GATEKEEPER_DIR}/galaaz_gatekeeper_phase1.cpp"
+
+desc "Compile the Galaaz gatekeeper shared library (fast runtime loading)"
+task :compile_gatekeeper do
+  puts "Compiling gatekeeper shared library..."
+  Dir.chdir(GATEKEEPER_DIR) do
+    sh "make clean all"
+  end
+  puts "Gatekeeper compiled: #{GATEKEEPER_SO}"
+end
+
+desc "Clean gatekeeper compilation artifacts"
+task :clean_gatekeeper do
+  Dir.chdir(GATEKEEPER_DIR) do
+    sh "make clean"
+  end
+end
+
+desc "Run all New Bridge specs (auto-compiles gatekeeper if needed)"
+task :new_bridge_specs => [:compile_gatekeeper] do
+  sh %{ bundle exec rspec specs/new_bridge/ --format documentation }
+end
+
+desc "Run specific New Bridge phase specs"
+namespace :new_bridge do
+  task :phase0 => [:compile_gatekeeper] do
+    sh %{ bundle exec rspec specs/new_bridge/phase0_protocol_spec.rb --format documentation }
+  end
+  
+  task :phase1 => [:compile_gatekeeper] do
+    sh %{ bundle exec rspec specs/new_bridge/phase1_req_ret_spec.rb --format documentation }
+  end
+  
+  task :phase2 => [:compile_gatekeeper] do
+    sh %{ bundle exec rspec specs/new_bridge/phase2_multi_instance_spec.rb --format documentation }
+  end
+  
+  task :phase3 => [:compile_gatekeeper] do
+    sh %{ bundle exec rspec specs/new_bridge/phase3_callbacks_spec.rb --format documentation }
+  end
+  
+  task :all => [:compile_gatekeeper] do
+    sh %{ bundle exec rspec specs/new_bridge/ --format documentation }
+  end
+end
+
 =end

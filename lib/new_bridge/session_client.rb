@@ -18,8 +18,10 @@ module NewBridge
 
     attr_reader :r_stderr, :r_exit_status
 
-    def initialize(cpp_path:, host: '127.0.0.1', r_cmd: 'R')
-      @cpp_path = File.expand_path(cpp_path)
+    # @param source_path [String] Path to either .cpp file (uses sourceCpp) or .so file (uses dyn.load)
+    def initialize(source_path:, host: '127.0.0.1', r_cmd: 'R')
+      @source_path = File.expand_path(source_path)
+      @use_precompiled = @source_path.end_with?('.so')
       @host = host
       @r_cmd = r_cmd
       @server = nil
@@ -27,6 +29,8 @@ module NewBridge
       @write_mx = Mutex.new
       @pending = {}
       @pending_mx = Mutex.new
+      @callbacks = {}
+      @callbacks_mx = Mutex.new
       @reader = nil
       @r_stderr = +''
       @r_exit_status = nil
@@ -35,15 +39,33 @@ module NewBridge
     def start(accept_timeout: 120)
       @server = TCPServer.new(@host, 0)
       port = @server.addr[1]
-      cpp_escaped = @cpp_path.gsub("'", "\\\\'")
-      r_script = <<~R
-        host <- "#{@host}"
-        port <- #{port}
-        stopifnot(requireNamespace("Rcpp", quietly = TRUE))
-        library(Rcpp)
-        sourceCpp("#{cpp_escaped}")
-        galaaz_run_bridge(host, as.integer(port))
-      R
+
+      if @use_precompiled
+        # Use pre-compiled shared library (fast - no compilation)
+        # Note: This requires Rcpp Modules or manual wrapper generation.
+        # For now, fallback to sourceCpp which has built-in caching.
+        so_escaped = @source_path.gsub("'", "\\\\'")
+        r_script = <<~R
+          host <- "#{@host}"
+          port <- #{port}
+          stopifnot(requireNamespace("Rcpp", quietly = TRUE))
+          library(Rcpp)
+          # sourceCpp caches compiled code in ~/.Rcpp/ when source hasn't changed
+          sourceCpp("#{so_escaped}")
+          galaaz_run_bridge(host, as.integer(port))
+        R
+      else
+        # Compile from source (slow - for development only)
+        cpp_escaped = @source_path.gsub("'", "\\\\'")
+        r_script = <<~R
+          host <- "#{@host}"
+          port <- #{port}
+          stopifnot(requireNamespace("Rcpp", quietly = TRUE))
+          library(Rcpp)
+          sourceCpp("#{cpp_escaped}")
+          galaaz_run_bridge(host, as.integer(port))
+        R
+      end
 
       env = { 'GALAAZ_BRIDGE_HOST' => @host, 'GALAAZ_BRIDGE_PORT' => port.to_s }
       @r_thr = Thread.new do
@@ -64,7 +86,7 @@ module NewBridge
       @r_thr&.join(15)
     end
 
-    def eval_r(code, session_id: 'default', timeout: 60)
+    def eval_r(code, session_id: 'default', instance_id: 'default', timeout: 60)
       call_id = SecureRandom.uuid
       q = Queue.new
       @pending_mx.synchronize { @pending[call_id] = q }
@@ -72,12 +94,16 @@ module NewBridge
         'call_id' => call_id,
         'type' => 'REQ',
         'session_id' => session_id,
+        'instance_id' => instance_id,
         'payload' => code,
         'parent_id' => nil
       )
       @write_mx.synchronize { Framing.write_frame(@sock, req) }
 
       ret = wait_for_ret(q, call_id, timeout)
+      if ret['instance_id'] && ret['instance_id'] != instance_id
+        raise RProcessError, "instance_id mismatch: expected=#{instance_id} got=#{ret['instance_id']}"
+      end
       status = ret['status']
       payload = ret['payload']
       parsed = JSON.parse(payload)
@@ -86,7 +112,21 @@ module NewBridge
       parsed
     end
 
+    # Phase 3: register a Ruby callback for R->Ruby CALL envelopes.
+    # The R side will call back with the returned `callback_call_id`.
+    def register_callback(&block)
+      callback_call_id = SecureRandom.uuid
+      @callbacks_mx.synchronize { @callbacks[callback_call_id] = block }
+      callback_call_id
+    end
+
     private
+
+    def debug_log(msg)
+      return unless ENV['GALAAZ_DEBUG']
+      STDERR.puts("[NewBridge::SessionClient] #{msg}")
+      STDERR.flush
+    end
 
     def wait_for_ret(q, call_id, timeout)
       Timeout.timeout(timeout) do
@@ -104,13 +144,52 @@ module NewBridge
       loop do
         bytes = Framing.read_frame(@sock)
         h = Envelope.decode(bytes)
-        next unless h['type'] == 'RET'
-
-        q = @pending_mx.synchronize { @pending.delete(h['call_id']) }
-        q&.push(h)
+        debug_log("RX type=#{h['type']} call_id=#{h['call_id']} session_id=#{h['session_id']} instance_id=#{h['instance_id']}") if h.is_a?(Hash)
+        case h['type']
+        when 'RET'
+          q = @pending_mx.synchronize { @pending.delete(h['call_id']) }
+          q&.push(h)
+        when 'CALL'
+          handle_call(h)
+        end
       end
     rescue Framing::TruncatedFrame, Framing::Error, IOError, Errno::ECONNRESET, Errno::EPIPE, Envelope::Error
       signal_closed
+    end
+
+    def handle_call(h)
+      call_id = h['call_id']
+      instance_id = h['instance_id'] || 'default'
+      payload = h['payload']
+      debug_log("CALL received call_id=#{call_id} instance_id=#{instance_id} payload=#{payload.inspect}")
+
+      callback = @callbacks_mx.synchronize { @callbacks.delete(call_id) }
+      unless callback
+        send_ret(call_id: call_id, status: 'error', payload: "unknown callback #{call_id}", instance_id: instance_id)
+        return
+      end
+
+      begin
+        result = callback.call(payload)
+        debug_log("CALL result call_id=#{call_id} result=#{result.inspect}")
+        send_ret(call_id: call_id, status: 'success', payload: result.to_s, instance_id: instance_id)
+      rescue => e
+        debug_log("CALL error call_id=#{call_id} error=#{e.class}: #{e.message}")
+        send_ret(call_id: call_id, status: 'error', payload: e.message, instance_id: instance_id)
+      end
+    end
+
+    def send_ret(call_id:, status:, payload:, instance_id:)
+      debug_log("TX RET call_id=#{call_id} instance_id=#{instance_id} status=#{status} payload=#{payload.inspect}")
+      ret = Envelope.encode(
+        'call_id' => call_id,
+        'type' => 'RET',
+        'status' => status,
+        'payload' => payload,
+        'instance_id' => instance_id,
+        'parent_id' => nil
+      )
+      @write_mx.synchronize { Framing.write_frame(@sock, ret) }
     end
 
     def signal_closed

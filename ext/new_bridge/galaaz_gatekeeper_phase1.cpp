@@ -5,16 +5,30 @@
 #include <arpa/inet.h>
 #include <cstdint>
 #include <cstring>
+#include <cstdlib>
 #include <map>
 #include <netinet/in.h>
+#include <poll.h>
 #include <string>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
 
-namespace {
+static int g_bridge_fd = -1;
+static std::string g_current_instance_id = "default";
 
 void die(const char* m) { Rcpp::stop("galaaz_run_bridge: %s", m); }
+
+bool dbg_on() {
+  const char* e = std::getenv("GALAAZ_DEBUG");
+  return e && std::string(e) != "0";
+}
+
+void dbg(const std::string& msg) {
+  if (!dbg_on()) return;
+  Rcpp::Rcout << "[galaaz_gatekeeper_phase1] " << msg << std::endl;
+  Rcpp::Rcout.flush();
+}
 
 bool recv_all(int fd, void* buf, size_t n) {
   auto* p = static_cast<char*>(buf);
@@ -222,9 +236,29 @@ void pack_nil(std::vector<uint8_t>& o) { o.push_back(0xc0); }
 
 void pack_map5(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 5)); }
 
-std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& status, const std::string& payload) {
+void pack_map6(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 6)); }
+
+void pack_map4(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 4)); }
+
+std::vector<uint8_t> make_call(const std::string& call_id, const std::string& payload,
+                               const std::string& instance_id) {
   std::vector<uint8_t> o;
-  pack_map5(o);
+  pack_map4(o);
+  pack_str(o, "call_id");
+  pack_str(o, call_id);
+  pack_str(o, "type");
+  pack_str(o, "CALL");
+  pack_str(o, "payload");
+  pack_str(o, payload);
+  pack_str(o, "instance_id");
+  pack_str(o, instance_id);
+  return o;
+}
+
+std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& status, const std::string& payload,
+                              const std::string& instance_id) {
+  std::vector<uint8_t> o;
+  pack_map6(o);
   pack_str(o, "call_id");
   pack_str(o, call_id);
   pack_str(o, "type");
@@ -233,6 +267,8 @@ std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& sta
   pack_str(o, status);
   pack_str(o, "payload");
   pack_str(o, payload);
+  pack_str(o, "instance_id");
+  pack_str(o, instance_id);
   pack_str(o, "parent_id");
   pack_nil(o);
   return o;
@@ -292,7 +328,65 @@ std::string eval_code_json(const std::string& code, const Rcpp::Environment& env
   return "{\"kind\":\"error\",\"message\":\"unsupported type\"}";
 }
 
-} // namespace
+// [[Rcpp::export(name="galaaz_callback_call_phase3")]]
+double galaaz_callback_call(std::string call_id, std::string payload, int timeout_ms) {
+  if (g_bridge_fd < 0) Rcpp::stop("galaaz_callback_call: no active bridge connection");
+
+  // Send CALL envelope to Ruby.
+  auto call = make_call(call_id, payload, g_current_instance_id);
+  dbg(std::string("TX CALL call_id=") + call_id + " instance_id=" + g_current_instance_id + " payload=" + payload);
+  uint32_t L = static_cast<uint32_t>(call.size());
+  if (!send_all(g_bridge_fd, &L, 4) || !send_all(g_bridge_fd, call.data(), call.size())) {
+    Rcpp::stop("galaaz_callback_call: socket write failed");
+  }
+
+  // Wait for RET envelope.
+  if (timeout_ms > 0) {
+    pollfd pfd;
+    pfd.fd = g_bridge_fd;
+    pfd.events = POLLIN;
+    pfd.revents = 0;
+    int pr = ::poll(&pfd, 1, timeout_ms);
+    dbg(std::string("callback_call poll pr=") + std::to_string(pr));
+    if (pr <= 0) Rcpp::stop("galaaz_callback_call timeout");
+  }
+
+  uint32_t len = 0;
+  if (!recv_all(g_bridge_fd, &len, 4)) Rcpp::stop("galaaz_callback_call: socket closed");
+  dbg(std::string("RX RET len=") + std::to_string(len));
+  if (len > 64u * 1024u * 1024u) Rcpp::stop("galaaz_callback_call: frame too large");
+
+  std::vector<uint8_t> buf(len);
+  if (len && !recv_all(g_bridge_fd, buf.data(), len)) Rcpp::stop("galaaz_callback_call: truncated frame");
+
+  std::map<std::string, std::string> fields;
+  std::map<std::string, bool> nils;
+  Rd rd(buf);
+  rd.parse_envelope(fields, nils);
+
+  if (fields["type"] != "RET" || fields["call_id"] != call_id) {
+    Rcpp::stop("galaaz_callback_call: unexpected RET envelope");
+  }
+
+  std::string status = fields.count("status") ? fields["status"] : "error";
+  std::string out_payload = fields.count("payload") ? fields["payload"] : "";
+  dbg(std::string("RX RET status=") + status + " payload=" + out_payload);
+  if (status != "success") {
+    Rcpp::stop(out_payload.c_str());
+  }
+
+  char* end = nullptr;
+  const char* start = out_payload.c_str();
+  double v = std::strtod(start, &end);
+  if (end == start) Rcpp::stop("galaaz_callback_call: payload not numeric");
+  return v;
+}
+
+// Extern C wrappers for dyn.load() compatibility
+extern "C" {
+  void galaaz_run_bridge_c(const char* host, int port);
+  double galaaz_callback_call_phase3_c(const char* call_id, const char* payload, int timeout_ms);
+}
 
 // [[Rcpp::export]]
 void galaaz_run_bridge(std::string host, int port) {
@@ -304,6 +398,7 @@ void galaaz_run_bridge(std::string host, int port) {
   a.sin_port = htons(static_cast<uint16_t>(port));
   if (::inet_pton(AF_INET, host.c_str(), &a.sin_addr) != 1) die("inet_pton");
   if (::connect(fd, reinterpret_cast<sockaddr*>(&a), sizeof(a)) != 0) die("connect");
+  g_bridge_fd = fd;
 
   Rcpp::Environment g = Rcpp::Environment::global_env();
   g[".galaaz_sessions"] = Rcpp::List();
@@ -321,7 +416,7 @@ void galaaz_run_bridge(std::string host, int port) {
       Rd rd(buf);
       rd.parse_envelope(fields, nils);
     } catch (...) {
-      auto er = make_ret("?", "error", "{\"kind\":\"error\",\"message\":\"bad envelope\"}");
+      auto er = make_ret("?", "error", "{\"kind\":\"error\",\"message\":\"bad envelope\"}", "default");
       uint32_t L = static_cast<uint32_t>(er.size());
       if (!send_all(fd, &L, 4) || !send_all(fd, er.data(), er.size())) break;
       continue;
@@ -331,20 +426,32 @@ void galaaz_run_bridge(std::string host, int port) {
 
     std::string call_id = fields["call_id"];
     std::string sid = fields.count("session_id") ? fields["session_id"] : "default";
+    std::string iid = fields.count("instance_id") ? fields["instance_id"] : "default";
     std::string code = fields.count("payload") ? fields["payload"] : "";
 
     try {
+      g_current_instance_id = iid;
       Rcpp::Environment env = session_env(g, sid);
       std::string j = eval_code_json(code, env);
       bool ok = j.find("\"kind\":\"error\"") == std::string::npos;
-      auto ret = make_ret(call_id, ok ? "success" : "error", j);
+      auto ret = make_ret(call_id, ok ? "success" : "error", j, iid);
       uint32_t L = static_cast<uint32_t>(ret.size());
       if (!send_all(fd, &L, 4) || !send_all(fd, ret.data(), ret.size())) break;
     } catch (...) {
-      auto ret = make_ret(call_id, "error", "{\"kind\":\"error\",\"message\":\"cpp/r error\"}");
+      auto ret = make_ret(call_id, "error", "{\"kind\":\"error\",\"message\":\"cpp/r error\"}", iid);
       uint32_t L = static_cast<uint32_t>(ret.size());
       if (!send_all(fd, &L, 4) || !send_all(fd, ret.data(), ret.size())) break;
     }
   }
+  g_bridge_fd = -1;
   ::close(fd);
+}
+
+// C wrappers for dyn.load()
+extern "C" void galaaz_run_bridge_c(const char* host, int port) {
+  galaaz_run_bridge(std::string(host), port);
+}
+
+extern "C" double galaaz_callback_call_phase3_c(const char* call_id, const char* payload, int timeout_ms) {
+  return galaaz_callback_call(std::string(call_id), std::string(payload), timeout_ms);
 }

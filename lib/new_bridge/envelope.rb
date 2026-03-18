@@ -9,7 +9,7 @@ module NewBridge
     class InvalidEnvelope < Error; end
 
     REQUIRED_KEYS = %w[call_id type].freeze
-    OPTIONAL_KEYS = %w[parent_id payload status session_id].freeze
+    OPTIONAL_KEYS = %w[parent_id payload status session_id instance_id].freeze
 
     module_function
 
