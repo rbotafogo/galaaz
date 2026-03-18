@@ -160,9 +160,16 @@ module NewBridge
           result = callback.call(payload, call_id)
           debug_log("CALL result call_id=#{call_id} result=#{result.inspect}")
           send_ret(call_id: call_id, status: 'success', payload: result.to_s, instance_id: instance_id)
+        rescue IOError, Errno::EPIPE => e
+          # Socket closed - ignore, connection is shutting down
+          debug_log("CALL send failed (socket closed) call_id=#{call_id}: #{e.message}")
         rescue => e
           debug_log("CALL error call_id=#{call_id} error=#{e.class}: #{e.message}")
-          send_ret(call_id: call_id, status: 'error', payload: e.message, instance_id: instance_id)
+          begin
+            send_ret(call_id: call_id, status: 'error', payload: e.message, instance_id: instance_id)
+          rescue IOError, Errno::EPIPE
+              # Socket closed - ignore
+          end
         end
       end
     end
