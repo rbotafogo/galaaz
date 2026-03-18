@@ -40,29 +40,16 @@ module NewBridge
       @server = TCPServer.new(@host, 0)
       port = @server.addr[1]
 
-      if @use_precompiled
-        # Use pre-compiled shared library (fallback to sourceCpp - dyn.load needs more work)
-        cpp_escaped = @source_path.gsub("'", "\\\\'")
-        r_script = <<~R
-          host <- "#{@host}"
-          port <- #{port}
-          stopifnot(requireNamespace("Rcpp", quietly = TRUE))
-          library(Rcpp)
-          sourceCpp("#{cpp_escaped}")
-          galaaz_run_bridge(host, as.integer(port))
-        R
-      else
-        # Compile from source (slow - for development only)
-        cpp_escaped = @source_path.gsub("'", "\\\\'")
-        r_script = <<~R
-          host <- "#{@host}"
-          port <- #{port}
-          stopifnot(requireNamespace("Rcpp", quietly = TRUE))
-          library(Rcpp)
-          sourceCpp("#{cpp_escaped}")
-          galaaz_run_bridge(host, as.integer(port))
-        R
-      end
+      # Always use sourceCpp for now - dyn.load needs more work
+      cpp_escaped = @source_path.gsub("'", "\\\\'")
+      r_script = <<~R
+        host <- "#{@host}"
+        port <- #{port}
+        stopifnot(requireNamespace("Rcpp", quietly = TRUE))
+        library(Rcpp)
+        sourceCpp("#{cpp_escaped}")
+        galaaz_run_bridge(host, as.integer(port))
+      R
 
       env = { 'GALAAZ_BRIDGE_HOST' => @host, 'GALAAZ_BRIDGE_PORT' => port.to_s }
       @r_thr = Thread.new do
@@ -83,7 +70,7 @@ module NewBridge
       @r_thr&.join(15)
     end
 
-    def eval_r(code, session_id: 'default', instance_id: 'default', timeout: 60)
+    def eval_r(code, session_id: 'default', instance_id: 'default', parent_id: nil, timeout: 60)
       call_id = SecureRandom.uuid
       q = Queue.new
       @pending_mx.synchronize { @pending[call_id] = q }
@@ -92,8 +79,8 @@ module NewBridge
         'type' => 'REQ',
         'session_id' => session_id,
         'instance_id' => instance_id,
-        'payload' => code,
-        'parent_id' => nil
+        'parent_id' => parent_id,
+        'payload' => code
       )
       @write_mx.synchronize { Framing.write_frame(@sock, req) }
 
@@ -166,13 +153,17 @@ module NewBridge
         return
       end
 
-      begin
-        result = callback.call(payload)
-        debug_log("CALL result call_id=#{call_id} result=#{result.inspect}")
-        send_ret(call_id: call_id, status: 'success', payload: result.to_s, instance_id: instance_id)
-      rescue => e
-        debug_log("CALL error call_id=#{call_id} error=#{e.class}: #{e.message}")
-        send_ret(call_id: call_id, status: 'error', payload: e.message, instance_id: instance_id)
+      # Phase 4: Run callback in separate thread so reader thread stays free
+      # for nested REQ/RET handling
+      Thread.new do
+        begin
+          result = callback.call(payload, call_id)
+          debug_log("CALL result call_id=#{call_id} result=#{result.inspect}")
+          send_ret(call_id: call_id, status: 'success', payload: result.to_s, instance_id: instance_id)
+        rescue => e
+          debug_log("CALL error call_id=#{call_id} error=#{e.class}: #{e.message}")
+          send_ret(call_id: call_id, status: 'error', payload: e.message, instance_id: instance_id)
+        end
       end
     end
 

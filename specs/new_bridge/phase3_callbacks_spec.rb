@@ -15,9 +15,8 @@ RSpec.describe 'NewBridge Phase 3 (CALL/RET callbacks)' do
   def with_client(cpp, instance_id: 'instance-a')
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
 
-    # Prefer pre-compiled .so if available (faster), fallback to .cpp
-    source = File.exist?(phase1_so) ? phase1_so : cpp
-    c = NewBridge::SessionClient.new(source_path: source)
+    # Always use .cpp with sourceCpp for now
+    c = NewBridge::SessionClient.new(source_path: cpp)
     c.start
     yield c, instance_id
   ensure

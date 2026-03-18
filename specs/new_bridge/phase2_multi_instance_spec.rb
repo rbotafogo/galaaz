@@ -11,10 +11,8 @@ require 'new_bridge'
 RSpec.describe 'NewBridge Phase 2 (REQ/RET Multi-instance)' do
   before(:all) do
     cpp_path = File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
-    so_path  = File.expand_path('../../ext/new_bridge/galaaz_gatekeeper.so', __dir__)
-    source = File.exist?(so_path) ? so_path : cpp_path
     @pool = NewBridge::InstancePoolClient.new(
-      source_path: source,
+      source_path: cpp_path,
       instances: ['instance-a', 'instance-b']
     ).start
   end

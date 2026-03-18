@@ -3,6 +3,7 @@
 
 #include <Rcpp.h>
 #include <arpa/inet.h>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
@@ -328,6 +329,9 @@ std::string eval_code_json(const std::string& code, const Rcpp::Environment& env
   return "{\"kind\":\"error\",\"message\":\"unsupported type\"}";
 }
 
+// Forward declaration for nested REQ servicing
+static void process_single_req(int fd, const std::map<std::string, std::string>& fields, Rcpp::Environment& g);
+
 // [[Rcpp::export(name="galaaz_callback_call_phase3")]]
 double galaaz_callback_call(std::string call_id, std::string payload, int timeout_ms) {
   if (g_bridge_fd < 0) Rcpp::stop("galaaz_callback_call: no active bridge connection");
@@ -340,52 +344,109 @@ double galaaz_callback_call(std::string call_id, std::string payload, int timeou
     Rcpp::stop("galaaz_callback_call: socket write failed");
   }
 
-  // Wait for RET envelope.
-  if (timeout_ms > 0) {
-    pollfd pfd;
-    pfd.fd = g_bridge_fd;
-    pfd.events = POLLIN;
-    pfd.revents = 0;
-    int pr = ::poll(&pfd, 1, timeout_ms);
-    dbg(std::string("callback_call poll pr=") + std::to_string(pr));
-    if (pr <= 0) Rcpp::stop("galaaz_callback_call timeout");
+  // Phase 4: Nested wait loop - service REQs while waiting for callback RET
+  Rcpp::Environment g = Rcpp::Environment::global_env();
+  auto start_time = std::chrono::steady_clock::now();
+  int remaining_ms = timeout_ms;
+
+  for (;;) {
+    // Poll with remaining timeout
+    if (timeout_ms > 0) {
+      pollfd pfd;
+      pfd.fd = g_bridge_fd;
+      pfd.events = POLLIN;
+      pfd.revents = 0;
+      int pr = ::poll(&pfd, 1, remaining_ms);
+      if (pr < 0) Rcpp::stop("galaaz_callback_call: poll error");
+      if (pr == 0) Rcpp::stop("galaaz_callback_call timeout");
+    }
+
+    // Read frame
+    uint32_t len = 0;
+    if (!recv_all(g_bridge_fd, &len, 4)) Rcpp::stop("galaaz_callback_call: socket closed");
+    if (len > 64u * 1024u * 1024u) Rcpp::stop("galaaz_callback_call: frame too large");
+
+    std::vector<uint8_t> buf(len);
+    if (len && !recv_all(g_bridge_fd, buf.data(), len)) Rcpp::stop("galaaz_callback_call: truncated frame");
+
+    // Parse envelope
+    std::map<std::string, std::string> fields;
+    std::map<std::string, bool> nils;
+    Rd rd(buf);
+    rd.parse_envelope(fields, nils);
+
+    std::string msg_type = fields.count("type") ? fields["type"] : "";
+
+    // Check if this is our callback RET
+    if (msg_type == "RET" && fields["call_id"] == call_id) {
+      std::string status = fields.count("status") ? fields["status"] : "error";
+      std::string out_payload = fields.count("payload") ? fields["payload"] : "";
+      dbg(std::string("RX RET status=") + status + " payload=" + out_payload);
+      if (status != "success") {
+        Rcpp::stop(out_payload.c_str());
+      }
+      char* end = nullptr;
+      const char* start = out_payload.c_str();
+      double v = std::strtod(start, &end);
+      if (end == start) Rcpp::stop("galaaz_callback_call: payload not numeric");
+      return v;
+    }
+
+    // Service nested REQ while waiting
+    if (msg_type == "REQ") {
+      dbg("Servicing nested REQ while waiting for callback RET");
+      process_single_req(g_bridge_fd, fields, g);
+      // Update remaining timeout
+      if (timeout_ms > 0) {
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - start_time).count();
+        remaining_ms = timeout_ms - static_cast<int>(elapsed);
+        if (remaining_ms <= 0) Rcpp::stop("galaaz_callback_call timeout");
+      }
+      continue;  // Keep waiting for callback RET
+    }
+
+    // Unexpected message type - log and continue waiting
+    dbg(std::string("Unexpected msg type while waiting for callback RET: ") + msg_type);
+    if (timeout_ms > 0) {
+      auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start_time).count();
+      remaining_ms = timeout_ms - static_cast<int>(elapsed);
+      if (remaining_ms <= 0) Rcpp::stop("galaaz_callback_call timeout");
+    }
   }
-
-  uint32_t len = 0;
-  if (!recv_all(g_bridge_fd, &len, 4)) Rcpp::stop("galaaz_callback_call: socket closed");
-  dbg(std::string("RX RET len=") + std::to_string(len));
-  if (len > 64u * 1024u * 1024u) Rcpp::stop("galaaz_callback_call: frame too large");
-
-  std::vector<uint8_t> buf(len);
-  if (len && !recv_all(g_bridge_fd, buf.data(), len)) Rcpp::stop("galaaz_callback_call: truncated frame");
-
-  std::map<std::string, std::string> fields;
-  std::map<std::string, bool> nils;
-  Rd rd(buf);
-  rd.parse_envelope(fields, nils);
-
-  if (fields["type"] != "RET" || fields["call_id"] != call_id) {
-    Rcpp::stop("galaaz_callback_call: unexpected RET envelope");
-  }
-
-  std::string status = fields.count("status") ? fields["status"] : "error";
-  std::string out_payload = fields.count("payload") ? fields["payload"] : "";
-  dbg(std::string("RX RET status=") + status + " payload=" + out_payload);
-  if (status != "success") {
-    Rcpp::stop(out_payload.c_str());
-  }
-
-  char* end = nullptr;
-  const char* start = out_payload.c_str();
-  double v = std::strtod(start, &end);
-  if (end == start) Rcpp::stop("galaaz_callback_call: payload not numeric");
-  return v;
 }
 
 // Extern C wrappers for dyn.load() compatibility
 extern "C" {
-  void galaaz_run_bridge_c(const char* host, int port);
-  double galaaz_callback_call_phase3_c(const char* call_id, const char* payload, int timeout_ms);
+  void galaaz_run_bridge_c(const char** host, int* port);
+  double galaaz_callback_call_phase3_c(const char** call_id, const char** payload, int* timeout_ms);
+}
+
+// Helper: Process a single REQ and send RET
+static void process_single_req(int fd, const std::map<std::string, std::string>& fields, Rcpp::Environment& g) {
+  std::string call_id = fields.count("call_id") ? fields.at("call_id") : "?";
+  std::string sid = fields.count("session_id") ? fields.at("session_id") : "default";
+  std::string iid = fields.count("instance_id") ? fields.at("instance_id") : "default";
+  std::string code = fields.count("payload") ? fields.at("payload") : "";
+
+  try {
+    g_current_instance_id = iid;
+    Rcpp::Environment env = session_env(g, sid);
+    std::string j = eval_code_json(code, env);
+    bool ok = j.find("\"kind\":\"error\"") == std::string::npos;
+    auto ret = make_ret(call_id, ok ? "success" : "error", j, iid);
+    uint32_t L = static_cast<uint32_t>(ret.size());
+    if (!send_all(fd, &L, 4) || !send_all(fd, ret.data(), ret.size())) {
+      dbg("process_single_req: send failed");
+    }
+  } catch (...) {
+    auto ret = make_ret(call_id, "error", "{\"kind\":\"error\",\"message\":\"cpp/r error\"}", iid);
+    uint32_t L = static_cast<uint32_t>(ret.size());
+    if (!send_all(fd, &L, 4) || !send_all(fd, ret.data(), ret.size())) {
+      dbg("process_single_req: send failed (error path)");
+    }
+  }
 }
 
 // [[Rcpp::export]]
@@ -423,35 +484,18 @@ void galaaz_run_bridge(std::string host, int port) {
     }
 
     if (fields["type"] != "REQ") continue;
-
-    std::string call_id = fields["call_id"];
-    std::string sid = fields.count("session_id") ? fields["session_id"] : "default";
-    std::string iid = fields.count("instance_id") ? fields["instance_id"] : "default";
-    std::string code = fields.count("payload") ? fields["payload"] : "";
-
-    try {
-      g_current_instance_id = iid;
-      Rcpp::Environment env = session_env(g, sid);
-      std::string j = eval_code_json(code, env);
-      bool ok = j.find("\"kind\":\"error\"") == std::string::npos;
-      auto ret = make_ret(call_id, ok ? "success" : "error", j, iid);
-      uint32_t L = static_cast<uint32_t>(ret.size());
-      if (!send_all(fd, &L, 4) || !send_all(fd, ret.data(), ret.size())) break;
-    } catch (...) {
-      auto ret = make_ret(call_id, "error", "{\"kind\":\"error\",\"message\":\"cpp/r error\"}", iid);
-      uint32_t L = static_cast<uint32_t>(ret.size());
-      if (!send_all(fd, &L, 4) || !send_all(fd, ret.data(), ret.size())) break;
-    }
+    process_single_req(fd, fields, g);
   }
   g_bridge_fd = -1;
   ::close(fd);
 }
 
 // C wrappers for dyn.load()
-extern "C" void galaaz_run_bridge_c(const char* host, int port) {
-  galaaz_run_bridge(std::string(host), port);
+// R's .C() passes: character vector as char**, integer vector as int*
+extern "C" void galaaz_run_bridge_c(const char** host, int* port) {
+  galaaz_run_bridge(std::string(*host), *port);
 }
 
-extern "C" double galaaz_callback_call_phase3_c(const char* call_id, const char* payload, int timeout_ms) {
-  return galaaz_callback_call(std::string(call_id), std::string(payload), timeout_ms);
+extern "C" double galaaz_callback_call_phase3_c(const char** call_id, const char** payload, int* timeout_ms) {
+  return galaaz_callback_call(std::string(*call_id), std::string(*payload), *timeout_ms);
 }
