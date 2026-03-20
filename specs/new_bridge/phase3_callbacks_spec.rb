@@ -10,21 +10,25 @@ require 'new_bridge'
 
 RSpec.describe 'NewBridge Phase 3 (CALL/RET callbacks)' do
   let(:phase1_cpp) { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
-  let(:phase1_so)  { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper.so', __dir__) }
+  let(:instance_id) { 'instance-a' }
 
-  def with_client(cpp, instance_id: 'instance-a')
+  before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
+    cpp = File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
+    @client = NewBridge::SessionClient.new(source_path: cpp)
+    @client.start
+  end
 
-    # Always use .cpp with sourceCpp for now
-    c = NewBridge::SessionClient.new(source_path: cpp)
-    c.start
-    yield c, instance_id
-  ensure
-    c&.stop
+  after(:all) do
+    @client&.stop
+  end
+
+  def with_client(instance_id: 'instance-a')
+    yield @client, instance_id
   end
 
   it 'callback ping: Ruby callback returns a scalar' do
-    with_client(phase1_cpp) do |c, iid|
+    with_client(instance_id: instance_id) do |c, iid|
       cb_call_id = c.register_callback do |payload|
         payload.to_i + 1
       end
@@ -38,7 +42,7 @@ RSpec.describe 'NewBridge Phase 3 (CALL/RET callbacks)' do
   end
 
   it 'callback error propagation: Ruby callback raises' do
-    with_client(phase1_cpp) do |c, iid|
+    with_client(instance_id: instance_id) do |c, iid|
       cb_call_id = c.register_callback do |_payload|
         raise 'boom'
       end
@@ -51,7 +55,7 @@ RSpec.describe 'NewBridge Phase 3 (CALL/RET callbacks)' do
   end
 
   it 'callback timeout: Ruby callback does not respond in time' do
-    with_client(phase1_cpp) do |c, iid|
+    with_client(instance_id: instance_id) do |c, iid|
       cb_call_id = c.register_callback do |_payload|
         sleep 0.2
         999

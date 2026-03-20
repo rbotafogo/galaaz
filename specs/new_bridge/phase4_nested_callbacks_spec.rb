@@ -10,21 +10,24 @@ require 'new_bridge'
 
 RSpec.describe 'NewBridge Phase 4 (Nested callbacks)' do
   let(:phase1_cpp) { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
-  let(:phase1_so)  { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper.so', __dir__) }
 
-  def with_client(cpp)
+  before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
+    cpp = File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
+    @client = NewBridge::SessionClient.new(source_path: cpp)
+    @client.start
+  end
 
-    # Always use .cpp with sourceCpp for now
-    c = NewBridge::SessionClient.new(source_path: cpp)
-    c.start
-    yield c
-  ensure
-    c&.stop
+  after(:all) do
+    @client&.stop
+  end
+
+  def with_client
+    yield @client
   end
 
   it 'deep recursion: Ruby callback calls back into R and returns correct value' do
-    with_client(phase1_cpp) do |c|
+    with_client do |c|
       # Register callback that does nested eval_r into R
       cb_call_id = c.register_callback do |_payload, call_id|
         # Nested call into R - this tests the core Phase 4 scenario
@@ -41,7 +44,7 @@ RSpec.describe 'NewBridge Phase 4 (Nested callbacks)' do
   end
 
   it 'error unwinding: Ruby callback raises, error propagates correctly' do
-    with_client(phase1_cpp) do |c|
+    with_client do |c|
       cb_call_id = c.register_callback do |_payload, _call_id|
         raise 'callback error from Ruby'
       end
@@ -55,7 +58,7 @@ RSpec.describe 'NewBridge Phase 4 (Nested callbacks)' do
   end
 
   it 'timeout: Ruby callback sleeps too long, raises timeout' do
-    with_client(phase1_cpp) do |c|
+    with_client do |c|
       cb_call_id = c.register_callback do |_payload, _call_id|
         sleep 0.5  # Sleep longer than callback timeout
         999
@@ -70,7 +73,7 @@ RSpec.describe 'NewBridge Phase 4 (Nested callbacks)' do
   end
 
   it 'nested ordering: multiple nested calls complete correctly' do
-    with_client(phase1_cpp) do |c|
+    with_client do |c|
       call_count = 0
 
       cb_call_id = c.register_callback do |_payload, call_id|
