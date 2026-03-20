@@ -50,6 +50,45 @@ RSpec.describe 'NewBridge Phase 4.4 (Runtime interface local/container)' do
     end
   end
 
+  class FlakyOnceSessionClient < FakeSessionClient
+    class << self
+      attr_accessor :calls, :instances
+    end
+
+    def initialize(**kwargs)
+      super
+      self.class.instances ||= 0
+      self.class.instances += 1
+      @instance_number = self.class.instances
+    end
+
+    def eval_r(code, session_id:, instance_id:, parent_id: nil, timeout: 60)
+      self.class.calls ||= 0
+      self.class.calls += 1
+      if @instance_number == 1 && self.class.calls == 1
+        raise NewBridge::SessionClient::RProcessError, 'R connection closed'
+      end
+
+      super
+    end
+  end
+
+  class EvalErrorSessionClient < FakeSessionClient
+    class << self
+      attr_accessor :instances
+    end
+
+    def initialize(**kwargs)
+      super
+      self.class.instances ||= 0
+      self.class.instances += 1
+    end
+
+    def eval_r(_code, session_id:, instance_id:, parent_id: nil, timeout: 60)
+      raise NewBridge::SessionClient::RProcessError, 'evaluation error'
+    end
+  end
+
   let(:phase1_cpp) { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
 
   it 'spawns local runtime through unified spawn API' do
@@ -198,6 +237,36 @@ RSpec.describe 'NewBridge Phase 4.4 (Runtime interface local/container)' do
       relearn_bridge_host: true
     )
     expect(BridgeLearningSessionClient.attempts.first).to eq('good-host')
+  end
+
+  it 'restarts and retries once on infrastructure/runtime failure' do
+    FlakyOnceSessionClient.calls = 0
+    FlakyOnceSessionClient.instances = 0
+    mgr = NewBridge::RInstanceManager.new(
+      source_path: phase1_cpp,
+      session_client_class: FlakyOnceSessionClient,
+      docker_access_checker: -> { [true, nil] }
+    )
+    mgr.spawn(instance_id: 'loc-a', runtime: 'local', version: '4.3.3')
+
+    out = mgr.eval_r('1L+1L', session_id: 's', instance_id: 'loc-a')
+    expect(out['kind']).to eq('integer')
+    expect(FlakyOnceSessionClient.instances).to eq(2)
+  end
+
+  it 'does not retry on evaluation errors' do
+    EvalErrorSessionClient.instances = 0
+    mgr = NewBridge::RInstanceManager.new(
+      source_path: phase1_cpp,
+      session_client_class: EvalErrorSessionClient,
+      docker_access_checker: -> { [true, nil] }
+    )
+    mgr.spawn(instance_id: 'loc-a', runtime: 'local', version: '4.3.3')
+
+    expect do
+      mgr.eval_r('stop("boom")', session_id: 's', instance_id: 'loc-a')
+    end.to raise_error(NewBridge::SessionClient::RProcessError, /evaluation error/)
+    expect(EvalErrorSessionClient.instances).to eq(1)
   end
 end
 

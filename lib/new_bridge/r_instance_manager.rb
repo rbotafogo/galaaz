@@ -198,6 +198,15 @@ module NewBridge
     def eval_r(code, session_id:, instance_id:, parent_id: nil, timeout: 60)
       c = @clients.fetch(instance_id)
       c.eval_r(code, session_id: session_id, instance_id: instance_id, parent_id: parent_id, timeout: timeout)
+    rescue StandardError => e
+      raise unless infrastructure_retryable_error?(e)
+      raise unless @clients.key?(instance_id)
+
+      @out.puts("[RInstanceManager] runtime failure on instance=#{instance_id}: #{e.class}: #{e.message}")
+      @out.puts("[RInstanceManager] attempting one restart+retry for instance=#{instance_id}")
+      restart_instance(instance_id)
+      c2 = @clients.fetch(instance_id)
+      c2.eval_r(code, session_id: session_id, instance_id: instance_id, parent_id: parent_id, timeout: timeout)
     end
 
     # Route to an instance by version label.
@@ -274,6 +283,35 @@ module NewBridge
     end
 
     private
+
+    def restart_instance(instance_id)
+      m = @meta.fetch(instance_id)
+      stop(instance_id, force_container: true)
+      case m[:runtime]
+      when 'container'
+        spawn_container(
+          instance_id: instance_id,
+          image: m[:image],
+          version: m[:version],
+          container_name: m[:container_name],
+          accept_timeout: 30,
+          bridge_host: m[:bridge_host]
+        )
+      else
+        spawn_local(instance_id: instance_id, r_cmd: m[:r_cmd] || @default_r_cmd, version: m[:version])
+      end
+    end
+
+    def infrastructure_retryable_error?(e)
+      return true if e.is_a?(Timeout::Error)
+      return true if e.is_a?(Errno::EPIPE) || e.is_a?(Errno::ECONNRESET) || e.is_a?(IOError)
+      return true if e.is_a?(NewBridge::SessionClient::TimeoutError)
+      return false unless e.is_a?(NewBridge::SessionClient::RProcessError)
+
+      msg = e.message.to_s.downcase
+      return false if msg.include?('evaluation error') || msg.include?('parse error')
+      msg.include?('connection closed') || msg.include?('failed to accept runtime connection')
+    end
 
     def cleanup_container(meta, force:)
       return unless meta && meta[:runtime] == 'container'
