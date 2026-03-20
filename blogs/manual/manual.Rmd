@@ -146,6 +146,30 @@ Galaaz is the Portuguese name for "Galahad".  From Wikipedia:
 * Install FastR (gu install R)
 * Install rake if you want to run the specs and examples (gem install rake)
 
+## Windows + WSL2 (Required for container workflow)
+
+If you run Galaaz on Windows through WSL2 and want containerized R instances,
+Docker Desktop is the supported setup.
+
+1. Install Docker Desktop on Windows:
+   - https://www.docker.com/products/docker-desktop/
+2. Open Docker Desktop and enable WSL integration:
+   - Settings > Resources > WSL Integration
+   - Enable integration for your target distro
+   - Apply & Restart Docker Desktop
+3. In WSL, run Galaaz bootstrap:
+
+  > ruby bin/galaaz-bootstrap --apply
+  > ruby bin/galaaz-bootstrap --check
+
+Expected result:
+- docker CLI available
+- docker compose available
+- docker daemon reachable (`docker info` works)
+
+If bootstrap reports daemon is unreachable, check Docker Desktop is running and
+WSL integration is enabled for the distro where Galaaz is installed.
+
 # Usage
 
 * Interactive shell: use 'gstudio' on the command line
