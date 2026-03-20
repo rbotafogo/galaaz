@@ -8,6 +8,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <map>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <poll.h>
 #include <string>
@@ -451,14 +452,27 @@ static void process_single_req(int fd, const std::map<std::string, std::string>&
 
 // [[Rcpp::export]]
 void galaaz_run_bridge(std::string host, int port) {
-  int fd = ::socket(AF_INET, SOCK_STREAM, 0);
-  if (fd < 0) die("socket");
-  sockaddr_in a;
-  std::memset(&a, 0, sizeof(a));
-  a.sin_family = AF_INET;
-  a.sin_port = htons(static_cast<uint16_t>(port));
-  if (::inet_pton(AF_INET, host.c_str(), &a.sin_addr) != 1) die("inet_pton");
-  if (::connect(fd, reinterpret_cast<sockaddr*>(&a), sizeof(a)) != 0) die("connect");
+  // Support both literal IPv4 and hostnames (e.g. host.docker.internal)
+  // so containerized runtimes can connect back to Ruby host listener.
+  addrinfo hints;
+  std::memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+
+  addrinfo* res = nullptr;
+  std::string p = std::to_string(port);
+  if (::getaddrinfo(host.c_str(), p.c_str(), &hints, &res) != 0) die("getaddrinfo");
+
+  int fd = -1;
+  for (addrinfo* it = res; it != nullptr; it = it->ai_next) {
+    fd = ::socket(it->ai_family, it->ai_socktype, it->ai_protocol);
+    if (fd < 0) continue;
+    if (::connect(fd, it->ai_addr, it->ai_addrlen) == 0) break;
+    ::close(fd);
+    fd = -1;
+  }
+  ::freeaddrinfo(res);
+  if (fd < 0) die("connect");
   g_bridge_fd = fd;
 
   Rcpp::Environment g = Rcpp::Environment::global_env();

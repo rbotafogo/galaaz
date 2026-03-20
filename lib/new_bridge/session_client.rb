@@ -18,11 +18,17 @@ module NewBridge
 
     attr_reader :r_stderr, :r_exit_status
 
-    # @param source_path [String] Path to either .cpp file (uses sourceCpp) or .so file (uses dyn.load)
-    def initialize(source_path:, host: '127.0.0.1', r_cmd: 'R')
+    # @param source_path [String] Host-side path to .cpp or .so
+    # @param host [String] bind/listen address for Ruby TCP server
+    # @param bridge_host [String,nil] host value injected into R script (defaults to host)
+    # @param runtime_source_path [String,nil] source path visible from runtime process/container
+    # @param r_cmd [String, Array<String>] executable (or argv prefix ending with executable)
+    def initialize(source_path:, host: '127.0.0.1', bridge_host: nil, runtime_source_path: nil, r_cmd: 'R')
       @source_path = File.expand_path(source_path)
       @use_precompiled = @source_path.end_with?('.so')
       @host = host
+      @bridge_host = bridge_host || host
+      @runtime_source_path = runtime_source_path || @source_path
       @r_cmd = r_cmd
       @server = nil
       @sock = nil
@@ -41,9 +47,9 @@ module NewBridge
       port = @server.addr[1]
 
       # Always use sourceCpp for now - dyn.load needs more work
-      cpp_escaped = @source_path.gsub("'", "\\\\'")
+      cpp_escaped = @runtime_source_path.gsub("'", "\\\\'")
       r_script = <<~R
-        host <- "#{@host}"
+        host <- "#{@bridge_host}"
         port <- #{port}
         stopifnot(requireNamespace("Rcpp", quietly = TRUE))
         library(Rcpp)
@@ -51,9 +57,10 @@ module NewBridge
         galaaz_run_bridge(host, as.integer(port))
       R
 
-      env = { 'GALAAZ_BRIDGE_HOST' => @host, 'GALAAZ_BRIDGE_PORT' => port.to_s }
+      env = { 'GALAAZ_BRIDGE_HOST' => @bridge_host, 'GALAAZ_BRIDGE_PORT' => port.to_s }
       @r_thr = Thread.new do
-        _stdin, stdout_err, wait_thr = Open3.popen2e(env, @r_cmd, '--slave', '--no-save', '-e', r_script)
+        launch = @r_cmd.is_a?(Array) ? @r_cmd.dup : [@r_cmd]
+        _stdin, stdout_err, wait_thr = Open3.popen2e(env, *launch, '--slave', '--no-save', '-e', r_script)
         @r_stderr = stdout_err.read
         @r_exit_status = wait_thr.value
       end
@@ -61,6 +68,15 @@ module NewBridge
       @sock = Timeout.timeout(accept_timeout) { @server.accept }
       @reader = Thread.new { reader_loop }
       self
+    rescue Timeout::Error
+      # If the runtime process failed early (e.g. docker permission/network/source path),
+      # surface stderr/exit details instead of a generic accept timeout.
+      process_status = @r_exit_status&.exitstatus
+      details = @r_stderr.to_s.strip
+      msg = "failed to accept runtime connection within #{accept_timeout}s"
+      msg += " (runtime exit=#{process_status})" if process_status
+      msg += " stderr=#{details[0, 600]}" unless details.empty?
+      raise RProcessError, msg
     end
 
     def stop
