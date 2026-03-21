@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'fileutils'
+require 'msgpack'
 
 # Load required R libraries
 dir = File.dirname(File.expand_path('.', __FILE__))
@@ -44,7 +45,13 @@ require_relative 'robject'
 module R
   # Initialize the ShadowBridge for Galaaz 2.0
   def self.bridge
-    R::ShadowBridge.instance
+    impl = ENV['GALAAZ_BRIDGE_IMPL'].to_s
+    if impl == 'new_bridge'
+      require_relative 'new_bridge_adapter'
+      R::NewBridgeAdapter.instance
+    else
+      R::ShadowBridge.instance
+    end
   end
 
   RCONSTANTS = ["LETTERS", "letters", "month.abb", "month.name", "pi"]
