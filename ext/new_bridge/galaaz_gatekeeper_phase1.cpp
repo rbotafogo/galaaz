@@ -473,6 +473,40 @@ std::vector<uint8_t> payload_unbox_walk(const std::string& status, int nodes, in
   return p;
 }
 
+void pack_array_header(std::vector<uint8_t>& o, uint32_t n) {
+  if (n < 16) {
+    o.push_back(static_cast<uint8_t>(0x90 | n));
+  } else if (n <= 0xffff) {
+    o.push_back(0xdc);
+    o.push_back(static_cast<uint8_t>((n >> 8) & 0xff));
+    o.push_back(static_cast<uint8_t>(n & 0xff));
+  } else {
+    o.push_back(0xdd);
+    o.push_back(static_cast<uint8_t>((n >> 24) & 0xff));
+    o.push_back(static_cast<uint8_t>((n >> 16) & 0xff));
+    o.push_back(static_cast<uint8_t>((n >> 8) & 0xff));
+    o.push_back(static_cast<uint8_t>(n & 0xff));
+  }
+}
+
+std::vector<uint8_t> payload_unbox_materialize(const std::string& status, int nodes, int max_depth,
+                                               const std::vector<uint8_t>& value_bytes) {
+  std::vector<uint8_t> p;
+  // { kind, status, nodes, max_depth, value }
+  p.push_back(static_cast<uint8_t>(0x80 | 5));
+  pack_str(p, "kind");
+  pack_str(p, "unbox_materialize");
+  pack_str(p, "status");
+  pack_str(p, status);
+  pack_str(p, "nodes");
+  pack_int32(p, nodes);
+  pack_str(p, "max_depth");
+  pack_int32(p, max_depth);
+  pack_str(p, "value");
+  p.insert(p.end(), value_bytes.begin(), value_bytes.end());
+  return p;
+}
+
 bool starts_with(const std::string& s, const std::string& prefix) {
   return s.size() >= prefix.size() && s.compare(0, prefix.size(), prefix) == 0;
 }
@@ -533,6 +567,149 @@ EvalResult eval_unbox_walk_cmd(const std::string& cmd, const Rcpp::Environment& 
   return {true, payload_unbox_walk(status, nodes, maxd)};
 }
 
+bool materialize_value(SEXP x, int depth, int max_depth, int max_nodes, int& nodes, int& maxd,
+                       std::vector<uint8_t>& out, std::string& status) {
+  nodes += 1;
+  if (depth > maxd) maxd = depth;
+  if (nodes > max_nodes) {
+    status = "NODE";
+    return false;
+  }
+  if (depth > max_depth) {
+    status = "DEPTH";
+    return false;
+  }
+
+  if (x == R_NilValue) {
+    pack_nil(out);
+    return true;
+  }
+
+  switch (TYPEOF(x)) {
+    case VECSXP: {
+      R_xlen_t n = XLENGTH(x);
+      pack_array_header(out, static_cast<uint32_t>(n));
+      for (R_xlen_t i = 0; i < n; ++i) {
+        if (!materialize_value(VECTOR_ELT(x, i), depth + 1, max_depth, max_nodes, nodes, maxd, out, status)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    case INTSXP: {
+      R_xlen_t n = XLENGTH(x);
+      if (n == 1) {
+        int v = INTEGER(x)[0];
+        if (v == NA_INTEGER) pack_nil(out);
+        else pack_int32(out, v);
+      } else {
+        pack_array_header(out, static_cast<uint32_t>(n));
+        for (R_xlen_t i = 0; i < n; ++i) {
+          int v = INTEGER(x)[i];
+          if (v == NA_INTEGER) pack_nil(out);
+          else pack_int32(out, v);
+        }
+      }
+      return true;
+    }
+    case REALSXP: {
+      R_xlen_t n = XLENGTH(x);
+      if (n == 1) {
+        double v = REAL(x)[0];
+        if (R_IsNA(v)) pack_nil(out);
+        else pack_double64(out, v);
+      } else {
+        pack_array_header(out, static_cast<uint32_t>(n));
+        for (R_xlen_t i = 0; i < n; ++i) {
+          double v = REAL(x)[i];
+          if (R_IsNA(v)) pack_nil(out);
+          else pack_double64(out, v);
+        }
+      }
+      return true;
+    }
+    case LGLSXP: {
+      R_xlen_t n = XLENGTH(x);
+      if (n == 1) {
+        int v = LOGICAL(x)[0];
+        if (v == NA_LOGICAL) pack_nil(out);
+        else pack_bool(out, v != 0);
+      } else {
+        pack_array_header(out, static_cast<uint32_t>(n));
+        for (R_xlen_t i = 0; i < n; ++i) {
+          int v = LOGICAL(x)[i];
+          if (v == NA_LOGICAL) pack_nil(out);
+          else pack_bool(out, v != 0);
+        }
+      }
+      return true;
+    }
+    case STRSXP: {
+      R_xlen_t n = XLENGTH(x);
+      if (n == 1) {
+        if (STRING_ELT(x, 0) == NA_STRING) pack_nil(out);
+        else pack_str(out, std::string(CHAR(STRING_ELT(x, 0))));
+      } else {
+        pack_array_header(out, static_cast<uint32_t>(n));
+        for (R_xlen_t i = 0; i < n; ++i) {
+          if (STRING_ELT(x, i) == NA_STRING) pack_nil(out);
+          else pack_str(out, std::string(CHAR(STRING_ELT(x, i))));
+        }
+      }
+      return true;
+    }
+    default:
+      status = "UNSUPPORTED";
+      return false;
+  }
+}
+
+EvalResult eval_unbox_materialize_cmd(const std::string& cmd, const Rcpp::Environment& env) {
+  // Format: __G_UNBOX_MATERIALIZE__|<handle>|<max_depth>|<max_nodes>
+  std::vector<std::string> parts;
+  size_t start = 0;
+  while (start <= cmd.size()) {
+    size_t pos = cmd.find('|', start);
+    if (pos == std::string::npos) pos = cmd.size();
+    parts.push_back(cmd.substr(start, pos - start));
+    start = pos + 1;
+    if (pos == cmd.size()) break;
+  }
+  if (parts.size() != 4) return {false, payload_error("bad unbox_materialize args")};
+
+  std::string handle = parts[1];
+  int max_depth = std::atoi(parts[2].c_str());
+  int max_nodes = std::atoi(parts[3].c_str());
+  if (handle.empty() || max_depth <= 0 || max_nodes <= 0) {
+    return {false, payload_error("invalid unbox_materialize params")};
+  }
+
+  SEXP sym = Rf_install(handle.c_str());
+  SEXP root = Rf_findVar(sym, env);
+  if (root == R_UnboundValue) return {false, payload_error("unbox_materialize unknown handle")};
+
+  std::vector<uint8_t> value_bytes;
+  int nodes = 0;
+  int maxd = 0;
+  std::string status = "OK";
+  bool ok = materialize_value(root, 1, max_depth, max_nodes, nodes, maxd, value_bytes, status);
+  if (!ok && status != "DEPTH" && status != "NODE" && status != "UNSUPPORTED") {
+    status = "UNSUPPORTED";
+  }
+  // IMPORTANT: if traversal aborts (DEPTH/NODE/UNSUPPORTED), the recursive
+  // encoder may have emitted only a prefix of a composite value (e.g. array
+  // header without all declared elements). Returning that partial MsgPack blob
+  // would make the outer RET payload undecodable on Ruby side and appear as a
+  // broken connection. For non-OK statuses, force `value` to MsgPack nil so
+  // envelope decoding always stays valid and status carries the reason.
+  if (!ok) {
+    value_bytes.clear();
+    pack_nil(value_bytes);
+  }
+
+  return {true, payload_unbox_materialize(status, nodes, maxd, value_bytes)};
+}
+
 // Resolve or create the per-session environment for sid.
 //
 // Why per-session environments:
@@ -557,6 +734,9 @@ Rcpp::Environment session_env(Rcpp::Environment& g, const std::string& sid) {
 EvalResult eval_code_payload(const std::string& code, const Rcpp::Environment& env) {
   if (starts_with(code, "__G_UNBOX_WALK__|")) {
     return eval_unbox_walk_cmd(code, env);
+  }
+  if (starts_with(code, "__G_UNBOX_MATERIALIZE__|")) {
+    return eval_unbox_materialize_cmd(code, env);
   }
   ParseStatus ps = PARSE_OK;
   SEXP px = R_ParseVector(Rf_mkString(code.c_str()), 1, &ps, R_GlobalEnv);

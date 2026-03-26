@@ -61,6 +61,21 @@ module R
       if depth >= ::R::Support::MAX_UNBOX_DEPTH
         ::Kernel.raise(::R::UnboxDepthError, "unbox: list too deep (max depth #{::R::Support::MAX_UNBOX_DEPTH} exceeded)")
       end
+      if index.nil? && depth <= 1 && ::R.bridge.respond_to?(:unbox_materialize)
+        materialized = ::R.bridge.unbox_materialize(@r_interop,
+                                                    max_depth: ::R::Support::MAX_UNBOX_DEPTH,
+                                                    max_nodes: 200_000)
+        case materialized[:status]
+        when :ok
+          return materialized[:value]
+        when :depth_limit
+          ::Kernel.raise(::R::UnboxDepthError, "unbox: list too deep (max depth #{::R::Support::MAX_UNBOX_DEPTH} exceeded)")
+        when :node_limit
+          # Fall through to structural path if node budget is hit.
+        when :unsupported
+          # Fall through to structural path for mixed/unsupported types.
+        end
+      end
       # Fast preflight for deep nested lists on the new bridge:
       # detect depth overflow in one bridge call before recursive element reads.
       if index.nil? && depth <= 1 && ::R.bridge.respond_to?(:unbox_walk)

@@ -185,6 +185,22 @@ module R
       { status: status, nodes: parsed['nodes'].to_i, max_depth: parsed['max_depth'].to_i }
     end
 
+    # Specialized one-call materialization for nested list/scalar/null trees.
+    # Returns:
+    #   { status: :ok|:depth_limit|:node_limit|:unsupported, nodes:, max_depth:, value: }
+    def unbox_materialize(var_name, max_depth:, max_nodes:)
+      cmd = "__G_UNBOX_MATERIALIZE__|#{var_name}|#{max_depth.to_i}|#{max_nodes.to_i}"
+      parsed = @client.eval_r(cmd, session_id: current_session_id, parent_id: callback_parent_id)
+      status =
+        case parsed['status'].to_s
+        when 'DEPTH' then :depth_limit
+        when 'NODE' then :node_limit
+        when 'UNSUPPORTED' then :unsupported
+        else :ok
+        end
+      { status: status, nodes: parsed['nodes'].to_i, max_depth: parsed['max_depth'].to_i, value: parsed['value'] }
+    end
+
     # Minimal pull path for Phase 5.1 unboxing support.
     # Reads vectors element-by-element via the existing eval path.
     def pull_vector(var_name)

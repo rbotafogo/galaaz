@@ -31,5 +31,18 @@ RSpec.describe 'Phase 5.5 integration unbox_walk (R.bridge seam)' do
     expect(result[:status]).to eq(:depth_limit)
     expect(result[:max_depth]).to be > R::Support::MAX_UNBOX_DEPTH
   end
+
+  it 'materializes nested list/scalar trees in one call when supported' do
+    bridge = R.bridge
+    expect(bridge).to respond_to(:unbox_materialize)
+
+    tree = R.list(R.list(1, 2), R.list(3, 4))
+    result = bridge.unbox_materialize(tree.r_interop,
+                                      max_depth: R::Support::MAX_UNBOX_DEPTH,
+                                      max_nodes: 300_000)
+
+    expect(result[:status]).to eq(:ok)
+    expect(result[:value]).to eq([[1, 2], [3, 4]])
+  end
 end
 
