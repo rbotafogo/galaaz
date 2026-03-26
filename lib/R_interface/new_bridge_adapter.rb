@@ -34,10 +34,20 @@ module R
       @in_callback
     end
 
+    # Execute bridge operations within a specific NewBridge session_id.
+    # Scope is thread-local and restored after block execution.
+    def with_session(session_id)
+      old = Thread.current[:galaaz_new_bridge_session_id]
+      Thread.current[:galaaz_new_bridge_session_id] = session_id.to_s
+      yield
+    ensure
+      Thread.current[:galaaz_new_bridge_session_id] = old
+    end
+
     # Minimal textual compatibility for existing call sites that expect
     # "[1] <value>" style output for simple scalar evaluations.
     def eval_r(code)
-      out = @client.eval_r(code, parent_id: callback_parent_id)
+      out = @client.eval_r(code, session_id: current_session_id, parent_id: callback_parent_id)
       format_scalar_print(out)
     rescue NewBridge::SessionClient::RProcessError => e
       # Phase 5.3 compatibility: many eval_r call sites are side-effect only
@@ -46,7 +56,7 @@ module R
       # run in side-effect mode and return an empty string.
       raise unless e.message.to_s.include?('unsupported type')
 
-      @client.eval_r("({ #{code}; 0L })", parent_id: callback_parent_id)
+      @client.eval_r("({ #{code}; 0L })", session_id: current_session_id, parent_id: callback_parent_id)
       ''
     end
 
@@ -59,24 +69,24 @@ module R
       var_name = m[1]
       expr = m[2]
       # Force scalar-success return from phase1 eval path while preserving assignment side effect.
-      @client.eval_r("({ #{var_name} <- #{expr}; 0L })", parent_id: callback_parent_id)
-      len = @client.eval_r("length(#{var_name})", parent_id: callback_parent_id)['value']
+      @client.eval_r("({ #{var_name} <- #{expr}; 0L })", session_id: current_session_id, parent_id: callback_parent_id)
+      len = @client.eval_r("length(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
 
       if len == 1
-        is_integer = @client.eval_r("is.integer(#{var_name})", parent_id: callback_parent_id)['value']
-        is_double = @client.eval_r("is.double(#{var_name})", parent_id: callback_parent_id)['value']
-        is_logical = @client.eval_r("is.logical(#{var_name})", parent_id: callback_parent_id)['value']
-        is_character = @client.eval_r("is.character(#{var_name})", parent_id: callback_parent_id)['value']
+        is_integer = @client.eval_r("is.integer(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
+        is_double = @client.eval_r("is.double(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
+        is_logical = @client.eval_r("is.logical(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
+        is_character = @client.eval_r("is.character(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
 
         if is_integer || is_double || is_logical || is_character
-          parsed = @client.eval_r(var_name, parent_id: callback_parent_id)
+          parsed = @client.eval_r(var_name, session_id: current_session_id, parent_id: callback_parent_id)
           return to_legacy_envelope(parsed, var_name)
         end
       end
 
-      r_class = @client.eval_r("paste(class(#{var_name}), collapse=' ')", parent_id: callback_parent_id)['value']
+      r_class = @client.eval_r("paste(class(#{var_name}), collapse=' ')", session_id: current_session_id, parent_id: callback_parent_id)['value']
       if r_class.nil? || r_class.to_s.strip.empty?
-        r_class = @client.eval_r("typeof(#{var_name})", parent_id: callback_parent_id)['value']
+        r_class = @client.eval_r("typeof(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
       end
       { type: :handle, handle: var_name, r_class: r_class.to_s }
     end
@@ -85,10 +95,13 @@ module R
     # Returns an R function string that forwards callback execution to Ruby
     # using the NewBridge CALL/RET path.
     def register_callback_proc_stub(proc_or_method)
+      callback_session_id = current_session_id
       callback_call_id = @client.register_callback do |_payload, call_id|
         payload = _payload
         old = Thread.current[:galaaz_new_bridge_parent_id]
+        old_session = Thread.current[:galaaz_new_bridge_session_id]
         Thread.current[:galaaz_new_bridge_parent_id] = call_id
+        Thread.current[:galaaz_new_bridge_session_id] = callback_session_id
         @in_callback = true
         begin
           arity = proc_or_method.respond_to?(:arity) ? proc_or_method.arity : 0
@@ -101,6 +114,7 @@ module R
           end
         ensure
           @in_callback = false
+          Thread.current[:galaaz_new_bridge_session_id] = old_session
           Thread.current[:galaaz_new_bridge_parent_id] = old
         end
       end
@@ -126,11 +140,11 @@ module R
     # Minimal pull path for Phase 5.1 unboxing support.
     # Reads vectors element-by-element via the existing eval path.
     def pull_vector(var_name)
-      len = @client.eval_r("length(#{var_name})")['value'].to_i
+      len = @client.eval_r("length(#{var_name})", session_id: current_session_id)['value'].to_i
       return [] if len <= 0
 
       (1..len).map do |i|
-        parsed = @client.eval_r("#{var_name}[[#{i}]]")
+        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id)
         case parsed['kind']
         when 'integer', 'double', 'character'
           parsed['value']
@@ -149,7 +163,7 @@ module R
       start_i = offset + 1
       end_i = offset + chunk_size
       (start_i..end_i).map do |i|
-        parsed = @client.eval_r("#{var_name}[[#{i}]]")
+        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id)
         parsed['value']
       end
     end
@@ -159,7 +173,7 @@ module R
       start_i = offset + 1
       end_i = offset + chunk_size
       (start_i..end_i).map do |i|
-        parsed = @client.eval_r("#{var_name}[[#{i}]]")
+        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id)
         parsed['value']
       end
     end
@@ -170,23 +184,23 @@ module R
     # Uses scalar eval for each cell to stay compatible with phase1's
     # length-1 scalar limitation.
     def pull_dataframe(var_name)
-      ncol = @client.eval_r("length(#{var_name})")['value'].to_i
+      ncol = @client.eval_r("length(#{var_name})", session_id: current_session_id)['value'].to_i
       return {} if ncol <= 0
 
       col_hash = {}
 
       (1..ncol).each do |i|
         # names(df)[i] is a character vector of length 1 -> length-1 scalar.
-        col_name_parsed = @client.eval_r("names(#{var_name})[#{i}]")
+        col_name_parsed = @client.eval_r("names(#{var_name})[#{i}]", session_id: current_session_id)
         col_name = col_name_parsed['value']
         col_name = col_name.to_s if col_name
 
-        col_type = @client.eval_r("typeof(#{var_name}[[#{i}]])")['value'].to_s
-        nrow = @client.eval_r("length(#{var_name}[[#{i}]])")['value'].to_i
+        col_type = @client.eval_r("typeof(#{var_name}[[#{i}]])", session_id: current_session_id)['value'].to_s
+        nrow = @client.eval_r("length(#{var_name}[[#{i}]])", session_id: current_session_id)['value'].to_i
         nrow = 0 if nrow.negative?
 
         values = (1..nrow).map do |j|
-          parsed = @client.eval_r("#{var_name}[[#{i}]][[#{j}]]")
+          parsed = @client.eval_r("#{var_name}[[#{i}]][[#{j}]]", session_id: current_session_id)
           case parsed['kind']
           when 'logical'
             parsed['value'].nil? ? R::NA : parsed['value']
@@ -207,6 +221,10 @@ module R
 
     def callback_parent_id
       Thread.current[:galaaz_new_bridge_parent_id]
+    end
+
+    def current_session_id
+      Thread.current[:galaaz_new_bridge_session_id] || 'default'
     end
 
     def format_scalar_print(parsed)
