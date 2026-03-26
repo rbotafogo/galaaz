@@ -361,12 +361,36 @@ void pack_str(std::vector<uint8_t>& o, const std::string& s) {
 }
 
 void pack_nil(std::vector<uint8_t>& o) { o.push_back(0xc0); }
+void pack_true(std::vector<uint8_t>& o) { o.push_back(0xc3); }
+void pack_false(std::vector<uint8_t>& o) { o.push_back(0xc2); }
+void pack_bool(std::vector<uint8_t>& o, bool v) { v ? pack_true(o) : pack_false(o); }
+void pack_int32(std::vector<uint8_t>& o, int32_t x) {
+  o.push_back(0xd2);
+  o.push_back(static_cast<uint8_t>((x >> 24) & 0xff));
+  o.push_back(static_cast<uint8_t>((x >> 16) & 0xff));
+  o.push_back(static_cast<uint8_t>((x >> 8) & 0xff));
+  o.push_back(static_cast<uint8_t>(x & 0xff));
+}
+void pack_double64(std::vector<uint8_t>& o, double v) {
+  o.push_back(0xcb);
+  uint64_t bits = 0;
+  std::memcpy(&bits, &v, 8);
+  o.push_back(static_cast<uint8_t>((bits >> 56) & 0xff));
+  o.push_back(static_cast<uint8_t>((bits >> 48) & 0xff));
+  o.push_back(static_cast<uint8_t>((bits >> 40) & 0xff));
+  o.push_back(static_cast<uint8_t>((bits >> 32) & 0xff));
+  o.push_back(static_cast<uint8_t>((bits >> 24) & 0xff));
+  o.push_back(static_cast<uint8_t>((bits >> 16) & 0xff));
+  o.push_back(static_cast<uint8_t>((bits >> 8) & 0xff));
+  o.push_back(static_cast<uint8_t>(bits & 0xff));
+}
 
 void pack_map5(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 5)); }
 
 void pack_map6(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 6)); }
 
 void pack_map4(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 4)); }
+void pack_map2(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 2)); }
 
 // Build a CALL envelope (R -> Ruby callback request).
 //
@@ -400,8 +424,8 @@ std::vector<uint8_t> make_call(const std::string& call_id, const std::string& pa
 // We always include parent_id (currently nil) to keep envelope shape stable
 // across phases; this avoids Ruby-side "missing key" branches and makes logs
 // easier to compare between callback/non-callback flows.
-std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& status, const std::string& payload,
-                              const std::string& instance_id) {
+std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& status,
+                              const std::vector<uint8_t>& payload_bytes, const std::string& instance_id) {
   std::vector<uint8_t> o;
   pack_map6(o);
   pack_str(o, "call_id");
@@ -411,7 +435,7 @@ std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& sta
   pack_str(o, "status");
   pack_str(o, status);
   pack_str(o, "payload");
-  pack_str(o, payload);
+  o.insert(o.end(), payload_bytes.begin(), payload_bytes.end());
   pack_str(o, "instance_id");
   pack_str(o, instance_id);
   pack_str(o, "parent_id");
@@ -419,18 +443,94 @@ std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& sta
   return o;
 }
 
-// Escape a string for embedding into a small JSON literal.
-// This is intentionally minimal because bridge payloads are tiny scalar JSON
-// snippets. We only escape `"` and `\`, which are the characters that would
-// break our generated string literals in this protocol.
-std::string json_escape(const std::string& s) {
-  std::string o;
-  for (char c : s) {
-    if (c == '"' || c == '\\')
-      o += '\\';
-    o += c;
+std::vector<uint8_t> payload_error(const std::string& msg) {
+  std::vector<uint8_t> p;
+  pack_map2(p);
+  pack_str(p, "kind");
+  pack_str(p, "error");
+  pack_str(p, "message");
+  pack_str(p, msg);
+  return p;
+}
+
+struct EvalResult {
+  bool ok;
+  std::vector<uint8_t> payload;
+};
+
+std::vector<uint8_t> payload_unbox_walk(const std::string& status, int nodes, int max_depth) {
+  std::vector<uint8_t> p;
+  // { kind, status, nodes, max_depth }
+  p.push_back(static_cast<uint8_t>(0x80 | 4));
+  pack_str(p, "kind");
+  pack_str(p, "unbox_walk");
+  pack_str(p, "status");
+  pack_str(p, status);
+  pack_str(p, "nodes");
+  pack_int32(p, nodes);
+  pack_str(p, "max_depth");
+  pack_int32(p, max_depth);
+  return p;
+}
+
+bool starts_with(const std::string& s, const std::string& prefix) {
+  return s.size() >= prefix.size() && s.compare(0, prefix.size(), prefix) == 0;
+}
+
+EvalResult eval_unbox_walk_cmd(const std::string& cmd, const Rcpp::Environment& env) {
+  // Format: __G_UNBOX_WALK__|<handle>|<max_depth>|<max_nodes>
+  std::vector<std::string> parts;
+  size_t start = 0;
+  while (start <= cmd.size()) {
+    size_t pos = cmd.find('|', start);
+    if (pos == std::string::npos) pos = cmd.size();
+    parts.push_back(cmd.substr(start, pos - start));
+    start = pos + 1;
+    if (pos == cmd.size()) break;
   }
-  return o;
+  if (parts.size() != 4) return {false, payload_error("bad unbox_walk args")};
+
+  std::string handle = parts[1];
+  int max_depth = std::atoi(parts[2].c_str());
+  int max_nodes = std::atoi(parts[3].c_str());
+  if (handle.empty() || max_depth <= 0 || max_nodes <= 0) {
+    return {false, payload_error("invalid unbox_walk params")};
+  }
+
+  SEXP sym = Rf_install(handle.c_str());
+  SEXP root = Rf_findVar(sym, env);
+  if (root == R_UnboundValue) return {false, payload_error("unbox_walk unknown handle")};
+
+  std::vector<std::pair<SEXP, int>> stack;
+  stack.reserve(1024);
+  stack.push_back({root, 1});
+
+  int nodes = 0;
+  int maxd = 0;
+  std::string status = "OK";
+
+  while (!stack.empty()) {
+    auto cur = stack.back();
+    stack.pop_back();
+    SEXP x = cur.first;
+    int d = cur.second;
+
+    nodes += 1;
+    if (d > maxd) maxd = d;
+    if (nodes > max_nodes) { status = "NODE"; break; }
+    if (d > max_depth) { status = "DEPTH"; break; }
+
+    if (x == R_NilValue) continue;
+    if (TYPEOF(x) == VECSXP) {
+      R_xlen_t n = XLENGTH(x);
+      for (R_xlen_t i = n; i > 0; --i) {
+        SEXP child = VECTOR_ELT(x, i - 1);
+        stack.push_back({child, d + 1});
+      }
+    }
+  }
+
+  return {true, payload_unbox_walk(status, nodes, maxd)};
 }
 
 // Resolve or create the per-session environment for sid.
@@ -451,50 +551,74 @@ Rcpp::Environment session_env(Rcpp::Environment& g, const std::string& sid) {
   return Rcpp::as<Rcpp::Environment>(sessions[sid]);
 }
 
-// Evaluate one R expression and return a compact JSON payload:
+// Evaluate one R expression and return a compact MsgPack payload map:
 //   {"kind":"integer|double|logical|character","value":...}
 // or {"kind":"error","message":"..."}.
-//
-// Current protocol intentionally supports only length-1 scalar results.
-// This keeps REQ/RET payloads compact, deterministic, and cheap to decode on
-// Ruby side. Non-scalar transport is handled in higher-level bridge flows.
-std::string eval_code_json(const std::string& code, const Rcpp::Environment& env) {
+EvalResult eval_code_payload(const std::string& code, const Rcpp::Environment& env) {
+  if (starts_with(code, "__G_UNBOX_WALK__|")) {
+    return eval_unbox_walk_cmd(code, env);
+  }
   ParseStatus ps = PARSE_OK;
   SEXP px = R_ParseVector(Rf_mkString(code.c_str()), 1, &ps, R_GlobalEnv);
-  if (ps != PARSE_OK)
-    return std::string("{\"kind\":\"error\",\"message\":\"") + json_escape("parse error") + "\"}";
+  if (ps != PARSE_OK) return {false, payload_error("parse error")};
   SEXP expr = VECTOR_ELT(px, 0);
   int err = 0;
   SEXP val = R_tryEval(expr, env, &err);
-  if (err) {
-    return "{\"kind\":\"error\",\"message\":\"evaluation error\"}";
-  }
-  if (Rf_length(val) != 1)
-    return "{\"kind\":\"error\",\"message\":\"phase1 requires length-1 scalar\"}";
+  if (err) return {false, payload_error("evaluation error")};
+  if (Rf_length(val) != 1) return {false, payload_error("phase1 requires length-1 scalar")};
 
   if (TYPEOF(val) == INTSXP) {
+    std::vector<uint8_t> p;
+    pack_map2(p);
+    pack_str(p, "kind");
+    pack_str(p, "integer");
+    pack_str(p, "value");
     int x = INTEGER(val)[0];
-    if (x == NA_INTEGER) return "{\"kind\":\"integer\",\"value\":null}";
-    return "{\"kind\":\"integer\",\"value\":" + std::to_string(x) + "}";
+    if (x == NA_INTEGER) pack_nil(p);
+    else pack_int32(p, x);
+    return {true, p};
   }
   if (TYPEOF(val) == REALSXP) {
+    std::vector<uint8_t> p;
+    pack_map2(p);
+    pack_str(p, "kind");
+    pack_str(p, "double");
+    pack_str(p, "value");
     double x = REAL(val)[0];
-    if (R_IsNA(x)) return "{\"kind\":\"double\",\"value\":null}";
-    return "{\"kind\":\"double\",\"value\":" + std::to_string(x) + "}";
+    if (R_IsNA(x)) pack_nil(p);
+    else pack_double64(p, x);
+    return {true, p};
   }
   if (TYPEOF(val) == LGLSXP) {
+    std::vector<uint8_t> p;
+    pack_map2(p);
+    pack_str(p, "kind");
+    pack_str(p, "logical");
+    pack_str(p, "value");
     int x = LOGICAL(val)[0];
-    if (x == NA_LOGICAL) return "{\"kind\":\"logical\",\"value\":null}";
-    return std::string("{\"kind\":\"logical\",\"value\":") + (x ? "true" : "false") + "}";
+    if (x == NA_LOGICAL) pack_nil(p);
+    else pack_bool(p, x != 0);
+    return {true, p};
   }
   if (TYPEOF(val) == STRSXP) {
-    if (STRING_ELT(val, 0) == NA_STRING) return "{\"kind\":\"character\",\"value\":null}";
+    std::vector<uint8_t> p;
+    pack_map2(p);
+    pack_str(p, "kind");
+    pack_str(p, "character");
+    pack_str(p, "value");
+    if (STRING_ELT(val, 0) == NA_STRING) {
+      pack_nil(p);
+      return {true, p};
+    }
     const char* s = CHAR(STRING_ELT(val, 0));
-    if (!s) return "{\"kind\":\"character\",\"value\":null}";
-    std::string out = s;
-    return std::string("{\"kind\":\"character\",\"value\":\"") + json_escape(out) + "\"}";
+    if (!s) {
+      pack_nil(p);
+      return {true, p};
+    }
+    pack_str(p, std::string(s));
+    return {true, p};
   }
-  return "{\"kind\":\"error\",\"message\":\"unsupported type\"}";
+  return {false, payload_error("unsupported type")};
 }
 
 // Forward declaration for nested REQ servicing.
@@ -622,15 +746,14 @@ static void process_single_req(int fd, const std::map<std::string, std::string>&
   try {
     g_current_instance_id = iid;
     Rcpp::Environment env = session_env(g, sid);
-    std::string j = eval_code_json(code, env);
-    bool ok = j.find("\"kind\":\"error\"") == std::string::npos;
-    auto ret = make_ret(call_id, ok ? "success" : "error", j, iid);
+    EvalResult out = eval_code_payload(code, env);
+    auto ret = make_ret(call_id, out.ok ? "success" : "error", out.payload, iid);
     uint32_t L = static_cast<uint32_t>(ret.size());
     if (!send_all(fd, &L, 4) || !send_all(fd, ret.data(), ret.size())) {
       dbg("process_single_req: send failed");
     }
   } catch (...) {
-    auto ret = make_ret(call_id, "error", "{\"kind\":\"error\",\"message\":\"cpp/r error\"}", iid);
+    auto ret = make_ret(call_id, "error", payload_error("cpp/r error"), iid);
     uint32_t L = static_cast<uint32_t>(ret.size());
     if (!send_all(fd, &L, 4) || !send_all(fd, ret.data(), ret.size())) {
       dbg("process_single_req: send failed (error path)");
@@ -687,7 +810,7 @@ void galaaz_run_bridge(std::string bridge_host, int port) {
       Rd rd(buf);
       rd.parse_envelope(fields, nils);
     } catch (...) {
-      auto er = make_ret("?", "error", "{\"kind\":\"error\",\"message\":\"bad envelope\"}", "default");
+      auto er = make_ret("?", "error", payload_error("bad envelope"), "default");
       uint32_t L = static_cast<uint32_t>(er.size());
       if (!send_all(fd, &L, 4) || !send_all(fd, er.data(), er.size())) break;
       continue;

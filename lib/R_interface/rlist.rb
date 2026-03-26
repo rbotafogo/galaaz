@@ -61,6 +61,16 @@ module R
       if depth >= ::R::Support::MAX_UNBOX_DEPTH
         ::Kernel.raise(::R::UnboxDepthError, "unbox: list too deep (max depth #{::R::Support::MAX_UNBOX_DEPTH} exceeded)")
       end
+      # Fast preflight for deep nested lists on the new bridge:
+      # detect depth overflow in one bridge call before recursive element reads.
+      if index.nil? && depth <= 1 && ::R.bridge.respond_to?(:unbox_walk)
+        walk = ::R.bridge.unbox_walk(@r_interop,
+                                     max_depth: ::R::Support::MAX_UNBOX_DEPTH,
+                                     max_nodes: 200_000)
+        if walk[:status] == :depth_limit
+          ::Kernel.raise(::R::UnboxDepthError, "unbox: list too deep (max depth #{::R::Support::MAX_UNBOX_DEPTH} exceeded)")
+        end
+      end
       # NewBridge hardening path: use structural bridge reads during recursion.
       if ::R.bridge.respond_to?(:unbox_list_length) && ::R.bridge.respond_to?(:unbox_list_element)
         n = ::R.bridge.unbox_list_length(@r_interop)

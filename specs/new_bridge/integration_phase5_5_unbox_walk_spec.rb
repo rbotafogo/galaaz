@@ -1,0 +1,35 @@
+# frozen_string_literal: true
+
+# Phase 5.5 specialized unbox_walk traversal semantics.
+# Run:
+#   GALAAZ_BRIDGE_IMPL=new_bridge bin/run_rspec specs/new_bridge/integration_phase5_5_unbox_walk_spec.rb
+
+ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
+
+require 'timeout'
+require_relative '../../lib/R_interface/r'
+
+RSpec.describe 'Phase 5.5 integration unbox_walk (R.bridge seam)' do
+  before(:all) do
+    skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
+    skip 'requires new_bridge seam' unless ENV['GALAAZ_BRIDGE_IMPL'] == 'new_bridge'
+  end
+
+  it 'reports depth_limit for deeply nested lists in one probe call' do
+    bridge = R.bridge
+    expect(bridge).to respond_to(:unbox_walk)
+
+    deep = R.list(1)
+    (R::Support::MAX_UNBOX_DEPTH + 10).times { deep = R.list(deep) }
+
+    result = Timeout.timeout(10) do
+      bridge.unbox_walk(deep.r_interop,
+                        max_depth: R::Support::MAX_UNBOX_DEPTH,
+                        max_nodes: 300_000)
+    end
+
+    expect(result[:status]).to eq(:depth_limit)
+    expect(result[:max_depth]).to be > R::Support::MAX_UNBOX_DEPTH
+  end
+end
+

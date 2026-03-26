@@ -140,41 +140,49 @@ module R
     # Structural unboxing helpers (Phase 5.5 hardening):
     # Keep deep unboxing on explicit bridge reads instead of generic method-missing paths.
     def unbox_list_length(var_name)
-      @client.eval_r("length(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value'].to_i
+      probe = probe_node_expr(var_name)
+      probe[:length].to_i
     end
 
     def unbox_list_element(var_name, one_based_index)
       tmp = ::R::Support.generate_var_name
-      @client.eval_r("({ #{tmp} <- #{var_name}[[#{one_based_index}]]; 0L })",
-                     session_id: current_session_id, parent_id: callback_parent_id)
-      return nil if @client.eval_r("is.null(#{tmp})",
-                                   session_id: current_session_id, parent_id: callback_parent_id)['value']
+      probe = probe_node_expr("#{var_name}[[#{one_based_index}]]", assign_to: tmp)
 
-      if @client.eval_r("is.list(#{tmp})",
-                        session_id: current_session_id, parent_id: callback_parent_id)['value']
-        return ::R::Object.build(tmp, nil, r_class: 'list')
+      case probe[:kind]
+      when 'null'
+        nil
+      when 'list'
+        ::R::Object.build(tmp, nil, r_class: 'list')
+      when 'scalar_integer'
+        probe[:value]
+      when 'scalar_double'
+        probe[:value]
+      when 'scalar_logical'
+        probe[:value]
+      when 'scalar_character'
+        v = probe[:value]
+        (v.is_a?(::String) && v =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(v) : v
+      else
+        r_class = probe[:r_class].to_s.strip
+        return nil if r_class == 'NULL'
+        ::R::Object.build(tmp, nil, r_class: r_class.empty? ? 'unknown' : r_class)
       end
+    end
 
-      len = @client.eval_r("length(#{tmp})",
-                           session_id: current_session_id, parent_id: callback_parent_id)['value'].to_i
-      if len == 1
-        parsed = @client.eval_r(tmp,
-                                session_id: current_session_id, parent_id: callback_parent_id)
-        case parsed['kind']
-        when 'integer', 'double', 'logical', 'character'
-          v = parsed['value']
-          return (v.is_a?(::String) && v =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(v) : v
-        when 'symbol'
-          return parsed['value']
+    # Specialized bounded traversal for deep unboxing checks.
+    # Walks nested list structures in one bridge call and reports whether limits were exceeded.
+    # Returns:
+    #   { status: :ok|:depth_limit|:node_limit, nodes: Integer, max_depth: Integer }
+    def unbox_walk(var_name, max_depth:, max_nodes:)
+      cmd = "__G_UNBOX_WALK__|#{var_name}|#{max_depth.to_i}|#{max_nodes.to_i}"
+      parsed = @client.eval_r(cmd, session_id: current_session_id, parent_id: callback_parent_id)
+      status =
+        case parsed['status'].to_s
+        when 'DEPTH' then :depth_limit
+        when 'NODE' then :node_limit
+        else :ok
         end
-      end
-
-      r_class = @client.eval_r("paste(class(#{tmp}), collapse=' ')",
-                               session_id: current_session_id, parent_id: callback_parent_id)['value']
-      r_class = @client.eval_r("typeof(#{tmp})",
-                               session_id: current_session_id, parent_id: callback_parent_id)['value'] if r_class.nil? || r_class.to_s.strip.empty?
-      return nil if r_class.to_s.strip == 'NULL'
-      ::R::Object.build(tmp, nil, r_class: r_class.to_s)
+      { status: status, nodes: parsed['nodes'].to_i, max_depth: parsed['max_depth'].to_i }
     end
 
     # Minimal pull path for Phase 5.1 unboxing support.
@@ -265,6 +273,70 @@ module R
 
     def current_session_id
       Thread.current[:galaaz_new_bridge_session_id] || 'default'
+    end
+
+    def probe_node_expr(expr, assign_to: nil)
+      sep = "\u001F"
+      assign_line = assign_to ? "#{assign_to} <- (#{expr})" : nil
+      gk_obj_line = assign_to ? ".gk_obj <- #{assign_to}" : ".gk_obj <- (#{expr})"
+      r_code = <<~RCODE
+        ({
+          #{assign_line}
+          #{gk_obj_line}
+          .gk_sep <- "#{sep}"
+          .gk_kind <- if (is.null(.gk_obj)) {
+            "null"
+          } else if (is.list(.gk_obj)) {
+            "list"
+          } else if (length(.gk_obj) == 1L && is.integer(.gk_obj)) {
+            "scalar_integer"
+          } else if (length(.gk_obj) == 1L && is.double(.gk_obj)) {
+            "scalar_double"
+          } else if (length(.gk_obj) == 1L && is.logical(.gk_obj)) {
+            "scalar_logical"
+          } else if (length(.gk_obj) == 1L && is.character(.gk_obj)) {
+            "scalar_character"
+          } else {
+            "other"
+          }
+          .gk_len <- length(.gk_obj)
+          .gk_cls <- paste(class(.gk_obj), collapse=" ")
+          .gk_val <- ""
+          if (.gk_kind == "scalar_integer") {
+            .gk_val <- if (is.na(.gk_obj[[1]])) "__NA__" else as.character(.gk_obj[[1]])
+          } else if (.gk_kind == "scalar_double") {
+            .gk_val <- if (is.na(.gk_obj[[1]])) "__NA__" else as.character(.gk_obj[[1]])
+          } else if (.gk_kind == "scalar_logical") {
+            .gk_val <- if (is.na(.gk_obj[[1]])) "__NA__" else if (.gk_obj[[1]]) "TRUE" else "FALSE"
+          } else if (.gk_kind == "scalar_character") {
+            .gk_val <- if (is.na(.gk_obj[[1]])) "__NA__" else as.character(.gk_obj[[1]])
+          }
+          paste(.gk_kind, as.character(.gk_len), .gk_cls, .gk_val, sep=.gk_sep)
+        })
+      RCODE
+
+      raw = @client.eval_r(r_code, session_id: current_session_id, parent_id: callback_parent_id)
+      token = raw['value'].to_s
+      parts = token.split(sep, 4)
+      kind = parts[0].to_s
+      len = parts[1].to_i
+      r_class = parts[2].to_s
+      raw_val = parts[3].to_s
+      value =
+        case kind
+        when 'scalar_integer'
+          raw_val == '__NA__' ? nil : raw_val.to_i
+        when 'scalar_double'
+          raw_val == '__NA__' ? nil : raw_val.to_f
+        when 'scalar_logical'
+          raw_val == '__NA__' ? nil : (raw_val == 'TRUE')
+        when 'scalar_character'
+          raw_val == '__NA__' ? nil : raw_val
+        else
+          nil
+        end
+
+      { kind: kind, length: len, r_class: r_class, value: value }
     end
 
     def format_scalar_print(parsed)

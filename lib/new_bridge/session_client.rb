@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
 require 'open3'
 require 'securerandom'
 require 'socket'
@@ -138,7 +137,7 @@ module NewBridge
     # @param parent_id [String,nil] reserved for nested-call correlation (Phase 4+).
     # @param timeout [Numeric] how long to wait for RET before raising TimeoutError.
     #
-    # @return [Hash] decoded JSON payload returned by gatekeeper on success.
+    # @return [Hash] decoded MsgPack payload map returned by gatekeeper on success.
     def eval_r(code, session_id: 'default', instance_id: 'default', parent_id: nil, timeout: 60)
       call_id = SecureRandom.uuid
       q = Queue.new
@@ -159,8 +158,11 @@ module NewBridge
       end
       status = ret['status']
       payload = ret['payload']
-      parsed = JSON.parse(payload)
-      raise RProcessError, parsed['message'] || payload unless status == 'success'
+      unless payload.is_a?(Hash)
+        raise RProcessError, "invalid RET payload type=#{payload.class} (expected map)"
+      end
+      parsed = payload
+      raise RProcessError, parsed['message'] || parsed.inspect unless status == 'success'
 
       parsed
     end
