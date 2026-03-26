@@ -10,7 +10,37 @@ require_relative 'envelope'
 require_relative 'framing'
 
 module NewBridge
-  # Phase 1: one R process connects as TCP client; Ruby accepts and sends REQ / receives RET.
+  # NewBridge::SessionClient
+  #
+  # Responsibilities (Ruby side, inside one Ruby process):
+  # - Accept a single TCP connection from one R runtime process.
+  # - Serialize and send framed MsgPack envelopes of type `REQ`.
+  # - Wait for matching framed MsgPack envelopes of type `RET`.
+  # - Handle R -> Ruby callback requests (`CALL`) by invoking registered Ruby
+  #   blocks in background threads and replying with `RET`.
+  #
+  # Protocol basics
+  # - Transport: TCP, length-prefixed framing handled by `NewBridge::Framing`.
+  # - Envelopes are MsgPack maps handled by `NewBridge::Envelope`.
+  # - Envelope fields used here:
+  #   - `call_id`: UUID used to correlate one REQ with one RET
+  #   - `type`: `"REQ"` / `"RET"` / `"CALL"`
+  #   - `session_id`: logical session; R uses it to isolate per-session env state
+  #   - `instance_id`: logical instance routing; used for multi-instance pools
+  #   - `parent_id`: reserved for nested-call correlation (Phase 4+)
+  #
+  # Threading model
+  # - One reader thread (`reader_loop`) continuously reads frames and dispatches:
+  #   - `RET` -> pushes into the per-call Queue waiting on REQ
+  #   - `CALL` -> spawns a new thread to execute the Ruby callback
+  # - Callback threads send `RET` back to R while keeping the reader thread free,
+  #   which is required to support nested REQ servicing while waiting for a callback.
+  #
+  # Failure behavior
+  # - If the socket closes or a read error happens, pending REQ calls are signaled
+  #   as closed and subsequent eval calls raise.
+  # - Infrastructure failures (timeouts / broken pipes / connection reset) are
+  #   handled at a higher level by `RInstanceManager` restart+retry logic.
   class SessionClient
     class Error < StandardError; end
     class TimeoutError < Error; end
@@ -18,11 +48,13 @@ module NewBridge
 
     attr_reader :r_stderr, :r_exit_status
 
-    # @param source_path [String] Host-side path to .cpp or .so
-    # @param host [String] bind/listen address for Ruby TCP server
-    # @param bridge_host [String,nil] host value injected into R script (defaults to host)
-    # @param runtime_source_path [String,nil] source path visible from runtime process/container
-    # @param r_cmd [String, Array<String>] executable (or argv prefix ending with executable)
+    # Create a SessionClient for one R runtime instance.
+    #
+    # @param source_path [String] Host-side path to .cpp or .so for Rcpp `sourceCpp`/`dyn.load`.
+    # @param host [String] bind/listen address for Ruby TCP server.
+    # @param bridge_host [String,nil] host value injected into R script (defaults to `host`).
+    # @param runtime_source_path [String,nil] source path visible from runtime process/container.
+    # @param r_cmd [String, Array<String>] executable (or argv prefix ending with executable).
     def initialize(source_path:, host: '127.0.0.1', bridge_host: nil, runtime_source_path: nil, r_cmd: 'R')
       @source_path = File.expand_path(source_path)
       @use_precompiled = @source_path.end_with?('.so')
@@ -42,6 +74,13 @@ module NewBridge
       @r_exit_status = nil
     end
 
+    # Start listening for a single TCP connection from one R process and launch that process.
+    #
+    # - Binds to an ephemeral port (server.addr[1]).
+    # - Starts a thread that runs `r_cmd` and sources the gatekeeper C++ code inside R.
+    # - Accepts the runtime connection with `accept_timeout`.
+    #
+    # On startup failure (e.g. runtime exits before connecting), it surfaces R stderr and exit status.
     def start(accept_timeout: 120)
       @server = TCPServer.new(@host, 0)
       port = @server.addr[1]
@@ -49,12 +88,12 @@ module NewBridge
       # Always use sourceCpp for now - dyn.load needs more work
       cpp_escaped = @runtime_source_path.gsub("'", "\\\\'")
       r_script = <<~R
-        host <- "#{@bridge_host}"
+        bridge_host <- "#{@bridge_host}"
         port <- #{port}
         stopifnot(requireNamespace("Rcpp", quietly = TRUE))
         library(Rcpp)
         sourceCpp("#{cpp_escaped}")
-        galaaz_run_bridge(host, as.integer(port))
+        galaaz_run_bridge(bridge_host, as.integer(port))
       R
 
       env = { 'GALAAZ_BRIDGE_HOST' => @bridge_host, 'GALAAZ_BRIDGE_PORT' => port.to_s }
@@ -79,6 +118,8 @@ module NewBridge
       raise RProcessError, msg
     end
 
+    # Stop the client and attempt to join threads cleanly.
+    # Best-effort: socket/server are closed, reader thread is joined, runtime thread is joined.
     def stop
       @sock&.close rescue nil
       @server&.close rescue nil
@@ -86,6 +127,15 @@ module NewBridge
       @r_thr&.join(15)
     end
 
+    # Evaluate one REQ on the connected R runtime and wait for the matching RET.
+    #
+    # @param code [String] R expression or snippet to be evaluated by the gatekeeper.
+    # @param session_id [String] session env isolation key (maps to R's `.galaaz_sessions`).
+    # @param instance_id [String] instance routing key (must match RInstanceManager routing).
+    # @param parent_id [String,nil] reserved for nested-call correlation (Phase 4+).
+    # @param timeout [Numeric] how long to wait for RET before raising TimeoutError.
+    #
+    # @return [Hash] decoded JSON payload returned by gatekeeper on success.
     def eval_r(code, session_id: 'default', instance_id: 'default', parent_id: nil, timeout: 60)
       call_id = SecureRandom.uuid
       q = Queue.new
@@ -112,8 +162,10 @@ module NewBridge
       parsed
     end
 
-    # Phase 3: register a Ruby callback for R->Ruby CALL envelopes.
-    # The R side will call back with the returned `callback_call_id`.
+    # Register a Ruby callback for R->Ruby `CALL` envelopes.
+    #
+    # The gatekeeper will invoke this callback when it receives a `CALL` with the
+    # corresponding `callback_call_id`, and this client will reply with a `RET`.
     def register_callback(&block)
       callback_call_id = SecureRandom.uuid
       @callbacks_mx.synchronize { @callbacks[callback_call_id] = block }
@@ -122,12 +174,15 @@ module NewBridge
 
     private
 
+    # Emit debug logs when GALAAZ_DEBUG is set.
     def debug_log(msg)
       return unless ENV['GALAAZ_DEBUG']
       STDERR.puts("[NewBridge::SessionClient] #{msg}")
       STDERR.flush
     end
 
+    # Wait for RET for one `call_id` by popping from queue `q`.
+    # On timeout it removes the pending queue and raises TimeoutError.
     def wait_for_ret(q, call_id, timeout)
       Timeout.timeout(timeout) do
         v = q.pop
@@ -140,6 +195,10 @@ module NewBridge
       raise TimeoutError, "no RET for #{call_id}"
     end
 
+    # Reader loop running in a background thread:
+    # - reads framed envelopes
+    # - dispatches by `type`
+    # - shields the main eval path from socket read latency
     def reader_loop
       loop do
         bytes = Framing.read_frame(@sock)
@@ -157,6 +216,10 @@ module NewBridge
       signal_closed
     end
 
+    # Handle one R->Ruby callback request:
+    # - look up the Ruby callback by `call_id`
+    # - execute it in a new thread
+    # - send RET back with status success/error
     def handle_call(h)
       call_id = h['call_id']
       instance_id = h['instance_id'] || 'default'
@@ -190,6 +253,9 @@ module NewBridge
       end
     end
 
+    # Send RET envelope for a CALL.
+    # Payload is encoded as a simple string (`result.to_s` or exception message),
+    # and gatekeeper converts it back into its expected scalar type.
     def send_ret(call_id:, status:, payload:, instance_id:)
       debug_log("TX RET call_id=#{call_id} instance_id=#{instance_id} status=#{status} payload=#{payload.inspect}")
       ret = Envelope.encode(
@@ -203,6 +269,8 @@ module NewBridge
       @write_mx.synchronize { Framing.write_frame(@sock, ret) }
     end
 
+    # Signal all pending eval_r requests that the socket is closed,
+    # allowing waiting `eval_r` calls to raise promptly.
     def signal_closed
       @pending_mx.synchronize do
         @pending.each_value { |q| q.push(:closed) }

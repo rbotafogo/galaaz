@@ -1,5 +1,48 @@
-// Phase 1: R connects to Ruby (TCP client); read framed MsgPack REQ, eval in per-session env, write RET.
+// -----------------------------------------------------------------------------
+// galaaz_gatekeeper_phase1.cpp
+//
+// Gatekeeper runtime loaded inside the R process. It is the R-side half of the
+// NewBridge protocol and is responsible for:
+//
+//   1) Opening a TCP connection from R -> Ruby.
+//   2) Reading framed MsgPack envelopes from Ruby.
+//   3) Evaluating REQ payloads in a per-session R environment.
+//   4) Writing RET envelopes back to Ruby (JSON payload, success/error status).
+//   5) During callbacks, servicing nested REQ traffic while waiting for RET.
+//
+// -----------------------------------------------------------------------------
+// High-level protocol
+//
+// Ruby sends:  [uint32 length][msgpack envelope bytes]
+// R reads and parses envelope fields:
+//   - call_id
+//   - type        ("REQ" / "RET" / "CALL")
+//   - session_id
+//   - instance_id
+//   - payload
+//   - parent_id (optional nil)
+//
+// R executes payload code and returns RET:
+//   status="success" with JSON scalar payload, OR
+//   status="error"   with JSON error payload.
+//
+// -----------------------------------------------------------------------------
+// Session model
+//
+// Each session_id maps to a dedicated R environment in .galaaz_sessions. This
+// provides isolation for user variables across concurrent sessions while still
+// inheriting from global env for base functions/operators.
+//
+// -----------------------------------------------------------------------------
+// Callback model
+//
+// galaaz_callback_call() is called by R code to invoke Ruby callbacks. While
+// waiting for callback RET, it runs a nested service loop that continues to
+// process inbound REQ messages. This avoids deadlocks in recursive callback
+// scenarios (Ruby -> R -> Ruby -> R ...).
+//
 // POSIX sockets only (Linux/macOS/WSL).
+// -----------------------------------------------------------------------------
 
 #include <Rcpp.h>
 #include <arpa/inet.h>
@@ -16,22 +59,28 @@
 #include <unistd.h>
 #include <vector>
 
+// Active bridge socket used by main loop and callback path.
 static int g_bridge_fd = -1;
+// Instance id of the currently serviced REQ; reused by callback CALL messages.
 static std::string g_current_instance_id = "default";
 
+// Raise an R exception with a stable gatekeeper prefix.
 void die(const char* m) { Rcpp::stop("galaaz_run_bridge: %s", m); }
 
+// Whether debug logging is enabled (GALAAZ_DEBUG != "0").
 bool dbg_on() {
   const char* e = std::getenv("GALAAZ_DEBUG");
   return e && std::string(e) != "0";
 }
 
+// Emit debug messages to R console.
 void dbg(const std::string& msg) {
   if (!dbg_on()) return;
   Rcpp::Rcout << "[galaaz_gatekeeper_phase1] " << msg << std::endl;
   Rcpp::Rcout.flush();
 }
 
+// Read exactly n bytes from socket; false on EOF/error.
 bool recv_all(int fd, void* buf, size_t n) {
   auto* p = static_cast<char*>(buf);
   size_t g = 0;
@@ -43,6 +92,7 @@ bool recv_all(int fd, void* buf, size_t n) {
   return true;
 }
 
+// Write exactly n bytes to socket; false on EOF/error.
 bool send_all(int fd, const void* buf, size_t n) {
   auto* p = static_cast<const char*>(buf);
   size_t s = 0;
@@ -54,6 +104,8 @@ bool send_all(int fd, const void* buf, size_t n) {
   return true;
 }
 
+// Minimal MsgPack reader used only by bridge envelopes.
+// Supports maps, strings, nil, basic scalar types, and recursive skip.
 struct Rd {
   const std::vector<uint8_t>& d;
   size_t i;
@@ -160,7 +212,10 @@ struct Rd {
     Rcpp::stop("msgpack skip unsupported 0x%02x", c);
   }
 
-  // Parse envelope map: keys are strings; values string or nil (parent_id).
+  // Parse envelope map into:
+  //   f[key]    -> string-encoded scalar value (or empty for skipped complex)
+  //   nils[key] -> true if MsgPack value is nil
+  // Keys must be strings.
   void parse_envelope(std::map<std::string, std::string>& f, std::map<std::string, bool>& nils) {
     uint8_t c = u8();
     size_t n = 0;
@@ -219,6 +274,7 @@ struct Rd {
   }
 };
 
+// MsgPack pack helpers for the specific envelope shapes we emit.
 void pack_str(std::vector<uint8_t>& o, const std::string& s) {
   size_t n = s.size();
   if (n < 32)
@@ -242,6 +298,7 @@ void pack_map6(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 
 
 void pack_map4(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 4)); }
 
+// Build a CALL envelope (R -> Ruby callback request).
 std::vector<uint8_t> make_call(const std::string& call_id, const std::string& payload,
                                const std::string& instance_id) {
   std::vector<uint8_t> o;
@@ -257,6 +314,7 @@ std::vector<uint8_t> make_call(const std::string& call_id, const std::string& pa
   return o;
 }
 
+// Build a RET envelope (R -> Ruby response).
 std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& status, const std::string& payload,
                               const std::string& instance_id) {
   std::vector<uint8_t> o;
@@ -276,6 +334,7 @@ std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& sta
   return o;
 }
 
+// Escape a string for embedding into a small JSON literal.
 std::string json_escape(const std::string& s) {
   std::string o;
   for (char c : s) {
@@ -286,6 +345,7 @@ std::string json_escape(const std::string& s) {
   return o;
 }
 
+// Resolve or create the per-session environment for sid.
 Rcpp::Environment session_env(Rcpp::Environment& g, const std::string& sid) {
   Rcpp::List sessions = Rcpp::as<Rcpp::List>(g[".galaaz_sessions"]);
   if (!sessions.containsElementNamed(sid.c_str())) {
@@ -298,6 +358,11 @@ Rcpp::Environment session_env(Rcpp::Environment& g, const std::string& sid) {
   return Rcpp::as<Rcpp::Environment>(sessions[sid]);
 }
 
+// Evaluate one R expression and return a compact JSON payload:
+//   {"kind":"integer|double|logical|character","value":...}
+// or {"kind":"error","message":"..."}.
+//
+// Current protocol intentionally supports only length-1 scalar results.
 std::string eval_code_json(const std::string& code, const Rcpp::Environment& env) {
   ParseStatus ps = PARSE_OK;
   SEXP px = R_ParseVector(Rf_mkString(code.c_str()), 1, &ps, R_GlobalEnv);
@@ -327,13 +392,24 @@ std::string eval_code_json(const std::string& code, const Rcpp::Environment& env
     if (x == NA_LOGICAL) return "{\"kind\":\"logical\",\"value\":null}";
     return std::string("{\"kind\":\"logical\",\"value\":") + (x ? "true" : "false") + "}";
   }
+  if (TYPEOF(val) == STRSXP) {
+    if (STRING_ELT(val, 0) == NA_STRING) return "{\"kind\":\"character\",\"value\":null}";
+    const char* s = CHAR(STRING_ELT(val, 0));
+    if (!s) return "{\"kind\":\"character\",\"value\":null}";
+    std::string out = s;
+    return std::string("{\"kind\":\"character\",\"value\":\"") + json_escape(out) + "\"}";
+  }
   return "{\"kind\":\"error\",\"message\":\"unsupported type\"}";
 }
 
-// Forward declaration for nested REQ servicing
+// Forward declaration for nested REQ servicing.
 static void process_single_req(int fd, const std::map<std::string, std::string>& fields, Rcpp::Environment& g);
 
 // [[Rcpp::export(name="galaaz_callback_call_phase3")]]
+// R-side callback trampoline:
+//   - Sends CALL envelope to Ruby.
+//   - Waits for matching RET for call_id.
+//   - While waiting, processes nested inbound REQ envelopes.
 double galaaz_callback_call(std::string call_id, std::string payload, int timeout_ms) {
   if (g_bridge_fd < 0) Rcpp::stop("galaaz_callback_call: no active bridge connection");
 
@@ -418,13 +494,16 @@ double galaaz_callback_call(std::string call_id, std::string payload, int timeou
   }
 }
 
-// Extern C wrappers for dyn.load() compatibility
+// Extern C forward declarations for .C() / dyn.load() compatibility.
 extern "C" {
   void galaaz_run_bridge_c(const char** host, int* port);
   double galaaz_callback_call_phase3_c(const char** call_id, const char** payload, int* timeout_ms);
 }
 
-// Helper: Process a single REQ and send RET
+// Process a single REQ and send RET.
+// This is shared by:
+//   - main bridge loop
+//   - nested callback wait loop
 static void process_single_req(int fd, const std::map<std::string, std::string>& fields, Rcpp::Environment& g) {
   std::string call_id = fields.count("call_id") ? fields.at("call_id") : "?";
   std::string sid = fields.count("session_id") ? fields.at("session_id") : "default";
@@ -450,8 +529,16 @@ static void process_single_req(int fd, const std::map<std::string, std::string>&
   }
 }
 
+// Main bridge loop entrypoint called from R:
+//   galaaz_run_bridge(bridge_host, port)   # first arg: hostname or IPv4 string
+//
+// Connects to Ruby host, initializes session registry, then continuously:
+//   - reads framed envelope
+//   - parses MsgPack
+//   - handles REQ via process_single_req
+//   - sends protocol error RET for malformed envelopes
 // [[Rcpp::export]]
-void galaaz_run_bridge(std::string host, int port) {
+void galaaz_run_bridge(std::string bridge_host, int port) {
   // Support both literal IPv4 and hostnames (e.g. host.docker.internal)
   // so containerized runtimes can connect back to Ruby host listener.
   addrinfo hints;
@@ -461,7 +548,7 @@ void galaaz_run_bridge(std::string host, int port) {
 
   addrinfo* res = nullptr;
   std::string p = std::to_string(port);
-  if (::getaddrinfo(host.c_str(), p.c_str(), &hints, &res) != 0) die("getaddrinfo");
+  if (::getaddrinfo(bridge_host.c_str(), p.c_str(), &hints, &res) != 0) die("getaddrinfo");
 
   int fd = -1;
   for (addrinfo* it = res; it != nullptr; it = it->ai_next) {
@@ -504,8 +591,8 @@ void galaaz_run_bridge(std::string host, int port) {
   ::close(fd);
 }
 
-// C wrappers for dyn.load()
-// R's .C() passes: character vector as char**, integer vector as int*
+// C wrappers for .C() calls:
+// R passes character vectors as char** and integers as int*.
 extern "C" void galaaz_run_bridge_c(const char** host, int* port) {
   galaaz_run_bridge(std::string(*host), *port);
 }

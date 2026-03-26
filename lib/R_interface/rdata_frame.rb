@@ -4,6 +4,13 @@ module R
     include IndexedObject
     include MDIndexedObject
 
+    # Phase 5.2: unbox entire data.frame via NewBridgeAdapter#pull_dataframe.
+    # This avoids the generic list-unboxing path which relies on scalar-only eval.
+    def unboxed_get(index = nil, depth = 0)
+      return ::R.bridge.pull_dataframe(@r_interop) if index.nil?
+      super
+    end
+
     def class
       ::R::DataFrame
     end

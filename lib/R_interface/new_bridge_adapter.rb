@@ -57,14 +57,17 @@ module R
         is_integer = @client.eval_r("is.integer(#{var_name})")['value']
         is_double = @client.eval_r("is.double(#{var_name})")['value']
         is_logical = @client.eval_r("is.logical(#{var_name})")['value']
+        is_character = @client.eval_r("is.character(#{var_name})")['value']
 
-        if is_integer || is_double || is_logical
+        if is_integer || is_double || is_logical || is_character
         parsed = @client.eval_r(var_name)
         return to_legacy_envelope(parsed, var_name)
         end
       end
 
-      { type: :handle, handle: var_name, r_class: 'unknown' }
+      r_class = @client.eval_r("paste(class(#{var_name}), collapse=' ')")['value']
+      r_class = @client.eval_r("typeof(#{var_name})")['value'] if r_class.nil? || r_class.to_s.strip.empty?
+      { type: :handle, handle: var_name, r_class: r_class.to_s }
     end
 
     def close
@@ -89,6 +92,67 @@ module R
           parsed['value']
         end
       end
+    end
+
+    # Indexed vector unboxing helpers expected by R::Vector#unboxed_get.
+    # offset is 0-based (Ruby index), R indexing is 1-based.
+    def pull_integer_vector(var_name, _total_size, offset = 0, chunk_size = nil)
+      chunk_size ||= 1
+      start_i = offset + 1
+      end_i = offset + chunk_size
+      (start_i..end_i).map do |i|
+        parsed = @client.eval_r("#{var_name}[[#{i}]]")
+        parsed['value']
+      end
+    end
+
+    def pull_double_vector(var_name, _total_size, offset = 0, chunk_size = nil)
+      chunk_size ||= 1
+      start_i = offset + 1
+      end_i = offset + chunk_size
+      (start_i..end_i).map do |i|
+        parsed = @client.eval_r("#{var_name}[[#{i}]]")
+        parsed['value']
+      end
+    end
+
+    # Minimal data.frame unboxing for Phase 5.2.
+    # Returns a Ruby hash: { "colname" => [values...] }.
+    #
+    # Uses scalar eval for each cell to stay compatible with phase1's
+    # length-1 scalar limitation.
+    def pull_dataframe(var_name)
+      ncol = @client.eval_r("length(#{var_name})")['value'].to_i
+      return {} if ncol <= 0
+
+      col_hash = {}
+
+      (1..ncol).each do |i|
+        # names(df)[i] is a character vector of length 1 -> length-1 scalar.
+        col_name_parsed = @client.eval_r("names(#{var_name})[#{i}]")
+        col_name = col_name_parsed['value']
+        col_name = col_name.to_s if col_name
+
+        col_type = @client.eval_r("typeof(#{var_name}[[#{i}]])")['value'].to_s
+        nrow = @client.eval_r("length(#{var_name}[[#{i}]])")['value'].to_i
+        nrow = 0 if nrow.negative?
+
+        values = (1..nrow).map do |j|
+          parsed = @client.eval_r("#{var_name}[[#{i}]][[#{j}]]")
+          case parsed['kind']
+          when 'logical'
+            parsed['value'].nil? ? R::NA : parsed['value']
+          when 'integer', 'double', 'character'
+            parsed['value']
+          else
+            parsed['value']
+          end
+        end
+
+        col_hash[col_name] = values
+      end
+
+      col_hash
     end
 
     private
