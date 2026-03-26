@@ -61,6 +61,34 @@ module R
       if depth >= ::R::Support::MAX_UNBOX_DEPTH
         ::Kernel.raise(::R::UnboxDepthError, "unbox: list too deep (max depth #{::R::Support::MAX_UNBOX_DEPTH} exceeded)")
       end
+      # NewBridge hardening path: use structural bridge reads during recursion.
+      if ::R.bridge.respond_to?(:unbox_list_length) && ::R.bridge.respond_to?(:unbox_list_element)
+        n = ::R.bridge.unbox_list_length(@r_interop)
+        if index.nil?
+          return [] if n <= 0
+          arr = []
+          (1..n).each do |i|
+            elt = ::R.bridge.unbox_list_element(@r_interop, i)
+            if elt.nil?
+              arr << nil
+            elsif !elt.is_a?(::R::Object)
+              arr << elt
+            else
+              arr << elt.unboxed_get(nil, depth + 1)
+            end
+          end
+          return arr
+        end
+
+        bound = n - 1
+        ::Kernel.raise(::IndexError.new("index #{index} out of list bounds: 0...#{bound}")) if index > bound
+        elt = ::R.bridge.unbox_list_element(@r_interop, index + 1)
+        return elt unless elt.is_a?(::R::Object)
+        return nil if elt.nil?
+        return nil if elt.respond_to?(:rclass) && elt.rclass.to_s.strip == 'NULL'
+        return elt.unboxed_get(nil, depth + 1)
+      end
+
       if index.nil?
         # Whole list → Array of unboxed elements (recurse into each element).
         len_val = length
@@ -94,7 +122,9 @@ module R
     end
 
     def >>(index)
-      unboxed_get(index, 0)
+      # Count the list root as depth 1 so MAX_UNBOX_DEPTH applies to list nesting
+      # the same way legacy unboxing specs expect.
+      unboxed_get(index, 1)
     end
 
     #--------------------------------------------------------------------------------------

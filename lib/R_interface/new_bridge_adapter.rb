@@ -137,6 +137,46 @@ module R
       @ready = false
     end
 
+    # Structural unboxing helpers (Phase 5.5 hardening):
+    # Keep deep unboxing on explicit bridge reads instead of generic method-missing paths.
+    def unbox_list_length(var_name)
+      @client.eval_r("length(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value'].to_i
+    end
+
+    def unbox_list_element(var_name, one_based_index)
+      tmp = ::R::Support.generate_var_name
+      @client.eval_r("({ #{tmp} <- #{var_name}[[#{one_based_index}]]; 0L })",
+                     session_id: current_session_id, parent_id: callback_parent_id)
+      return nil if @client.eval_r("is.null(#{tmp})",
+                                   session_id: current_session_id, parent_id: callback_parent_id)['value']
+
+      if @client.eval_r("is.list(#{tmp})",
+                        session_id: current_session_id, parent_id: callback_parent_id)['value']
+        return ::R::Object.build(tmp, nil, r_class: 'list')
+      end
+
+      len = @client.eval_r("length(#{tmp})",
+                           session_id: current_session_id, parent_id: callback_parent_id)['value'].to_i
+      if len == 1
+        parsed = @client.eval_r(tmp,
+                                session_id: current_session_id, parent_id: callback_parent_id)
+        case parsed['kind']
+        when 'integer', 'double', 'logical', 'character'
+          v = parsed['value']
+          return (v.is_a?(::String) && v =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(v) : v
+        when 'symbol'
+          return parsed['value']
+        end
+      end
+
+      r_class = @client.eval_r("paste(class(#{tmp}), collapse=' ')",
+                               session_id: current_session_id, parent_id: callback_parent_id)['value']
+      r_class = @client.eval_r("typeof(#{tmp})",
+                               session_id: current_session_id, parent_id: callback_parent_id)['value'] if r_class.nil? || r_class.to_s.strip.empty?
+      return nil if r_class.to_s.strip == 'NULL'
+      ::R::Object.build(tmp, nil, r_class: r_class.to_s)
+    end
+
     # Minimal pull path for Phase 5.1 unboxing support.
     # Reads vectors element-by-element via the existing eval path.
     def pull_vector(var_name)

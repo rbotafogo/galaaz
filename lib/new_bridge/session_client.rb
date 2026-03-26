@@ -85,14 +85,17 @@ module NewBridge
       @server = TCPServer.new(@host, 0)
       port = @server.addr[1]
 
-      # Always use sourceCpp for now - dyn.load needs more work
+      # Use sourceCpp with a persistent cache directory so repeated runtime
+      # starts can reuse compiled shared objects when source is unchanged.
       cpp_escaped = @runtime_source_path.gsub("'", "\\\\'")
+      rcpp_cache_dir = (ENV['GALAAZ_RCPP_CACHE_DIR'] || File.join(Dir.tmpdir, 'galaaz_rcpp_cache')).gsub("'", "\\\\'")
       r_script = <<~R
         bridge_host <- "#{@bridge_host}"
         port <- #{port}
         stopifnot(requireNamespace("Rcpp", quietly = TRUE))
         library(Rcpp)
-        sourceCpp("#{cpp_escaped}")
+        dir.create("#{rcpp_cache_dir}", recursive = TRUE, showWarnings = FALSE)
+        sourceCpp(file = "#{cpp_escaped}", rebuild = FALSE, cacheDir = "#{rcpp_cache_dir}")
         galaaz_run_bridge(bridge_host, as.integer(port))
       R
 
