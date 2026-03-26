@@ -125,6 +125,16 @@ struct Rd {
     i += n;
     return s;
   }
+  // Decode a MsgPack string given its already-read type tag.
+  //
+  // Tags used here:
+  // - 0xa0..0xbf : fixstr  (length embedded in low 5 bits)
+  // - 0xd9       : str8    (next 1 byte is length)
+  // - 0xda       : str16   (next 2 bytes are length, big-endian)
+  // - 0xdb       : str32   (next 4 bytes are length, big-endian)
+  //
+  // We branch directly on tag values instead of a generic decoder because the
+  // bridge protocol only needs these string forms; this keeps parsing compact.
   std::string read_str_tag(uint8_t c) {
     if (c >= 0xa0 && c <= 0xbf) return str(c & 0x1f);
     if (c == 0xd9) return str(u8());
@@ -133,58 +143,91 @@ struct Rd {
     Rcpp::stop("msgpack: expected string");
   }
 
+  // Skip exactly one MsgPack value (whatever its type), advancing cursor `i`.
+  //
+  // Why this exists:
+  // - Our envelope parser only needs a subset of fields and scalar forms.
+  // - Unknown keys/complex payloads should still be consumed safely.
+  // - Skipping by wire format is cheaper than fully decoding to R objects.
+  //
+  // MsgPack tag groups used below (hex):
+  //   c0=nil, c2=false, c3=true
+  //   00..7f=positive fixint, e0..ff=negative fixint
+  //   a0..bf=fixstr, d9=str8, da=str16, db=str32
+  //   cc/cd/ce/cf=uint8/16/32/64, d0/d1/d2/d3=int8/16/32/64
+  //   cb=float64
+  //   90..9f=fixarray, dc=array16, dd=array32
+  //   80..8f=fixmap, de=map16, df=map32
+  //
+  // The order intentionally checks tiny fixed-size tags first (fast common
+  // path), then length-prefixed scalars, then recursive container types.
   void skip_one() {
     uint8_t c = u8();
+    // nil / bool consume only the tag byte.
     if (c == 0xc0 || c == 0xc2 || c == 0xc3) return;
+    // positive fixint: value encoded in tag itself.
     if (c >= 0x00 && c <= 0x7f) return;
+    // negative fixint: value encoded in tag itself.
     if (c >= 0xe0) return;
+    // fixstr: low 5 bits carry payload length.
     if (c >= 0xa0 && c <= 0xbf) {
       i += c & 0x1f;
       return;
     }
+    // str8: next byte is string length.
     if (c == 0xd9) {
       i += u8();
       return;
     }
+    // str16: next 2 bytes are length.
     if (c == 0xda) {
       i += be16();
       return;
     }
+    // str32: next 4 bytes are length.
     if (c == 0xdb) {
       i += be32();
       return;
     }
+    // uint8 / int8: one payload byte.
     if (c == 0xcc || c == 0xd0) {
       u8();
       return;
     }
+    // uint16 / int16: two payload bytes.
     if (c == 0xcd || c == 0xd1) {
       be16();
       return;
     }
+    // uint32 / int32: four payload bytes.
     if (c == 0xce || c == 0xd2) {
       be32();
       return;
     }
+    // uint64 / int64 / float64: eight payload bytes.
     if (c == 0xcf || c == 0xd3 || c == 0xcb) {
       i += 8;
       return;
     }
+    // fixarray: low 4 bits carry element count, then recursively skip elements.
     if (c >= 0x90 && c <= 0x9f) {
       size_t n = c & 0x0f;
       for (size_t k = 0; k < n; k++) skip_one();
       return;
     }
+    // array16: next 2 bytes carry element count.
     if (c == 0xdc) {
       size_t n = be16();
       for (size_t k = 0; k < n; k++) skip_one();
       return;
     }
+    // array32: next 4 bytes carry element count.
     if (c == 0xdd) {
       size_t n = be32();
       for (size_t k = 0; k < n; k++) skip_one();
       return;
     }
+    // fixmap: low 4 bits carry pair count; skip key then value for each pair.
     if (c >= 0x80 && c <= 0x8f) {
       size_t n = c & 0x0f;
       for (size_t k = 0; k < n; k++) {
@@ -193,6 +236,7 @@ struct Rd {
       }
       return;
     }
+    // map16: next 2 bytes carry pair count.
     if (c == 0xde) {
       size_t n = be16();
       for (size_t k = 0; k < n; k++) {
@@ -201,6 +245,7 @@ struct Rd {
       }
       return;
     }
+    // map32: next 4 bytes carry pair count.
     if (c == 0xdf) {
       size_t n = be32();
       for (size_t k = 0; k < n; k++) {
@@ -216,9 +261,16 @@ struct Rd {
   //   f[key]    -> string-encoded scalar value (or empty for skipped complex)
   //   nils[key] -> true if MsgPack value is nil
   // Keys must be strings.
+  //
+  // This decoder is intentionally selective:
+  // - It eagerly decodes only scalar tags we currently use in envelopes.
+  // - It skips unsupported/complex values with skip_one(), preserving stream
+  //   alignment without paying object-construction cost.
+  // - Storing scalar values as strings keeps downstream dispatch simple.
   void parse_envelope(std::map<std::string, std::string>& f, std::map<std::string, bool>& nils) {
     uint8_t c = u8();
     size_t n = 0;
+    // Envelope root must be a map: fixmap/map16/map32.
     if (c >= 0x80 && c <= 0x8f)
       n = c & 0x0f;
     else if (c == 0xde)
@@ -233,40 +285,51 @@ struct Rd {
       std::string key = read_str_tag(kt);
       if (i >= d.size()) Rcpp::stop("msgpack: missing val");
       uint8_t vt = d[i];
+      // nil
       if (vt == 0xc0) {
         u8();
         nils[key] = true;
+      // string tags (fixstr/str8/str16/str32)
       } else if (vt >= 0xa0 && vt <= 0xbf || vt == 0xd9 || vt == 0xda || vt == 0xdb) {
         f[key] = read_str_tag(u8());
+      // positive fixint
       } else if (vt >= 0x00 && vt <= 0x7f) {
         f[key] = std::to_string(static_cast<int>(u8()));
+      // negative fixint
       } else if (vt >= 0xe0) {
         f[key] = std::to_string(static_cast<int>(static_cast<int8_t>(u8())));
+      // uint8
       } else if (vt == 0xcc) {
         u8();
         f[key] = std::to_string(static_cast<unsigned>(u8()));
+      // uint32
       } else if (vt == 0xce) {
         u8();
         uint32_t x = be32();
         f[key] = std::to_string(x);
+      // int32
       } else if (vt == 0xd2) {
         u8();
         int32_t x = static_cast<int32_t>((static_cast<uint32_t>(u8()) << 24) | (static_cast<uint32_t>(u8()) << 16) |
                                           (static_cast<uint32_t>(u8()) << 8) | u8());
         f[key] = std::to_string(x);
+      // float64
       } else if (vt == 0xcb) {
         u8();
         double v;
         std::memcpy(&v, d.data() + i, 8);
         i += 8;
         f[key] = std::to_string(v);
+      // true
       } else if (vt == 0xc3) {
         u8();
         f[key] = "TRUE";
+      // false
       } else if (vt == 0xc2) {
         u8();
         f[key] = "FALSE";
       } else {
+        // Unknown/complex value: skip bytes so next key-value pair is aligned.
         skip_one();
         f[key] = "";
       }
@@ -275,8 +338,15 @@ struct Rd {
 };
 
 // MsgPack pack helpers for the specific envelope shapes we emit.
+// They intentionally support only what the bridge writes on the wire.
 void pack_str(std::vector<uint8_t>& o, const std::string& s) {
   size_t n = s.size();
+  // Choose the smallest legal string encoding:
+  // - fixstr (< 32 bytes) = 1-byte header
+  // - str8   (< 256)      = 2-byte header
+  // - str16  (otherwise)  = 3-byte header
+  //
+  // This keeps envelope size small and is faster than always using str32.
   if (n < 32)
     o.push_back(static_cast<uint8_t>(0xa0 | n));
   else if (n < 256) {
@@ -299,6 +369,14 @@ void pack_map6(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 
 void pack_map4(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 4)); }
 
 // Build a CALL envelope (R -> Ruby callback request).
+//
+// Wire shape is intentionally fixed and tiny:
+//   {call_id, type="CALL", payload, instance_id}
+//
+// Why fixed-order explicit writes (instead of generic map builder):
+// - lower allocation overhead in hot callback paths,
+// - no dynamic reflection/branching for field selection,
+// - easier protocol auditing because bytes are deterministic.
 std::vector<uint8_t> make_call(const std::string& call_id, const std::string& payload,
                                const std::string& instance_id) {
   std::vector<uint8_t> o;
@@ -315,6 +393,13 @@ std::vector<uint8_t> make_call(const std::string& call_id, const std::string& pa
 }
 
 // Build a RET envelope (R -> Ruby response).
+//
+// Wire shape:
+//   {call_id, type="RET", status, payload, instance_id, parent_id=nil}
+//
+// We always include parent_id (currently nil) to keep envelope shape stable
+// across phases; this avoids Ruby-side "missing key" branches and makes logs
+// easier to compare between callback/non-callback flows.
 std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& status, const std::string& payload,
                               const std::string& instance_id) {
   std::vector<uint8_t> o;
@@ -335,6 +420,9 @@ std::vector<uint8_t> make_ret(const std::string& call_id, const std::string& sta
 }
 
 // Escape a string for embedding into a small JSON literal.
+// This is intentionally minimal because bridge payloads are tiny scalar JSON
+// snippets. We only escape `"` and `\`, which are the characters that would
+// break our generated string literals in this protocol.
 std::string json_escape(const std::string& s) {
   std::string o;
   for (char c : s) {
@@ -346,6 +434,11 @@ std::string json_escape(const std::string& s) {
 }
 
 // Resolve or create the per-session environment for sid.
+//
+// Why per-session environments:
+// - isolation: variables from one session_id do not leak into another,
+// - correctness under concurrency: each request executes in its own state bag,
+// - low overhead: environments are lightweight and reused after first creation.
 Rcpp::Environment session_env(Rcpp::Environment& g, const std::string& sid) {
   Rcpp::List sessions = Rcpp::as<Rcpp::List>(g[".galaaz_sessions"]);
   if (!sessions.containsElementNamed(sid.c_str())) {
@@ -363,6 +456,8 @@ Rcpp::Environment session_env(Rcpp::Environment& g, const std::string& sid) {
 // or {"kind":"error","message":"..."}.
 //
 // Current protocol intentionally supports only length-1 scalar results.
+// This keeps REQ/RET payloads compact, deterministic, and cheap to decode on
+// Ruby side. Non-scalar transport is handled in higher-level bridge flows.
 std::string eval_code_json(const std::string& code, const Rcpp::Environment& env) {
   ParseStatus ps = PARSE_OK;
   SEXP px = R_ParseVector(Rf_mkString(code.c_str()), 1, &ps, R_GlobalEnv);
@@ -405,15 +500,21 @@ std::string eval_code_json(const std::string& code, const Rcpp::Environment& env
 // Forward declaration for nested REQ servicing.
 static void process_single_req(int fd, const std::map<std::string, std::string>& fields, Rcpp::Environment& g);
 
-// [[Rcpp::export(name="galaaz_callback_call_phase3")]]
 // R-side callback trampoline:
 //   - Sends CALL envelope to Ruby.
 //   - Waits for matching RET for call_id.
 //   - While waiting, processes nested inbound REQ envelopes.
+//
+// Why nested servicing is required:
+// If Ruby callback code re-enters R (directly or indirectly), the R side must
+// continue processing REQ frames while blocked waiting for callback RET.
+// Otherwise both sides can wait on each other (classic bridge deadlock).
+// [[Rcpp::export(name="galaaz_callback_call_phase3")]]
 double galaaz_callback_call(std::string call_id, std::string payload, int timeout_ms) {
   if (g_bridge_fd < 0) Rcpp::stop("galaaz_callback_call: no active bridge connection");
 
   // Send CALL envelope to Ruby.
+  // Frame format: [uint32 length][msgpack bytes].
   auto call = make_call(call_id, payload, g_current_instance_id);
   dbg(std::string("TX CALL call_id=") + call_id + " instance_id=" + g_current_instance_id + " payload=" + payload);
   uint32_t L = static_cast<uint32_t>(call.size());
@@ -421,13 +522,17 @@ double galaaz_callback_call(std::string call_id, std::string payload, int timeou
     Rcpp::stop("galaaz_callback_call: socket write failed");
   }
 
-  // Phase 4: Nested wait loop - service REQs while waiting for callback RET
+  // Phase 4: nested wait loop.
+  // We stay in one loop so timeout accounting applies to both waiting and
+  // nested work (REQ servicing), rather than treating them as separate clocks.
   Rcpp::Environment g = Rcpp::Environment::global_env();
   auto start_time = std::chrono::steady_clock::now();
   int remaining_ms = timeout_ms;
 
   for (;;) {
-    // Poll with remaining timeout
+    // Poll with remaining timeout.
+    // Using poll() avoids busy-spinning and lets timeout decrease precisely
+    // across nested request handling.
     if (timeout_ms > 0) {
       pollfd pfd;
       pfd.fd = g_bridge_fd;
@@ -438,7 +543,7 @@ double galaaz_callback_call(std::string call_id, std::string payload, int timeou
       if (pr == 0) Rcpp::stop("galaaz_callback_call timeout");
     }
 
-    // Read frame
+    // Read one complete framed message.
     uint32_t len = 0;
     if (!recv_all(g_bridge_fd, &len, 4)) Rcpp::stop("galaaz_callback_call: socket closed");
     if (len > 64u * 1024u * 1024u) Rcpp::stop("galaaz_callback_call: frame too large");
@@ -446,7 +551,7 @@ double galaaz_callback_call(std::string call_id, std::string payload, int timeou
     std::vector<uint8_t> buf(len);
     if (len && !recv_all(g_bridge_fd, buf.data(), len)) Rcpp::stop("galaaz_callback_call: truncated frame");
 
-    // Parse envelope
+    // Parse envelope into lightweight scalar maps (no full object materialize).
     std::map<std::string, std::string> fields;
     std::map<std::string, bool> nils;
     Rd rd(buf);
@@ -454,7 +559,7 @@ double galaaz_callback_call(std::string call_id, std::string payload, int timeou
 
     std::string msg_type = fields.count("type") ? fields["type"] : "";
 
-    // Check if this is our callback RET
+    // Fast-path: this is the RET corresponding to our callback call_id.
     if (msg_type == "RET" && fields["call_id"] == call_id) {
       std::string status = fields.count("status") ? fields["status"] : "error";
       std::string out_payload = fields.count("payload") ? fields["payload"] : "";
@@ -462,6 +567,8 @@ double galaaz_callback_call(std::string call_id, std::string payload, int timeou
       if (status != "success") {
         Rcpp::stop(out_payload.c_str());
       }
+      // Phase-3 contract: callback payload is numeric text.
+      // strtod is used for speed and predictable C parsing semantics.
       char* end = nullptr;
       const char* start = out_payload.c_str();
       double v = std::strtod(start, &end);
@@ -469,7 +576,8 @@ double galaaz_callback_call(std::string call_id, std::string payload, int timeou
       return v;
     }
 
-    // Service nested REQ while waiting
+    // Service nested REQ while waiting for callback RET.
+    // This is the deadlock-avoidance core.
     if (msg_type == "REQ") {
       dbg("Servicing nested REQ while waiting for callback RET");
       process_single_req(g_bridge_fd, fields, g);
@@ -480,10 +588,11 @@ double galaaz_callback_call(std::string call_id, std::string payload, int timeou
         remaining_ms = timeout_ms - static_cast<int>(elapsed);
         if (remaining_ms <= 0) Rcpp::stop("galaaz_callback_call timeout");
       }
-      continue;  // Keep waiting for callback RET
+      continue;  // Keep waiting for callback RET after nested work.
     }
 
-    // Unexpected message type - log and continue waiting
+    // Unexpected message type: ignore frame and continue waiting.
+    // This keeps callback wait robust to protocol evolution/noise.
     dbg(std::string("Unexpected msg type while waiting for callback RET: ") + msg_type);
     if (timeout_ms > 0) {
       auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
