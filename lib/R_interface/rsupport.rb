@@ -161,6 +161,10 @@ module R
         final_value = (arg.exclude_end?) ? (arg.last - 1) : arg.last
         "seq(#{arg.first}, #{final_value})"
       when Proc, Method
+        if R.bridge.respond_to?(:register_callback_proc_stub)
+          return R.bridge.register_callback_proc_stub(arg)
+        end
+
         id = R::Support.register_callback(arg)
         "function(...) {
           args <- list(...)

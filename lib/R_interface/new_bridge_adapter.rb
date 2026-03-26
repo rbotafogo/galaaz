@@ -37,8 +37,17 @@ module R
     # Minimal textual compatibility for existing call sites that expect
     # "[1] <value>" style output for simple scalar evaluations.
     def eval_r(code)
-      out = @client.eval_r(code)
+      out = @client.eval_r(code, parent_id: callback_parent_id)
       format_scalar_print(out)
+    rescue NewBridge::SessionClient::RProcessError => e
+      # Phase 5.3 compatibility: many eval_r call sites are side-effect only
+      # (e.g. function definitions) and do not require a scalar return value.
+      # The phase1 gatekeeper returns "unsupported type" for non-scalars, so
+      # run in side-effect mode and return an empty string.
+      raise unless e.message.to_s.include?('unsupported type')
+
+      @client.eval_r("({ #{code}; 0L })", parent_id: callback_parent_id)
+      ''
     end
 
     # Legacy-compatible envelope shape expected by existing bridge specs.
@@ -50,24 +59,63 @@ module R
       var_name = m[1]
       expr = m[2]
       # Force scalar-success return from phase1 eval path while preserving assignment side effect.
-      @client.eval_r("({ #{var_name} <- #{expr}; 0L })")
-      len = @client.eval_r("length(#{var_name})")['value']
+      @client.eval_r("({ #{var_name} <- #{expr}; 0L })", parent_id: callback_parent_id)
+      len = @client.eval_r("length(#{var_name})", parent_id: callback_parent_id)['value']
 
       if len == 1
-        is_integer = @client.eval_r("is.integer(#{var_name})")['value']
-        is_double = @client.eval_r("is.double(#{var_name})")['value']
-        is_logical = @client.eval_r("is.logical(#{var_name})")['value']
-        is_character = @client.eval_r("is.character(#{var_name})")['value']
+        is_integer = @client.eval_r("is.integer(#{var_name})", parent_id: callback_parent_id)['value']
+        is_double = @client.eval_r("is.double(#{var_name})", parent_id: callback_parent_id)['value']
+        is_logical = @client.eval_r("is.logical(#{var_name})", parent_id: callback_parent_id)['value']
+        is_character = @client.eval_r("is.character(#{var_name})", parent_id: callback_parent_id)['value']
 
         if is_integer || is_double || is_logical || is_character
-        parsed = @client.eval_r(var_name)
-        return to_legacy_envelope(parsed, var_name)
+          parsed = @client.eval_r(var_name, parent_id: callback_parent_id)
+          return to_legacy_envelope(parsed, var_name)
         end
       end
 
-      r_class = @client.eval_r("paste(class(#{var_name}), collapse=' ')")['value']
-      r_class = @client.eval_r("typeof(#{var_name})")['value'] if r_class.nil? || r_class.to_s.strip.empty?
+      r_class = @client.eval_r("paste(class(#{var_name}), collapse=' ')", parent_id: callback_parent_id)['value']
+      if r_class.nil? || r_class.to_s.strip.empty?
+        r_class = @client.eval_r("typeof(#{var_name})", parent_id: callback_parent_id)['value']
+      end
       { type: :handle, handle: var_name, r_class: r_class.to_s }
+    end
+
+    # Phase 5.3 callback stub registration for R::Support.parse_arg.
+    # Returns an R function string that forwards callback execution to Ruby
+    # using the NewBridge CALL/RET path.
+    def register_callback_proc_stub(proc_or_method)
+      callback_call_id = @client.register_callback do |_payload, call_id|
+        payload = _payload
+        old = Thread.current[:galaaz_new_bridge_parent_id]
+        Thread.current[:galaaz_new_bridge_parent_id] = call_id
+        @in_callback = true
+        begin
+          arity = proc_or_method.respond_to?(:arity) ? proc_or_method.arity : 0
+          if arity == 0
+            proc_or_method.call
+          elsif arity == 1 || arity.negative?
+            proc_or_method.call(payload)
+          else
+            proc_or_method.call(payload, call_id)
+          end
+        ensure
+          @in_callback = false
+          Thread.current[:galaaz_new_bridge_parent_id] = old
+        end
+      end
+
+      "function(...) {
+        args <- list(...)
+        payload <- ''
+        if (length(args) >= 1L) {
+          a <- args[[1]]
+          if (length(a) == 1L && (is.character(a) || is.numeric(a) || is.logical(a))) {
+            payload <- as.character(a)
+          }
+        }
+        galaaz_callback_call_phase3('#{callback_call_id}', payload, 5000)
+      }"
     end
 
     def close
@@ -156,6 +204,10 @@ module R
     end
 
     private
+
+    def callback_parent_id
+      Thread.current[:galaaz_new_bridge_parent_id]
+    end
 
     def format_scalar_print(parsed)
       kind = parsed['kind']
