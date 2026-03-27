@@ -382,10 +382,41 @@ module R
         File.open(R.bridge.log_path("galaaz_obj_debug.log"), "a") { |f| f.puts "[#{Time.now.strftime('%H:%M:%S.%L')}] log_object_in_r(#{handle}) failed: #{e.message}" }
       end
       # In callback, eval_r can fail with "invalid connection" - wrap in begin/rescue
-      is_field = begin
-        R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
-      rescue RuntimeError => e
-        e.message.include?("invalid connection") ? false : raise
+      is_field = false
+      is_func = false
+      if R.bridge.respond_to?(:dispatch_probe)
+        begin
+          probe = R.bridge.dispatch_probe(handle, name)
+          is_field = !!probe[:is_field]
+          is_func = !!probe[:is_func]
+          @dispatch_probe_cache[:func][name] = is_func
+        rescue RuntimeError => e
+          raise unless e.message.include?("invalid connection")
+          is_field = false
+          is_func = false
+        end
+      else
+        is_field = begin
+          R.bridge.eval_r("isTRUE('#{name}' %in% names(#{handle})) || (is.environment(#{handle}) && isTRUE(exists('#{name}', envir = #{handle}, inherits = FALSE)))") == "[1] TRUE"
+        rescue RuntimeError => e
+          e.message.include?("invalid connection") ? false : raise
+        end
+        if is_field
+          res = self.exec_function_name("`[[`", internal, name)
+          return res.call(*args) if !args.empty? && res.respond_to?(:call)
+          return res
+        end
+
+        is_func = begin
+          cached = @dispatch_probe_cache[:func][name]
+          if cached.nil?
+            cached = (R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE")
+            @dispatch_probe_cache[:func][name] = cached
+          end
+          cached
+        rescue RuntimeError => e
+          e.message.include?("invalid connection") ? false : raise
+        end
       end
       if is_field
         res = self.exec_function_name("`[[`", internal, name)
@@ -393,16 +424,6 @@ module R
         return res
       end
 
-      is_func = begin
-        cached = @dispatch_probe_cache[:func][name]
-        if cached.nil?
-          cached = (R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE")
-          @dispatch_probe_cache[:func][name] = cached
-        end
-        cached
-      rescue RuntimeError => e
-        e.message.include?("invalid connection") ? false : raise
-      end
       return self.exec_function(name, internal, *args) if is_func
 
       # Environment: missing name should raise NoMethodError (like Ruby), not call name(env) in R.

@@ -54,6 +54,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <poll.h>
+#include <sstream>
 #include <string>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -390,6 +391,7 @@ void pack_map5(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 
 void pack_map6(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 6)); }
 
 void pack_map4(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 4)); }
+void pack_map3(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 3)); }
 void pack_map2(std::vector<uint8_t>& o) { o.push_back(static_cast<uint8_t>(0x80 | 2)); }
 
 // Build a CALL envelope (R -> Ruby callback request).
@@ -509,6 +511,163 @@ std::vector<uint8_t> payload_unbox_materialize(const std::string& status, int no
 
 bool starts_with(const std::string& s, const std::string& prefix) {
   return s.size() >= prefix.size() && s.compare(0, prefix.size(), prefix) == 0;
+}
+
+std::string trim_copy(const std::string& s) {
+  size_t b = 0;
+  while (b < s.size() && (s[b] == ' ' || s[b] == '\t' || s[b] == '\n' || s[b] == '\r')) b++;
+  size_t e = s.size();
+  while (e > b && (s[e - 1] == ' ' || s[e - 1] == '\t' || s[e - 1] == '\n' || s[e - 1] == '\r')) e--;
+  return s.substr(b, e - b);
+}
+
+bool valid_var_name(const std::string& name) {
+  if (name.empty()) return false;
+  for (size_t i = 0; i < name.size(); ++i) {
+    char c = name[i];
+    bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+    if (!ok) return false;
+  }
+  return true;
+}
+
+std::string class_or_typeof_string(SEXP x) {
+  SEXP cls = Rf_getAttrib(x, R_ClassSymbol);
+  if (TYPEOF(cls) == STRSXP && Rf_length(cls) > 0) {
+    std::string out;
+    for (R_xlen_t i = 0; i < XLENGTH(cls); ++i) {
+      if (i > 0) out += " ";
+      SEXP elt = STRING_ELT(cls, i);
+      if (elt == NA_STRING) out += "NA";
+      else out += CHAR(elt);
+    }
+    if (!out.empty()) return out;
+  }
+  // Keep legacy class labels expected by Ruby Object.build for atomic vectors.
+  switch (TYPEOF(x)) {
+    case INTSXP: return "integer";
+    case REALSXP: return "numeric";
+    case LGLSXP: return "logical";
+    case STRSXP: return "character";
+    case VECSXP: return "list";
+    case CLOSXP: return "function";
+    case ENVSXP: return "environment";
+    case SYMSXP: return "name";
+    case EXPRSXP: return "expression";
+    default: return std::string(Rf_type2char(TYPEOF(x)));
+  }
+}
+
+EvalResult payload_eval_with_result(SEXP val, const std::string& var_name) {
+  if (TYPEOF(val) == SYMSXP) {
+    std::vector<uint8_t> p;
+    pack_map2(p);
+    pack_str(p, "type");
+    pack_str(p, "scalar_symbol");
+    pack_str(p, "value");
+    pack_str(p, std::string(CHAR(PRINTNAME(val))));
+    return {true, p};
+  }
+
+  if (Rf_length(val) == 1) {
+    if (TYPEOF(val) == INTSXP) {
+      std::vector<uint8_t> p;
+      pack_map2(p);
+      pack_str(p, "type");
+      pack_str(p, "scalar_integer");
+      pack_str(p, "value");
+      int x = INTEGER(val)[0];
+      if (x == NA_INTEGER) pack_nil(p);
+      else pack_int32(p, x);
+      return {true, p};
+    }
+    if (TYPEOF(val) == REALSXP) {
+      std::vector<uint8_t> p;
+      pack_map2(p);
+      pack_str(p, "type");
+      pack_str(p, "scalar_double");
+      pack_str(p, "value");
+      double x = REAL(val)[0];
+      if (R_IsNA(x)) pack_nil(p);
+      else pack_double64(p, x);
+      return {true, p};
+    }
+    if (TYPEOF(val) == LGLSXP) {
+      std::vector<uint8_t> p;
+      pack_map2(p);
+      pack_str(p, "type");
+      pack_str(p, "scalar_logical");
+      pack_str(p, "value");
+      int x = LOGICAL(val)[0];
+      if (x == NA_LOGICAL) pack_nil(p);
+      else pack_bool(p, x != 0);
+      return {true, p};
+    }
+    if (TYPEOF(val) == STRSXP) {
+      std::vector<uint8_t> p;
+      pack_map2(p);
+      pack_str(p, "type");
+      pack_str(p, "scalar_character");
+      pack_str(p, "value");
+      if (STRING_ELT(val, 0) == NA_STRING) {
+        pack_nil(p);
+      } else {
+        pack_str(p, std::string(CHAR(STRING_ELT(val, 0))));
+      }
+      return {true, p};
+    }
+  }
+
+  std::vector<uint8_t> p;
+  pack_map3(p);
+  pack_str(p, "type");
+  pack_str(p, "handle");
+  pack_str(p, "handle");
+  pack_str(p, var_name);
+  pack_str(p, "r_class");
+  pack_str(p, class_or_typeof_string(val));
+  return {true, p};
+}
+
+EvalResult eval_with_result_cmd(const std::string& cmd, const Rcpp::Environment& env) {
+  const std::string prefix = "__G_EVAL_WITH_RESULT__";
+  std::string assignment = trim_copy(cmd.substr(prefix.size()));
+  if (assignment.empty()) return {false, payload_error("bad eval_with_result args")};
+
+  if (starts_with(assignment, ".GlobalEnv$")) {
+    assignment = assignment.substr(std::string(".GlobalEnv$").size());
+  }
+  size_t arrow = assignment.find("<-");
+  if (arrow == std::string::npos) return {false, payload_error("bad eval_with_result assignment")};
+
+  std::string var_name = trim_copy(assignment.substr(0, arrow));
+  std::string expr_code = trim_copy(assignment.substr(arrow + 2));
+  if (!valid_var_name(var_name) || expr_code.empty()) {
+    return {false, payload_error("invalid eval_with_result assignment")};
+  }
+
+  ParseStatus ps = PARSE_OK;
+  SEXP px = R_ParseVector(Rf_mkString(expr_code.c_str()), 1, &ps, R_GlobalEnv);
+  if (ps != PARSE_OK) return {false, payload_error("parse error")};
+  SEXP expr = VECTOR_ELT(px, 0);
+
+  int err = 0;
+  SEXP val = R_tryEval(expr, env, &err);
+  if (err) {
+    std::string msg = "evaluation error";
+    try {
+      Rcpp::Function geterr("geterrmessage");
+      SEXP m = geterr();
+      if (Rf_isString(m) && Rf_length(m) >= 1) {
+        msg = Rcpp::as<std::string>(m);
+      }
+    } catch (...) {
+    }
+    return {false, payload_error(msg)};
+  }
+
+  Rf_defineVar(Rf_install(var_name.c_str()), val, env);
+  return payload_eval_with_result(val, var_name);
 }
 
 EvalResult eval_unbox_walk_cmd(const std::string& cmd, const Rcpp::Environment& env) {
@@ -710,6 +869,90 @@ EvalResult eval_unbox_materialize_cmd(const std::string& cmd, const Rcpp::Enviro
   return {true, payload_unbox_materialize(status, nodes, maxd, value_bytes)};
 }
 
+static bool valid_bridge_handle_token(const std::string& h) {
+  if (h.size() < 5 || h.compare(0, 4, "g2_v") != 0) return false;
+  for (size_t i = 4; i < h.size(); ++i) {
+    if (h[i] < '0' || h[i] > '9') return false;
+  }
+  return true;
+}
+
+static bool valid_r_method_name_token(const std::string& n) {
+  if (n.empty()) return false;
+  for (size_t i = 0; i < n.size(); ++i) {
+    char c = n[i];
+    if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '_')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// MsgPack: { kind:"dispatch_probe", is_field:bool, is_func:bool }
+// Mirrors the two Ruby-side probes in R::Support.process_missing_dispatch in one R eval.
+std::vector<uint8_t> payload_dispatch_probe(bool is_field, bool is_func) {
+  std::vector<uint8_t> p;
+  pack_map3(p);
+  pack_str(p, "kind");
+  pack_str(p, "dispatch_probe");
+  pack_str(p, "is_field");
+  pack_bool(p, is_field);
+  pack_str(p, "is_func");
+  pack_bool(p, is_func);
+  return p;
+}
+
+EvalResult eval_dispatch_probe_cmd(const std::string& cmd, const Rcpp::Environment& env) {
+  // Format: __G_DISPATCH_PROBE__|<handle>|<name>
+  std::vector<std::string> parts;
+  size_t start = 0;
+  while (start <= cmd.size()) {
+    size_t pos = cmd.find('|', start);
+    if (pos == std::string::npos) pos = cmd.size();
+    parts.push_back(cmd.substr(start, pos - start));
+    start = pos + 1;
+    if (pos == cmd.size()) break;
+  }
+  if (parts.size() != 3) return {false, payload_error("bad dispatch_probe args")};
+  if (parts[0] != "__G_DISPATCH_PROBE__") return {false, payload_error("bad dispatch_probe args")};
+
+  std::string handle = trim_copy(parts[1]);
+  std::string name = trim_copy(parts[2]);
+  if (!valid_bridge_handle_token(handle) || !valid_r_method_name_token(name)) {
+    return {false, payload_error("invalid dispatch_probe params")};
+  }
+
+  std::ostringstream oss;
+  oss << "c(isTRUE('" << name << "' %in% names(" << handle << ")) || (is.environment(" << handle
+      << ") && isTRUE(exists('" << name << "', envir = " << handle << ", inherits = FALSE))), "
+      << "is.function(try(get('" << name << "'), silent=TRUE)))";
+
+  ParseStatus ps = PARSE_OK;
+  SEXP px = R_ParseVector(Rf_mkString(oss.str().c_str()), 1, &ps, R_GlobalEnv);
+  if (ps != PARSE_OK) return {false, payload_error("dispatch_probe parse error")};
+  SEXP expr = VECTOR_ELT(px, 0);
+  int err = 0;
+  SEXP val = R_tryEval(expr, env, &err);
+  if (err) {
+    std::string msg = "evaluation error";
+    try {
+      Rcpp::Function geterr("geterrmessage");
+      SEXP m = geterr();
+      if (Rf_isString(m) && Rf_length(m) >= 1) msg = Rcpp::as<std::string>(m);
+    } catch (...) {
+    }
+    return {false, payload_error(msg)};
+  }
+  if (TYPEOF(val) != LGLSXP || Rf_length(val) < 2) {
+    return {false, payload_error("dispatch_probe unexpected result")};
+  }
+  int a = LOGICAL(val)[0];
+  int b = LOGICAL(val)[1];
+  bool is_field = (a != 0 && a != NA_LOGICAL);
+  bool is_func = (b != 0 && b != NA_LOGICAL);
+  return {true, payload_dispatch_probe(is_field, is_func)};
+}
+
 // Resolve or create the per-session environment for sid.
 //
 // Why per-session environments:
@@ -732,6 +975,12 @@ Rcpp::Environment session_env(Rcpp::Environment& g, const std::string& sid) {
 //   {"kind":"integer|double|logical|character","value":...}
 // or {"kind":"error","message":"..."}.
 EvalResult eval_code_payload(const std::string& code, const Rcpp::Environment& env) {
+  if (starts_with(code, "__G_EVAL_WITH_RESULT__")) {
+    return eval_with_result_cmd(code, env);
+  }
+  if (starts_with(code, "__G_DISPATCH_PROBE__|")) {
+    return eval_dispatch_probe_cmd(code, env);
+  }
   if (starts_with(code, "__G_UNBOX_WALK__|")) {
     return eval_unbox_walk_cmd(code, env);
   }

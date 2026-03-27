@@ -70,6 +70,8 @@ module NewBridge
       @callbacks_mx = Mutex.new
       @reader = nil
       @r_stderr = +''
+      @r_stderr_mx = Mutex.new
+      @r_stderr_limit = 64 * 1024
       @r_exit_status = nil
     end
 
@@ -107,9 +109,9 @@ module NewBridge
         # Treat that as a normal shutdown and avoid JRuby "stream closed in
         # another thread" warnings.
         begin
-          @r_stderr = stdout_err.read
+          stdout_err.each_line { |line| append_r_stderr(line) }
         rescue IOError, Errno::EPIPE, Errno::ECONNRESET
-          @r_stderr = +''
+          # normal shutdown / pipe closure
         end
         @r_exit_status = wait_thr.value
       end
@@ -121,10 +123,13 @@ module NewBridge
       # If the runtime process failed early (e.g. docker permission/network/source path),
       # surface stderr/exit details instead of a generic accept timeout.
       process_status = @r_exit_status&.exitstatus
-      details = @r_stderr.to_s.strip
+      details = current_r_stderr
       msg = "failed to accept runtime connection within #{accept_timeout}s"
       msg += " (runtime exit=#{process_status})" if process_status
-      msg += " stderr=#{details[0, 600]}" unless details.empty?
+      unless details.empty?
+        tail = details.length > 2000 ? details[-2000, 2000] : details
+        msg += " stderr_tail=#{tail}"
+      end
       raise RProcessError, msg
     end
 
@@ -289,6 +294,19 @@ module NewBridge
         @pending.each_value { |q| q.push(:closed) }
         @pending.clear
       end
+    end
+
+    def append_r_stderr(text)
+      @r_stderr_mx.synchronize do
+        @r_stderr << text.to_s
+        if @r_stderr.bytesize > @r_stderr_limit
+          @r_stderr = @r_stderr.byteslice(-@r_stderr_limit, @r_stderr_limit) || +''
+        end
+      end
+    end
+
+    def current_r_stderr
+      @r_stderr_mx.synchronize { @r_stderr.to_s.dup.strip }
     end
   end
 end

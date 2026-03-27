@@ -67,16 +67,8 @@ context "ISLR" do
       # ordet to apply the '?' method
       got = @hitters.Salary.sum do |e|
         yielded += 1
-        galaaz_islr_debug("test3 yield #{yielded}") if yielded <= 10 || (yielded % 10 == 0)
-        if yielded <= 10 || (yielded % 10 == 0)
-          galaaz_islr_debug("test3 about to e.is__na at yield #{yielded}")
-        end
-        na_flag = e.is__na
-        is_na = (na_flag == true)
-        if yielded <= 10 || (yielded % 10 == 0)
-          galaaz_islr_debug("test3 done e.is__na at yield #{yielded} (is_na=#{is_na})")
-        end
-        is_na ? 1 : 0
+        galaaz_islr_debug("test3 yield #{yielded}") if yielded % 100 == 0
+        (e.is__na == true) ? 1 : 0
       end
       galaaz_islr_debug "test3 end (yielded=#{yielded}, got=#{got})"
       expect(got).to eq 59

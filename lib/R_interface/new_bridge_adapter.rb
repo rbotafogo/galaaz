@@ -22,7 +22,7 @@ module R
       source_path = ENV['GALAAZ_NEW_BRIDGE_SOURCE'] ||
                     File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
       @client = NewBridge::SessionClient.new(source_path: source_path)
-      @client.start
+      @client.start(accept_timeout: 120)
 
       # Compatibility with the legacy ShadowBridge device setup:
       # examples rely on `R.awt` to create an interactive plotting device.
@@ -86,32 +86,24 @@ module R
     # Legacy-compatible envelope shape expected by existing bridge specs.
     # Supports scalar assignments used by current migration subset.
     def eval_r_with_result(assignment_code)
-      m = assignment_code.to_s.strip.match(/\A(?:\.GlobalEnv\$)?(\w+)\s*<-\s*(.+)\z/m)
-      return nil unless m
+      parsed = @client.eval_r("__G_EVAL_WITH_RESULT__#{assignment_code}",
+                              session_id: current_session_id,
+                              parent_id: callback_parent_id)
+      to_legacy_envelope(parsed)
+    end
 
-      var_name = m[1]
-      expr = m[2]
-      # Force scalar-success return from phase1 eval path while preserving assignment side effect.
-      @client.eval_r("({ #{var_name} <- #{expr}; 0L })", session_id: current_session_id, parent_id: callback_parent_id)
-      len = @client.eval_r("length(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
-
-      if len == 1
-        is_integer = @client.eval_r("is.integer(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
-        is_double = @client.eval_r("is.double(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
-        is_logical = @client.eval_r("is.logical(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
-        is_character = @client.eval_r("is.character(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
-
-        if is_integer || is_double || is_logical || is_character
-          parsed = @client.eval_r(var_name, session_id: current_session_id, parent_id: callback_parent_id)
-          return to_legacy_envelope(parsed, var_name)
-        end
+    # Single round-trip replacement for the two eval_r probes in
+    # R::Support.process_missing_dispatch (is_field + is_func).
+    # Gatekeeper: __G_DISPATCH_PROBE__|handle|name
+    def dispatch_probe(handle, name)
+      parsed = @client.eval_r("__G_DISPATCH_PROBE__|#{handle}|#{name}",
+                              session_id: current_session_id,
+                              parent_id: callback_parent_id)
+      unless parsed['kind'].to_s == 'dispatch_probe'
+        raise "dispatch_probe: unexpected payload #{parsed.inspect}"
       end
 
-      r_class = @client.eval_r("paste(class(#{var_name}), collapse=' ')", session_id: current_session_id, parent_id: callback_parent_id)['value']
-      if r_class.nil? || r_class.to_s.strip.empty?
-        r_class = @client.eval_r("typeof(#{var_name})", session_id: current_session_id, parent_id: callback_parent_id)['value']
-      end
-      { type: :handle, handle: var_name, r_class: r_class.to_s }
+      { is_field: parsed['is_field'], is_func: parsed['is_func'] }
     end
 
     # Phase 5.3 callback stub registration for R::Support.parse_arg.
@@ -393,20 +385,24 @@ module R
       end
     end
 
-    def to_legacy_envelope(parsed, var_name)
-      kind = parsed['kind']
+    def to_legacy_envelope(parsed)
+      ptype = parsed['type'].to_s
       val = parsed['value']
-      case kind
-      when 'integer'
+      case ptype
+      when 'scalar_integer'
         { type: :scalar_integer, value: val }
-      when 'double'
+      when 'scalar_double'
         { type: :scalar_double, value: val }
-      when 'logical'
+      when 'scalar_logical'
         { type: :scalar_logical, value: val }
-      when 'character'
-        { type: :scalar_character, value: unescape_scalar_character(val.to_s) }
+      when 'scalar_character'
+        { type: :scalar_character, value: val.nil? ? nil : unescape_scalar_character(val.to_s) }
+      when 'scalar_symbol'
+        { type: :scalar_symbol, value: val.to_s }
+      when 'handle'
+        { type: :handle, handle: parsed['handle'].to_s, r_class: parsed['r_class'].to_s }
       else
-        { type: :handle, handle: var_name, r_class: kind.to_s }
+        raise "Result protocol: unknown payload type #{parsed.inspect}"
       end
     end
 
