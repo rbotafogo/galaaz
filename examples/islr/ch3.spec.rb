@@ -24,5 +24,14 @@
 require 'galaaz'
 require 'ggplot'
 
-require_relative 'ch3_boston'
-require_relative 'ch3_multiple_regression'
+context "ISLR" do
+  context "Chapter 3 - Lab" do
+    it "runs ch3_boston (graphics + regression)" do
+      load File.expand_path('ch3_boston.rb', __dir__)
+    end
+
+    it "runs ch3_multiple_regression (non-linear transformations)" do
+      load File.expand_path('ch3_multiple_regression.rb', __dir__)
+    end
+  end
+end

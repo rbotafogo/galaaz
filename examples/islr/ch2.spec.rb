@@ -112,8 +112,15 @@ context "ISLR" do
   context "Chapter 2 - Graphics" do
 
     it "should plot graphics" do
+      def galaaz_islr_debug(msg)
+        STDERR.puts "[DEBUG islr][ch2.spec][#{Time.now.strftime('%H:%M:%S')}] #{msg}"
+        STDERR.flush
+      end
+
       # To see the graphic we need to set the device to awt
+      galaaz_islr_debug 'before R.awt'
       R.awt
+      galaaz_islr_debug 'after R.awt'
       x = R.rnorm(100)
       y = R.rnorm(100)
       # plot commands do not work.  Need to work with ggplot or grid
@@ -124,16 +131,28 @@ context "ISLR" do
               ylab: "this is the y-axis",
               main: "Plot of X vs Y")
         .print
+      galaaz_islr_debug 'after qplot.print'
       # the graphics dies when the script ends... waiting 3 secs
       # so that the graphic can be seen
+      galaaz_islr_debug 'before sleep(3)'
       sleep(3)
+      galaaz_islr_debug 'after sleep(3)'
+      R.dev__off
     end
 
     it "should create a jpeg file" do
+      def galaaz_islr_debug(msg)
+        STDERR.puts "[DEBUG islr][ch2.spec][#{Time.now.strftime('%H:%M:%S')}] #{msg}"
+        STDERR.flush
+      end
+
+      galaaz_islr_debug 'jpeg test: start'
       R.jpeg("/home/rbotafogo/desenv/galaaz/examples/islr/x_y_rnorm.jpg")
       R.df = R.data__frame(x: R.rnorm(100), y: R.rnorm(100))
+      galaaz_islr_debug 'jpeg test: about to qplot'
       puts R.qplot(:x, :y, data: :df, col: "green")
       R.dev__off
+      galaaz_islr_debug 'jpeg test: after R.dev__off'
     end
 
     it "creates sequences with 'seq'" do

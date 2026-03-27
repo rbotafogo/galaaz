@@ -23,6 +23,16 @@ module R
                     File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
       @client = NewBridge::SessionClient.new(source_path: source_path)
       @client.start
+
+      # Compatibility with the legacy ShadowBridge device setup:
+      # examples rely on `R.awt` to create an interactive plotting device.
+      # The gatekeeper evaluates each REQ in a dedicated per-session env, so
+      # define `awt` once per adapter lifetime in the default session.
+      @client.eval_r(
+        "({ awt <- function(...) { X11(...) }; 0L })",
+        session_id: current_session_id,
+        parent_id: callback_parent_id
+      )
       @ready = true
     end
 
@@ -54,10 +64,23 @@ module R
       # (e.g. function definitions) and do not require a scalar return value.
       # The phase1 gatekeeper returns "unsupported type" for non-scalars, so
       # run in side-effect mode and return an empty string.
-      raise unless e.message.to_s.include?('unsupported type')
+      msg = e.message.to_s
+      raise unless msg.include?('unsupported type') || msg.include?('phase1 requires length-1 scalar')
 
       @client.eval_r("({ #{code}; 0L })", session_id: current_session_id, parent_id: callback_parent_id)
       ''
+    end
+
+    # Return the printed representation of an R object as a Ruby string.
+    def print_r(var_name)
+      parsed = @client.eval_r("paste(capture.output(print(#{var_name})), collapse='\\n')",
+                              session_id: current_session_id,
+                              parent_id: callback_parent_id)
+      if parsed['kind'].to_s == 'character'
+        unescape_scalar_character(parsed['value'].to_s)
+      else
+        parsed['value'].to_s
+      end
     end
 
     # Legacy-compatible envelope shape expected by existing bridge specs.
@@ -211,7 +234,7 @@ module R
         parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id)
         case parsed['kind']
         when 'integer', 'double', 'character'
-          parsed['value']
+          parsed['kind'] == 'character' ? unescape_scalar_character(parsed['value'].to_s) : parsed['value']
         when 'logical'
           parsed['value'].nil? ? R::NA : parsed['value']
         else
@@ -364,7 +387,7 @@ module R
       when 'logical'
         "[1] #{val.nil? ? 'NA' : (val ? 'TRUE' : 'FALSE')}"
       when 'character'
-        "[1] \"#{val}\""
+        "[1] \"#{unescape_scalar_character(val.to_s)}\""
       else
         parsed.to_s
       end
@@ -381,10 +404,17 @@ module R
       when 'logical'
         { type: :scalar_logical, value: val }
       when 'character'
-        { type: :scalar_character, value: val }
+        { type: :scalar_character, value: unescape_scalar_character(val.to_s) }
       else
         { type: :handle, handle: var_name, r_class: kind.to_s }
       end
+    end
+
+    def unescape_scalar_character(str)
+      str.to_s
+         .gsub(/\\n/, "\n")
+         .gsub(/\\"/, '"')
+         .gsub(/\\\\/, "\\")
     end
   end
 end

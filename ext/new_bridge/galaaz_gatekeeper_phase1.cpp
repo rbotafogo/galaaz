@@ -744,7 +744,21 @@ EvalResult eval_code_payload(const std::string& code, const Rcpp::Environment& e
   SEXP expr = VECTOR_ELT(px, 0);
   int err = 0;
   SEXP val = R_tryEval(expr, env, &err);
-  if (err) return {false, payload_error("evaluation error")};
+  if (err) {
+    // Preserve the underlying R exception message for better Ruby-side debugging.
+    // `geterrmessage()` returns the most recent error string in the current R context.
+    std::string msg = "evaluation error";
+    try {
+      Rcpp::Function geterr("geterrmessage");
+      SEXP m = geterr();
+      if (Rf_isString(m) && Rf_length(m) >= 1) {
+        msg = Rcpp::as<std::string>(m);
+      }
+    } catch (...) {
+      // Keep fallback message.
+    }
+    return {false, payload_error(msg)};
+  }
   if (Rf_length(val) != 1) return {false, payload_error("phase1 requires length-1 scalar")};
 
   if (TYPEOF(val) == INTSXP) {

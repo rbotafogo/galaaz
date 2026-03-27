@@ -27,6 +27,19 @@ require 'ggplot'
 # load ISLR and MASS Libraries
 R.install_and_loads('ISLR', 'MASS')
 
+def galaaz_islr_all_debug(msg)
+  STDERR.puts "[DEBUG islr][all] #{Time.now.strftime('%H:%M:%S')} #{msg}"
+  STDERR.flush
+end
+
+galaaz_islr_all_debug('before require ch2.spec')
 require_relative 'ch2.spec'
+galaaz_islr_all_debug('after require ch2.spec')
+
+galaaz_islr_all_debug('before require ch3.spec')
 require_relative 'ch3.spec'
+galaaz_islr_all_debug('after require ch3.spec')
+
+galaaz_islr_all_debug('before require ch6.spec')
 require_relative 'ch6.spec'
+galaaz_islr_all_debug('after require ch6.spec')

@@ -25,6 +25,7 @@ module R
 
   module Support
     @@var_id = 0
+    @dispatch_probe_cache = { func: {} }
 
     # Maximum recursion depth when unboxing lists. Beyond this we raise UnboxDepthError.
     MAX_UNBOX_DEPTH = 100
@@ -393,7 +394,12 @@ module R
       end
 
       is_func = begin
-        R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE"
+        cached = @dispatch_probe_cache[:func][name]
+        if cached.nil?
+          cached = (R.bridge.eval_r("is.function(try(get('#{name}'), silent=TRUE))") == "[1] TRUE")
+          @dispatch_probe_cache[:func][name] = cached
+        end
+        cached
       rescue RuntimeError => e
         e.message.include?("invalid connection") ? false : raise
       end

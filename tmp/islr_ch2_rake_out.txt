@@ -1,0 +1,38 @@
+ jruby -I lib -J--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED -S rspec examples/islr/ch2.spec.rb -f documentation 
+WARNING: Unknown module: org.apache.arrow.memory.core specified to --add-opens
+[main] INFO org.apache.arrow.memory.BaseAllocator - Debug mode disabled. Enable with the VM option -Darrow.memory.debug.allocator=true.
+[main] INFO org.apache.arrow.memory.DefaultAllocationManagerOption - allocation manager type not specified, using netty as the default type
+[main] INFO org.apache.arrow.memory.CheckAllocator - Using DefaultAllocationManager at memory-unsafe-18.1.0.jar!/org/apache/arrow/memory/unsafe/DefaultAllocationManagerFactory.class
+
+ISLR
+  Chapter 2 - Basic Commands
+    Creates a vector
+    should add vectors
+    should create matrix by column
+    should create matrix by row
+    should apply a function to all elements of the matrix: ex: sqrt
+    should generate a vector of random normal variables using rnorm
+    should allow to setting the seed
+    should calculate the mean
+    should calculate the variance
+  Chapter 2 - Graphics
+[DEBUG islr][ch2.spec][18:00:10] before R.awt
+[DEBUG islr][ch2.spec][18:00:10] after R.awt
+[DEBUG islr][ch2.spec][18:00:12] after qplot.print
+[DEBUG islr][ch2.spec][18:00:12] before sleep(3)
+[DEBUG islr][ch2.spec][18:00:15] after sleep(3)
+    should plot graphics
+[DEBUG islr][ch2.spec][18:00:15] jpeg test: start
+[DEBUG islr][ch2.spec][18:00:16] jpeg test: about to qplot
+
+[DEBUG islr][ch2.spec][18:00:18] jpeg test: after R.dev__off
+    should create a jpeg file
+    creates sequences with 'seq'
+
+Finished in 48.67 seconds (files took 8.67 seconds to load)
+12 examples, 0 failures
+
+warning: thread "Ruby-0-Thread-1: /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:102" terminated with exception (report_on_exception is true):IOError: stream closed in another thread
+   read at org/jruby/RubyIO.java:3601
+   read at org/jruby/RubyIO.java:3566
+  start at /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:105

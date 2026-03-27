@@ -102,7 +102,15 @@ module NewBridge
       @r_thr = Thread.new do
         launch = @r_cmd.is_a?(Array) ? @r_cmd.dup : [@r_cmd]
         _stdin, stdout_err, wait_thr = Open3.popen2e(env, *launch, '--slave', '--no-save', '-e', r_script)
-        @r_stderr = stdout_err.read
+        # When the R process exits or during shutdown, the underlying pipe can
+        # close while this background thread is still blocked reading.
+        # Treat that as a normal shutdown and avoid JRuby "stream closed in
+        # another thread" warnings.
+        begin
+          @r_stderr = stdout_err.read
+        rescue IOError, Errno::EPIPE, Errno::ECONNRESET
+          @r_stderr = +''
+        end
         @r_exit_status = wait_thr.value
       end
 
