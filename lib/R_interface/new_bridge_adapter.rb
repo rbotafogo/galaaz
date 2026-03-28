@@ -24,12 +24,24 @@ module R
       @client = NewBridge::SessionClient.new(source_path: source_path)
       @client.start(accept_timeout: 120)
 
-      # Compatibility with the legacy ShadowBridge device setup:
-      # examples rely on `R.awt` to create an interactive plotting device.
-      # The gatekeeper evaluates each REQ in a dedicated per-session env, so
-      # define `awt` once per adapter lifetime in the default session.
+      # Compatibility with the legacy ShadowBridge setup:
+      # - `R.awt` / X11 for plotting (examples/sthda_ggplot).
+      # - `missing_arg()` for Ruby :all in `[` / tbl subset (R::Support.parse_arg).
+      #   Use rlang::missing_arg when available: tibble/tidyselect reject the legacy
+      #   quote(f(,0))[[2]] sentinel ("Subscript ... can't contain the empty string").
+      # The gatekeeper evaluates each REQ in a dedicated per-session env; globals are shared.
       @client.eval_r(
-        "({ awt <- function(...) { X11(...) }; 0L })",
+        <<~RCODE,
+          ({
+            assign('awt', function(...) { X11(...) }, envir = .GlobalEnv)
+            if (requireNamespace('rlang', quietly = TRUE)) {
+              assign('missing_arg', getExportedValue('rlang', 'missing_arg'), envir = .GlobalEnv)
+            } else {
+              assign('missing_arg', function() { quote(f(,0))[[2]] }, envir = .GlobalEnv)
+            }
+            0L
+          })
+        RCODE
         session_id: current_session_id,
         parent_id: callback_parent_id
       )

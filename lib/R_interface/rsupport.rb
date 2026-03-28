@@ -237,6 +237,34 @@ module R
       end
     end
 
+    # R `[` with a true missing dimension (Ruby :all). tidyselect on tbl_df rejects
+    # `missing_arg()` results as subscripts ("empty string"); alist(, ) is real missing.
+    def self.build_subscript_do_call_alist(all_args)
+      inner = all_args.map do |arg|
+        arg == :all ? nil : parse_arg(arg)
+      end
+      inner = inner.map { |frag| frag.nil? ? '' : frag }.join(', ')
+      "do.call(`[`, alist(#{inner}))"
+    end
+
+    # `[<-` with i/j = :all (R::DataFrame#[]=). Same tidyselect / anyNA issues with missing_arg().
+    def self.build_subscript_assign_do_call_alist(receiver, kw_hash)
+      pairs = kw_hash.map do |k, v|
+        key = k.to_s.gsub(/__/, ".")
+        key_r = (key =~ /\A[a-zA-Z._][a-zA-Z0-9._]*\z/) ? key : "`#{key.gsub('`', '\\`')}`"
+        if v == :all
+          "#{key_r} = "
+        else
+          "#{key_r} = #{parse_arg(v)}"
+        end
+      end
+      inner = [parse_arg(receiver), *pairs].join(", ")
+      "do.call(`[<-`, alist(#{inner}))"
+    end
+
+    MD_INDEX_BACKTICK = '`[`'.freeze
+    MD_ASSIGN_BACKTICK = '`[<-`'.freeze
+
     # Run an R call: f_name(args...). Builds assignment, gets envelope from bridge, returns R::Object (boxed).
     # Unbox with .to_ruby, .unboxed_get(0), or >> 0. kwargs (e.g. i:, value:) are merged into args for R named-argument calls like `[[<-`(df, i=..., value=...).
     def self.exec_function(function, *args, unbox: false, **kwargs)
@@ -248,13 +276,33 @@ module R
 
       var_name = self.generate_var_name
       all_args = kwargs.empty? ? args : args + [kwargs]
-      r_args = all_args.map { |arg| self.parse_arg(arg) }
-      # eval(expr, envir): R expects expr as expression; parse_arg on Language returns bare string -> wrap in parse(text=...) so envir is used
-      if f_name == "eval" && args.size == 2 && !r_args[0].to_s.start_with?("g2_v", "quote(")
-        r_args[0] = "parse(text=#{r_args[0].to_s.inspect})"
-      end
 
-      r_expr = "#{f_name}(#{r_args.join(", ")})"
+      use_subscript_alist =
+        kwargs.empty? &&
+        f_name == MD_INDEX_BACKTICK &&
+        all_args.any? { |a| a == :all } &&
+        !all_args.any? { |a| a.is_a?(Hash) }
+
+      use_assign_alist =
+        !kwargs.empty? &&
+        f_name == MD_ASSIGN_BACKTICK &&
+        all_args.size == 2 &&
+        all_args[1].is_a?(Hash) &&
+        all_args[1].values.any? { |v| v == :all }
+
+      if use_subscript_alist
+        r_expr = build_subscript_do_call_alist(all_args)
+      elsif use_assign_alist
+        r_expr = build_subscript_assign_do_call_alist(all_args[0], all_args[1])
+      else
+        r_args = all_args.map { |arg| self.parse_arg(arg) }
+        # eval(expr, envir): R expects expr as expression; parse_arg on Language returns bare string -> wrap in parse(text=...) so envir is used
+        if f_name == "eval" && args.size == 2 && !r_args[0].to_s.start_with?("g2_v", "quote(")
+          r_args[0] = "parse(text=#{r_args[0].to_s.inspect})"
+        end
+
+        r_expr = "#{f_name}(#{r_args.join(", ")})"
+      end
       assignment = "#{var_name} <- #{r_expr}"
       envelope = R.bridge.eval_r_with_result(assignment)
       unless envelope
