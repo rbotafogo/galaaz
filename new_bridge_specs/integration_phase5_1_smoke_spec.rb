@@ -1,19 +1,18 @@
 # frozen_string_literal: true
 
 # Phase 5.1 smoke: verify R.bridge seam can route to NewBridge adapter.
-# Run: GALAAZ_BRIDGE_IMPL=new_bridge bundle exec rspec specs/new_bridge/integration_phase5_1_smoke_spec.rb
+# Run: bundle exec rspec specs/new_bridge/integration_phase5_1_smoke_spec.rb
 
-ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
 require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.1 integration smoke (R.bridge seam)' do
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    skip 'requires new_bridge seam' unless ENV['GALAAZ_BRIDGE_IMPL'] == 'new_bridge'
+    skip 'requires new bridge (avoid GALAAZ_BRIDGE_IMPL=shadow)' if R.shadow_bridge_selected?
   end
 
-  it 'routes R.bridge to NewBridgeAdapter when configured' do
+  it 'routes R.bridge to NewBridgeAdapter by default' do
     expect(R.bridge).to be_a(R::NewBridgeAdapter)
     expect(R.bridge.ready?).to eq(true)
   end

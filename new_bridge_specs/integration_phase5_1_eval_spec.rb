@@ -2,9 +2,8 @@
 
 # Phase 5.1 seam check for eval/handle roundtrip semantics (no callbacks).
 # Run:
-#   GALAAZ_BRIDGE_IMPL=new_bridge bin/run_rspec specs/new_bridge/integration_phase5_1_eval_spec.rb
+# bin/run_rspec specs/new_bridge/integration_phase5_1_eval_spec.rb
 
-ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
 require_relative '../lib/R_interface/r'
 

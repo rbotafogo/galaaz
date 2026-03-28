@@ -2,9 +2,8 @@
 
 # Phase 5.2 data.frame unboxing compatibility.
 # Run:
-#   GALAAZ_BRIDGE_IMPL=new_bridge bin/run_rspec specs/new_bridge/integration_phase5_2_dataframe_unboxing_spec.rb
+# bin/run_rspec specs/new_bridge/integration_phase5_2_dataframe_unboxing_spec.rb
 
-ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
 require_relative '../lib/R_interface/r'
 

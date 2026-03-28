@@ -2,16 +2,15 @@
 
 # Phase 5.3 nested callback integration on the R.bridge seam.
 # Run:
-#   GALAAZ_BRIDGE_IMPL=new_bridge bin/run_rspec specs/new_bridge/integration_phase5_3_nested_spec.rb
+# bin/run_rspec specs/new_bridge/integration_phase5_3_nested_spec.rb
 
-ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
 require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.3 integration nested callbacks (R.bridge seam)' do
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    skip 'requires new_bridge seam' unless ENV['GALAAZ_BRIDGE_IMPL'] == 'new_bridge'
+    skip 'requires new bridge (avoid GALAAZ_BRIDGE_IMPL=shadow)' if R.shadow_bridge_selected?
   end
 
   it 'supports nested eval_r_with_result from inside callback and returns correct values' do

@@ -2,16 +2,15 @@
 
 # Phase 5.5 stress-level concurrency integration on the R.bridge seam.
 # Run:
-#   GALAAZ_BRIDGE_IMPL=new_bridge bin/run_rspec specs/new_bridge/integration_phase5_5_stress_concurrency_spec.rb
+# bin/run_rspec specs/new_bridge/integration_phase5_5_stress_concurrency_spec.rb
 
-ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
 require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.5 integration stress concurrency (R.bridge seam)' do
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    skip 'requires new_bridge seam' unless ENV['GALAAZ_BRIDGE_IMPL'] == 'new_bridge'
+    skip 'requires new bridge (avoid GALAAZ_BRIDGE_IMPL=shadow)' if R.shadow_bridge_selected?
   end
 
   it 'maintains session isolation under higher concurrent load' do

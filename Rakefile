@@ -25,6 +25,7 @@ require 'rake/tasklib'
 require 'rake/testtask'
 
 require_relative 'version'
+require_relative 'lib/galaaz_jruby'
 
 #----------------------------------------------------------------------------------------
 #
@@ -32,8 +33,10 @@ require_relative 'version'
 
 class MakeTask < Rake::TaskLib
 
-  # JRuby with JVM options required for Apache Arrow (same as bin/run_rspec / bin/run_example)
-  @@jruby_opts = "-I lib -J--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED"
+  # JRuby prefix: required JVM flags from GalaazJRuby + -I lib (see lib/galaaz_jruby.rb).
+  def self.galaaz_jruby_invocation
+    "jruby #{GalaazJRuby.shell_j_arg_string} -I lib"
+  end
 
   #----------------------------------------------------------------------------------------
   #
@@ -57,9 +60,9 @@ class MakeTask < Rake::TaskLib
 
   def make_task
     if @rspec
-      sh %{ jruby #{@@jruby_opts} -S rspec #{@filepath}.rb -f documentation }
+      sh %{ #{MakeTask.galaaz_jruby_invocation} -S rspec #{@filepath}.rb -f documentation }
     else
-      sh %{ jruby #{@@jruby_opts} #{@filepath}.rb }
+      sh %{ #{MakeTask.galaaz_jruby_invocation} #{@filepath}.rb }
     end
   end
 
@@ -75,12 +78,10 @@ class MakeTask < Rake::TaskLib
   
 end
 
-# JRuby opts for ad-hoc tasks (same as MakeTask)
-JRUBY_OPTS = "-I lib -J--add-opens=java.base/java.nio=org.apache.arrow.memory.core,ALL-UNNAMED"
-
 # Run each .rb file in a directory (for groups that don't have an all.rb)
 def run_each_file(file_list)
-  file_list.each { |f| sh "jruby #{JRUBY_OPTS} #{f}" }
+  inv = MakeTask.galaaz_jruby_invocation
+  file_list.each { |f| sh "#{inv} #{f}" }
 end
 
 geoms = FileList['examples/sthda_ggplot/**/*.rb']

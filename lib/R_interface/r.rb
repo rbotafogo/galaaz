@@ -43,15 +43,20 @@ require_relative 'rmd_indexed_object'
 require_relative 'robject'
 
 module R
-  # Initialize the ShadowBridge for Galaaz 2.0
+  # Opt-in values for the legacy FIFO / result-buffer bridge (R::ShadowBridge).
+  # Default is NewBridge (MsgPack session client + gatekeeper .so).
+  SHADOW_BRIDGE_IMPL_VALUES = %w[shadow shadow_bridge legacy].freeze
+
+  def self.shadow_bridge_selected?
+    SHADOW_BRIDGE_IMPL_VALUES.include?(ENV['GALAAZ_BRIDGE_IMPL'].to_s.strip.downcase)
+  end
+
+  # R↔Ruby bridge: NewBridge by default; set GALAAZ_BRIDGE_IMPL=shadow (or shadow_bridge, legacy) for ShadowBridge.
   def self.bridge
-    impl = ENV['GALAAZ_BRIDGE_IMPL'].to_s
-    if impl == 'new_bridge'
-      require_relative 'new_bridge_adapter'
-      R::NewBridgeAdapter.instance
-    else
-      R::ShadowBridge.instance
-    end
+    return R::ShadowBridge.instance if shadow_bridge_selected?
+
+    require_relative 'new_bridge_adapter'
+    R::NewBridgeAdapter.instance
   end
 
   RCONSTANTS = ["LETTERS", "letters", "month.abb", "month.name", "pi"]

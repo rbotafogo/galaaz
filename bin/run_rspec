@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Run rspec with JVM options required for Apache Arrow (shared memory).
-# Plain `rspec` fails with: "Unable to make field long java.nio.Buffer.address accessible"
-# because the JVM must be started with --add-opens=java.base/java.nio=...
+# Run rspec with JVM options required for Apache Arrow (see lib/galaaz_jruby.rb).
+# Optional JVM/jruby extras: GALAAZ_JRUBY_OPTS (space-separated).
 #
 # Usage:
 #   bin/run_rspec              # run all specs (*_spec.rb and *.spec.rb in specs/)
@@ -9,9 +8,12 @@
 #   GALAAZ_DEBUG=1 bin/run_rspec specs/r_vector_subsetting.spec.rb:61 ...
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=galaaz_jruby_env.inc.sh
+source "$ROOT/bin/galaaz_jruby_env.inc.sh"
 if [ $# -eq 0 ]; then
   set -- $(find "$ROOT/specs" -maxdepth 1 -type f \( -name '*_spec.rb' -o -name '*.spec.rb' \) | sort)
 fi
 exec jruby -I "$ROOT/lib" \
-  -J--add-opens=java.base/java.nio=ALL-UNNAMED \
+  $GALAAZ_REQUIRED_JRUBY_J_ARGS \
+  ${GALAAZ_JRUBY_OPTS:-} \
   -S bundle exec rspec "$@"

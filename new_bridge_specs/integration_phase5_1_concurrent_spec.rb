@@ -2,9 +2,8 @@
 
 # Phase 5.1 concurrent semantics on the R.bridge seam.
 # Run:
-#   GALAAZ_BRIDGE_IMPL=new_bridge bin/run_rspec specs/new_bridge/integration_phase5_1_concurrent_spec.rb
+# bin/run_rspec specs/new_bridge/integration_phase5_1_concurrent_spec.rb
 
-ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
 require_relative '../lib/R_interface/r'
 

@@ -156,9 +156,9 @@ Dir.chdir(#{input_dir.inspect}) do
 end
 EOF
 
-libx = File.expand_path('../../lib', __FILE__)
-# Same JVM opts as bin/run_rspec / bin/run_example (for Apache Arrow)
-jvm_args = "-J--add-opens=java.base/java.nio=ALL-UNNAMED"
+libx = File.expand_path('../lib', File.dirname(__FILE__))
+require File.join(libx, 'galaaz_jruby')
+jvm_args = GalaazJRuby.shell_j_arg_string
 exec "jruby #{jvm_args} -I#{libx} -e '#{code}'"
 
 =begin

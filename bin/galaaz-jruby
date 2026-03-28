@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Run a Galaaz example with required JRuby JVM flags (lib/galaaz_jruby.rb).
-# Optional: GALAAZ_JRUBY_OPTS.
+# Run jruby with Galaaz-required JVM flags and lib/ on the load path.
+# Optional: GALAAZ_JRUBY_OPTS (space-separated extra -J... or jruby args).
 #
-# Usage: bin/run_example examples/sthda_ggplot/all.rb
-#        bin/run_example examples/sthda_ggplot/one_variable_continuous/geom_density.rb
+# Usage: bin/galaaz-jruby path/to/script.rb [args...]
+#        bin/galaaz-jruby -S rspec specs/foo_spec.rb
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=galaaz_jruby_env.inc.sh

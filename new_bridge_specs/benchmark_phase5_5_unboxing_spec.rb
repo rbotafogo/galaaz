@@ -2,20 +2,19 @@
 
 # Benchmark-only spec for Phase 5.5 deep unboxing performance.
 # Run:
-#   GALAAZ_BRIDGE_IMPL=new_bridge bin/run_rspec specs/new_bridge/benchmark_phase5_5_unboxing_spec.rb --format documentation
+# bin/run_rspec specs/new_bridge/benchmark_phase5_5_unboxing_spec.rb --format documentation
 #
 # Optional env:
 #   BENCH_ITERS=5               # default: 5
 #   BENCH_TARGET_DEPTH=100      # default: 100 (nested list depth)
 
-ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
 require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.5 benchmark deep unboxing (R.bridge seam)' do
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    skip 'requires new_bridge seam' unless ENV['GALAAZ_BRIDGE_IMPL'] == 'new_bridge'
+    skip 'requires new bridge (avoid GALAAZ_BRIDGE_IMPL=shadow)' if R.shadow_bridge_selected?
   end
 
   def measure_seconds

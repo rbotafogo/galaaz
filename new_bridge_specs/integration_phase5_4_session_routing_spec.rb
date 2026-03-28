@@ -2,16 +2,15 @@
 
 # Phase 5.4 session routing integration on the R.bridge seam.
 # Run:
-#   GALAAZ_BRIDGE_IMPL=new_bridge bin/run_rspec specs/new_bridge/integration_phase5_4_session_routing_spec.rb
+# bin/run_rspec specs/new_bridge/integration_phase5_4_session_routing_spec.rb
 
-ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
 require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.4 integration session routing (R.bridge seam)' do
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    skip 'requires new_bridge seam' unless ENV['GALAAZ_BRIDGE_IMPL'] == 'new_bridge'
+    skip 'requires new bridge (avoid GALAAZ_BRIDGE_IMPL=shadow)' if R.shadow_bridge_selected?
   end
 
   it 'keeps same handle name isolated across sessions' do
