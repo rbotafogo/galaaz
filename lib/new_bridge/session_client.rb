@@ -3,6 +3,7 @@
 require 'open3'
 require 'securerandom'
 require 'socket'
+require 'tmpdir'
 require 'timeout'
 
 require_relative 'envelope'
@@ -12,14 +13,15 @@ module NewBridge
   # NewBridge::SessionClient
   #
   # Responsibilities (Ruby side, inside one Ruby process):
-  # - Accept a single TCP connection from one R runtime process.
+  # - Accept one connection from the R gatekeeper (Unix socket or TCP).
   # - Serialize and send framed MsgPack envelopes of type `REQ`.
   # - Wait for matching framed MsgPack envelopes of type `RET`.
   # - Handle R -> Ruby callback requests (`CALL`) by invoking registered Ruby
   #   blocks in background threads and replying with `RET`.
   #
   # Protocol basics
-  # - Transport: TCP, length-prefixed framing handled by `NewBridge::Framing`.
+  # - Transport: Unix domain socket for local R (loopback), TCP when R connects to a non-local host
+  #   (e.g. Docker). Override with ENV['GALAAZ_BRIDGE_TRANSPORT'] = unix|tcp. Same MsgPack framing.
   # - Envelopes are MsgPack maps handled by `NewBridge::Envelope`.
   # - Envelope fields used here:
   #   - `call_id`: UUID used to correlate one REQ with one RET
@@ -51,16 +53,26 @@ module NewBridge
     #
     # @param source_path [String] Host-side path to .cpp or .so for Rcpp `sourceCpp`/`dyn.load`.
     # @param host [String] bind/listen address for Ruby TCP server.
-    # @param bridge_host [String,nil] host value injected into R script (defaults to `host`).
+    # @param bridge_host [String,nil] host name/path R uses to connect to this Ruby listener (defaults to +host+).
+    #   For containerized R, set to the host reachable from the container (e.g. host.docker.internal).
     # @param runtime_source_path [String,nil] source path visible from runtime process/container.
+    # @param use_unix [Boolean,nil] force Unix (true) or TCP (false). Default nil: auto — Unix for local
+    #   loopback targets, TCP for remote/non-loopback +bridge_host+.
     # @param r_cmd [String, Array<String>] executable (or argv prefix ending with executable).
-    def initialize(source_path:, host: '127.0.0.1', bridge_host: nil, runtime_source_path: nil, r_cmd: 'R')
+    def initialize(source_path:, host: '127.0.0.1', bridge_host: nil, runtime_source_path: nil, r_cmd: 'R',
+                   use_unix: nil)
       @source_path = File.expand_path(source_path)
       @use_precompiled = @source_path.end_with?('.so')
       @host = host
       @bridge_host = bridge_host || host
       @runtime_source_path = runtime_source_path || @source_path
       @r_cmd = r_cmd
+      @use_unix = if use_unix.nil?
+                    self.class.default_use_unix?(bridge_target: @bridge_host)
+                  else
+                    use_unix
+                  end
+      @unix_path = nil
       @server = nil
       @sock = nil
       @write_mx = Mutex.new
@@ -75,24 +87,70 @@ module NewBridge
       @r_exit_status = nil
     end
 
+    # Whether to use Unix domain sockets for this client when +use_unix+ is nil.
+    #
+    # Policy:
+    # - +GALAAZ_BRIDGE_TRANSPORT=tcp+ — always TCP (remote R, or debugging).
+    # - +GALAAZ_BRIDGE_TRANSPORT=unix+ — always Unix when supported.
+    # - Otherwise: Unix only if +bridge_target+ is a local loopback address/name (127.0.0.1, ::1, localhost)
+    #   or a Unix socket path (+#+). Any other host (e.g. +host.docker.internal+, LAN IP) uses TCP so R can
+    #   reach Ruby over the network.
+    #
+    # @param bridge_target [String] resolved +bridge_host+ passed to R (+galaaz_run_bridge+).
+    def self.default_use_unix?(bridge_target:)
+      return false unless defined?(UNIXServer)
+
+      case ENV['GALAAZ_BRIDGE_TRANSPORT'].to_s.downcase
+      when 'tcp'
+        false
+      when 'unix'
+        true
+      else
+        t = bridge_target.to_s.strip
+        if t.empty?
+          false
+        elsif t.start_with?('/')
+          true
+        else
+          u = t.downcase
+          %w[127.0.0.1 ::1 localhost].include?(u)
+        end
+      end
+    end
+
     # Start listening for a single TCP connection from one R process and launch that process.
     #
-    # - Binds to an ephemeral port (server.addr[1]).
+    # - Binds to an ephemeral TCP port, or a Unix socket path when +use_unix+ is set.
     # - Starts a thread that runs `r_cmd` and sources the gatekeeper C++ code inside R.
     # - Accepts the runtime connection with `accept_timeout`.
     #
     # On startup failure (e.g. runtime exits before connecting), it surfaces R stderr and exit status.
     def start(accept_timeout: 120)
-      @server = TCPServer.new(@host, 0)
-      port = @server.addr[1]
+      use_u = @use_unix && defined?(UNIXServer)
+      if @use_unix && !defined?(UNIXServer)
+        warn '[NewBridge::SessionClient] Unix bridge transport selected but UNIXServer is unavailable; falling back to TCP'
+        use_u = false
+      end
+
+      if use_u
+        @unix_path = File.join(Dir.tmpdir, "galaaz_bridge_#{Process.pid}_#{SecureRandom.hex(6)}.sock")
+        File.unlink(@unix_path) if File.exist?(@unix_path)
+        @server = UNIXServer.new(@unix_path)
+        port = 0
+        bridge_for_r = @unix_path.gsub("'", "\\\\'")
+      else
+        @server = TCPServer.new(@host, 0)
+        port = @server.addr[1]
+        bridge_for_r = @bridge_host.gsub("'", "\\\\'")
+      end
 
       # Use sourceCpp with a persistent cache directory so repeated runtime
       # starts can reuse compiled shared objects when source is unchanged.
       cpp_escaped = @runtime_source_path.gsub("'", "\\\\'")
       rcpp_cache_dir = (ENV['GALAAZ_RCPP_CACHE_DIR'] || File.join(Dir.tmpdir, 'galaaz_rcpp_cache')).gsub("'", "\\\\'")
       r_script = <<~R
-        bridge_host <- "#{@bridge_host}"
-        port <- #{port}
+        bridge_host <- '#{bridge_for_r}'
+        port <- #{port}L
         stopifnot(requireNamespace("Rcpp", quietly = TRUE))
         library(Rcpp)
         dir.create("#{rcpp_cache_dir}", recursive = TRUE, showWarnings = FALSE)
@@ -100,7 +158,11 @@ module NewBridge
         galaaz_run_bridge(bridge_host, as.integer(port))
       R
 
-      env = { 'GALAAZ_BRIDGE_HOST' => @bridge_host, 'GALAAZ_BRIDGE_PORT' => port.to_s }
+      env = if use_u
+              { 'GALAAZ_BRIDGE_HOST' => @unix_path, 'GALAAZ_BRIDGE_PORT' => '0', 'GALAAZ_BRIDGE_UNIX' => '1' }
+            else
+              { 'GALAAZ_BRIDGE_HOST' => @bridge_host, 'GALAAZ_BRIDGE_PORT' => port.to_s }
+            end
       @r_thr = Thread.new do
         launch = @r_cmd.is_a?(Array) ? @r_cmd.dup : [@r_cmd]
         _stdin, stdout_err, wait_thr = Open3.popen2e(env, *launch, '--slave', '--no-save', '-e', r_script)
@@ -138,6 +200,10 @@ module NewBridge
     def stop
       @sock&.close rescue nil
       @server&.close rescue nil
+      if @unix_path && File.socket?(@unix_path)
+        File.unlink(@unix_path) rescue nil
+      end
+      @unix_path = nil
       @reader&.join(3)
       @r_thr&.join(15)
     end

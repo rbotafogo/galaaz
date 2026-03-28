@@ -11,7 +11,7 @@ require 'new_bridge'
 RSpec.describe 'NewBridge Phase 4.3 (RInstanceManager - local)' do
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    phase1_cpp = File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
+    phase1_cpp = File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
     @mgr = NewBridge::RInstanceManager.new(source_path: phase1_cpp)
     @mgr.spawn_local(instance_id: 'mgr-a', version: 'v-current')
     @mgr.spawn_local(instance_id: 'mgr-b', version: 'v-legacy')

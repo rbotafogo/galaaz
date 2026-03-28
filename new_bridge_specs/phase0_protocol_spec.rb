@@ -72,7 +72,7 @@ RSpec.describe 'NewBridge Phase 0' do
   end
 
   describe 'Rcpp phase0 skeleton' do
-    cpp_path = File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase0.cpp', __dir__)
+    cpp_path = File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase0.cpp', __dir__)
 
     it 'loads via sourceCpp and runs galaaz_poll / galaaz_shutdown without hanging' do
       skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')

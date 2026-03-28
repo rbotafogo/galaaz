@@ -57,6 +57,7 @@
 #include <sstream>
 #include <string>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
 #include <vector>
 
@@ -542,6 +543,17 @@ std::string class_or_typeof_string(SEXP x) {
       else out += CHAR(elt);
     }
     if (!out.empty()) return out;
+  }
+  // matrix: atomic vector + dim length 2 (same as is.matrix); ensures r_class is not
+  // mis-reported as plain integer/numeric when class() is unavailable to the attrib read.
+  {
+    SEXP dim = Rf_getAttrib(x, R_DimSymbol);
+    if (dim != R_NilValue && TYPEOF(dim) == INTSXP && Rf_xlength(dim) == 2) {
+      return "matrix array";
+    }
+  }
+  if (Rf_inherits(x, "array")) {
+    return "array";
   }
   // Keep legacy class labels expected by Ruby Object.build for atomic vectors.
   switch (TYPEOF(x)) {
@@ -1214,6 +1226,54 @@ static void process_single_req(int fd, const std::map<std::string, std::string>&
 //   - sends protocol error RET for malformed envelopes
 // [[Rcpp::export]]
 void galaaz_run_bridge(std::string bridge_host, int port) {
+  // Local Unix domain socket: port == 0 and bridge_host is an absolute path (e.g. /tmp/galaaz....sock).
+  // Same MsgPack framing as TCP; lower overhead than loopback TCP on Linux/macOS.
+  if (port == 0 && !bridge_host.empty() && bridge_host[0] == '/') {
+    struct sockaddr_un addr;
+    std::memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    if (bridge_host.size() >= sizeof(addr.sun_path)) {
+      die("unix socket path too long");
+    }
+    std::memcpy(addr.sun_path, bridge_host.c_str(), bridge_host.size() + 1);
+    int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd < 0) die("socket(AF_UNIX)");
+    if (::connect(fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) != 0) {
+      ::close(fd);
+      die("connect(AF_UNIX)");
+    }
+    g_bridge_fd = fd;
+
+    Rcpp::Environment g = Rcpp::Environment::global_env();
+    g[".galaaz_sessions"] = Rcpp::List();
+
+    for (;;) {
+      uint32_t len = 0;
+      if (!recv_all(fd, &len, 4)) break;
+      if (len > 64u * 1024u * 1024u) break;
+      std::vector<uint8_t> buf(len);
+      if (len && !recv_all(fd, buf.data(), len)) break;
+
+      std::map<std::string, std::string> fields;
+      std::map<std::string, bool> nils;
+      try {
+        Rd rd(buf);
+        rd.parse_envelope(fields, nils);
+      } catch (...) {
+        auto er = make_ret("?", "error", payload_error("bad envelope"), "default");
+        uint32_t L = static_cast<uint32_t>(er.size());
+        if (!send_all(fd, &L, 4) || !send_all(fd, er.data(), er.size())) break;
+        continue;
+      }
+
+      if (fields["type"] != "REQ") continue;
+      process_single_req(fd, fields, g);
+    }
+    g_bridge_fd = -1;
+    ::close(fd);
+    return;
+  }
+
   // Support both literal IPv4 and hostnames (e.g. host.docker.internal)
   // so containerized runtimes can connect back to Ruby host listener.
   addrinfo hints;

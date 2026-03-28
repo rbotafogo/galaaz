@@ -7,7 +7,7 @@
 ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
 require 'timeout'
-require_relative '../../lib/R_interface/r'
+require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.5 integration unbox_walk (R.bridge seam)' do
   before(:all) do

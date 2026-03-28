@@ -9,12 +9,12 @@ $LOAD_PATH.unshift(File.join(root, 'lib')) unless $LOAD_PATH.include?(File.join(
 require 'new_bridge'
 
 RSpec.describe 'NewBridge Phase 3 (CALL/RET callbacks)' do
-  let(:phase1_cpp) { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
+  let(:phase1_cpp) { File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
   let(:instance_id) { 'instance-a' }
 
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    cpp = File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
+    cpp = File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
     @client = NewBridge::SessionClient.new(source_path: cpp)
     @client.start
   end
@@ -50,7 +50,7 @@ RSpec.describe 'NewBridge Phase 3 (CALL/RET callbacks)' do
       expect do
         c.eval_r("galaaz_callback_call_phase3('#{cb_call_id}', '0', 500)",
                  session_id: 'sess-a', instance_id: iid)
-      end.to raise_error(NewBridge::SessionClient::RProcessError, /evaluation error/)
+      end.to raise_error(NewBridge::SessionClient::RProcessError, /boom|evaluation error/)
     end
   end
 

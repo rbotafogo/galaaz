@@ -12,7 +12,7 @@ $LOAD_PATH.unshift(File.join(root, 'lib')) unless $LOAD_PATH.include?(File.join(
 require 'new_bridge'
 
 RSpec.describe 'NewBridge Phase 4.5 (local + container multi-version)' do
-  let(:phase1_cpp) { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
+  let(:phase1_cpp) { File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
 
   def project_root
     File.expand_path('../..', __dir__)

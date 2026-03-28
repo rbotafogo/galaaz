@@ -6,7 +6,7 @@
 
 ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
-require_relative '../../lib/R_interface/r'
+require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.1 integration concurrent (R.bridge seam)' do
   it 'serializes concurrent eval_r_with_result calls and returns correct results' do

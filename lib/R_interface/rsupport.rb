@@ -85,7 +85,8 @@ module R
       when :scalar_character
         return R::Object.build(var_name, nil, r_class: "character")
       when :scalar_symbol
-        return envelope[:value]
+        sym_name = envelope[:value].to_s
+        return sym_name.gsub("::", "___").gsub(".", "__").to_sym
       when :handle
         # Protocol spec: eval returns scalar symbol as Ruby Symbol. R sends symbol/name as handle (type 4); unbox here only.
         r_class = envelope[:r_class].to_s.strip
@@ -272,7 +273,8 @@ module R
         r_class = { scalar_double: "numeric", scalar_integer: "integer", scalar_logical: "logical", scalar_character: "character" }[envelope[:type]]
         return R::Object.build(var_name, r_expr, r_class: r_class)
       when :scalar_symbol
-        return envelope[:value]
+        sym_name = envelope[:value].to_s
+        return sym_name.gsub("::", "___").gsub(".", "__").to_sym
       when :handle
         # Never unbox single-cell for `[`; keep as R::Object so .all__equal and other R methods work.
         return R::Object.build(envelope[:handle], r_expr, r_class: envelope[:r_class])

@@ -6,7 +6,7 @@
 
 ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
-require_relative '../../lib/R_interface/r'
+require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.1 integration basic R API (no callbacks)' do
   it 'supports simple R function dispatch through R::Support' do

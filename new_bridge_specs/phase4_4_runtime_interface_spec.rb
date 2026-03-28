@@ -89,7 +89,7 @@ RSpec.describe 'NewBridge Phase 4.4 (Runtime interface local/container)' do
     end
   end
 
-  let(:phase1_cpp) { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
+  let(:phase1_cpp) { File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
 
   it 'spawns local runtime through unified spawn API' do
     mgr = NewBridge::RInstanceManager.new(

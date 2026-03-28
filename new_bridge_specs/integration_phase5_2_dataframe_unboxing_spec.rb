@@ -6,7 +6,7 @@
 
 ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
-require_relative '../../lib/R_interface/r'
+require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.2 integration data.frame unboxing' do
   it 'unboxes a tiny data.frame handle returned by R::Support into a Ruby hash' do

@@ -9,11 +9,11 @@ $LOAD_PATH.unshift(File.join(root, 'lib')) unless $LOAD_PATH.include?(File.join(
 require 'new_bridge'
 
 RSpec.describe 'NewBridge Phase 4.2 (Hardening Coverage)' do
-  let(:phase1_cpp) { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
+  let(:phase1_cpp) { File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
 
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    cpp = File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
+    cpp = File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
     @client = NewBridge::SessionClient.new(source_path: cpp)
     @client.start
   end
@@ -163,7 +163,7 @@ RSpec.describe 'NewBridge Phase 4.2 (Hardening Coverage)' do
 
   describe 'multi-instance hardening on current pool API' do
     before(:all) do
-      cpp = File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
+      cpp = File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
       @pool = NewBridge::InstancePoolClient.new(
         source_path: cpp,
         instances: ['p42-a', 'p42-b']

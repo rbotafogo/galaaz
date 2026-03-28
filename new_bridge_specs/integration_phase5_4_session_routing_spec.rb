@@ -6,7 +6,7 @@
 
 ENV['GALAAZ_BRIDGE_IMPL'] ||= 'new_bridge'
 
-require_relative '../../lib/R_interface/r'
+require_relative '../lib/R_interface/r'
 
 RSpec.describe 'Phase 5.4 integration session routing (R.bridge seam)' do
   before(:all) do
