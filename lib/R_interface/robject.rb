@@ -22,7 +22,7 @@ module R
     # Methods we explicitly define (Phase A / BasicObject). respond_to?(sym) is true for these and for any symbol we forward to R.
     EXPLICIT_RUBY_SURFACE = [
       :r_interop, :expression, :expression=,
-      :[], :[]=, :>>, :unboxed_get, :to_ruby, :to_ary, :length, :size,
+      :[], :[]=, :>>, :unboxed_get, :to_ruby, :to_i, :to_ary, :length, :size,
       :class, :to_s, :rclass, :typeof, :inspect, :object_id, :__id__,
       :==, :equal?, :call, :nil?, :pretty_print,
       :instance_variable_set, :instance_variable_get,
@@ -266,6 +266,20 @@ module R
     # Simple way to get a Ruby value: (self >> nil). For length-1 vectors returns the scalar; for longer returns array.
     def to_ruby
       self >> nil
+    end
+
+    # Unbox length-1 numeric (or string digits) to Integer without forwarding to R (R has no to_i).
+    # Callback procs often use x.to_i when R passes scalars as R::Object.
+    def to_i
+      v = to_ruby
+      v = v.first if v.is_a?(::Array) && v.size == 1
+      case v
+      when ::Integer then v
+      when ::Float then v.to_i
+      when ::String then Integer(v)
+      else
+        Integer(v)
+      end
     end
 
     # Return nil so RSpec/eq and array conversion don't forward to_ary to R (plain Object is not array-like).

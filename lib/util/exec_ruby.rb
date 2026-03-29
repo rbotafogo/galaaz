@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'stringio'
+require 'tmpdir'
 
 #----------------------------------------------------------------------------------------
 # Class RC is used only as a context for all ruby chunks in the rmarkdown file.
@@ -59,6 +60,17 @@ RCbinding = RChunk.get_binding
 
 module GalaazUtil
 
+  # Knitr chunk options are often R logical NA ("inherit global default"). Those must not be
+  # treated as false (see R::Vector#unboxed_get: NA → nil). Defaults match knitr: eval/echo/include/message/warning TRUE.
+  def self.knitr_logical_trueish?(opt)
+    return true if opt.nil?
+    return opt if opt == true || opt == false
+    return opt unless opt.respond_to?(:unboxed_get)
+
+    u = opt.unboxed_get(0)
+    u.nil? ? true : u
+  end
+
   #----------------------------------------------------------------------------------------
   # Executes the ruby code with the given options.
   # @param options [R::List] An R list of options
@@ -78,11 +90,17 @@ module GalaazUtil
   def self.exec_ruby(options)
 
     # RubyChunk.init
-    
-    # read the chunk code: use file to avoid result protocol returning handle for long/multi-line strings in callback
-    chunk_code_file = "/dev/shm/galaaz_chunk_code.txt"
-    R.bridge.eval_r("writeLines(paste(#{options.r_interop}[['code']], collapse='\\n'), '#{chunk_code_file}')")
-    code = File.read(chunk_code_file)
+
+    # Read chunk code via a temp file (avoids result-protocol limits on long strings). Use Dir.tmpdir
+    # so gknit works without /dev/shm (macOS, sandboxes, minimal containers).
+    chunk_code_file = File.join(Dir.tmpdir, "galaaz_chunk_code_#{Process.pid}_#{Thread.current.object_id}.txt")
+    path_lit = ::R::Support.parse_arg(chunk_code_file)
+    begin
+      R.bridge.eval_r("writeLines(paste(#{options.r_interop}[['code']], collapse='\\n'), #{path_lit})")
+      code = File.read(chunk_code_file)
+    ensure
+      File.unlink(chunk_code_file) if chunk_code_file && File.file?(chunk_code_file)
+    end
     # If the string arrived with literal \n (e.g. from R→Ruby transport), convert to real newlines so eval does not hit "unexpected backslash"
     code = code.gsub("\\n", "\n") if code.is_a?(String)
     
@@ -90,7 +108,7 @@ module GalaazUtil
     # function engine_output.  We first add the source code from the block to
     # the list. Pass src as a character vector of lines (not one string with \n)
     # so knitr preserves line breaks and indentation in the rendered chunk.
-    if options['echo'].unboxed_get(0)
+    if knitr_logical_trueish?((options['echo'] rescue nil))
       src_lines = code.lines.map(&:chomp)
       src_lines = [" "] if src_lines.empty?
       out_list = R.list(R.structure(R.list(src: R.c(*src_lines)), class: 'source'))
@@ -109,7 +127,7 @@ module GalaazUtil
       # so that instance variables created in one chunk can be used again on
       # another chunk
       # RChunk.instance_eval(code) if (options[["eval"]].unboxed_get(0))
-      eval(code, RCbinding, __FILE__, __LINE__ + 1) if (options[["eval"]].unboxed_get(0))
+      eval(code, RCbinding, __FILE__, __LINE__ + 1) if knitr_logical_trueish?((options[["eval"]] rescue nil))
       
       # add the returned value to the list
       # this should have captured everything in the evaluation code
@@ -122,12 +140,12 @@ module GalaazUtil
 
       # Use R's simpleMessage/simpleWarning so knitr's engine_output can call conditionMessage() on them
       # g_simpleMessage transforms "; " to newlines then calls simpleMessage (defined in R engine setup)
-      if (options['message'].unboxed_get(0))
+      if knitr_logical_trueish?((options['message'] rescue nil))
         msg_cond = R.g_simpleMessage(e.message.to_s)
         out_list = R.c(out_list, msg_cond)
       end
 
-      if (options['warning'].unboxed_get(0))
+      if knitr_logical_trueish?((options['warning'] rescue nil))
         bt = ""
         e.backtrace.each { |line| bt << line + "\n"}
         warn_cond = R.g_simpleWarning(bt)
@@ -143,7 +161,7 @@ module GalaazUtil
       $stdout = STDOUT
     end
     
-    (options['include'].unboxed_get(0))? out_list : R.list
+    knitr_logical_trueish?((options['include'] rescue nil)) ? out_list : R.list
     
   end
   

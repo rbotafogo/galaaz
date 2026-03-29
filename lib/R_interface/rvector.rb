@@ -84,9 +84,17 @@ module R
         v = envelope[:value]
         (v.is_a?(::String) && v =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(v) : v
       when 'logical'
-        # Use eval_r to extract the single element as text
+        # Use eval_r to extract the single element as text (NA must not become false — knitr uses NA for "inherit default").
         raw = ::R.bridge.eval_r("#{@r_interop}[[#{idx + 1}]]")
-        raw.strip.include?("TRUE") ? true : false
+        line = raw.lines.map(&:strip).find { |l| l =~ /\A\[\d+\]\s/ }
+        token = line&.sub(/\A\[\d+\]\s+/, '')&.strip
+        case token
+        when 'TRUE' then true
+        when 'FALSE' then false
+        when 'NA' then nil
+        else
+          raw.strip.include?('TRUE') ? true : false
+        end
       else
         data = ::R.bridge.pull_double_vector(@r_interop, 1, idx, 1)
         data[0]

@@ -21,7 +21,7 @@ RSpec.describe 'Phase 5.3 integration callback args (R.bridge seam)' do
   end
 
   it 'passes a character scalar argument from R into Ruby callback' do
-    result = R.call_with_arg(proc { |x| x.to_s.upcase == 'ABC' ? 1 : 0 }, 'abc')
+    result = R.call_with_arg(proc { |x| x.to_ruby.to_s.upcase == 'ABC' ? 1 : 0 }, 'abc')
     expect(result).to be_a(R::Object)
     expect(result.to_ruby).to eq(1.0)
   end

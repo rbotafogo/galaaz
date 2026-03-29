@@ -25,7 +25,7 @@ RSpec.describe 'Phase 5.3 integration callback edge cases (R.bridge seam)' do
   end
 
   it 'passes logical scalar argument through payload conversion' do
-    result = R.call_with_arg(proc { |x| x.to_s == 'TRUE' ? 7 : 0 }, true)
+    result = R.call_with_arg(proc { |x| x.to_ruby == true ? 7 : 0 }, true)
     expect(result.to_ruby).to eq(7.0)
   end
 
@@ -45,10 +45,9 @@ RSpec.describe 'Phase 5.3 integration callback edge cases (R.bridge seam)' do
     expect(inner[:value]).to eq(55)
   end
 
-  it 'handles non-scalar callback argument deterministically' do
-    # For non-scalar args, the current seam intentionally sends empty payload.
+  it 'passes non-scalar callback arguments as a single R::Object' do
     result = R.call_with_arg(proc { |x| x.to_s.empty? ? 1 : 0 }, R.c(1, 2, 3))
-    expect(result.to_ruby).to eq(1.0)
+    expect(result.to_ruby).to eq(0.0)
   end
 end
 
