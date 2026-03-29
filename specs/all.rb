@@ -71,5 +71,8 @@ require_relative 'r_formula.spec'
 # Test file generation
 require_relative 'r_devices.spec'
 
+# Phase 1: NewBridge callback stub + galaaz_bridge_env (see Documentation/Gknit_Generic_Output_Phased_Plan.md)
+require_relative 'phase1_callback_bridge_spec'
+
 # Testes for NSE
 # require_relative 'r_nse.spec'

@@ -250,6 +250,8 @@ module NewBridge
     #
     # The gatekeeper will invoke this callback when it receives a `CALL` with the
     # corresponding `callback_call_id`, and this client will reply with a `RET`.
+    # The same `call_id` may be used many times (R stub function is reused); the block
+    # stays registered until the client stops — do not delete on first CALL.
     def register_callback(&block)
       callback_call_id = SecureRandom.uuid
       @callbacks_mx.synchronize { @callbacks[callback_call_id] = block }
@@ -257,6 +259,25 @@ module NewBridge
     end
 
     private
+
+    # Gatekeeper parses RET success payload with strtod. Contract:
+    # - `register_callback_proc_stub` ends with nil → ACK "1" (semantic value staged in R).
+    # - Direct `register_callback` blocks may return a Numeric scalar; pass it through for legacy tests.
+    def self.callback_success_transport_payload(result)
+      case result
+      when nil
+        '1'
+      when Numeric
+        x = result.to_f
+        (x.nan? || x.infinite?) ? '0' : x.to_s
+      when true
+        '1'
+      when false
+        '0'
+      else
+        '1'
+      end
+    end
 
     # Emit debug logs when GALAAZ_DEBUG is set.
     def debug_log(msg)
@@ -310,7 +331,7 @@ module NewBridge
       payload = h['payload']
       debug_log("CALL received call_id=#{call_id} instance_id=#{instance_id} payload=#{payload.inspect}")
 
-      callback = @callbacks_mx.synchronize { @callbacks.delete(call_id) }
+      callback = @callbacks_mx.synchronize { @callbacks[call_id] }
       unless callback
         send_ret(call_id: call_id, status: 'error', payload: "unknown callback #{call_id}", instance_id: instance_id)
         return
@@ -322,7 +343,8 @@ module NewBridge
         begin
           result = callback.call(payload, call_id)
           debug_log("CALL result call_id=#{call_id} result=#{result.inspect}")
-          send_ret(call_id: call_id, status: 'success', payload: result.to_s, instance_id: instance_id)
+          payload_txt = self.class.callback_success_transport_payload(result)
+          send_ret(call_id: call_id, status: 'success', payload: payload_txt, instance_id: instance_id)
         rescue IOError, Errno::EPIPE => e
           # Socket closed - ignore, connection is shutting down
           debug_log("CALL send failed (socket closed) call_id=#{call_id}: #{e.message}")

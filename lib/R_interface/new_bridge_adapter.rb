@@ -123,22 +123,39 @@ module R
     # using the NewBridge CALL/RET path.
     def register_callback_proc_stub(proc_or_method)
       callback_session_id = current_session_id
-      callback_call_id = @client.register_callback do |_payload, call_id|
-        payload = _payload
+      # Stable R-safe fragment for namespacing callback result keys (session + call id).
+      sess_key = callback_session_id.to_s.gsub(/[^a-zA-Z0-9_]/, '_')
+      callback_call_id = @client.register_callback do |payload, call_id|
         old = Thread.current[:galaaz_new_bridge_parent_id]
         old_session = Thread.current[:galaaz_new_bridge_session_id]
         Thread.current[:galaaz_new_bridge_parent_id] = call_id
         Thread.current[:galaaz_new_bridge_session_id] = callback_session_id
         @in_callback = true
         begin
-          arity = proc_or_method.respond_to?(:arity) ? proc_or_method.arity : 0
-          if arity == 0
-            proc_or_method.call
-          elsif arity == 1 || arity.negative?
-            proc_or_method.call(payload)
-          else
-            proc_or_method.call(payload, call_id)
-          end
+          cb_args = callback_payload_to_r_objects(payload)
+          # Legacy arity-2 procs (phase 5.3 specs): (first R arg or nil, Ruby CALL envelope id).
+          # Knitr/RubyCallback use arity != 2 and receive call(*cb_args).
+          ar = proc_or_method.respond_to?(:arity) ? proc_or_method.arity : 0
+          raw = if ar == 2 && cb_args.size <= 1
+                  proc_or_method.call(cb_args[0], call_id)
+                else
+                  proc_or_method.call(*cb_args)
+                end
+          # Semantic return value: store under .GlobalEnv$galaaz_bridge_env (see Phase 0 plan).
+          # Transport RET is ACK-only (SessionClient sends "1"); R stub reads env after CALL/RET.
+          slot_key = "r_#{sess_key}_#{call_id.gsub('-', '_')}"
+          rhs = raw.is_a?(String) ? raw : R::Support.parse_arg(raw)
+          eval_r(<<~RCODE)
+            ({
+              if (!exists('galaaz_bridge_env', envir = .GlobalEnv, inherits = FALSE)) {
+                assign('galaaz_bridge_env', new.env(parent = emptyenv()), envir = .GlobalEnv)
+              }
+              assign('#{slot_key}', { #{rhs} }, envir = .GlobalEnv$galaaz_bridge_env)
+              0L
+            })
+          RCODE
+          # Semantic value is in galaaz_bridge_env; RET must be ACK-only (nil → transport "1").
+          nil
         ensure
           @in_callback = false
           Thread.current[:galaaz_new_bridge_session_id] = old_session
@@ -146,16 +163,31 @@ module R
         end
       end
 
+      # Each ... arg is assigned in .GlobalEnv under a temporary handle. Names must be g2_v + digits
+      # only — gatekeeper valid_bridge_handle_token rejects g2_v_cb_* (letters after g2_v), which
+      # breaks dispatch_probe when Ruby wraps the handle as R::Object.
       "function(...) {
         args <- list(...)
-        payload <- ''
-        if (length(args) >= 1L) {
-          a <- args[[1]]
-          if (length(a) == 1L && (is.character(a) || is.numeric(a) || is.logical(a))) {
-            payload <- as.character(a)
+        handles <- character(0)
+        if (length(args) > 0L) {
+          for (i in seq_along(args)) {
+            h <- paste0('g2_v', as.integer(stats::runif(1, 1e7, 9e7 - 1L)), sprintf('%04d', as.integer(i)))
+            assign(h, args[[i]], envir = .GlobalEnv)
+            cls <- paste(class(args[[i]]), collapse = ' ')
+            handles <- c(handles, paste0(h, ':', cls))
           }
         }
-        galaaz_callback_call_phase3('#{callback_call_id}', payload, 5000)
+        payload <- paste(handles, collapse = '|')
+        gid <- '#{callback_call_id}'
+        galaaz_callback_call_phase3(gid, payload, 5000)
+        sess <- '#{sess_key}'
+        nm <- paste0('r_', sess, '_', gsub('-', '_', gid))
+        if (!exists('galaaz_bridge_env', envir = .GlobalEnv, inherits = FALSE)) {
+          stop('galaaz_bridge_env missing: callback did not stage a result')
+        }
+        val <- base::get(nm, envir = .GlobalEnv$galaaz_bridge_env, inherits = FALSE)
+        base::rm(list = nm, envir = .GlobalEnv$galaaz_bridge_env, inherits = FALSE)
+        val
       }"
     end
 
@@ -309,6 +341,19 @@ module R
     end
 
     private
+
+    # Decode CALL payload from register_callback_proc_stub R side (handle:class|...).
+    def callback_payload_to_r_objects(payload)
+      s = payload.to_s.strip
+      return [] if s.empty?
+
+      s.split('|').filter_map do |pair|
+        next if pair.empty?
+
+        handle, r_class = pair.split(':', 2)
+        R::Object.build(handle, nil, r_class: r_class)
+      end
+    end
 
     def callback_parent_id
       Thread.current[:galaaz_new_bridge_parent_id]
