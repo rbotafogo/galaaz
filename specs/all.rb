@@ -74,5 +74,8 @@ require_relative 'r_devices.spec'
 # Phase 1: NewBridge callback stub + galaaz_bridge_env (see Documentation/Gknit_Generic_Output_Phased_Plan.md)
 require_relative 'phase1_callback_bridge_spec'
 
+# Phase 2: gknit chunk semantics in generated HTML (echo/include/eval with NA inheritance)
+require_relative 'phase2_gknit_chunk_output_spec'
+
 # Testes for NSE
 # require_relative 'r_nse.spec'

@@ -367,59 +367,62 @@ class KnitrEngine
   # the non-exported function.
   #--------------------------------------------------------------------------------------
 
-  R::Support.eval(<<-R)
+  R::Support.eval(<<-GK_BOOT)
 
-    # Function to guess the extension name of a file based on the device type
-    knitr_dev2ext = function(x) {
+    # Bind on .GlobalEnv so Ruby exec_function("evaluate_plot_snapshot") / recordPlot / knitr
+    # always resolve them (new bridge evaluates in a per-session env; plain '=' here can leave
+    # helpers only in transient frames, so gknit never records ggplot output).
+    .GlobalEnv$knitr_dev2ext <- function(x) {
         knitr:::dev2ext(x)
     }
 
     #" Capture snapshot of current device (base R recordPlot; same as galaaz_device.R).
     # g_simpleMessage: same signature as simpleMessage; transforms "; " to newlines then calls base::simpleMessage
-    .GlobalEnv$g_simpleMessage = function(message) {
+    .GlobalEnv$g_simpleMessage <- function(message) {
         message <- gsub("; ", "; \n", message, fixed = TRUE)
         base::simpleMessage(message)
     }
 
     # g_simpleWarning: same signature as simpleWarning; transforms "; " to newlines then calls base::simpleWarning
-    .GlobalEnv$g_simpleWarning = function(message) {
+    .GlobalEnv$g_simpleWarning <- function(message) {
         message <- gsub("; ", "; \n", message, fixed = TRUE)
         base::simpleWarning(message)
     }
 
     #" evaluate:::plot_snapshot() does not exist in the evaluate package, so use recordPlot().
-    #"
-    evaluate_plot_snapshot = function() {
-        recordPlot()
+    .GlobalEnv$evaluate_plot_snapshot <- function() {
+        grDevices::recordPlot()
     }
 
     # Save a recorded plot to a file in one R call (open device, replayPlot, dev.off) so device state is consistent.
-    save_recorded_plot = function(path, plot, width, height, dev, res, units) {
+    .GlobalEnv$save_recorded_plot <- function(path, plot, width, height, dev, res, units) {
         if (dev == "png" || dev == "pdf") {
-            if (dev == "png") do.call(png, list(path, width = width, height = height, res = res, units = units))
-            else do.call(pdf, list(path, width = width, height = height))
-            replayPlot(plot)
-            dev.off()
+            if (dev == "png") do.call(grDevices::png, list(path, width = width, height = height, res = res, units = units))
+            else do.call(grDevices::pdf, list(path, width = width, height = height))
+            grDevices::replayPlot(plot)
+            grDevices::dev.off()
         }
     }
 
-    knitr_wrap = function(x, options) {
+    .GlobalEnv$knitr_wrap <- function(x, options) {
       knitr:::wrap(x, options)
     }
 
-    wrap.message = function(x, options) {
+    assign("wrap.message", function(x, options) {
       knitr:::msg_wrap(paste("Message:\n", x$message, collapse = ''), 'message', options)
-    }
+    }, envir = .GlobalEnv)
 
     # The showtext package, is able to support more font formats and more graphics
     # devices, and avoids using external software such as Ghostscript. showtext makes it
     # even easier to use various types of fonts (TrueType, OpenType, Type 1, web fonts,
     # etc.) in R graphs.
-    showtext = function() {
+    .GlobalEnv$showtext <- function() {
       showtext::showtext_begin()
     }
-    
-    R
+
+    invisible(NULL)
+
+  GK_BOOT
 
   #--------------------------------------------------------------------------------------
   #
@@ -463,7 +466,9 @@ class KnitrEngine
     # guess plot file type if it is NULL
     # Use @fig__ext (already set from options['fig.ext']) to avoid calling R's fig.ext(options) which triggers invalid connection
     fig_ext_empty = @fig__ext.nil? || (@fig__ext.respond_to?(:to_s) && @fig__ext.to_s.strip.empty?)
-    if (((@keep != 'none').unboxed_get(0)) && fig_ext_empty)
+    # NA from knitr "inherit" must not skip dev2ext (same as GalaazUtil.knitr_logical_trueish? for chunk options).
+    keep_plots = GalaazUtil.knitr_logical_trueish?(((@keep != 'none') rescue nil))
+    if keep_plots && fig_ext_empty
       @fig__ext = (R.knitr_dev2ext(@options).unboxed_get(0))
     end
   end
@@ -481,7 +486,7 @@ class KnitrEngine
     
     # Text results
     @eval = options['eval'] 
-    @echo = (options['echo'].unboxed_get(0))
+    @echo = GalaazUtil.knitr_logical_trueish?((options['echo'] rescue nil))
     @results = options['results'] 
     @collapse = options['collapse'] 
     @warning = options['warning'] 
@@ -655,13 +660,20 @@ class KnitrEngine
   def initialize
 
     @chunk_index = 0
-    
+
+    # Knitr invokes this proc with top-level self (main). Engine state (@options, @filename,
+    # capture_plot, process_options) must run on this KnitrEngine singleton (RubyEngine.instance).
+    _gknit_self = self
+
   #--------------------------------------------------------------------------------------
   # Basic engine for processing a chunk
   #--------------------------------------------------------------------------------------
 
     @base_engine = Proc.new do |options|
-      
+      _gknit_self.instance_eval do
+      # grDevices::dev.cur() as an R handle (g2_v*) can be reassigned across NewBridge
+      # callbacks; dev.off(that_handle) then sees wrong/empty `which`. Unbox immediately.
+      dv_n = nil
       begin
 
         out = R.list
@@ -674,9 +686,12 @@ class KnitrEngine
         # opens a device for the current chunk for plot recording (use @dev not @options.dev to avoid R's dev(options))
         KnitrEngine.device(@dev.unboxed_get(0), @tmp_fig)
         
-        # dv gets the current device
-        dv = R.dev__cur
-        
+        v = (R.dev__cur >> nil) rescue nil
+        if v
+          x = v.is_a?(Array) ? v.first : v
+          dv_n = x.to_i if x.is_a?(Numeric)
+        end
+
         # executes the code chunk with the given options
         # the returned value is a list properly formatted to be given to engine_output
         # exec_ruby catches StandardError, so no execution errors on the block will
@@ -698,7 +713,7 @@ class KnitrEngine
         # @TODO: allow capturing many plots in the block.  For now, only the last
         # plot will be captured.  Not a very serious problem for now.
         # Captures the last plot in the Ruby block. 
-        if (capture_plot)
+        if capture_plot
           # use same absolute path as in capture_plot so knitr can find the file
           fig_path = File.expand_path(@filename)
           if File.exist?(fig_path)
@@ -715,12 +730,14 @@ class KnitrEngine
         formatted += "\n\n--- Ruby backtrace ---\n" + e.backtrace.join("\n") if e.backtrace && !e.backtrace.empty?
         R.list(R.simpleMessage(formatted))
       ensure
-        # closes the current device
-        R.dev__off(dv)
+        # Close the device we opened (which > 1; 1 is the null device and must not be passed to dev.off).
+        if dv_n.is_a?(Integer) && dv_n > 1
+          R.dev__off(dv_n)
+        end
       end
-      
+      end
     end
-    
+
     super
     
   end
