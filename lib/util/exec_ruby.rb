@@ -60,15 +60,37 @@ RCbinding = RChunk.get_binding
 
 module GalaazUtil
 
+  # Read a logical-ish knitr option directly from the options list on the R side.
+  # This avoids wrapper-shape differences when values arrive as handles/lists via NewBridge.
+  def self.knitr_option_trueish?(options, key, default: true)
+    return default unless options && options.respond_to?(:r_interop)
+
+    key_esc = key.to_s.gsub("'", "\\\\'")
+    txt = R.bridge.eval_r("as.character(#{options.r_interop}[['#{key_esc}']])").to_s
+    token = txt.sub(/\A\[\d+\]\s*/, '').gsub('"', '').strip.upcase
+    return true if token == 'TRUE'
+    return false if token == 'FALSE'
+    return default if token == '' || token == 'NA' || token == 'NULL'
+    return token.to_f != 0.0 if token.match?(/\A-?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?\z/)
+
+    default
+  rescue StandardError
+    default
+  end
+
   # Knitr chunk options are often R logical NA ("inherit global default"). Those must not be
   # treated as false (see R::Vector#unboxed_get: NA → nil). Defaults match knitr: eval/echo/include/message/warning TRUE.
   def self.knitr_logical_trueish?(opt)
     return true if opt.nil?
     return opt if opt == true || opt == false
-    return opt unless opt.respond_to?(:unboxed_get)
 
-    u = opt.unboxed_get(0)
-    u.nil? ? true : u
+    raw = opt.unboxed_get(0) if opt.respond_to?(:unboxed_get)
+    return true if raw.nil?
+    return raw if raw == true || raw == false
+    return raw != 0 if raw.is_a?(Numeric)
+    return !raw.to_s.strip.casecmp('FALSE').zero? if raw.respond_to?(:to_s)
+
+    true
   end
 
   #----------------------------------------------------------------------------------------
@@ -103,12 +125,11 @@ module GalaazUtil
     end
     # If the string arrived with literal \n (e.g. from R→Ruby transport), convert to real newlines so eval does not hit "unexpected backslash"
     code = code.gsub("\\n", "\n") if code.is_a?(String)
-    
     # the output should be a list with the proper structure to pass to
     # function engine_output.  We first add the source code from the block to
     # the list. Pass src as a character vector of lines (not one string with \n)
     # so knitr preserves line breaks and indentation in the rendered chunk.
-    if knitr_logical_trueish?((options['echo'] rescue nil))
+    if knitr_option_trueish?(options, 'echo', default: true)
       src_lines = code.lines.map(&:chomp)
       src_lines = [" "] if src_lines.empty?
       out_list = R.list(R.structure(R.list(src: R.c(*src_lines)), class: 'source'))
@@ -127,7 +148,7 @@ module GalaazUtil
       # so that instance variables created in one chunk can be used again on
       # another chunk
       # RChunk.instance_eval(code) if (options[["eval"]].unboxed_get(0))
-      eval(code, RCbinding, __FILE__, __LINE__ + 1) if knitr_logical_trueish?((options[["eval"]] rescue nil))
+      eval(code, RCbinding, __FILE__, __LINE__ + 1) if knitr_option_trueish?(options, 'eval', default: true)
       
       # add the returned value to the list
       # this should have captured everything in the evaluation code
@@ -140,12 +161,12 @@ module GalaazUtil
 
       # Use R's simpleMessage/simpleWarning so knitr's engine_output can call conditionMessage() on them
       # g_simpleMessage transforms "; " to newlines then calls simpleMessage (defined in R engine setup)
-      if knitr_logical_trueish?((options['message'] rescue nil))
+      if knitr_option_trueish?(options, 'message', default: true)
         msg_cond = R.g_simpleMessage(e.message.to_s)
         out_list = R.c(out_list, msg_cond)
       end
 
-      if knitr_logical_trueish?((options['warning'] rescue nil))
+      if knitr_option_trueish?(options, 'warning', default: true)
         bt = ""
         e.backtrace.each { |line| bt << line + "\n"}
         warn_cond = R.g_simpleWarning(bt)
@@ -161,7 +182,9 @@ module GalaazUtil
       $stdout = STDOUT
     end
     
-    knitr_logical_trueish?((options['include'] rescue nil)) ? out_list : R.list
+    # include=FALSE must still execute code (knitr semantics). Output suppression is handled
+    # at engine emission stage, not here.
+    out_list
     
   end
   

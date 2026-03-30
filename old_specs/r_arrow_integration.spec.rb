@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'galaaz'
+require 'tmpdir'
 
 describe "R Arrow integration" do
 
@@ -45,7 +46,7 @@ describe "R Arrow integration" do
   context "Feather roundtrip driven from Ruby" do
 
     it "writes and reads a Feather file using Arrow helpers" do
-      path = "/dev/shm/galaaz_arrow_integration_test.feather"
+      path = File.join(Dir.tmpdir, "galaaz_arrow_integration_test.feather")
 
       df1 = R.data__frame(
         x: (1..5),
@@ -104,7 +105,7 @@ describe "R Arrow integration" do
     end
 
     it "opens a small Parquet dataset and runs a grouped aggregation (using NSE)" do
-      path = "/dev/shm/galaaz_arrow_integration_test.parquet"
+      path = File.join(Dir.tmpdir, "galaaz_arrow_integration_test.parquet")
 
       # Create a small data.frame in R and persist it as Parquet via Arrow.
       df = R.data__frame(

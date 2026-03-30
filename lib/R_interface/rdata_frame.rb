@@ -8,6 +8,13 @@ module R
     # This avoids the generic list-unboxing path which relies on scalar-only eval.
     def unboxed_get(index = nil, depth = 0)
       return ::R.bridge.pull_dataframe(@r_interop) if index.nil?
+      if index.is_a?(::Integer)
+        # For scalar-like data.frame views (e.g. Arrow/dplyr collect slices), treat
+        # [[i]] as list-column extraction and keep unboxing in Ruby side.
+        val = ::R::Support.eval("#{@r_interop}[[#{index + 1}]]")
+        return val unless val.is_a?(::R::Object)
+        return val.unboxed_get(nil, depth + 1)
+      end
       super
     end
 

@@ -485,15 +485,15 @@ class KnitrEngine
     @label = (options['label'].unboxed_get(0))
     
     # Text results
-    @eval = options['eval'] 
-    @echo = GalaazUtil.knitr_logical_trueish?((options['echo'] rescue nil))
+    @eval = options[["eval"]] 
+    @echo = GalaazUtil.knitr_option_trueish?(options, 'echo', default: true)
     @results = options['results'] 
     @collapse = options['collapse'] 
     @warning = options['warning'] 
     @error = options['error'] 
     @message = options['message'] 
     @split = options['split'] 
-    @include = options['include'] 
+    @include = GalaazUtil.knitr_option_trueish?(options, 'include', default: true)
     @strip__white = options['strip.white'] 
     # @render = options['render'] # a function
     @class__output = options['class.output'] 
@@ -698,6 +698,8 @@ class KnitrEngine
         # reach here, they are formatted in the return list to be printed
         res = GalaazUtil.exec_ruby(@options)
         
+        include_chunk = !!@include
+
         # function engine_output will format whatever is in out inside a white box
         # (exec_ruby now uses simpleMessage/simpleWarning so conditionMessage() works in engine_output)
         out = @echo ? R.engine_output(@options, out: res) : res
@@ -713,7 +715,7 @@ class KnitrEngine
         # @TODO: allow capturing many plots in the block.  For now, only the last
         # plot will be captured.  Not a very serious problem for now.
         # Captures the last plot in the Ruby block. 
-        if capture_plot
+        if include_chunk && capture_plot
           # use same absolute path as in capture_plot so knitr can find the file
           fig_path = File.expand_path(@filename)
           if File.exist?(fig_path)
@@ -721,6 +723,9 @@ class KnitrEngine
             out = R.c(out, plot)
           end
         end
+
+        # knitr semantics: include=FALSE still evaluates code/side effects, but emits nothing.
+        out = R.list unless include_chunk
 
         out
         

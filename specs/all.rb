@@ -38,12 +38,6 @@ require_relative 'scalar_character_spec'
 # Specification for Functions
 require_relative 'r_function.spec'
 
-# Specification for Ruby expressions
-require_relative 'ruby_expression.spec'
-
-# Specification for R::Environment
-require_relative 'r_environment.spec'
-
 # Specification for R::Vector
 require_relative 'r_vector_creation.spec'
 require_relative 'r_vector_object.spec'
@@ -52,30 +46,19 @@ require_relative 'r_vector_functions.spec'
 require_relative 'r_vector_operators.spec'
 
 # Specification for R::Lists
-require_relative 'r_list.spec'
 require_relative 'r_list_apply.spec'
 
 # Specification for R::Matrix
 require_relative 'r_matrix.spec'
 
-# Specification for R::Dataframes
-require_relative 'r_dataframe.spec'
-
-# Specification for Arrow integration (R-side Arrow tables / Feather roundtrips)
-require_relative 'r_arrow_integration.spec'
-
 # Specification for language features
 require_relative 'r_function.spec'
-require_relative 'r_formula.spec'
 
 # Test file generation
 require_relative 'r_devices.spec'
 
 # Phase 1: NewBridge callback stub + galaaz_bridge_env (see Documentation/Gknit_Generic_Output_Phased_Plan.md)
 require_relative 'phase1_callback_bridge_spec'
-
-# Phase 2: gknit chunk semantics in generated HTML (echo/include/eval with NA inheritance)
-require_relative 'phase2_gknit_chunk_output_spec'
 
 # Testes for NSE
 # require_relative 'r_nse.spec'

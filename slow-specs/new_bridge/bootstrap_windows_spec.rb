@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-root = File.expand_path('../..', __dir__)
+root = File.expand_path('../../..', __dir__)
 $LOAD_PATH.unshift(File.join(root, 'lib')) unless $LOAD_PATH.include?(File.join(root, 'lib'))
 
 require 'stringio'
@@ -134,4 +134,3 @@ RSpec.describe NewBridge::Bootstrap::WindowsBootstrap do
     expect(out.string).to include('Auto runtime selection: local')
   end
 end
-

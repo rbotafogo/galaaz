@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-root = File.expand_path('../..', __dir__)
+root = File.expand_path('../../..', __dir__)
 $LOAD_PATH.unshift(File.join(root, 'lib')) unless $LOAD_PATH.include?(File.join(root, 'lib'))
 
 require 'new_bridge'
@@ -89,7 +89,7 @@ RSpec.describe 'NewBridge Phase 4.4 (Runtime interface local/container)' do
     end
   end
 
-  let(:phase1_cpp) { File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
+  let(:phase1_cpp) { File.expand_path('../../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
 
   it 'spawns local runtime through unified spawn API' do
     mgr = NewBridge::RInstanceManager.new(
@@ -269,4 +269,3 @@ RSpec.describe 'NewBridge Phase 4.4 (Runtime interface local/container)' do
     expect(EvalErrorSessionClient.instances).to eq(1)
   end
 end
-

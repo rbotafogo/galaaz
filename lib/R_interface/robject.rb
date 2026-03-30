@@ -180,7 +180,7 @@ module R
       end
       val = ::R::Support.eval(@r_interop)
       return val unless val.is_a?(::R::Object)
-      return val.unboxed_get(index, depth) if val.class.instance_method(:unboxed_get).owner != ::R::Object
+      return val.unboxed_get(index, depth + 1) if val.class.instance_method(:unboxed_get).owner != ::R::Object
 
       handle = @r_interop.to_s
       safe_handle = handle =~ /\Ag2_v\d+\z/

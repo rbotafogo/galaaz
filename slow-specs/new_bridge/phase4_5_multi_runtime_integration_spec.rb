@@ -1,25 +1,25 @@
 # frozen_string_literal: true
 
 # Phase 4.5: real multi-runtime integration (local + 2 dockerized R versions).
-# Run: bundle exec rspec specs/new_bridge/phase4_5_multi_runtime_integration_spec.rb
+# Run: bundle exec rspec slow-specs/new_bridge/phase4_5_multi_runtime_integration_spec.rb
 
 require 'open3'
 require 'tmpdir'
 
-root = File.expand_path('../..', __dir__)
+root = File.expand_path('../../..', __dir__)
 $LOAD_PATH.unshift(File.join(root, 'lib')) unless $LOAD_PATH.include?(File.join(root, 'lib'))
 
 require 'new_bridge'
 
 RSpec.describe 'NewBridge Phase 4.5 (local + container multi-version)' do
-  let(:phase1_cpp) { File.expand_path('../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
+  let(:phase1_cpp) { File.expand_path('../../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
 
   def project_root
-    File.expand_path('../..', __dir__)
+    File.expand_path('../../..', __dir__)
   end
 
   def docker_ok?
-    system("docker info >/dev/null 2>&1")
+    system('docker info >/dev/null 2>&1')
   end
 
   def image_exists?(tag)
@@ -104,4 +104,3 @@ RSpec.describe 'NewBridge Phase 4.5 (local + container multi-version)' do
     mgr&.stop_all(force_container: true)
   end
 end
-

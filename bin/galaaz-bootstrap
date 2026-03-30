@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require 'optparse'
+require 'open3'
 
 ROOT = File.expand_path('..', __dir__)
 $LOAD_PATH.unshift(File.join(ROOT, 'lib'))
@@ -10,6 +11,7 @@ require 'new_bridge/bootstrap/windows_bootstrap'
 
 mode = :check
 runtime_mode = :auto
+prompt_doc_tools = true
 
 OptionParser.new do |opts|
   opts.banner = 'Usage: bin/galaaz-bootstrap [--check|--apply] [--runtime docker|local|auto]'
@@ -25,9 +27,111 @@ OptionParser.new do |opts|
   opts.on('--runtime MODE', 'Runtime mode: auto (default), docker, or local') do |v|
     runtime_mode = v.to_sym
   end
+
+  opts.on('--[no-]prompt-doc-tools',
+          'In apply mode, ask to install TinyTeX/poppler for gknit PDF support (default: enabled)') do |v|
+    prompt_doc_tools = v
+  end
 end.parse!(ARGV)
 
 bootstrap = NewBridge::Bootstrap::WindowsBootstrap.new
 result = bootstrap.run(mode: mode, runtime_mode: runtime_mode)
+
+def command_exists?(cmd)
+  system("command -v #{cmd} >/dev/null 2>&1")
+end
+
+def yes_no_prompt(question, default_yes: true)
+  return default_yes unless $stdin.tty? && $stdout.tty?
+
+  suffix = default_yes ? '[Y/n]' : '[y/N]'
+  print "#{question} #{suffix} "
+  answer = $stdin.gets
+  return default_yes if answer.nil?
+
+  value = answer.strip.downcase
+  return default_yes if value.empty?
+  return true if %w[y yes].include?(value)
+  return false if %w[n no].include?(value)
+
+  default_yes
+end
+
+def install_tinytex
+  return puts('TinyTeX/LaTeX already available (pdflatex found).') if command_exists?('pdflatex')
+
+  installer = File.join(ROOT, 'bin', 'install-tinytex')
+  cmd =
+    if File.exist?(installer)
+      "bash #{installer.inspect}"
+    else
+      "curl -fsSL https://raw.githubusercontent.com/rstudio/tinytex/master/tools/install-bin-unix.sh | sh"
+    end
+
+  puts 'Installing TinyTeX (LaTeX) for gknit/pdf_document...'
+  ok = system(cmd)
+  puts('TinyTeX install finished.') if ok
+  puts('TinyTeX install failed. Re-run manually: bin/install-tinytex') unless ok
+  puts 'PATH note: ensure ~/bin is available in your shell, or use the Phase 2 spec env helper.'
+end
+
+def install_poppler
+  return puts('Poppler already available (pdftotext found).') if command_exists?('pdftotext')
+
+  puts 'Installing poppler-utils (pdftotext) for full PDF text assertions...'
+  ok = system('sudo apt-get update && sudo apt-get install -y poppler-utils')
+  puts('poppler-utils installed.') if ok
+  puts('poppler-utils install failed or was cancelled.') unless ok
+end
+
+def arrow_available_in_r?
+  return false unless command_exists?('Rscript')
+
+  system(%q{Rscript -e "quit(status = ifelse(requireNamespace('arrow', quietly=TRUE), 0, 1))"})
+end
+
+def install_arrow
+  unless command_exists?('Rscript')
+    puts 'Rscript not found; cannot install arrow package.'
+    return
+  end
+
+  if arrow_available_in_r?
+    puts 'R arrow package already available.'
+    return
+  end
+
+  puts 'Installing R arrow package for Galaaz Arrow helpers...'
+  ok = system(%q{Rscript -e "install.packages('arrow', repos='https://cloud.r-project.org/')"})
+  unless ok && arrow_available_in_r?
+    puts 'arrow install failed or package still unavailable.'
+    puts "Try manually: Rscript -e \"install.packages('arrow', repos='https://cloud.r-project.org/')\""
+    return
+  end
+
+  puts 'R arrow package installed.'
+end
+
+def verify_arrow_from_ruby
+  cmd = "bin/galaaz-jruby -I lib -e \"require 'galaaz'; df=R.data__frame(x:(1..2), y:(2..1)); t=R::Arrow.table_from(df); puts t.rclass\""
+  ok = system("cd #{ROOT.inspect} && #{cmd}")
+  puts(ok ? 'Ruby Arrow bridge check passed.' : 'Ruby Arrow bridge check failed.')
+end
+
+if mode == :apply && prompt_doc_tools
+  if yes_no_prompt('Will you render PDF documents with gknit (LaTeX required)?', default_yes: true)
+    install_tinytex
+
+    if yes_no_prompt('Also install poppler (pdftotext) for strict PDF text checks?', default_yes: true)
+      install_poppler
+    end
+  end
+
+  if yes_no_prompt('Will you use Arrow (Feather/Parquet) from Ruby/R?', default_yes: true)
+    install_arrow
+    verify_arrow_from_ruby if yes_no_prompt('Run a quick Ruby Arrow bridge verification now?', default_yes: true)
+  end
+end
+
 exit(result[:exit_code])
 

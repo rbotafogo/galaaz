@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Install TinyTeX to ~/.TinyTeX with symlinks in ~/bin (no sudo).
+# Needed for rmarkdown pdf_document and specs/phase2_gknit_chunk_output_spec.rb.
+set -euo pipefail
+curl -fsSL https://raw.githubusercontent.com/rstudio/tinytex/master/tools/install-bin-unix.sh | sh
+echo "TinyTeX installed. Ensure ~/bin is on PATH for interactive shells, or rely on the Phase 2 spec prepending it for gknit."

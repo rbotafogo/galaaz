@@ -123,23 +123,90 @@ Stabilize callback argument/return handling without overfitting to any single ca
 
 Ensure chunk evaluation/output semantics match knitr expectations.
 
+### Subphase 2.0 - Baseline/Regression Checkpoint (COMPLETE)
+
+- [x] Add fast fixture spec for chunk output generation in HTML.
+- [x] Verify `echo=NA` inheritance and baseline `eval/include` behavior as currently implemented.
+- [x] Lock a passing checkpoint commit before semantic tightening.
+
+**Notes:** checkpoint commit `0a3e97f` captures current deterministic behavior and prevents accidental regressions while exact semantics are implemented.
+
+### Subphase 2.1 - Exact knitr `include=FALSE` Semantics (Option A)
+
+**Goal:** align Ruby chunk engine with knitr contract: `include=FALSE` must still evaluate code and side effects while suppressing emitted chunk output.
+
+#### Implementation Checklist (Subphase 2.1)
+
+- [x] Ensure `eval` is the only execution gate.
+- [x] Ensure `include=FALSE` does not suppress evaluation side effects.
+- [x] Apply output suppression at rendering/emission stage only.
+- [x] Keep behavior generic (no class/package-specific special cases).
+
+#### Test Checklist (Subphase 2.1)
+
+- [x] Update fixture expectation: state mutation from `include=FALSE, eval=TRUE` is visible in later chunk.
+- [x] Keep assertion that hidden chunk output is not rendered in HTML.
+- [x] Re-run focused specs and full `specs/` suite.
+
+#### Exit Criteria (Subphase 2.1)
+
+- [x] Exact knitr `include=FALSE` semantics verified by fast specs.
+- [x] No regressions in existing callback/chunk suites.
+
+**Implemented (2026-03-29):**
+
+- `exec_ruby` now reads knitr option booleans directly from the options list on the R side (`options[['...']]`) to avoid bridge-wrapper ambiguity.
+- Execution gating uses `eval` only; `include` no longer blocks execution.
+- `knitr_engine` suppresses emission when `include=FALSE` after evaluation/side effects, matching knitr semantics.
+- `specs/phase2_gknit_chunk_output_spec.rb` verifies the same markers for `html_document` and `github_document`; `pdf_document` skips if LaTeX is missing, otherwise checks a valid PDF (full string parity when `pdftotext` is installed):
+  - `eval=FALSE` does not execute side effect (`PHASE2_EVAL_FALSE_STATE=0`)
+  - `include=FALSE, eval=TRUE` executes side effect (`PHASE2_INCLUDE_FALSE_STATE=1`)
+  - hidden chunk output is not emitted into the rendered artifact.
+
+### Subphase 2.2 - Multi-format rendering (HTML + PDF + third format)
+
+**Goal:** the same Ruby chunk semantics must hold when `gknit` targets different `rmarkdown` output formats—not only `html_document`.
+
+**Formats (default set):**
+
+1. `html_document` (already covered).
+2. `pdf_document` — requires LaTeX on the host. **TinyTeX** (user install, no sudo): run `bin/install-tinytex` or the [official install script](https://github.com/rstudio/tinytex). The Phase 2 spec prepends `~/bin` and `~/.TinyTeX/bin` to `PATH` so `gknit` finds `pdflatex` even when the shell profile does not. If render fails (no LaTeX), that example **skips** with the error excerpt. **Full PDF string parity** with HTML/md needs **`pdftotext`** (`poppler-utils` on Debian/Ubuntu); otherwise the spec still passes on a valid PDF smoke check (signature + minimum size).
+3. `github_document` — Pandoc Markdown output; no LaTeX; good third format for fast, portable checks.
+
+#### Implementation Checklist (Subphase 2.2)
+
+- [x] Extend Phase 2 fixture YAML to declare `html_document`, `pdf_document`, and `github_document` (minimal options).
+- [x] Run `bin/gknit --output_format <format>` per format from `specs/` (same chunk body).
+- [x] Assert presence/absence of the same semantic markers in each artifact (HTML / `.md` / PDF via `pdftotext` or printable scan, see spec).
+
+#### Test Checklist (Subphase 2.2)
+
+- [x] HTML: unchanged assertions.
+- [x] PDF: valid PDF (`%PDF`, non-trivial size); **always** when LaTeX works; full chunk string checks when `pdftotext` works or uncompressed literals are visible; **skip** only if `pdf_document` render fails (no LaTeX).
+- [x] GitHub doc: `.md` contains expected output strings and excludes hidden `include=FALSE` line output.
+
+#### Exit Criteria (Subphase 2.2)
+
+- [x] At least two formats always exercised without LaTeX (HTML + `github_document`); PDF runs when LaTeX is available (smoke always; deep text checks with poppler); skips only if LaTeX is missing.
+- [x] Phase 2 “generic rendering” exit criterion below may be marked once this subphase is implemented (see wording there—no claim of byte-identical PDF across machines).
+
 ### Implementation Checklist
 
-- [ ] Validate/fix `eval`, `echo`, `include`, `message`, `warning` handling with logical `NA` inheritance.
-- [ ] Ensure code and output blocks are rendered correctly in generated markdown/html.
+- [x] Validate/fix `eval`, `echo`, `include`, `message`, `warning` handling with logical `NA` inheritance.
+- [x] Ensure code and output blocks are rendered correctly in generated markdown/html.
 - [ ] Remove/avoid any object-class-specific rendering shortcuts.
 
 ### Test Checklist (`specs/`)
 
-- [ ] Fixture: text-only ruby chunk output appears in markdown/html.
-- [ ] Fixture: `echo=FALSE`, `include=FALSE`, `eval=FALSE` behaviors.
-- [ ] Fixture: `NA`-driven inheritance behavior for chunk options.
+- [x] Fixture: text-only ruby chunk output appears in markdown/html.
+- [x] Fixture: `echo=FALSE`, `include=FALSE`, `eval=FALSE` behaviors.
+- [x] Fixture: `NA`-driven inheritance behavior for chunk options.
 - [ ] Fixture: no raw unevaluated code leakage where evaluated output is expected.
 
 ### Exit Criteria
 
-- [ ] All phase specs pass.
-- [ ] Chunk rendering is validated as generic and deterministic.
+- [x] All phase specs pass (for current committed scope).
+- [x] Chunk semantics are regression-tested across **`html_document` and `github_document`** with the same fixture and string expectations. **`pdf_document`** asserts a successful LaTeX build and valid PDF when TinyTeX/system TeX is installed; **full** PDF text assertions match HTML/md when **`pdftotext`** (poppler-utils) is available. Without LaTeX, the PDF example **skips**. Strict byte-identical determinism (timestamps, cross-machine PDF) remains out of scope unless explicitly added later.
 
 ---
 

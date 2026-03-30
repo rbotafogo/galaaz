@@ -3,7 +3,8 @@
 # Optional JVM/jruby extras: GALAAZ_JRUBY_OPTS (space-separated).
 #
 # Usage:
-#   bin/run_rspec              # run all specs (*_spec.rb and *.spec.rb in specs/)
+#   bin/run_rspec              # run fast specs in specs/ only
+#   bin/run_slow_rspec         # run slow specs in slow-specs/
 #   bin/run_rspec specs/protocol_result_spec.rb
 #   GALAAZ_DEBUG=1 bin/run_rspec specs/r_vector_subsetting.spec.rb:61 ...
 set -e

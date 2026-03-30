@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Run slower rspec suites from slow-specs/.
+# Usage:
+#   bin/run_slow_rspec
+#   bin/run_slow_rspec slow-specs/phase2_gknit_chunk_output_spec.rb
+set -e
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=galaaz_jruby_env.inc.sh
+source "$ROOT/bin/galaaz_jruby_env.inc.sh"
+if [ $# -eq 0 ]; then
+  shopt -s nullglob globstar
+  SPECS=( "$ROOT"/slow-specs/**/*_spec.rb "$ROOT"/slow-specs/**/*.spec.rb )
+  IFS=$'\n' SPECS=( $(printf '%s\n' "${SPECS[@]}" | sort) )
+  set -- "${SPECS[@]}"
+fi
+exec jruby -I "$ROOT/lib" \
+  $GALAAZ_REQUIRED_JRUBY_J_ARGS \
+  ${GALAAZ_JRUBY_OPTS:-} \
+  -S bundle exec rspec "$@"
