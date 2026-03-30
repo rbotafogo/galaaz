@@ -47,6 +47,37 @@ module R
                 ls(envir = envir, all.names = TRUE, sorted = TRUE)
               }, envir = .GlobalEnv)
             }
+            # Session-scoped environment helpers for transient bridge state.
+            if (!exists('galaaz_ensure_session_env', envir = .GlobalEnv, inherits = FALSE)) {
+              assign('galaaz_ensure_session_env', function(session_id) {
+                sid <- as.character(session_id)
+                nm <- paste0('galaaz_session_env_', gsub('[^A-Za-z0-9_]', '_', sid))
+                if (!exists(nm, envir = .GlobalEnv, inherits = FALSE)) {
+                  assign(nm, new.env(parent = emptyenv()), envir = .GlobalEnv)
+                }
+                get(nm, envir = .GlobalEnv, inherits = FALSE)
+              }, envir = .GlobalEnv)
+            }
+            if (!exists('galaaz_assign_session', envir = .GlobalEnv, inherits = FALSE)) {
+              assign('galaaz_assign_session', function(session_id, key, value) {
+                en <- galaaz_ensure_session_env(session_id)
+                assign(as.character(key), value, envir = en)
+                invisible(NULL)
+              }, envir = .GlobalEnv)
+            }
+            if (!exists('galaaz_get_session', envir = .GlobalEnv, inherits = FALSE)) {
+              assign('galaaz_get_session', function(session_id, key) {
+                en <- galaaz_ensure_session_env(session_id)
+                get(as.character(key), envir = en, inherits = FALSE)
+              }, envir = .GlobalEnv)
+            }
+            if (!exists('galaaz_rm_session', envir = .GlobalEnv, inherits = FALSE)) {
+              assign('galaaz_rm_session', function(session_id, key) {
+                en <- galaaz_ensure_session_env(session_id)
+                rm(list = as.character(key), envir = en, inherits = FALSE)
+                invisible(NULL)
+              }, envir = .GlobalEnv)
+            }
             0L
           })
         RCODE
@@ -126,6 +157,45 @@ module R
       { is_field: parsed['is_field'], is_func: parsed['is_func'] }
     end
 
+    # Ensure session-scoped environment exists and return its R env handle.
+    def ensure_session_env(session_id = current_session_id)
+      sid = session_id.to_s
+      @client.eval_r("({ galaaz_ensure_session_env(#{sid.inspect}); 0L })",
+                     session_id: current_session_id,
+                     parent_id: callback_parent_id)
+      nil
+    end
+
+    # Assign value expression into session environment.
+    # value_expr must be a valid R expression string.
+    def assign_session(session_id, key, value_expr)
+      sid = session_id.to_s
+      k = key.to_s
+      @client.eval_r("({ galaaz_assign_session(#{sid.inspect}, #{k.inspect}, { #{value_expr} }); 0L })",
+                     session_id: current_session_id,
+                     parent_id: callback_parent_id)
+      nil
+    end
+
+    # Get a value from session environment (parsed payload).
+    def get_session(session_id, key)
+      sid = session_id.to_s
+      k = key.to_s
+      @client.eval_r("galaaz_get_session(#{sid.inspect}, #{k.inspect})",
+                     session_id: current_session_id,
+                     parent_id: callback_parent_id)
+    end
+
+    # Remove a key from session environment.
+    def rm_session(session_id, key)
+      sid = session_id.to_s
+      k = key.to_s
+      @client.eval_r("({ galaaz_rm_session(#{sid.inspect}, #{k.inspect}); 0L })",
+                     session_id: current_session_id,
+                     parent_id: callback_parent_id)
+      nil
+    end
+
     # Phase 5.3 callback stub registration for R::Support.parse_arg.
     # Returns an R function string that forwards callback execution to Ruby
     # using the NewBridge CALL/RET path.
@@ -149,20 +219,12 @@ module R
                 else
                   proc_or_method.call(*cb_args)
                 end
-          # Semantic return value: store under .GlobalEnv$galaaz_bridge_env (see Phase 0 plan).
+          # Semantic return value: store in session env (legacy fallback kept in R stub read path).
           # Transport RET is ACK-only (SessionClient sends "1"); R stub reads env after CALL/RET.
           slot_key = "r_#{sess_key}_#{call_id.gsub('-', '_')}"
           rhs = raw.is_a?(String) ? raw : R::Support.parse_arg(raw)
-          eval_r(<<~RCODE)
-            ({
-              if (!exists('galaaz_bridge_env', envir = .GlobalEnv, inherits = FALSE)) {
-                assign('galaaz_bridge_env', new.env(parent = emptyenv()), envir = .GlobalEnv)
-              }
-              assign('#{slot_key}', { #{rhs} }, envir = .GlobalEnv$galaaz_bridge_env)
-              0L
-            })
-          RCODE
-          # Semantic value is in galaaz_bridge_env; RET must be ACK-only (nil → transport "1").
+          assign_session(callback_session_id, slot_key, rhs)
+          # Semantic value is staged in session env; RET must be ACK-only (nil → transport "1").
           nil
         ensure
           @in_callback = false
@@ -171,16 +233,25 @@ module R
         end
       end
 
-      # Each ... arg is assigned in .GlobalEnv under a temporary handle. Names must be g2_v + digits
+      # Each ... arg is assigned in .GlobalEnv under a temporary handle for compatibility.
+      # TODO (Phase 3): move handle resolution fully to session env once dispatch paths stop relying on global lookup.
+      # Names must be g2_v + digits
       # only — gatekeeper valid_bridge_handle_token rejects g2_v_cb_* (letters after g2_v), which
       # breaks dispatch_probe when Ruby wraps the handle as R::Object.
       "function(...) {
         args <- list(...)
         handles <- character(0)
+        created_handles <- character(0)
+        on.exit({
+          if (length(created_handles) > 0L) {
+            try(base::rm(list = created_handles, envir = .GlobalEnv, inherits = FALSE), silent = TRUE)
+          }
+        }, add = TRUE)
         if (length(args) > 0L) {
           for (i in seq_along(args)) {
             h <- paste0('g2_v', as.integer(stats::runif(1, 1e7, 9e7 - 1L)), sprintf('%04d', as.integer(i)))
             assign(h, args[[i]], envir = .GlobalEnv)
+            created_handles <- c(created_handles, h)
             cls <- paste(class(args[[i]]), collapse = ' ')
             handles <- c(handles, paste0(h, ':', cls))
           }
@@ -190,8 +261,15 @@ module R
         galaaz_callback_call_phase3(gid, payload, 5000)
         sess <- '#{sess_key}'
         nm <- paste0('r_', sess, '_', gsub('-', '_', gid))
+        sid <- '#{callback_session_id}'
+        if (exists(nm, envir = galaaz_ensure_session_env(sid), inherits = FALSE)) {
+          val <- galaaz_get_session(sid, nm)
+          galaaz_rm_session(sid, nm)
+          return(val)
+        }
+        # Compatibility fallback for one migration window.
         if (!exists('galaaz_bridge_env', envir = .GlobalEnv, inherits = FALSE)) {
-          stop('galaaz_bridge_env missing: callback did not stage a result')
+          stop('callback staged no semantic value in session env or legacy global env')
         }
         val <- base::get(nm, envir = .GlobalEnv$galaaz_bridge_env, inherits = FALSE)
         base::rm(list = nm, envir = .GlobalEnv$galaaz_bridge_env, inherits = FALSE)

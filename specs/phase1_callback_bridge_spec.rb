@@ -6,6 +6,12 @@
 require 'galaaz'
 
 describe 'Phase 1 NewBridge callbacks (adapter proc stub)' do
+  def global_callback_handles
+    names = R::Support.eval("ls(envir = .GlobalEnv, pattern = '^g2_v[0-9]+$')")
+    ruby = names.respond_to?(:to_ruby) ? names.to_ruby : []
+    ruby.is_a?(Array) ? ruby : Array(ruby).compact
+  end
+
   before(:all) do
     R.bridge.eval_r('call_with_arg <- function(f, x) { f(x) }')
     R.bridge.eval_r('call_twice <- function(f, a, b) { f(a); f(b) }')
@@ -52,5 +58,17 @@ describe 'Phase 1 NewBridge callbacks (adapter proc stub)' do
     r2 = R.call_with_arg(proc { |x| (x >> 0) + 2 }, 10)
     expect(r1.to_ruby).to eq(11.0)
     expect(r2.to_ruby).to eq(12.0)
+  end
+
+  it 'does not leak temporary g2_v callback handles in .GlobalEnv' do
+    before = global_callback_handles
+
+    10.times do |i|
+      out = R.call_with_arg(proc { |x| (x >> 0) + 1 }, i)
+      expect(out.to_ruby).to eq((i + 1).to_f)
+    end
+
+    after = global_callback_handles
+    expect(after).to eq(before)
   end
 end
