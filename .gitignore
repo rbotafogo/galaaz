@@ -36,3 +36,9 @@ logs/
 
 # Vendored JRuby gems installed by Bundler
 vendor/bundle/
+
+# Phase 3 debug temp artifacts
+tmp/gknit_phase3_dbg_*/
+tmp/gknit_phase3_graphics_*/
+tmp/phase3dbg.*/
+tmp/phase3dbg*/
