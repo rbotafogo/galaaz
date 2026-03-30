@@ -434,6 +434,17 @@ class KnitrEngine
   end
 
   #--------------------------------------------------------------------------------------
+  # Safely normalize scalar chunk option values that may come boxed from R.
+  #--------------------------------------------------------------------------------------
+
+  def scalar_option_string(opt)
+    return opt.unboxed_get(0).to_s if opt.respond_to?(:unboxed_get)
+    opt.to_s
+  rescue StandardError
+    opt.to_s
+  end
+
+  #--------------------------------------------------------------------------------------
   # Process the fig.keep chunk option
   # @param keep [String/Numeric] a string or a number.  If it is a string then it should
   #   be one of the following: 
@@ -509,14 +520,12 @@ class KnitrEngine
     @class__source = options['class_source'] 
     
     # Plots - avoid unboxed_get in callback as it uses RESULT_FIFO which fails with "invalid connection"
-    @fig__path = options['fig.path']
-    @fig__path = @fig__path.to_s if @fig__path.respond_to?(:to_s)
+    @fig__path = scalar_option_string(options['fig.path'])
     @fig__keep = options['fig.keep'] # can be a vector; use options['fig.keep'] not options.fig__keep to avoid R's fig.keep() which triggers invalid connection
     @fig__show = options['fig.show'] 
     @dev = options['dev'] 
     # @dev__args = options['dev.args'] # can be a vector
-    @fig__ext = options['fig.ext']
-    @fig__ext = @fig__ext.to_s if @fig__ext.respond_to?(:to_s)
+    @fig__ext = scalar_option_string(options['fig.ext'])
     @dpi = options['dpi'] 
     @fig__width = options['fig.width'] 
     @fig__height = options['fig.height'] 
@@ -623,6 +632,30 @@ class KnitrEngine
       return plot
     end
 
+    # Fallback when recordPlot() returns NULL on non-screen devices:
+    # copy from the active device to the target figure file.
+    unless File.directory?(@fig__path)
+      FileUtils.mkdir_p(@fig__path)
+    end
+    filename_abs = File.expand_path(@filename)
+    w = (@fig__width >> 0) rescue 480
+    h = (@fig__height >> 0) rescue 480
+    res = (@dpi >> 0) rescue 72
+    dev_str = @dev.respond_to?(:>>) ? (@dev >> 0).to_s : @dev.to_s
+    dev_str = dev_str.gsub('"', '').strip
+
+    case
+    when dev_str.include?('png')
+      R::Support.eval("grDevices::dev.copy(grDevices::png, filename='#{filename_abs.gsub("'", "\\\\'")}', width=#{w}, height=#{h}, units='in', res=#{res}); grDevices::dev.off()")
+      return true
+    when dev_str.include?('svg')
+      R::Support.eval("grDevices::dev.copy(grDevices::svg, filename='#{filename_abs.gsub("'", "\\\\'")}', width=#{w}, height=#{h}); grDevices::dev.off()")
+      return true
+    when dev_str.include?('pdf')
+      R::Support.eval("grDevices::dev.copy(grDevices::pdf, file='#{filename_abs.gsub("'", "\\\\'")}', width=#{w}, height=#{h}); grDevices::dev.off()")
+      return true
+    end
+
     false
 
   end
@@ -683,8 +716,11 @@ class KnitrEngine
         @chunk_index += 1
         $stderr.puts "[gknit] Processing chunk #{@chunk_index}: #{@label}"
         
-        # opens a device for the current chunk for plot recording (use @dev not @options.dev to avoid R's dev(options))
-        KnitrEngine.device(@dev.unboxed_get(0), @tmp_fig)
+        # Open chunk device directly on the final figure target path so inclusion does not
+        # depend on later snapshot copying behavior.
+        FileUtils.mkdir_p(@fig__path) unless File.directory?(@fig__path)
+        chunk_fig_target = File.expand_path(@filename)
+        KnitrEngine.device(@dev.unboxed_get(0), chunk_fig_target)
         
         v = (R.dev__cur >> nil) rescue nil
         if v
@@ -719,7 +755,7 @@ class KnitrEngine
           # use same absolute path as in capture_plot so knitr can find the file
           fig_path = File.expand_path(@filename)
           if File.exist?(fig_path)
-            plot = R.knitr_wrap(R.knit_print(R.include_graphics(fig_path)), @options)
+            plot = R.knit_print(R.include_graphics(fig_path))
             out = R.c(out, plot)
           end
         end

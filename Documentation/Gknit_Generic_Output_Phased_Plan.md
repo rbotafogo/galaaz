@@ -194,14 +194,26 @@ Ensure chunk evaluation/output semantics match knitr expectations.
 
 - [x] Validate/fix `eval`, `echo`, `include`, `message`, `warning` handling with logical `NA` inheritance.
 - [x] Ensure code and output blocks are rendered correctly in generated markdown/html.
-- [ ] Remove/avoid any object-class-specific rendering shortcuts.
+- [x] Remove/avoid any object-class-specific rendering shortcuts.
 
 ### Test Checklist (`specs/`)
 
 - [x] Fixture: text-only ruby chunk output appears in markdown/html.
 - [x] Fixture: `echo=FALSE`, `include=FALSE`, `eval=FALSE` behaviors.
 - [x] Fixture: `NA`-driven inheritance behavior for chunk options.
-- [ ] Fixture: no raw unevaluated code leakage where evaluated output is expected.
+- [x] Fixture: no raw unevaluated code leakage where evaluated output is expected.
+
+**Implemented (2026-03-30):**
+
+- Added `specs/phase2_gknit_generic_rendering_guardrail_spec.rb`.
+- Guardrail asserts gknit engine files contain no executable plotting-class-specific branching (ggplot/lattice/grid/class/inherits checks), preserving device-driven generic output behavior.
+
+**Implemented (2026-03-30):**
+
+- Added `specs/phase2_gknit_no_raw_code_leakage_spec.rb`.
+- The fixture renders with `github_document` and verifies:
+  - evaluated Ruby output is present;
+  - raw chunk source (`echo=FALSE`) does not leak into rendered markdown.
 
 ### Exit Criteria
 
@@ -218,23 +230,30 @@ Capture graphics based on device behavior, independent of plotting package/class
 
 ### Implementation Checklist
 
-- [ ] Keep capture flow device-centric (open device -> execute chunk -> capture output -> close device).
-- [ ] Ensure figure artifact generation and inclusion are consistent.
-- [ ] Ensure no ggplot/lattice/base-specific branching in engine core.
-- [ ] Confirm helper function placement/scope strategy (if `.GlobalEnv` used, namespaced + safe).
+- [x] Keep capture flow device-centric (open device -> execute chunk -> capture output -> close device).
+- [x] Ensure figure artifact generation and inclusion are consistent.
+- [x] Ensure no ggplot/lattice/base-specific branching in engine core.
+- [x] Confirm helper function placement/scope strategy (if `.GlobalEnv` used, namespaced + safe).
 
 ### Test Checklist (`specs/`)
 
-- [ ] Fixture: base graphics (`plot(...)`) captured and included.
-- [ ] Fixture: grid graphics captured and included.
-- [ ] Fixture: ggplot graphics captured and included.
-- [ ] Optional fixture: lattice captured and included (if baseline dependencies available).
-- [ ] Fixture: mixed chunk document (text + multiple plot systems) renders correctly end-to-end.
+- [x] Fixture: base graphics (`plot(...)`) captured and included.
+- [x] Fixture: grid graphics captured and included.
+- [x] Fixture: ggplot graphics captured and included.
+- [ ] Optional fixture: lattice captured and included (if baseline dependencies available). (deferred; optional dependency not required for Phase 3 close)
+- [x] Fixture: mixed chunk document (text + multiple plot systems) renders correctly end-to-end.
+- [x] Strict assertion: rendered markdown contains emitted figure paths and each referenced artifact exists on disk.
+
+**Implemented (2026-03-30):**
+
+- Added `specs/phase3_gknit_generic_graphics_capture_spec.rb` with one mixed fixture covering base + grid + ggplot chunks in the same document.
+- Updated `lib/gknit/knitr_engine.rb` to open the chunk device directly on the final figure target path (`@filename`), making artifact inclusion deterministic for rendered markdown.
+- Tightened the Phase 3 spec from smoke checks to strict artifact validation (`>= 3` emitted figure paths + per-path file existence checks).
 
 ### Exit Criteria
 
-- [ ] All supported plotting systems pass generic capture tests.
-- [ ] No engine-specific kludges introduced.
+- [x] All supported plotting systems pass generic capture tests (current baseline: base + grid + ggplot; lattice remains optional/deferred).
+- [x] No engine-specific kludges introduced.
 
 ---
 
@@ -246,15 +265,21 @@ Finalize docs, commit in reviewable units, and preserve traceability.
 
 ### Checklist
 
-- [ ] Update docs with final contracts and implementation notes.
-- [ ] Keep generated artifacts commits intentional and explicitly scoped.
-- [ ] Split commits by phase or coherent feature/test unit.
-- [ ] Record residual risks and follow-up tasks.
+- [x] Update docs with final contracts and implementation notes.
+- [x] Keep generated artifacts commits intentional and explicitly scoped.
+- [ ] Split commits by phase or coherent feature/test unit. (pending final commit step)
+- [x] Record residual risks and follow-up tasks.
+
+### Residual Risks and Follow-up
+
+- Optional lattice coverage remains deferred in Phase 3 (baseline currently base + grid + ggplot).
+- PDF deep text parity still depends on optional host tooling (`pdftotext`/poppler).
+- Final phase-split commit grouping is still pending and should be completed before marking the overall plan fully closed.
 
 ### Exit Criteria
 
-- [ ] Phased commits completed with passing targeted specs.
-- [ ] Plan checklist fully checked or deferred items clearly documented.
+- [ ] Phased commits completed with passing targeted specs. (pending final commit step)
+- [x] Plan checklist fully checked or deferred items clearly documented.
 
 ---
 
@@ -271,4 +296,3 @@ Remaining optional topics (not blocking Phase 1):
 
 - [x] If we discover any non-generic workaround, we pause and discuss before coding.
 - [x] If scope expansion seems necessary, we pause and get explicit agreement first.
-
