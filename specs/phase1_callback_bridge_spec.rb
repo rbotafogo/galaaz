@@ -71,4 +71,14 @@ describe 'Phase 1 NewBridge callbacks (adapter proc stub)' do
     after = global_callback_handles
     expect(after).to eq(before)
   end
+
+  it 'does not create legacy galaaz_bridge_env for callback semantic returns' do
+    R::Support.eval("if (exists('galaaz_bridge_env', envir = .GlobalEnv, inherits = FALSE)) rm('galaaz_bridge_env', envir = .GlobalEnv)")
+
+    out = R.call_with_arg(proc { |x| (x >> 0) + 1 }, 9)
+    expect(out.to_ruby).to eq(10.0)
+
+    exists_legacy = R::Support.eval("exists('galaaz_bridge_env', envir = .GlobalEnv, inherits = FALSE)")
+    expect(exists_legacy).to eq(false)
+  end
 end

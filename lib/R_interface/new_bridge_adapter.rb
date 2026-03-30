@@ -219,7 +219,7 @@ module R
                 else
                   proc_or_method.call(*cb_args)
                 end
-          # Semantic return value: store in session env (legacy fallback kept in R stub read path).
+          # Semantic return value: store in session env.
           # Transport RET is ACK-only (SessionClient sends "1"); R stub reads env after CALL/RET.
           slot_key = "r_#{sess_key}_#{call_id.gsub('-', '_')}"
           rhs = raw.is_a?(String) ? raw : R::Support.parse_arg(raw)
@@ -267,13 +267,7 @@ module R
           galaaz_rm_session(sid, nm)
           return(val)
         }
-        # Compatibility fallback for one migration window.
-        if (!exists('galaaz_bridge_env', envir = .GlobalEnv, inherits = FALSE)) {
-          stop('callback staged no semantic value in session env or legacy global env')
-        }
-        val <- base::get(nm, envir = .GlobalEnv$galaaz_bridge_env, inherits = FALSE)
-        base::rm(list = nm, envir = .GlobalEnv$galaaz_bridge_env, inherits = FALSE)
-        val
+        stop('callback staged no semantic value in session env')
       }"
     end
 
