@@ -22,6 +22,33 @@ describe 'Formula semantics' do
       f3 = :y.til :a + (:b._ :in, :a)
       expect(f3.to_s.lines.first.chomp).to eq('y ~ a + b %in% a')
     end
+
+    it 'builds formulas using dot and one-sided forms' do
+      rhs_dot = :supp.til :__
+      expect(rhs_dot.to_s.lines.first.chomp).to eq('supp ~ .')
+      expect(rhs_dot.rclass).to eq('formula')
+
+      lhs_dot = :__.til :supp
+      expect(lhs_dot.to_s.lines.first.chomp).to eq('. ~ supp')
+      expect(lhs_dot.rclass).to eq('formula')
+
+      one_sided = :all.til :supp
+      expect(one_sided.to_s.lines.first.chomp).to eq('~supp')
+      expect(one_sided.rclass).to eq('formula')
+    end
+
+    it 'builds conditional and function-lhs formulas' do
+      cond = :Sepal__Width.til :Petal__Width | :Species
+      expect(cond.to_s.lines.first.chomp).to eq('Sepal.Width ~ Petal.Width | Species')
+
+      lhs_fun = E.log(:y).til :a + E.log(:x)
+      expect(lhs_fun.to_s.lines.first.chomp).to eq('log(y) ~ a + log(x)')
+    end
+
+    it "builds subtraction operator formula terms" do
+      f = :y.til :x1 - :x2
+      expect(f.to_s.lines.first.chomp).to eq('y ~ x1 - x2')
+    end
   end
 
   context 'model.frame and lm with formula' do

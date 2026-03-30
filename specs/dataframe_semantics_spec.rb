@@ -65,4 +65,58 @@ describe R::DataFrame do
       expect(@mtcars[['Chrysler Imperial', 'wt']]).to eq 1000.0
     end
   end
+
+  context 'iteration helpers' do
+    it 'iterates columns with each_column and exposes column names' do
+      mtcars = ~:mtcars
+      seen = {}
+
+      mtcars.each_column do |col, col_name|
+        seen[col_name] = col[1] if %w[mpg cyl disp].include?(col_name)
+      end
+
+      expect(seen['mpg']).to eq 21.0
+      expect(seen['cyl']).to eq 6.0
+      expect(seen['disp']).to eq 160.0
+    end
+
+    it 'iterates rows with each_row and exposes row names' do
+      mtcars = ~:mtcars
+      seen = {}
+
+      mtcars.each_row do |row, row_name|
+        if ['Mazda RX4', 'Merc 240D'].include?(row_name)
+          seen[row_name] = [row[['mpg']], row[['hp']]]
+        end
+      end
+
+      expect(seen['Mazda RX4']).to eq([21.0, 110.0])
+      expect(seen['Merc 240D']).to eq([24.4, 62.0])
+    end
+  end
+
+  context 'bootstrap-style row reordering' do
+    before(:each) do
+      @df = R.data__frame(
+        x: R.rep((1..3), each: 2),
+        y: (6..1),
+        z: R.factor((~:letters)[(1..6)])
+      )
+      R.set__seed(10)
+    end
+
+    it 'reorders rows using sampled integer indices' do
+      table = @df[R.sample(@df.nrow), :all]
+      expect(table.x[3]).to eq 1
+      expect(table.y[2]).to eq 6
+      expect(table.z.levels[table.z[4]]).to eq 'f'
+    end
+
+    it 'selects a sampled subset of rows' do
+      table = @df[R.sample(@df.nrow, 3), :all]
+      expect(table.x[3]).to eq 1
+      expect(table.y[1]).to eq 4
+      expect(table.z.levels[table.z[2]]).to eq 'a'
+    end
+  end
 end

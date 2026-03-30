@@ -24,6 +24,7 @@ describe R::List do
 
     it 'returns a list when using []' do
       expect(@l[1]).to eq R.list(a: 1)
+      expect(@l[-4] == R.list(a: 1, b: 2, all: 3)).to eq true
       expect(@l[R.c(4, 1)] == R.list(d: R.list(i: 4, j: 5, all: 6), a: 1)).to eq true
     end
 
@@ -35,6 +36,7 @@ describe R::List do
       raw = R.list(1, 2, 3, R.list(4, 5, 6))
       expect(raw[[1]]).to eq 1
       expect(raw[[4]].identical(R.list(4, 5, 6))).to eq true
+      expect(raw[[4]][[1]]).to eq 4
       expect(raw[[R.c(4, 1)]]).to eq 4
     end
   end

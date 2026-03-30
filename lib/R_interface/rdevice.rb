@@ -14,21 +14,35 @@ module R
           }
         }
         if (!exists("galaaz_save_plot", envir = .GlobalEnv, inherits = FALSE)) {
-          .GlobalEnv$galaaz_save_plot <- function(plot, name, dev_type, width, height, ext, dpi) {
-            file <- paste0(name, ".", ext)
+          .GlobalEnv$galaaz_save_plot <- function(path, dev_type, width, height, dpi) {
             if (dev_type == "png") {
-              # When a source device is active, dev.copy reliably materializes the image file.
-              grDevices::dev.copy(grDevices::png, filename = file, width = width, height = height, units = "in", res = dpi)
+              do.call(grDevices::dev.copy, list(
+                device = grDevices::png,
+                filename = path,
+                width = width,
+                height = height,
+                units = "in",
+                res = dpi
+              ))
             } else if (dev_type == "svg") {
-              grDevices::dev.copy(grDevices::svg, filename = file, width = width, height = height)
+              do.call(grDevices::dev.copy, list(
+                device = grDevices::svg,
+                filename = path,
+                width = width,
+                height = height
+              ))
             } else if (dev_type == "pdf") {
-              grDevices::dev.copy(grDevices::pdf, file = file, width = width, height = height)
+              do.call(grDevices::dev.copy, list(
+                device = grDevices::pdf,
+                file = path,
+                width = width,
+                height = height
+              ))
             } else {
               stop(paste("unsupported dev_type:", dev_type))
             }
-            # Close the copied device; the original plotting device remains active.
             grDevices::dev.off()
-            file
+            path
           }
         }
         invisible(NULL)
@@ -80,10 +94,17 @@ module R
     def save_plot(plot, name, dev_type, width, height, ext, dpi)
       out_name = "#{name}.#{ext}"
       target = out_name.start_with?('/') ? out_name : File.join(Dir.pwd, out_name)
-      @last_save_target = target
-
-      # If device is already closed, copy immediately; otherwise close() will finalize and copy.
-      if !@opened && @dev_path && File.exist?(@dev_path) && File.size(@dev_path).to_i > 0
+      if @opened
+        # Persist current page and reopen the device to keep plotting.
+        R.dev__off
+        @opened = false
+        if @dev_path && File.exist?(@dev_path) && File.size(@dev_path).to_i > 0
+          FileUtils.cp(@dev_path, target)
+        end
+        open
+        @last_save_target = nil
+      elsif !@opened && @dev_path && File.exist?(@dev_path) && File.size(@dev_path).to_i > 0
+        @last_save_target = target
         FileUtils.cp(@dev_path, target)
       end
 

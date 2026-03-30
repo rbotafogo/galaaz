@@ -40,6 +40,17 @@ describe 'Language and expression semantics' do
   end
 
   context 'evaluation with context objects' do
+    it 'evaluates composite arithmetic expression in list context' do
+      ctx = R.list(a: 10, b: 20, c: 30)
+      val = R.eval(:a + :b * :c, ctx)
+      expect(val).to eq 610
+    end
+
+    it 'evaluates expression against global binding when no context is provided' do
+      R.x = 5
+      expect(R.eval(:x + 10)).to eq 15
+    end
+
     it 'evaluates expression in list context via R.eval(expr, ctx)' do
       ctx = R.list(x: 20)
       val = R.eval(:x + 10, ctx)
@@ -70,15 +81,31 @@ describe 'Language and expression semantics' do
       expect(exp.eval).to eq 10
     end
 
+    it 'supports R.expr for boolean literals' do
+      expect(R.expr(true)).to eq R.c(true)
+      expect(R.expr(false)).to eq R.c(false)
+    end
+
     it 'supports R.call2 for call construction' do
       e = R.call2('mean', x: +:x, na__rm: true)
       expect(e).to be_a(R::Language)
       expect(e.to_s).to eq('mean(x = x, na.rm = TRUE)')
     end
 
+    it 'supports R.call2 for assignment calls' do
+      e = R.call2('<-', R.expr(:x), 10)
+      e.eval
+      expect(~:x).to eq 10
+    end
+
     it 'supports R.exec for dynamic function execution' do
       val = R.exec('mean', x: (1..10), na__rm: true, trim: 0.1)
       expect(val).to eq 5.5
+    end
+
+    it 'supports R.exec with splatted argument hashes' do
+      args = [x: (1..10), na__rm: true, trim: 0.1]
+      expect(R.exec('mean', *args)).to eq 5.5
     end
   end
 end

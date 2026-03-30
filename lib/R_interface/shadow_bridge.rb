@@ -144,6 +144,14 @@ module R
       eval_r("capture2 <- function(obj, ...) { f <- tempfile(); on.exit(unlink(f), add=FALSE); con <- NULL; on.exit({ if (!is.null(con)) close(con) }, add=TRUE); con <- file(f, 'wt'); sink(con, type='output'); print(obj, ...); sink(); close(con); con <- NULL; readLines(f) }")
       define_galaaz_result
       eval_r("awt <- function(...) { X11(...) }")
+      eval_r(<<~ENV_NAMES)
+        if (!exists('env_names', envir = .GlobalEnv, inherits = FALSE)) {
+          assign('env_names', function(envir) {
+            if (missing(envir)) envir <- parent.frame()
+            ls(envir = envir, all.names = TRUE, sorted = TRUE)
+          }, envir = .GlobalEnv)
+        }
+      ENV_NAMES
       lib_dir = File.expand_path("~/R/x86_64-pc-linux-gnu-library/galaaz")
       FileUtils.mkdir_p(lib_dir) unless Dir.exist?(lib_dir)
       eval_r(".libPaths(c('#{lib_dir}', .libPaths()))")

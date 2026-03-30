@@ -28,6 +28,31 @@ describe R::Environment do
       expect(env.vec).to eq R.c(1, 2, 3, 4)
       expect(R.ls(envir: env).all__equal(R.c('a', 'b', 'vec'))).to eq true
     end
+
+    it 'supports env_names from environment object and R helper (legacy Galaaz)' do
+      env = new_env
+      expect(env.env_names.length).to eq 0
+      expect(R.env_names(env).length).to eq 0
+
+      env.a = 30
+      env.vec = R.c(1, 2, 3, 4)
+      expect(env.env_names.length).to eq 2
+      expect(R.env_names(env).all__equal(R.c('a', 'vec'))).to eq true
+    end
+
+    it 'supports element lookup with [[]] by name' do
+      env = new_env
+      env.a = 'This is a string'
+      expect(env[['a']]).to eq R.c('This is a string')
+    end
+
+    it 'allows multiple names to reference the same assigned object' do
+      env = new_env
+      env.d = R.c(1, 2, 3)
+      env.a = env.d
+      expect(env.a).to eq R.c(1, 2, 3)
+      expect(env.d).to eq R.c(1, 2, 3)
+    end
   end
 
   context 'remove and invalid subsetting semantics' do

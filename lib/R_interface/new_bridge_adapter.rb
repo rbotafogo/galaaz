@@ -40,6 +40,13 @@ module R
             } else {
               assign('missing_arg', function() { quote(f(,0))[[2]] }, envir = .GlobalEnv)
             }
+            # Legacy Galaaz: env_names(env) lists bindings (base R has no env_names).
+            if (!exists('env_names', envir = .GlobalEnv, inherits = FALSE)) {
+              assign('env_names', function(envir) {
+                if (missing(envir)) envir <- parent.frame()
+                ls(envir = envir, all.names = TRUE, sorted = TRUE)
+              }, envir = .GlobalEnv)
+            }
             0L
           })
         RCODE
