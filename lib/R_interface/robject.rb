@@ -232,7 +232,7 @@ module R
       max_plain = ::R::Support::MAX_UNBOX_DEPTH - depth
       loop do
         var = ::R::Support.generate_var_name
-        assignment = ".GlobalEnv$#{var} <- #{r_code}"
+        assignment = "#{var} <- #{r_code}"
         envelope = ::R.bridge.eval_r_with_result(assignment)
         raise "Result protocol: no envelope (buffer missing or invalid)" unless envelope
         case envelope[:type]

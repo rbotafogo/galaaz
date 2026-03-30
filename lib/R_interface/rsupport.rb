@@ -72,7 +72,7 @@ module R
                        r_code
                      end
 
-      assignment = ".GlobalEnv$#{var_name} <- { #{final_r_code}\n }"
+      assignment = "#{var_name} <- { #{final_r_code}\n }"
       envelope = R.bridge.eval_r_with_result(assignment)
       if ENV['GALAAZ_DEBUG']
         puts "DEBUG: eval envelope=#{envelope.inspect}"

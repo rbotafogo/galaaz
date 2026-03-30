@@ -77,7 +77,7 @@ module R
       when 'character'
         # Single path: result protocol (raw binary envelope). No parsing of printed output.
         var_name = ::R::Support.generate_var_name
-        assignment = ".GlobalEnv$#{var_name} <- #{@r_interop}[[#{idx + 1}]]"
+        assignment = "#{var_name} <- #{@r_interop}[[#{idx + 1}]]"
         envelope = ::R.bridge.eval_r_with_result(assignment)
         raise "Result protocol: no envelope for character element #{@r_interop}[[#{idx + 1}]]" unless envelope
         raise "Result protocol: expected scalar_character, got #{envelope[:type]}" unless envelope[:type] == :scalar_character
