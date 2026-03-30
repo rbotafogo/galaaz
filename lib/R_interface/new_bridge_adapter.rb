@@ -51,9 +51,22 @@ module R
             if (!exists('galaaz_ensure_session_env', envir = .GlobalEnv, inherits = FALSE)) {
               assign('galaaz_ensure_session_env', function(session_id) {
                 sid <- as.character(session_id)
+                # Primary path: reuse gatekeeper's per-session registry.
+                if (exists('.galaaz_sessions', envir = .GlobalEnv, inherits = FALSE)) {
+                  sessions <- get('.galaaz_sessions', envir = .GlobalEnv, inherits = FALSE)
+                  if (!is.list(sessions)) {
+                    sessions <- list()
+                  }
+                  if (is.null(sessions[[sid]])) {
+                    sessions[[sid]] <- new.env(parent = .GlobalEnv)
+                    assign('.galaaz_sessions', sessions, envir = .GlobalEnv)
+                  }
+                  return(sessions[[sid]])
+                }
+                # Compatibility fallback if gatekeeper registry is unavailable.
                 nm <- paste0('galaaz_session_env_', gsub('[^A-Za-z0-9_]', '_', sid))
                 if (!exists(nm, envir = .GlobalEnv, inherits = FALSE)) {
-                  assign(nm, new.env(parent = emptyenv()), envir = .GlobalEnv)
+                  assign(nm, new.env(parent = .GlobalEnv), envir = .GlobalEnv)
                 }
                 get(nm, envir = .GlobalEnv, inherits = FALSE)
               }, envir = .GlobalEnv)
@@ -233,25 +246,17 @@ module R
         end
       end
 
-      # Each ... arg is assigned in .GlobalEnv under a temporary handle for compatibility.
-      # TODO (Phase 3): move handle resolution fully to session env once dispatch paths stop relying on global lookup.
+      # Each ... arg is assigned in session env under a temporary handle.
       # Names must be g2_v + digits
       # only — gatekeeper valid_bridge_handle_token rejects g2_v_cb_* (letters after g2_v), which
       # breaks dispatch_probe when Ruby wraps the handle as R::Object.
       "function(...) {
         args <- list(...)
         handles <- character(0)
-        created_handles <- character(0)
-        on.exit({
-          if (length(created_handles) > 0L) {
-            try(base::rm(list = created_handles, envir = .GlobalEnv, inherits = FALSE), silent = TRUE)
-          }
-        }, add = TRUE)
         if (length(args) > 0L) {
           for (i in seq_along(args)) {
             h <- paste0('g2_v', as.integer(stats::runif(1, 1e7, 9e7 - 1L)), sprintf('%04d', as.integer(i)))
-            assign(h, args[[i]], envir = .GlobalEnv)
-            created_handles <- c(created_handles, h)
+            galaaz_assign_session('#{callback_session_id}', h, args[[i]])
             cls <- paste(class(args[[i]]), collapse = ' ')
             handles <- c(handles, paste0(h, ':', cls))
           }
