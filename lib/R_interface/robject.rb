@@ -99,6 +99,8 @@ module R
                   ::R::Environment.new(r_interop, expression)
                 when r_class.include?("function")
                   ::R::Closure.new(r_interop, expression)
+                when r_class.include?("language") || r_class == "call"
+                  ::R::Language.new(r_interop, expression)
                 when r_class == "name" || r_class == "symbol"
                   ::R::RSymbol.new(r_interop, expression)
                 when r_class == "expression"

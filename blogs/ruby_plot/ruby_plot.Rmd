@@ -272,7 +272,7 @@ base_tooth = tooth_growth.ggplot(E.aes(x: :dose, y: :len, group: :dose))
 bp = base_tooth + R.geom_boxplot +
       # Split in vertical direction
       R.facet_grid(:all.til :supp)
-      
+
 puts bp
 ```
 

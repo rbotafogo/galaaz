@@ -1,5 +1,11 @@
 # shadow_bridge.rb
 #
+# OBSOLETE BRIDGE (DEPRECATED):
+# - ShadowBridge is kept only for temporary compatibility.
+# - New development and hardening must target NewBridge.
+# - Concurrency hardening for `.GlobalEnv` is intentionally out of scope here.
+# - This file is planned for removal after NewBridge migration is complete.
+#
 # Bridge to a long-lived R process. Communicates via:
 #   - stdin/stdout: R code is sourced from temp scripts; R prints markers (--G_END--, --G_CALLBACK--, etc.)
 #   - RESULT_FIFO: R writes one length-prefixed binary envelope per galaaz_result() call (scalars or handle names)
@@ -33,6 +39,8 @@ java_import 'org.apache.arrow.vector.ipc.ArrowFileReader'
 
 module R
   class ShadowBridge
+    # Deprecated/obsolete bridge: do not add new features here.
+    OBSOLETE = true
     include Singleton
     attr_reader :last_envelope_nil_reason
 

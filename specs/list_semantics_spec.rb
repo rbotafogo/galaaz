@@ -62,4 +62,48 @@ describe R::List do
       expect(@l[['d']]).to eq nil
     end
   end
+
+  context 'iteration and richer assignment paths' do
+    it 'iterates list elements with each and each_with_index' do
+      l = R.list(1, 2, 3, R.list(4, 5, 6))
+
+      got_each = []
+      l.each do |el|
+        got_each << (el.is_a?(R::Object) ? el.to_ruby : el)
+      end
+      expect(got_each).to eq([1, 2, 3, [4, 5, 6]])
+
+      got_each_idx = []
+      l.each_with_index do |el, idx|
+        val = el.is_a?(R::Object) ? el.to_ruby : el
+        got_each_idx << [idx, val]
+      end
+      expect(got_each_idx).to eq([[1, 1], [2, 2], [3, 3], [4, [4, 5, 6]]])
+    end
+
+    it 'supports richer add/modify/remove assignment forms' do
+      l = R.list(a: 1, b: 2, c: 3, d: R.list(i: 4, j: 5, k: 6))
+      l[[1]] = 10
+      expect(l[[1]]).to eq 10
+
+      l[['a']] = 11
+      l.b = 22
+      l.married = true
+      l.number = 5.345
+      l.lst = R.list(100, 200)
+      l.vec = R.c(500, 600)
+
+      expect(l[['a']]).to eq 11
+      expect(l.b).to eq 22
+      expect(l.married).to eq true
+      expect(l.number).to eq 5.345
+      expect(l.lst).to eq R.list(100, 200)
+      expect(l.vec).to eq R.c(500, 600)
+
+      l.d = nil
+      expect(l[['d']]).to eq nil
+      l[['vec']] = nil
+      expect(l[['vec']]).to eq nil
+    end
+  end
 end

@@ -48,4 +48,17 @@ describe R::Environment do
       expect { env['a'] }.to raise_error(NewBridge::SessionClient::RProcessError)
     end
   end
+
+  context 'expression evaluation in environment context' do
+    it 'evaluates expression against environment bindings when parent has base operators' do
+      env = R::Support.eval('new.env(parent = baseenv())')
+      env.e1 = 10
+      env.e2 = 20
+      env.e3 = R.c(1, 2, 3, 4)
+
+      expr = :e1 + :e2 + :e3
+      expect(expr.to_s).to eq('e1 + e2 + e3')
+      expect(expr.eval(env)).to eq R.c(31, 32, 33, 34)
+    end
+  end
 end

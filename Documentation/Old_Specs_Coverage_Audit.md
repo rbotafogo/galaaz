@@ -53,8 +53,8 @@ coverage exists in active specs under `specs/` (`*_spec.rb` and remaining passin
 - **Old scope:** Environment creation, set/get, eval in mask, subset restrictions.
 - **Equivalent active coverage found:** **Partial (improved).**
 - **Nearest active specs:**
-  - `specs/environment_semantics_spec.rb` (creation via `new.env`, set/get, dot assignment, remove, invalid `[]` semantics)
-- **Gap status:** **PARTIAL GAP** (legacy expression-mask eval path still missing).
+  - `specs/environment_semantics_spec.rb` (creation via `new.env`, set/get, dot assignment, remove, invalid `[]` semantics, expression eval in environment context)
+- **Gap status:** **MOSTLY COVERED** (legacy `R.env`/`rlang::env()` constructor semantics differ; active coverage uses `new.env` with explicit parent).
 
 ### 4) `old_specs/r_formula.spec.rb`
 
@@ -62,7 +62,8 @@ coverage exists in active specs under `specs/` (`*_spec.rb` and remaining passin
 - **Equivalent active coverage found:** **Partial (improved).**
 - **Nearest active specs:**
   - `specs/formula_semantics_spec.rb` (formula DSL construction, interaction operators, model.frame, `lm` + `predict`)
-- **Gap status:** **PARTIAL GAP** (legacy dependency-heavy scenarios using `ISLR`/`MASS` are intentionally not in fast suite).
+  - `slow-specs/formula_islr_mass_spec.rb` (legacy `ISLR`/`MASS` Boston regression checks)
+- **Gap status:** **MOSTLY COVERED** (fast suite keeps dependency-light core semantics; dependency-heavy legacy checks live in slow suite).
 
 ### 5) `old_specs/r_language.spec.rb`
 
@@ -70,33 +71,35 @@ coverage exists in active specs under `specs/` (`*_spec.rb` and remaining passin
 - **Equivalent active coverage found:** **Partial (improved).**
 - **Nearest active specs:**
   - `specs/language_expression_semantics_spec.rb` (symbol conversion, expression build/eval, eval in context, subset with expression)
-- **Gap status:** **PARTIAL GAP** (formula-specific legacy scenarios are deferred to formula migration).
+- **Gap status:** **MOSTLY COVERED** (formula-specific deep legacy cases are covered under formula migration/slow specs).
 
 ### 6) `old_specs/r_list.spec.rb`
 
 - **Old scope:** List creation, subsetting (`>>`, `[`, `[[`, `.`), assignment, iteration.
-- **Equivalent active coverage found:** **Partial (improved).**
+- **Equivalent active coverage found:** **Mostly covered (improved).**
 - **Nearest active specs:**
-  - `specs/list_semantics_spec.rb` (creation, core subsetting, dot/named assignment, bridge-error expectation)
+  - `specs/list_semantics_spec.rb` (creation, core subsetting, dot/named assignment, iteration via `each`/`each_with_index`, richer add/remove paths)
   - `specs/protocol_result_spec.rb` (list handle type + protocol behavior)
   - `specs/unboxing_spec.rb` (list unboxing semantics)
   - `specs/field_access_spec.rb` (named list field access).
-- **Gap status:** **PARTIAL GAP** (iteration and some advanced indexing/assignment paths still missing).
+- **Gap status:** **PARTIAL GAP** (a few legacy edge cases remain possible, but core behavior is now covered in active specs).
 
 ### 7) `old_specs/r_plots.spec.rb`
 
 - **Old scope:** Plot device snapshot/save path.
-- **Equivalent active coverage found:** **None in active fast specs.**
-- **Related coverage elsewhere:** `slow-specs/phase2_gknit_chunk_output_spec.rb` validates rendered outputs, but not direct `R::Device#plot_snapshot` contract.
-- **Gap status:** **GAP**.
+- **Equivalent active coverage found:** **Partial (improved).**
+- **Nearest active specs:**
+  - `specs/plot_device_semantics_spec.rb` (device open/render/close for png/svg + artifact existence)
+  - `specs/plot_snapshot_semantics_spec.rb` (plain-runtime `plot_snapshot` + `save_plot` helper path)
+- **Gap status:** **MOSTLY COVERED** (core snapshot/save behavior now covered in plain runtime; deeper multi-device edge cases can remain in slow/integration specs).
 
 ### 8) `old_specs/ruby_expression.spec.rb`
 
 - **Old scope:** Symbol-to-expression semantics, call construction, tidy eval helpers.
-- **Equivalent active coverage found:** **Partial (improved).**
+- **Equivalent active coverage found:** **Mostly covered (improved).**
 - **Nearest active specs:**
-  - `specs/language_expression_semantics_spec.rb` (core symbol expression semantics under NewBridge)
-- **Gap status:** **PARTIAL GAP** (`R.expr`, `call2`, `exec`, and dispatch-probe-dependent helpers remain unresolved/missing in current runtime).
+  - `specs/language_expression_semantics_spec.rb` (core symbol expression semantics under NewBridge, plus `R.expr`, `R.call2`, `R.exec`)
+- **Gap status:** **PARTIAL GAP** (remaining edge helpers still tied to dispatch-probe-sensitive paths; core API surface is restored).
 
 ## Recommendation
 

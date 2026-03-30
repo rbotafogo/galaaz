@@ -2,9 +2,39 @@
 # R::Device: Ruby wrapper for Galaaz plot devices (png, svg, etc.).
 # Uses base R graphics and evaluate::plot_snapshot; no R package "device" required.
 require 'tmpdir'
+require 'fileutils'
 
 module R
   class Device
+    def ensure_plot_helpers!
+      R.bridge.eval_r(<<~RCODE)
+        if (!exists("evaluate_plot_snapshot", envir = .GlobalEnv, inherits = FALSE)) {
+          .GlobalEnv$evaluate_plot_snapshot <- function() {
+            grDevices::recordPlot()
+          }
+        }
+        if (!exists("galaaz_save_plot", envir = .GlobalEnv, inherits = FALSE)) {
+          .GlobalEnv$galaaz_save_plot <- function(plot, name, dev_type, width, height, ext, dpi) {
+            file <- paste0(name, ".", ext)
+            if (dev_type == "png") {
+              # When a source device is active, dev.copy reliably materializes the image file.
+              grDevices::dev.copy(grDevices::png, filename = file, width = width, height = height, units = "in", res = dpi)
+            } else if (dev_type == "svg") {
+              grDevices::dev.copy(grDevices::svg, filename = file, width = width, height = height)
+            } else if (dev_type == "pdf") {
+              grDevices::dev.copy(grDevices::pdf, file = file, width = width, height = height)
+            } else {
+              stop(paste("unsupported dev_type:", dev_type))
+            }
+            # Close the copied device; the original plotting device remains active.
+            grDevices::dev.off()
+            file
+          }
+        }
+        invisible(NULL)
+      RCODE
+    end
+
     def initialize(type, width: 480, height: 480, dpi: 72, record: true, &block)
       @type = type.to_s
       @width = width
@@ -14,6 +44,7 @@ module R
       @block = block
       @dev_path = nil
       @opened = false
+      @last_save_target = nil
     end
 
     def open
@@ -36,14 +67,27 @@ module R
       return unless @opened
       R.dev__off
       @opened = false
+      if @last_save_target && @dev_path && File.exist?(@dev_path)
+        FileUtils.cp(@dev_path, @last_save_target)
+      end
     end
 
     def plot_snapshot
+      ensure_plot_helpers!
       R.evaluate_plot_snapshot
     end
 
     def save_plot(plot, name, dev_type, width, height, ext, dpi)
-      R.galaaz_save_plot(plot, name, dev_type, width, height, ext, dpi)
+      out_name = "#{name}.#{ext}"
+      target = out_name.start_with?('/') ? out_name : File.join(Dir.pwd, out_name)
+      @last_save_target = target
+
+      # If device is already closed, copy immediately; otherwise close() will finalize and copy.
+      if !@opened && @dev_path && File.exist?(@dev_path) && File.size(@dev_path).to_i > 0
+        FileUtils.cp(@dev_path, target)
+      end
+
+      out_name
     end
 
     def self.new(type, width: 480, height: 480, dpi: 72, record: true, &block)

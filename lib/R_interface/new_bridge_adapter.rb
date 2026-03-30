@@ -4,7 +4,8 @@ require 'singleton'
 require_relative '../new_bridge'
 
 module R
-  # Phase 5.1 adapter: expose a minimal ShadowBridge-compatible surface
+  # Phase 5.1 adapter: expose a minimal compatibility surface for legacy call sites
+  # that historically depended on ShadowBridge (now deprecated/obsolete).
   # backed by NewBridge::SessionClient.
   #
   # Implemented compatibility methods:

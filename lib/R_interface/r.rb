@@ -29,6 +29,8 @@ dir = File.dirname(File.expand_path('.', __FILE__))
 # Polyglot.eval_file('R', "#{dir}/r_libs.R") # Disabled for 2.0 Shadow Bridge
 
 # Bridge and Support first
+# NOTE: `shadow_bridge` is loaded for temporary backward compatibility only.
+# It is deprecated/obsolete and planned for removal after NewBridge migration.
 require_relative 'shadow_bridge'
 require_relative 'rsupport'
 
@@ -43,7 +45,7 @@ require_relative 'rmd_indexed_object'
 require_relative 'robject'
 
 module R
-  # Opt-in values for the legacy FIFO / result-buffer bridge (R::ShadowBridge).
+  # Opt-in values for the deprecated/obsolete legacy FIFO bridge (R::ShadowBridge).
   # Default is NewBridge (MsgPack session client + gatekeeper .so).
   SHADOW_BRIDGE_IMPL_VALUES = %w[shadow shadow_bridge legacy].freeze
 
@@ -51,7 +53,8 @@ module R
     SHADOW_BRIDGE_IMPL_VALUES.include?(ENV['GALAAZ_BRIDGE_IMPL'].to_s.strip.downcase)
   end
 
-  # R↔Ruby bridge: NewBridge by default; set GALAAZ_BRIDGE_IMPL=shadow (or shadow_bridge, legacy) for ShadowBridge.
+  # R↔Ruby bridge: NewBridge by default.
+  # ShadowBridge selection remains only for temporary compatibility and is deprecated.
   def self.bridge
     return R::ShadowBridge.instance if shadow_bridge_selected?
 
@@ -151,6 +154,46 @@ module R
     R.install_rlibs(*libs)
     # Use library() so load failures throw immediately with a clear R error
     libs.each { |lib| R.library(lib) }
+  end
+
+  #--------------------------------------------------------------------------
+  # rlang helpers (reintroduced legacy API surface)
+  #--------------------------------------------------------------------------
+
+  def self.ensure_rlang!
+    ok = R::Support.eval("requireNamespace('rlang', quietly=TRUE)")
+    return if ok == true
+
+    raise "R package 'rlang' is required for this API. Install with: Rscript -e \"install.packages('rlang', repos='https://cloud.r-project.org/')\""
+  end
+
+  # Build an R expression/symbol using rlang::expr().
+  def self.expr(arg)
+    ensure_rlang!
+    var_name = R::Support.generate_var_name
+    parsed = R::Support.parse_arg(arg)
+    R.bridge.eval_r("#{var_name} <- rlang::expr(#{parsed})")
+    R::Object.build(var_name)
+  end
+
+  # Build a call object with rlang::call2().
+  def self.call2(fn, *args, **kwargs)
+    ensure_rlang!
+    var_name = R::Support.generate_var_name
+    parts = [R::Support.parse_arg(fn)]
+    parts.concat(args.map { |a| R::Support.parse_arg(a) }) unless args.empty?
+    unless kwargs.empty?
+      kw = kwargs.map { |k, v| "#{k.to_s.gsub(/__/, ".")} = #{R::Support.parse_arg(v)}" }
+      parts.concat(kw)
+    end
+    R.bridge.eval_r("#{var_name} <- rlang::call2(#{parts.join(', ')})")
+    R::Object.build(var_name)
+  end
+
+  # Execute a function call with dynamic args via rlang::exec().
+  def self.exec(fn, *args, **kwargs)
+    ensure_rlang!
+    R.rlang___exec(fn, *args, **kwargs)
   end
   
 end

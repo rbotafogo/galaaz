@@ -56,4 +56,29 @@ describe 'Language and expression semantics' do
       expect(sub[2, 2]).to eq 1
     end
   end
+
+  context 'reintroduced rlang helper APIs' do
+    before(:all) do
+      ok = R::Support.eval("requireNamespace('rlang', quietly=TRUE)")
+      skip 'R package rlang is not available' unless ok == true
+    end
+
+    it 'supports R.expr for symbol construction' do
+      R.len = 10
+      exp = R.expr(:len)
+      expect(exp).to be_a(R::RSymbol)
+      expect(exp.eval).to eq 10
+    end
+
+    it 'supports R.call2 for call construction' do
+      e = R.call2('mean', x: +:x, na__rm: true)
+      expect(e).to be_a(R::Language)
+      expect(e.to_s).to eq('mean(x = x, na.rm = TRUE)')
+    end
+
+    it 'supports R.exec for dynamic function execution' do
+      val = R.exec('mean', x: (1..10), na__rm: true, trim: 0.1)
+      expect(val).to eq 5.5
+    end
+  end
 end
