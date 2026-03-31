@@ -16,14 +16,12 @@ logs/
 *.svg
 *.png
 *.Rhistory
-*.md
 
 *.svg
 *.png
 *.jpeg
 *.jpg
 
-*.md
 *.tex
 
 *.rds
