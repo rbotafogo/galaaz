@@ -23,6 +23,7 @@
 
 require 'singleton'
 require 'fileutils'
+require 'pathname'
 
 # Load these before anything else to ensure bridge is initialized and libraries are present
 R.install_and_loads('knitr', 'rmarkdown')
@@ -755,8 +756,13 @@ class KnitrEngine
           # use same absolute path as in capture_plot so knitr can find the file
           fig_path = File.expand_path(@filename)
           if File.exist?(fig_path)
-            plot = R.knit_print(R.include_graphics(fig_path))
-            out = R.c(out, plot)
+            # Emit figure as markdown image and mark as as-is so pandoc can render it
+            # consistently for html/latex/gfm outputs.
+            fig_rel = Pathname.new(fig_path).relative_path_from(Pathname.new(Dir.pwd)).to_s rescue fig_path
+            # Emit markdown image syntax directly so pandoc can convert it to
+            # format-specific output (HTML/LaTeX/etc.).
+            fig_md = "![](" + fig_rel + ")"
+            out = R.c(out, fig_md)
           end
         end
 

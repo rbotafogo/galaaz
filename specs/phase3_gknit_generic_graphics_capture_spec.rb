@@ -56,8 +56,9 @@ describe 'Phase 3 gknit generic graphics capture' do
       fig_dir = File.join(work, 'rendered_files', 'figure-gfm')
       expect(File.directory?(fig_dir)).to eq(true)
 
-      # gknit/github_document emits bare figure paths (one per line) in markdown.
-      image_paths = md.scan(%r{^rendered_files/figure-gfm/[^\s]+$})
+      # gknit/github_document should emit markdown image markup so pandoc can
+      # render figures consistently across output formats.
+      image_paths = md.scan(%r{!\[\]\((rendered_files/figure-gfm/[^\)]+)\)}).flatten
       expect(image_paths.length).to be >= 3
       image_paths.each do |rel|
         rel = rel.sub(%r{^\./}, '')

@@ -2,6 +2,7 @@
 # coding: utf-8
 
 require 'optionparser'
+require 'shellwords'
 
 options = {}
 
@@ -146,20 +147,57 @@ require %q(galaaz)
 require %q(gknit)
 
 Dir.chdir(#{input_dir.inspect}) do
-  R::Rmarkdown.render(
-       %q(#{input_file}),
-       output_format: #{options[:output_format]},
-       output_file: #{options[:output_file]},
-       output_dir: #{options[:output_dir]},
-       clean: #{options[:clean]}
-  )
+  begin
+    R::Rmarkdown.render(
+         %q(#{input_file}),
+         output_format: #{options[:output_format]},
+         output_file: #{options[:output_file]},
+         output_dir: #{options[:output_dir]},
+         clean: #{options[:clean]}
+    )
+  rescue StandardError => e
+    # Friendly handling for LaTeX/render errors (including bridge timeout wrappers):
+    # prefer actionable message over a Ruby stack trace.
+    log_file = begin
+      base = File.basename(%q(#{input_file}), File.extname(%q(#{input_file})))
+      candidate = File.join(Dir.pwd, "\#{base}.log")
+      File.file?(candidate) ? candidate : nil
+    rescue StandardError
+      nil
+    end
+
+    missing_pkg = nil
+    latex_fatal = nil
+    if log_file
+      begin
+        log_text = File.read(log_file)
+        m = log_text.match(/LaTeX Error: File [`']([^`']+\.sty)[`'] not found\./)
+        missing_pkg = m[1] if m
+        fatal_match = log_text.match(/!pdfTeX error:[^\n]+/)
+        latex_fatal = fatal_match[0] if fatal_match
+      rescue StandardError
+        missing_pkg = nil
+        latex_fatal = nil
+      end
+    end
+
+    STDERR.puts "gknit render failed: \#{e.message}"
+    if missing_pkg
+      STDERR.puts "Likely missing LaTeX package: \#{missing_pkg} (install with tlmgr)."
+    elsif latex_fatal
+      STDERR.puts "LaTeX fatal error: \#{latex_fatal}"
+    elsif log_file
+      STDERR.puts "See LaTeX log for details: \#{log_file}"
+    end
+    exit 1
+  end
 end
 EOF
 
 libx = File.expand_path('../lib', File.dirname(__FILE__))
 require File.join(libx, 'galaaz_jruby')
 jvm_args = GalaazJRuby.shell_j_arg_string
-exec "jruby #{jvm_args} -I#{libx} -e '#{code}'"
+exec "jruby #{jvm_args} -I#{libx} -e #{Shellwords.escape(code)}"
 
 =begin
 # how to call rmarkdown::render with a parameter list
