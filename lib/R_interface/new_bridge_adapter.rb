@@ -386,6 +386,42 @@ module R
       end
     end
 
+    # Push Ruby numeric array values into an R numeric vector.
+    # - ruby_array: Ruby Array of Numeric/nil (nil mapped to NA_real_)
+    # - var_name: target R variable handle/name
+    # - offset/total_size: when provided, writes a slice using 0-based offset
+    def push_double_vector(ruby_array, var_name, offset = nil, _total_size = nil)
+      values = Array(ruby_array)
+      return nil if values.empty?
+
+      serialized = values.map do |v|
+        if v.nil?
+          'NA_real_'
+        elsif v.is_a?(Numeric)
+          v.finite? ? v.to_f.to_s : 'NA_real_'
+        else
+          begin
+            Float(v).to_s
+          rescue StandardError
+            'NA_real_'
+          end
+        end
+      end.join(', ')
+
+      if offset
+        start_i = offset.to_i + 1
+        end_i = offset.to_i + values.length
+        @client.eval_r("({ #{var_name}[#{start_i}:#{end_i}] <- c(#{serialized}); 0L })",
+                       session_id: current_session_id,
+                       parent_id: callback_parent_id)
+      else
+        @client.eval_r("({ #{var_name} <- c(#{serialized}); 0L })",
+                       session_id: current_session_id,
+                       parent_id: callback_parent_id)
+      end
+      nil
+    end
+
     # Minimal data.frame unboxing for Phase 5.2.
     # Returns a Ruby hash: { "colname" => [values...] }.
     #

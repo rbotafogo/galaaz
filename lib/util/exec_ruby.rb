@@ -41,6 +41,24 @@ class RC
     @out_list = R.c(@out_list, obj)
   end
 
+  # In gknit, stdout is redirected to StringIO. Under JRuby, Kernel.puts can treat
+  # R::Vector as array-like (to_ary) and print one element per line. Normalize R
+  # objects to their R printed form first, so `puts vec` matches gstudio (`[1] ...`).
+  def normalize_output_arg(arg)
+    return arg.to_s if arg.is_a?(::R::Object)
+    return arg.map { |item| normalize_output_arg(item) } if arg.is_a?(::Array)
+    arg
+  end
+
+  def puts(*args)
+    return ::Kernel.puts if args.empty?
+    ::Kernel.puts(*args.map { |arg| normalize_output_arg(arg) })
+  end
+
+  def print(*args)
+    ::Kernel.print(*args.map { |arg| normalize_output_arg(arg) })
+  end
+
   def reset_outputs
     @out_list = nil
   end

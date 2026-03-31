@@ -23,6 +23,7 @@
 ##########################################################################################
 
 require 'optionparser'
+require 'shellwords'
 
 options = {}
 
@@ -40,12 +41,13 @@ end.parse!
 
 bin_dir = File.expand_path('..', __FILE__)
 libx = File.expand_path('../../lib', __FILE__)
+require File.join(libx, 'galaaz_jruby')
+jvm_args = GalaazJRuby.shell_j_arg_string
 
 if options[:pry]
   puts "Loading PRY and Galaaz... Please wait!"
-  #exec "ruby --polyglot --jvm -I#{libx} -S pry -r #{bin_dir}/gstudio_pry.rb"
-  exec "ruby --polyglot --jvm --experimental-options --single-threaded -I#{libx} -S pry -r #{bin_dir}/gstudio_pry.rb"  
+  exec "jruby #{jvm_args} -I#{Shellwords.escape(libx)} -S pry -r #{Shellwords.escape(File.join(bin_dir, 'gstudio_pry.rb'))}"
 else
   puts "Loading IRB and Galaaz... Please wait!"
-  exec "ruby --polyglot --jvm -I#{libx} -S irb -r #{bin_dir}/gstudio_irb.rb"
+  exec "jruby #{jvm_args} -I#{Shellwords.escape(libx)} -S irb -r #{Shellwords.escape(File.join(bin_dir, 'gstudio_irb.rb'))}"
 end

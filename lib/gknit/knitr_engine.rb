@@ -586,8 +586,13 @@ class KnitrEngine
 
   def self.device(dev_type, filename = nil, *args, width: 480, height: 480,
                   units: "px", res: 72, pointsize: 12, bg: "white")
+    supported_devices = %w[awt svg png pdf jpg jpeg bmp]
+    dev_name = dev_type.to_s.strip
+    unless supported_devices.include?(dev_name)
+      raise "Unsupported graphics device '#{dev_name}'. Supported devices: #{supported_devices.join(', ')}"
+    end
 
-    case dev_type
+    case dev_name
         
     when "awt"
     when "svg"
@@ -610,8 +615,6 @@ class KnitrEngine
       R.jpeg(filename, width, height, units, pointsize, bg, res, *args)
     when "bmp" 
       R.bmp(filename, width, height, units, pointsize, bg, res, *args)
-    else
-      raise "Invalid device type #{device}"
     end
     
   end
