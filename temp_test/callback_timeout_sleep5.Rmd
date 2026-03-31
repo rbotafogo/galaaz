@@ -1,0 +1,10 @@
+---
+title: "callback timeout sleep5"
+output:
+  github_document: default
+---
+
+```{ruby, echo=FALSE}
+sleep 5
+puts "done"
+```

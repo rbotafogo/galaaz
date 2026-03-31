@@ -36,9 +36,21 @@ class IncludeEngine < KnitrEngine
     super
          
     @engine = Proc.new do |options|
-      # The R-side wrapper (include_engine.R) now reads the file content
-      # and puts it in options[["code"]] before calling this engine.
-      # We just pass through to the base engine which handles execution.
+      # Ensure include chunks always load file content into options['code'].
+      # This keeps include behavior working even if R-side wrappers are replaced.
+      begin
+        label = options['label'].unboxed_get(0).to_s
+        relative_opt = options['relative']
+        relative =
+          if relative_opt.respond_to?(:unboxed_get)
+            !!relative_opt.unboxed_get(0)
+          else
+            false
+          end
+        options.code = GalaazUtil.inline_file(label, relative)
+      rescue StandardError => e
+        options.code = "# Include failed: #{e.message}"
+      end
       @base_engine.call(options)
     end
     

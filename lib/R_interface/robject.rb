@@ -24,7 +24,7 @@ module R
       :r_interop, :expression, :expression=,
       :[], :[]=, :>>, :unboxed_get, :to_ruby, :to_i, :to_ary, :length, :size,
       :class, :to_s, :rclass, :typeof, :inspect, :object_id, :__id__,
-      :==, :equal?, :call, :nil?, :pretty_print,
+      :==, :equal?, :call, :nil?, :pretty_print, :send,
       :instance_variable_set, :instance_variable_get,
       :is_a?, :kind_of?, :instance_of?, :respond_to?,
       :method_missing
@@ -41,6 +41,12 @@ module R
     # Delegate to Kernel#instance_variable_get so that instance vars work despite BasicObject.
     def instance_variable_get(name)
       ::Object.instance_method(:instance_variable_get).bind(self).call(name)
+    end
+
+    # BasicObject lacks Kernel#send; provide Ruby dispatch explicitly so calls like
+    # obj.send(:mpg) do not get forwarded to R as send(obj, mpg).
+    def send(method_name, *args, &block)
+      ::Object.instance_method(:send).bind(self).call(method_name, *args, &block)
     end
 
     # R objects are never nil; R NULL is converted to Ruby nil in Object.build.

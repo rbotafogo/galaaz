@@ -241,7 +241,7 @@ module R
     # `missing_arg()` results as subscripts ("empty string"); alist(, ) is real missing.
     def self.build_subscript_do_call_alist(all_args)
       inner = all_args.map do |arg|
-        arg == :all ? nil : parse_arg(arg)
+        (arg.is_a?(::Symbol) && arg == :all) ? nil : parse_arg(arg)
       end
       inner = inner.map { |frag| frag.nil? ? '' : frag }.join(', ')
       "do.call(`[`, alist(#{inner}))"
@@ -252,7 +252,7 @@ module R
       pairs = kw_hash.map do |k, v|
         key = k.to_s.gsub(/__/, ".")
         key_r = (key =~ /\A[a-zA-Z._][a-zA-Z0-9._]*\z/) ? key : "`#{key.gsub('`', '\\`')}`"
-        if v == :all
+        if v.is_a?(::Symbol) && v == :all
           "#{key_r} = "
         else
           "#{key_r} = #{parse_arg(v)}"
@@ -280,7 +280,7 @@ module R
       use_subscript_alist =
         kwargs.empty? &&
         f_name == MD_INDEX_BACKTICK &&
-        all_args.any? { |a| a == :all } &&
+        all_args.any? { |a| a.is_a?(::Symbol) && a == :all } &&
         !all_args.any? { |a| a.is_a?(Hash) }
 
       use_assign_alist =
@@ -288,7 +288,7 @@ module R
         f_name == MD_ASSIGN_BACKTICK &&
         all_args.size == 2 &&
         all_args[1].is_a?(Hash) &&
-        all_args[1].values.any? { |v| v == :all }
+        all_args[1].values.any? { |v| v.is_a?(::Symbol) && v == :all }
 
       if use_subscript_alist
         r_expr = build_subscript_do_call_alist(all_args)
@@ -440,8 +440,8 @@ module R
           is_field = !!probe[:is_field]
           is_func = !!probe[:is_func]
           @dispatch_probe_cache[:func][name] = is_func
-        rescue RuntimeError => e
-          raise unless e.message.include?("invalid connection")
+        rescue StandardError => e
+          raise unless e.message.include?("invalid connection") || e.message.include?("invalid dispatch_probe params")
           is_field = false
           is_func = false
         end

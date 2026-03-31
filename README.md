@@ -1602,6 +1602,29 @@ the use of 'galaaz.sty' as a basic template to generate a PDF document.  Using t
 looking PDF documents. Galaaz automatically loads the 'rticles' R package that comes with
 templates for the following journals with the respective template name:
 
+### gknit timeout controls
+
+Long-running chunks (especially `install.packages()` for packages that compile native code, such as `caret`) can hit timeout limits in different layers. gknit supports the following timeout controls:
+
+- `--bridge_timeout_sec`: timeout (seconds) for Ruby -> R eval requests (default: `60`).
+- `--callback_timeout_ms`: timeout (milliseconds) for R -> Ruby callback wait during chunk execution (default: `120000`).
+- `R.install_and_loads(..., install_timeout_sec: N)`: sets R `options(timeout=N)` for download/install operations.
+- `R.install_and_loads(..., bridge_timeout_sec: N, callback_timeout_ms: M)`: per-call overrides for long installs from Ruby code.
+
+These timeouts are independent:
+
+- `install_timeout_sec` controls package download/install timeout behavior in R.
+- `bridge_timeout_sec` controls how long bridge REQ/RET waits for one Ruby -> R call.
+- `callback_timeout_ms` controls callback wait from R back to Ruby.
+
+If `bridge_timeout_sec` is too small, installation can still fail with `no RET ...` even when `install_timeout_sec` is large.
+
+Example for heavy package installation during gknit:
+
+```
+bin/gknit blogs/manual/manual.Rmd --bridge_timeout_sec 7200 --callback_timeout_ms 7200000
+```
+
 * ACM articles: acm_article
 * ACS articles: acs_article
 * AEA journal submissions: aea_article

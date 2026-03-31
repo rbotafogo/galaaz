@@ -289,6 +289,7 @@ module NewBridge
     # Wait for RET for one `call_id` by popping from queue `q`.
     # On timeout it removes the pending queue and raises TimeoutError.
     def wait_for_ret(q, call_id, timeout)
+      started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       Timeout.timeout(timeout) do
         v = q.pop
         raise RProcessError, 'R connection closed' if v == :closed
@@ -297,7 +298,8 @@ module NewBridge
       end
     rescue Timeout::Error
       @pending_mx.synchronize { @pending.delete(call_id) }
-      raise TimeoutError, "no RET for #{call_id}"
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+      raise TimeoutError, format('no RET for %<id>s (timeout=%<timeout>.3fs elapsed=%<elapsed>.3fs)', id: call_id, timeout: timeout.to_f, elapsed: elapsed)
     end
 
     # Reader loop running in a background thread:

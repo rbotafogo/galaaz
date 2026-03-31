@@ -176,6 +176,12 @@ module GalaazUtil
       out_list = R.c(out_list, out)
       
     rescue StandardError => e
+      begin
+        label = options['label'].unboxed_get(0).to_s
+        GknitDiagnostics.record(chunk_label: label, error: e) if defined?(GknitDiagnostics)
+      rescue StandardError
+        nil
+      end
 
       # Use R's simpleMessage/simpleWarning so knitr's engine_output can call conditionMessage() on them
       # g_simpleMessage transforms "; " to newlines then calls simpleMessage (defined in R engine setup)

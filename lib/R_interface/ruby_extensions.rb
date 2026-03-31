@@ -57,6 +57,11 @@ class Symbol
     self.to_s.succ.to_sym
   end
 
+  # Column range DSL used in dplyr select, e.g. :year.up_to(:day) -> year:day
+  def up_to(other_object)
+    R::Language.build("`:`", self, other_object)
+  end
+
   # Ruby coercion/path methods: do not treat as R calls; let Symbol behave normally (super => NoMethodError).
   SYMBOL_RUBY_RESERVED = %i[to_str to_path to_ary to_int to_f to_r to_proc].freeze
 

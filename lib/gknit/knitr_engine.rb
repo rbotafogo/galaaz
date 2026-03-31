@@ -806,6 +806,11 @@ class KnitrEngine
         out
         
       rescue StandardError, RuntimeError => e
+        begin
+          GknitDiagnostics.record(chunk_label: (@label || 'unknown'), error: e) if defined?(GknitDiagnostics)
+        rescue StandardError
+          nil
+        end
         # Format error with newlines so R/knitr displays it on multiple lines (not semicolon-joined).
         formatted = e.message.to_s
         formatted += "\n\n--- Ruby backtrace ---\n" + e.backtrace.join("\n") if e.backtrace && !e.backtrace.empty?

@@ -51,7 +51,15 @@ module R
           ::R::Support.exec_function(::R::Support.dbk_index, self, *args)
         end
       else
-        ::R::Support.exec_function_name("`[`", self, *index)
+        if self.is_a?(::R::DataFrame) && index.size == 1 &&
+           (index[0].is_a?(::R::Language) || index[0].is_a?(::R::Object))
+          # For data.frame, a single logical/language index is expected to filter rows.
+          # Evaluate language conditions in data-frame context, then subset df[cond, ].
+          row_filter = index[0].is_a?(::R::Language) ? ::R::Support.exec_function("with", self, index[0]) : index[0]
+          ::R::Support.exec_function(::R::Support.md_index, self, row_filter, :all)
+        else
+          ::R::Support.exec_function_name("`[`", self, *index)
+        end
       end
     rescue ::RuntimeError => e
       if e.message.to_s.include?("incorrect number of subscripts")

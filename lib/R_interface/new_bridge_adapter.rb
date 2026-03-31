@@ -40,6 +40,24 @@ module R
             } else {
               assign('missing_arg', function() { quote(f(,0))[[2]] }, envir = .GlobalEnv)
             }
+            # Build tidyselect-compatible range expressions from symbols, e.g. year:day.
+            if (!exists('range_helper', envir = .GlobalEnv, inherits = FALSE)) {
+              assign('range_helper', function(col_ini, col_end, remove = FALSE) {
+                ini <- substitute(col_ini)
+                fin <- substitute(col_end)
+                rng <- as.call(list(as.name(':'), ini, fin))
+                if (isTRUE(remove)) {
+                  as.call(list(as.name('-'), rng))
+                } else {
+                  rng
+                }
+              }, envir = .GlobalEnv)
+            }
+            if (!exists('up_to', envir = .GlobalEnv, inherits = FALSE)) {
+              assign('up_to', function(col_ini, col_end, remove = FALSE) {
+                range_helper(col_ini, col_end, remove = remove)
+              }, envir = .GlobalEnv)
+            }
             # Legacy Galaaz: env_names(env) lists bindings (base R has no env_names).
             if (!exists('env_names', envir = .GlobalEnv, inherits = FALSE)) {
               assign('env_names', function(envir) {
@@ -120,8 +138,13 @@ module R
 
     # Minimal textual compatibility for existing call sites that expect
     # "[1] <value>" style output for simple scalar evaluations.
-    def eval_r(code)
-      out = @client.eval_r(code, session_id: current_session_id, parent_id: callback_parent_id)
+    def eval_r(code, timeout: nil)
+      effective_timeout = effective_bridge_timeout(timeout: timeout)
+      if ENV['GALAAZ_TIMEOUT_DEBUG']
+        STDERR.puts "[TIMEOUT_DEBUG] NewBridgeAdapter.eval_r timeout=#{effective_timeout}s explicit_timeout=#{timeout.inspect} env_bridge=#{ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'].inspect}"
+        STDERR.flush
+      end
+      out = @client.eval_r(code, session_id: current_session_id, parent_id: callback_parent_id, timeout: effective_timeout)
       format_scalar_print(out)
     rescue NewBridge::SessionClient::RProcessError => e
       # Phase 5.3 compatibility: many eval_r call sites are side-effect only
@@ -131,7 +154,7 @@ module R
       msg = e.message.to_s
       raise unless msg.include?('unsupported type') || msg.include?('phase1 requires length-1 scalar')
 
-      @client.eval_r("({ #{code}; 0L })", session_id: current_session_id, parent_id: callback_parent_id)
+      @client.eval_r("({ #{code}; 0L })", session_id: current_session_id, parent_id: callback_parent_id, timeout: effective_timeout)
       ''
     end
 
@@ -139,7 +162,8 @@ module R
     def print_r(var_name)
       parsed = @client.eval_r("paste(capture.output(print(#{var_name})), collapse='\\n')",
                               session_id: current_session_id,
-                              parent_id: callback_parent_id)
+                              parent_id: callback_parent_id,
+                              timeout: effective_bridge_timeout(timeout: nil))
       if parsed['kind'].to_s == 'character'
         unescape_scalar_character(parsed['value'].to_s)
       else
@@ -152,7 +176,8 @@ module R
     def eval_r_with_result(assignment_code)
       parsed = @client.eval_r("__G_EVAL_WITH_RESULT__#{assignment_code}",
                               session_id: current_session_id,
-                              parent_id: callback_parent_id)
+                              parent_id: callback_parent_id,
+                              timeout: effective_bridge_timeout(timeout: nil))
       to_legacy_envelope(parsed)
     end
 
@@ -162,7 +187,8 @@ module R
     def dispatch_probe(handle, name)
       parsed = @client.eval_r("__G_DISPATCH_PROBE__|#{handle}|#{name}",
                               session_id: current_session_id,
-                              parent_id: callback_parent_id)
+                              parent_id: callback_parent_id,
+                              timeout: effective_bridge_timeout(timeout: nil))
       unless parsed['kind'].to_s == 'dispatch_probe'
         raise "dispatch_probe: unexpected payload #{parsed.inspect}"
       end
@@ -175,7 +201,8 @@ module R
       sid = session_id.to_s
       @client.eval_r("({ galaaz_ensure_session_env(#{sid.inspect}); 0L })",
                      session_id: current_session_id,
-                     parent_id: callback_parent_id)
+                     parent_id: callback_parent_id,
+                     timeout: effective_bridge_timeout(timeout: nil))
       nil
     end
 
@@ -186,7 +213,8 @@ module R
       k = key.to_s
       @client.eval_r("({ galaaz_assign_session(#{sid.inspect}, #{k.inspect}, { #{value_expr} }); 0L })",
                      session_id: current_session_id,
-                     parent_id: callback_parent_id)
+                     parent_id: callback_parent_id,
+                     timeout: effective_bridge_timeout(timeout: nil))
       nil
     end
 
@@ -196,7 +224,8 @@ module R
       k = key.to_s
       @client.eval_r("galaaz_get_session(#{sid.inspect}, #{k.inspect})",
                      session_id: current_session_id,
-                     parent_id: callback_parent_id)
+                     parent_id: callback_parent_id,
+                     timeout: effective_bridge_timeout(timeout: nil))
     end
 
     # Remove a key from session environment.
@@ -205,8 +234,17 @@ module R
       k = key.to_s
       @client.eval_r("({ galaaz_rm_session(#{sid.inspect}, #{k.inspect}); 0L })",
                      session_id: current_session_id,
-                     parent_id: callback_parent_id)
+                     parent_id: callback_parent_id,
+                     timeout: effective_bridge_timeout(timeout: nil))
       nil
+    end
+
+    def effective_bridge_timeout(timeout: nil)
+      begin
+        timeout || Integer(ENV.fetch('GALAAZ_BRIDGE_TIMEOUT_SEC', '60'))
+      rescue StandardError
+        60
+      end
     end
 
     # Phase 5.3 callback stub registration for R::Support.parse_arg.
@@ -214,6 +252,17 @@ module R
     # using the NewBridge CALL/RET path.
     def register_callback_proc_stub(proc_or_method)
       callback_session_id = current_session_id
+      callback_wait_ms = begin
+        raw = ENV.fetch('GALAAZ_CALLBACK_TIMEOUT_MS', '120000').to_s.strip
+        v = Integer(raw)
+        v > 0 ? v : 120_000
+      rescue StandardError
+        120_000
+      end
+      if ENV['GALAAZ_TIMEOUT_DEBUG']
+        STDERR.puts "[TIMEOUT_DEBUG] NewBridgeAdapter.register_callback_proc_stub callback_wait_ms=#{callback_wait_ms} env_callback=#{ENV['GALAAZ_CALLBACK_TIMEOUT_MS'].inspect}"
+        STDERR.flush
+      end
       # Stable R-safe fragment for namespacing callback result keys (session + call id).
       sess_key = callback_session_id.to_s.gsub(/[^a-zA-Z0-9_]/, '_')
       callback_call_id = @client.register_callback do |payload, call_id|
@@ -263,7 +312,7 @@ module R
         }
         payload <- paste(handles, collapse = '|')
         gid <- '#{callback_call_id}'
-        galaaz_callback_call_phase3(gid, payload, 5000)
+        galaaz_callback_call_phase3(gid, payload, #{callback_wait_ms})
         sess <- '#{sess_key}'
         nm <- paste0('r_', sess, '_', gsub('-', '_', gid))
         sid <- '#{callback_session_id}'
@@ -319,7 +368,7 @@ module R
     #   { status: :ok|:depth_limit|:node_limit, nodes: Integer, max_depth: Integer }
     def unbox_walk(var_name, max_depth:, max_nodes:)
       cmd = "__G_UNBOX_WALK__|#{var_name}|#{max_depth.to_i}|#{max_nodes.to_i}"
-      parsed = @client.eval_r(cmd, session_id: current_session_id, parent_id: callback_parent_id)
+      parsed = @client.eval_r(cmd, session_id: current_session_id, parent_id: callback_parent_id, timeout: effective_bridge_timeout(timeout: nil))
       status =
         case parsed['status'].to_s
         when 'DEPTH' then :depth_limit
@@ -334,7 +383,7 @@ module R
     #   { status: :ok|:depth_limit|:node_limit|:unsupported, nodes:, max_depth:, value: }
     def unbox_materialize(var_name, max_depth:, max_nodes:)
       cmd = "__G_UNBOX_MATERIALIZE__|#{var_name}|#{max_depth.to_i}|#{max_nodes.to_i}"
-      parsed = @client.eval_r(cmd, session_id: current_session_id, parent_id: callback_parent_id)
+      parsed = @client.eval_r(cmd, session_id: current_session_id, parent_id: callback_parent_id, timeout: effective_bridge_timeout(timeout: nil))
       status =
         case parsed['status'].to_s
         when 'DEPTH' then :depth_limit
@@ -348,11 +397,11 @@ module R
     # Minimal pull path for Phase 5.1 unboxing support.
     # Reads vectors element-by-element via the existing eval path.
     def pull_vector(var_name)
-      len = @client.eval_r("length(#{var_name})", session_id: current_session_id)['value'].to_i
+      len = @client.eval_r("length(#{var_name})", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))['value'].to_i
       return [] if len <= 0
 
       (1..len).map do |i|
-        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id)
+        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
         case parsed['kind']
         when 'integer', 'double', 'character'
           parsed['kind'] == 'character' ? unescape_scalar_character(parsed['value'].to_s) : parsed['value']
@@ -371,7 +420,7 @@ module R
       start_i = offset + 1
       end_i = offset + chunk_size
       (start_i..end_i).map do |i|
-        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id)
+        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
         parsed['value']
       end
     end
@@ -381,7 +430,7 @@ module R
       start_i = offset + 1
       end_i = offset + chunk_size
       (start_i..end_i).map do |i|
-        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id)
+        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
         parsed['value']
       end
     end
@@ -413,11 +462,13 @@ module R
         end_i = offset.to_i + values.length
         @client.eval_r("({ #{var_name}[#{start_i}:#{end_i}] <- c(#{serialized}); 0L })",
                        session_id: current_session_id,
-                       parent_id: callback_parent_id)
+                       parent_id: callback_parent_id,
+                       timeout: effective_bridge_timeout(timeout: nil))
       else
         @client.eval_r("({ #{var_name} <- c(#{serialized}); 0L })",
                        session_id: current_session_id,
-                       parent_id: callback_parent_id)
+                       parent_id: callback_parent_id,
+                       timeout: effective_bridge_timeout(timeout: nil))
       end
       nil
     end
@@ -428,23 +479,23 @@ module R
     # Uses scalar eval for each cell to stay compatible with phase1's
     # length-1 scalar limitation.
     def pull_dataframe(var_name)
-      ncol = @client.eval_r("length(#{var_name})", session_id: current_session_id)['value'].to_i
+      ncol = @client.eval_r("length(#{var_name})", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))['value'].to_i
       return {} if ncol <= 0
 
       col_hash = {}
 
       (1..ncol).each do |i|
         # names(df)[i] is a character vector of length 1 -> length-1 scalar.
-        col_name_parsed = @client.eval_r("names(#{var_name})[#{i}]", session_id: current_session_id)
+        col_name_parsed = @client.eval_r("names(#{var_name})[#{i}]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
         col_name = col_name_parsed['value']
         col_name = col_name.to_s if col_name
 
-        col_type = @client.eval_r("typeof(#{var_name}[[#{i}]])", session_id: current_session_id)['value'].to_s
-        nrow = @client.eval_r("length(#{var_name}[[#{i}]])", session_id: current_session_id)['value'].to_i
+        col_type = @client.eval_r("typeof(#{var_name}[[#{i}]])", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))['value'].to_s
+        nrow = @client.eval_r("length(#{var_name}[[#{i}]])", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))['value'].to_i
         nrow = 0 if nrow.negative?
 
         values = (1..nrow).map do |j|
-          parsed = @client.eval_r("#{var_name}[[#{i}]][[#{j}]]", session_id: current_session_id)
+          parsed = @client.eval_r("#{var_name}[[#{i}]][[#{j}]]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
           case parsed['kind']
           when 'logical'
             parsed['value'].nil? ? R::NA : parsed['value']
@@ -524,7 +575,7 @@ module R
         })
       RCODE
 
-      raw = @client.eval_r(r_code, session_id: current_session_id, parent_id: callback_parent_id)
+      raw = @client.eval_r(r_code, session_id: current_session_id, parent_id: callback_parent_id, timeout: effective_bridge_timeout(timeout: nil))
       token = raw['value'].to_s
       parts = token.split(sep, 4)
       kind = parts[0].to_s

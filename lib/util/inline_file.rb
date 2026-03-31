@@ -37,7 +37,7 @@ module GalaazUtil
     f << ".rb" if File.extname(f) == ""
     file = "#{pwd}/#{f}"
 
-    if (relative == false)
+    if (relative == false) && !R.file__exists(file).unboxed_get(0)
       $LOAD_PATH.each do |path|
         begin
           files = Dir.entries(path)

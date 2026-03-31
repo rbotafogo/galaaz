@@ -1,0 +1,14 @@
+---
+title: "include model local repro"
+output:
+  github_document: default
+---
+
+```{include model}
+```
+
+```{ruby, echo=FALSE}
+mtcars = ~:mtcars
+model = Model.new(mtcars, percent_train: 0.8)
+puts model.class
+```

@@ -5,8 +5,7 @@ require 'optionparser'
 require 'shellwords'
 
 options = {}
-
-OptionParser.new do |opts|
+parser = OptionParser.new do |opts|
   opts.banner = "Usage: gknit [options]"
   opts.on("-f", "--filename FILE", "The input file to be rendered.  
 This value can also be provided without the '-f' or '--filename' 
@@ -63,7 +62,16 @@ that are created during rendering.") do |opt|
   opts.on("--debugR", "Log R/Ruby bridge traffic to logs; print only [RUBY] (commands sent) to stderr. Full R output is in logs/galaaz_r_stdout.log.") do
     ENV["GALAAZ_DEBUG_R"] = "1"
   end
-end.parse!
+  opts.on("--callback_timeout_ms TIMEOUT_MS", Integer, "Callback timeout in milliseconds for R<->Ruby calls inside chunk execution. Use for long installs/computation (e.g., 7200000 for 2h).") do |opt|
+    options[:callback_timeout_ms] = opt
+  end
+  opts.on("--bridge_timeout_sec TIMEOUT_SEC", Integer, "Bridge request timeout in seconds for Ruby->R eval calls (default 60). Increase for long install.packages/compilation work.") do |opt|
+    options[:bridge_timeout_sec] = opt
+  end
+end
+
+remaining_args = parser.permute(ARGV.dup)
+ARGV.replace(remaining_args)
 
 # Sets the directory
 dir = Dir.pwd
@@ -143,10 +151,13 @@ puts "   * Clean: \t\t #{options[:clean]}"
 input_file = options[:input_file]
 input_dir = File.dirname(input_file)
 code = <<EOF
+ENV['GALAAZ_CALLBACK_TIMEOUT_MS'] = #{options[:callback_timeout_ms].to_s.inspect} if #{!options[:callback_timeout_ms].nil?}
+ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] = #{options[:bridge_timeout_sec].to_s.inspect} if #{!options[:bridge_timeout_sec].nil?}
 require %q(galaaz)
 require %q(gknit)
 
 Dir.chdir(#{input_dir.inspect}) do
+  GknitDiagnostics.reset! if defined?(GknitDiagnostics)
   begin
     R::Rmarkdown.render(
          %q(#{input_file}),
@@ -182,6 +193,13 @@ Dir.chdir(#{input_dir.inspect}) do
     end
 
     STDERR.puts "gknit render failed: \#{e.message}"
+    if e.message.to_s.include?('no RET for')
+      callback_ms = ENV['GALAAZ_CALLBACK_TIMEOUT_MS'] || '120000'
+      bridge_sec = ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] || '60'
+      STDERR.puts "Likely bridge timeout during long-running Ruby->R evaluation."
+      STDERR.puts "Current bridge timeout: \#{bridge_sec} sec; callback timeout: \#{callback_ms} ms."
+      STDERR.puts "Use gknit --bridge_timeout_sec <sec> and/or --callback_timeout_ms <ms> for longer operations."
+    end
     if missing_pkg
       STDERR.puts "Likely missing LaTeX package: \#{missing_pkg} (install with tlmgr)."
     elsif latex_fatal
@@ -190,6 +208,8 @@ Dir.chdir(#{input_dir.inspect}) do
       STDERR.puts "See LaTeX log for details: \#{log_file}"
     end
     exit 1
+  ensure
+    GknitDiagnostics.print_report(STDERR) if defined?(GknitDiagnostics)
   end
 end
 EOF
@@ -197,6 +217,8 @@ EOF
 libx = File.expand_path('../lib', File.dirname(__FILE__))
 require File.join(libx, 'galaaz_jruby')
 jvm_args = GalaazJRuby.shell_j_arg_string
+ENV['GALAAZ_CALLBACK_TIMEOUT_MS'] = options[:callback_timeout_ms].to_s if !options[:callback_timeout_ms].nil?
+ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] = options[:bridge_timeout_sec].to_s if !options[:bridge_timeout_sec].nil?
 exec "jruby #{jvm_args} -I#{libx} -e #{Shellwords.escape(code)}"
 
 =begin

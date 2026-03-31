@@ -1,0 +1,10 @@
+---
+title: "callback timeout repro"
+output:
+  github_document: default
+---
+
+```{ruby, echo=FALSE}
+sleep 1
+puts "done"
+```

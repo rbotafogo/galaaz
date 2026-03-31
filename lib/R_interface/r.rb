@@ -94,14 +94,25 @@ module R
   # install
   #----------------------------------------------------------------------------------------
 
-  def self.install_rlibs(*libs)
+  def self.with_callback_timeout_ms(callback_timeout_ms)
+    return yield if callback_timeout_ms.nil?
 
-    # Use a fixed local library directory and ensure R can see it
-    lib_dir = File.expand_path("~/R/x86_64-pc-linux-gnu-library/galaaz")
-    FileUtils.mkdir_p(lib_dir) unless Dir.exist?(lib_dir)
-    R.bridge.eval_r(".libPaths(c('#{lib_dir.gsub("'", "\\\\'")}', .libPaths()))")
+    old = ENV['GALAAZ_CALLBACK_TIMEOUT_MS']
+    ENV['GALAAZ_CALLBACK_TIMEOUT_MS'] = Integer(callback_timeout_ms).to_s
+    yield
+  ensure
+    ENV['GALAAZ_CALLBACK_TIMEOUT_MS'] = old unless callback_timeout_ms.nil?
+  end
 
-    packages = R.c(*libs)
+  def self.install_rlibs(*libs, install_timeout_sec: nil, callback_timeout_ms: nil, bridge_timeout_sec: nil)
+    with_callback_timeout_ms(callback_timeout_ms) do
+
+      # Use a fixed local library directory and ensure R can see it
+      lib_dir = File.expand_path("~/R/x86_64-pc-linux-gnu-library/galaaz")
+      FileUtils.mkdir_p(lib_dir) unless Dir.exist?(lib_dir)
+      R.bridge.eval_r(".libPaths(c('#{lib_dir.gsub("'", "\\\\'")}', .libPaths()))", timeout: bridge_timeout_sec)
+
+      packages = R.c(*libs)
 
     # installed.packages() returns a matrix; package names are in the row names.
     # Using [:all, "Package"] on this matrix ends up calling [[ with a missing
@@ -113,7 +124,7 @@ module R
     new_packages = packages[!(packages._ :in, installed_names)]
     new_packages_str = new_packages.to_s
 
-    if(new_packages.length > 0 && new_packages_str != "character(0)")
+      if(new_packages.length > 0 && new_packages_str != "character(0)")
       $stderr.puts "[RUBY] The following packages are missing and will be installed: #{new_packages_str}"
       $stderr.puts "[RUBY] Installing to: #{lib_dir}"
       
@@ -125,13 +136,23 @@ module R
       # Install each package
       pkg_list.each do |pkg|
         $stderr.puts "[RUBY] Installing #{pkg}..."
+        if install_timeout_sec
+          timeout_i = Integer(install_timeout_sec)
+          R.bridge.eval_r("options(timeout=#{timeout_i})", timeout: bridge_timeout_sec)
+        end
         r_cmd = "install.packages('#{pkg.gsub("'", "\\\\'")}', repos='https://cloud.r-project.org', lib='#{lib_dir.gsub("'", "\\\\'")}', dependencies=NA)"
         $stderr.puts "[RUBY] R command: #{r_cmd}"
-        result = R.bridge.eval_r(r_cmd)
+        result = R.bridge.eval_r(r_cmd, timeout: bridge_timeout_sec)
         $stderr.puts "[RUBY] Install output: #{result.inspect}"
         if result.to_s.include?("ANTICONF") || result.to_s.include?("Configuration failed")
           $stderr.puts "[RUBY] WARNING: Package #{pkg} failed to install due to missing system libraries."
           $stderr.puts "[RUBY] For kableExtra, you may need: libfontconfig1-dev libxml2-dev libfreetype6-dev"
+        end
+      ensure
+        begin
+          R.bridge.eval_r("options(timeout=60)", timeout: bridge_timeout_sec)
+        rescue StandardError
+          nil
         end
       end
       
@@ -142,16 +163,17 @@ module R
       if still_missing.length > 0
         raise "Failed to install packages: #{still_missing.to_s}. Check stderr output above for [RUBY] debug messages."
       end
-    end
+      end
 
+    end
   end
 
   #----------------------------------------------------------------------------------------
   #
   #----------------------------------------------------------------------------------------
 
-  def self.install_and_loads(*libs)
-    R.install_rlibs(*libs)
+  def self.install_and_loads(*libs, install_timeout_sec: nil, callback_timeout_ms: nil, bridge_timeout_sec: nil)
+    R.install_rlibs(*libs, install_timeout_sec: install_timeout_sec, callback_timeout_ms: callback_timeout_ms, bridge_timeout_sec: bridge_timeout_sec)
     # Use library() so load failures throw immediately with a clear R error
     libs.each { |lib| R.library(lib) }
   end

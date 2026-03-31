@@ -29,7 +29,7 @@ class Model
   def partition(field)
 
     train_index =
-      R.createDataPartition(@data.send(field), p: @percet_train,
+      R.createDataPartition(@data.send(field), p: @percent_train,
                             list: false, times: 1)
     @train = @data[train_index, :all]
     @test = @data[-train_index, :all]
