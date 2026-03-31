@@ -592,8 +592,20 @@ class KnitrEngine
     when "awt"
     when "svg"
       R.svg(filename)
-    when "png", "pdf"
+    when "png"
       R.png(filename, width, height, units, pointsize, bg, res, *args)
+    when "pdf"
+      width_in = width
+      height_in = height
+      units_s = units.to_s
+      if units_s == "px"
+        width_in = width.to_f / res.to_f
+        height_in = height.to_f / res.to_f
+      elsif units_s == "cm"
+        width_in = width.to_f / 2.54
+        height_in = height.to_f / 2.54
+      end
+      R.pdf(filename, width_in, height_in, *args)
     when "jpg", "jpeg"
       R.jpeg(filename, width, height, units, pointsize, bg, res, *args)
     when "bmp" 
@@ -602,6 +614,25 @@ class KnitrEngine
       raise "Invalid device type #{device}"
     end
     
+  end
+
+  #--------------------------------------------------------------------------------------
+  # A figure is renderable only if the artifact exists and is valid for its device.
+  # For PDFs, enforce at least one page so LaTeX includegraphics won't fail.
+  #--------------------------------------------------------------------------------------
+
+  def figure_artifact_ready?(path)
+    return false unless File.exist?(path)
+    return false unless File.size(path).to_i > 0
+
+    ext = File.extname(path).downcase
+    return true unless ext == ".pdf"
+
+    pdf_data = File.binread(path)
+    counts = pdf_data.scan(%r{/Count\s+(\d+)}).flatten.map(&:to_i)
+    !counts.empty? && counts.max > 0
+  rescue StandardError
+    false
   end
 
   #--------------------------------------------------------------------------------------
@@ -749,18 +780,18 @@ class KnitrEngine
         out = R.c(out, RChunk.out_list)
         RChunk.reset_outputs
         
-        # @TODO: allow capturing many plots in the block.  For now, only the last
-        # plot will be captured.  Not a very serious problem for now.
-        # Captures the last plot in the Ruby block. 
-        if include_chunk && capture_plot
-          # use same absolute path as in capture_plot so knitr can find the file
+        # Finalize the chunk device before testing/including artifact; PDF files are not
+        # valid for includegraphics until dev.off() closes the page stream.
+        if dv_n.is_a?(Integer) && dv_n > 1
+          R.dev__off(dv_n)
+          dv_n = nil
+        end
+
+        # Include only real, renderable figure artifacts for this chunk.
+        if include_chunk
           fig_path = File.expand_path(@filename)
-          if File.exist?(fig_path)
-            # Emit figure as markdown image and mark as as-is so pandoc can render it
-            # consistently for html/latex/gfm outputs.
+          if figure_artifact_ready?(fig_path)
             fig_rel = Pathname.new(fig_path).relative_path_from(Pathname.new(Dir.pwd)).to_s rescue fig_path
-            # Emit markdown image syntax directly so pandoc can convert it to
-            # format-specific output (HTML/LaTeX/etc.).
             fig_md = "![](" + fig_rel + ")"
             out = R.c(out, fig_md)
           end
