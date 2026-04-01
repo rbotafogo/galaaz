@@ -1,1 +1,0 @@
-Test write at $(Time.now)

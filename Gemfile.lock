@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    galaaz (0.5.0)
+    galaaz (2.0.0)
 
 GEM
   remote: https://rubygems.org/
@@ -59,7 +59,7 @@ CHECKSUMS
   diff-lcs (1.6.2) sha256=9ae0d2cba7d4df3075fe8cd8602a8604993efc0dfa934cff568969efb1909962
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   erb (6.0.2-java) sha256=38f0e2e15453963fda1754d6b555b26650631cad72567304d59e6c3d847cd1be
-  galaaz (0.5.0)
+  galaaz (2.0.0)
   jar-dependencies (0.5.6) sha256=fa184e27cc820880ccafad49116ff9776652996f907121f78bd06c58ad5290f8
   msgpack (1.8.0-java) sha256=723cdf579b089a68dfd9fd7228fc0caed07865d26fc7224e5381af1fb3292f8a
   psych (5.3.1-java) sha256=20a4a81ad01479ef060f604ed75ba42fe673169e67d923b1bae5aa4e13cc5820
