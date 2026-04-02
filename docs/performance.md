@@ -19,6 +19,8 @@ Key observation:
 - Core DESeq compute time is similar between pure R and `galaaz`.
 - Main overhead is in setup/interoperability phases, not statistical model computation itself.
 
+For a **fair warm comparison** (R and galaaz each running the pipeline **three times in one process**, PDF plot aligned), see [deseq2_airway_benchmark.md](./deseq2_airway_benchmark.md). On a representative run, **R warm (~14 s)** and **galaaz optimized warm (~14 s)** can match; rerun the harness to account for variance.
+
 ## Scope
 
 In scope:

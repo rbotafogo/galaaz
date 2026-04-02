@@ -176,4 +176,61 @@ describe "Result protocol (Phase 5)" do
       expect(vec.object_id).to eq vec.__id__
     end
   end
+
+  # Phase 1 performance: gatekeeper sends stable wrapper_tag on handle results (docs/performance_plan.md).
+  context "eval_r_with_result handle envelopes include wrapper_tag" do
+    def envelope_for_rhs(rhs_r)
+      vn = R::Support.generate_var_name
+      R.bridge.eval_r_with_result("#{vn} <- #{rhs_r}")
+    end
+
+    it "tags multi-element vector" do
+      env = envelope_for_rhs("c(1L, 2L, 3L)")
+      expect(env[:type]).to eq(:handle)
+      expect(env[:wrapper_tag]).to eq("vector")
+    end
+
+    it "tags data.frame" do
+      env = envelope_for_rhs("data.frame(a = 1:2, b = c('u', 'v'))")
+      expect(env[:type]).to eq(:handle)
+      expect(env[:wrapper_tag]).to eq("data_frame")
+    end
+
+    it "tags matrix" do
+      env = envelope_for_rhs("matrix(1:4, nrow = 2)")
+      expect(env[:type]).to eq(:handle)
+      expect(env[:wrapper_tag]).to eq("matrix")
+    end
+
+    it "tags list" do
+      env = envelope_for_rhs("list(1L, 'a', TRUE)")
+      expect(env[:type]).to eq(:handle)
+      expect(env[:wrapper_tag]).to eq("list")
+    end
+
+    it "tags closure" do
+      env = envelope_for_rhs("identity")
+      expect(env[:type]).to eq(:handle)
+      expect(env[:wrapper_tag]).to eq("closure")
+    end
+
+    it "tags environment" do
+      env = envelope_for_rhs("new.env()")
+      expect(env[:type]).to eq(:handle)
+      expect(env[:wrapper_tag]).to eq("environment")
+    end
+
+    it "tags language (call)" do
+      env = envelope_for_rhs("quote(1 + 2)")
+      expect(env[:type]).to eq(:handle)
+      expect(env[:wrapper_tag]).to eq("language")
+    end
+
+    it "omits wrapper_tag for scalar results" do
+      vn = R::Support.generate_var_name
+      env = R.bridge.eval_r_with_result("#{vn} <- 42L")
+      expect(env[:type]).to eq(:scalar_integer)
+      expect(env).not_to have_key(:wrapper_tag)
+    end
+  end
 end

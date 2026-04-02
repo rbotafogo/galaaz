@@ -100,7 +100,7 @@ module R
           name = m ? m[1] : raw.strip
           return name.gsub("::", "___").gsub(".", "__").to_sym
         end
-        return R::Object.build(envelope[:handle], nil, r_class: envelope[:r_class])
+        return R::Object.build(envelope[:handle], nil, r_class: envelope[:r_class], wrapper_tag: envelope[:wrapper_tag])
       else
         raise "Result protocol: unknown envelope type #{envelope[:type].inspect}"
       end
@@ -329,7 +329,7 @@ module R
         return sym_name.gsub("::", "___").gsub(".", "__").to_sym
       when :handle
         # Never unbox single-cell for `[`; keep as R::Object so .all__equal and other R methods work.
-        return R::Object.build(envelope[:handle], r_expr, r_class: envelope[:r_class])
+        return R::Object.build(envelope[:handle], r_expr, r_class: envelope[:r_class], wrapper_tag: envelope[:wrapper_tag])
       else
         raise "Result protocol: unknown envelope type #{envelope[:type].inspect}"
       end

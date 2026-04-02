@@ -615,7 +615,9 @@ module R
       when 'scalar_symbol'
         { type: :scalar_symbol, value: val.to_s }
       when 'handle'
-        { type: :handle, handle: parsed['handle'].to_s, r_class: parsed['r_class'].to_s }
+        wt = parsed['wrapper_tag']
+        wt = nil if wt.nil? || wt.to_s.strip.empty?
+        { type: :handle, handle: parsed['handle'].to_s, r_class: parsed['r_class'].to_s, wrapper_tag: wt&.to_s }
       else
         raise "Result protocol: unknown payload type #{parsed.inspect}"
       end

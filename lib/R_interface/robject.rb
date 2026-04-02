@@ -64,9 +64,25 @@ module R
       @expression = expression
     end
 
+    # Number of R `class()` probes issued from Object.build (missing r_class and no usable wrapper_tag).
+    # Reset with reset_build_counters! before measuring. See docs/performance_plan.md Phase 2.
+    def self.build_class_probe_count
+      @build_class_probe_count ||= 0
+    end
+
+    def self.reset_build_counters!
+      @build_class_probe_count = 0
+    end
+
+    def self.increment_build_class_probe_count!
+      @build_class_probe_count = build_class_probe_count + 1
+    end
+
     # Factory: build the right Ruby wrapper for an R value. Returns a subclass (DataFrame, Vector, etc.),
     # or the unwrapped Ruby value for rb_obj_* handles and for R NULL. Pass r_class to avoid an R class() call.
-    def self.build(r_interop, expression = nil, r_class: nil)
+    # Pass wrapper_tag from the new-bridge envelope to classify without string-matching r_class and to allow
+    # probe-free builds when r_class is absent but tag is present (non-+other+).
+    def self.build(r_interop, expression = nil, r_class: nil, wrapper_tag: nil)
       # Ruby object handles stored in R: unwrap to the original Ruby object.
       if r_interop.is_a?(::String) && r_interop.start_with?("rb_obj_")
         return ::R::Support.get_ruby_object(r_interop)
@@ -80,50 +96,112 @@ module R
         return new(r_interop, expression) unless ::R.bridge.ready?
 
         begin
-          r_class_arg = r_class
-          r_class = r_class.to_s.strip
-          r_class = nil if r_class.nil? || r_class.empty?
-          r_class ||= ::R.bridge.eval_r("paste(class(#{r_interop}), collapse=' ')").gsub(/^\[1\] /, "").gsub(/"/, "").strip
-          # R NULL -> Ruby nil so we never call >> or other methods on a NULL handle (which can crash R)
-          return nil if r_class.to_s.strip == "NULL"
-          if ::ENV['GALAAZ_DEBUG']
-            ::Kernel.puts "DEBUG: Object.build r_interop=#{r_interop.inspect} r_class_arg=#{r_class_arg.inspect} r_class=#{r_class.inspect}"
+          rc_in = r_class
+          rc = r_class.to_s.strip
+          rc = nil if rc.nil? || rc.empty?
+          tag = wrapper_tag.to_s.strip
+          tag = nil if tag.nil? || tag.empty?
+
+          # Probe only when we have no class string and no definitive wrapper tag.
+          if rc.nil? && (!tag || tag == "other")
+            rc = class_probe_fetch_r_class(r_interop)
+          elsif rc.nil? && tag && tag != "other"
+            # Envelope-style path: tag is enough; avoid class() round-trip.
           end
-          obj = case
-                when r_class.include?("data.frame") || r_class.include?("tbl_df")
-                  ::R::DataFrame.new(r_interop, expression)
-                when r_class.include?("matrix") || r_class.include?("array")
-                  ::R::Matrix.new(r_interop, expression)
-                when r_class.include?("numeric") || r_class.include?("integer") ||
-                     r_class.include?("logical") || r_class.include?("character")
-                  obj = ::R::Vector.new(r_interop)
-                  obj.expression = expression if expression
-                  obj
-                when r_class.include?("list")
-                  ::R::List.new(r_interop, expression)
-                when r_class.include?("environment")
-                  ::R::Environment.new(r_interop, expression)
-                when r_class.include?("function")
-                  ::R::Closure.new(r_interop, expression)
-                when r_class.include?("language") || r_class == "call"
-                  ::R::Language.new(r_interop, expression)
-                when r_class == "name" || r_class == "symbol"
-                  ::R::RSymbol.new(r_interop, expression)
-                when r_class == "expression"
-                  ::R::RExpression.new(r_interop, expression)
-                else
-                  ::Kernel.puts "DEBUG: Object.build fell through to else (r_class=#{r_class.inspect})" if ::ENV['GALAAZ_DEBUG']
-                  new(r_interop, expression)
-                end
+
+          return nil if rc && rc.strip == "NULL"
+
+          if ::ENV['GALAAZ_DEBUG']
+            ::Kernel.puts "DEBUG: Object.build r_interop=#{r_interop.inspect} r_class_arg=#{rc_in.inspect} r_class=#{rc.inspect} wrapper_tag=#{tag.inspect}"
+          end
+
+          if tag && tag != "other"
+            obj = build_from_wrapper_tag(r_interop, expression, tag, r_class_hint: rc)
+            if obj
+              ::Kernel.puts "DEBUG: Object.build returning #{obj.class}" if ::ENV['GALAAZ_DEBUG']
+              return obj
+            end
+          end
+
+          if rc.nil?
+            rc = class_probe_fetch_r_class(r_interop)
+            return nil if rc.strip == "NULL"
+          end
+
+          obj = build_from_r_class_string(r_interop, expression, rc)
           ::Kernel.puts "DEBUG: Object.build returning #{obj.class}" if ::ENV['GALAAZ_DEBUG']
-          return obj
+          obj
         rescue => e
           ::Kernel.puts "DEBUG: Object.build rescue: #{e.message}" if ::ENV['GALAAZ_DEBUG']
-          return new(r_interop, expression)
+          new(r_interop, expression)
         end
       else
         # Fallback for already unboxed or unexpected strings
         r_interop
+      end
+    end
+
+    def self.class_probe_fetch_r_class(r_interop)
+      increment_build_class_probe_count!
+      ::R.bridge.eval_r("paste(class(#{r_interop}), collapse=' ')").gsub(/^\[1\] /, "").gsub(/"/, "").strip
+    end
+
+    def self.build_from_wrapper_tag(r_interop, expression, tag, r_class_hint: nil)
+      # typeof(formula) is language in R, but class is "formula"; keep plain R::Object (legacy semantics).
+      if tag == "language" && r_class_hint && r_class_hint.include?("formula")
+        return nil
+      end
+
+      case tag
+      when "data_frame"
+        ::R::DataFrame.new(r_interop, expression)
+      when "matrix"
+        ::R::Matrix.new(r_interop, expression)
+      when "vector"
+        v = ::R::Vector.new(r_interop)
+        v.expression = expression if expression
+        v
+      when "list"
+        ::R::List.new(r_interop, expression)
+      when "environment"
+        ::R::Environment.new(r_interop, expression)
+      when "closure"
+        ::R::Closure.new(r_interop, expression)
+      when "language"
+        ::R::Language.new(r_interop, expression)
+      when "symbol"
+        ::R::RSymbol.new(r_interop, expression)
+      else
+        nil
+      end
+    end
+
+    def self.build_from_r_class_string(r_interop, expression, r_class)
+      case
+      when r_class.include?("data.frame") || r_class.include?("tbl_df")
+        ::R::DataFrame.new(r_interop, expression)
+      when r_class.include?("matrix") || r_class.include?("array")
+        ::R::Matrix.new(r_interop, expression)
+      when r_class.include?("numeric") || r_class.include?("integer") ||
+           r_class.include?("logical") || r_class.include?("character")
+        v = ::R::Vector.new(r_interop)
+        v.expression = expression if expression
+        v
+      when r_class.include?("list")
+        ::R::List.new(r_interop, expression)
+      when r_class.include?("environment")
+        ::R::Environment.new(r_interop, expression)
+      when r_class.include?("function")
+        ::R::Closure.new(r_interop, expression)
+      when r_class.include?("language") || r_class == "call"
+        ::R::Language.new(r_interop, expression)
+      when r_class == "name" || r_class == "symbol"
+        ::R::RSymbol.new(r_interop, expression)
+      when r_class == "expression"
+        ::R::RExpression.new(r_interop, expression)
+      else
+        ::Kernel.puts "DEBUG: Object.build fell through to else (r_class=#{r_class.inspect})" if ::ENV['GALAAZ_DEBUG']
+        new(r_interop, expression)
       end
     end
 
@@ -248,7 +326,7 @@ module R
           v = envelope[:value]
           return (v.is_a?(::String) && v =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(v) : v
         when :handle
-          obj = ::R::Object.build(envelope[:handle], nil, r_class: envelope[:r_class])
+          obj = ::R::Object.build(envelope[:handle], nil, r_class: envelope[:r_class], wrapper_tag: envelope[:wrapper_tag])
           unless obj.instance_of?(::R::Object)
             return obj.unboxed_get(nil, depth + 1)
           end

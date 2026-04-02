@@ -570,6 +570,45 @@ std::string class_or_typeof_string(SEXP x) {
   }
 }
 
+// Normalized wrapper tag for Ruby R::Object.build (see docs/performance_plan.md).
+// Values: vector, data_frame, matrix, list, closure, environment, language, symbol, other.
+std::string wrapper_tag_for_sexp(SEXP val) {
+  if (val == R_NilValue) return "other";
+  if (Rf_inherits(val, "data.frame")) return "data_frame";
+  SEXP dim = Rf_getAttrib(val, R_DimSymbol);
+  if (dim != R_NilValue && TYPEOF(dim) == INTSXP && Rf_xlength(dim) == 2) {
+    return "matrix";
+  }
+  if (Rf_inherits(val, "array")) return "matrix";
+  if (Rf_inherits(val, "factor")) return "other";
+
+  switch (TYPEOF(val)) {
+    case VECSXP:
+      return "list";
+    case CLOSXP:
+    case BUILTINSXP:
+    case SPECIALSXP:
+      return "closure";
+    case ENVSXP:
+      return "environment";
+    case LANGSXP:
+      return "language";
+    case EXPRSXP:
+      return "other";
+    case LISTSXP:
+      return "list";
+    case INTSXP:
+    case REALSXP:
+    case LGLSXP:
+    case STRSXP:
+      return "vector";
+    case SYMSXP:
+      return "symbol";
+    default:
+      return "other";
+  }
+}
+
 EvalResult payload_eval_with_result(SEXP val, const std::string& var_name) {
   if (TYPEOF(val) == SYMSXP) {
     std::vector<uint8_t> p;
@@ -631,13 +670,15 @@ EvalResult payload_eval_with_result(SEXP val, const std::string& var_name) {
   }
 
   std::vector<uint8_t> p;
-  pack_map3(p);
+  pack_map4(p);
   pack_str(p, "type");
   pack_str(p, "handle");
   pack_str(p, "handle");
   pack_str(p, var_name);
   pack_str(p, "r_class");
   pack_str(p, class_or_typeof_string(val));
+  pack_str(p, "wrapper_tag");
+  pack_str(p, wrapper_tag_for_sexp(val));
   return {true, p};
 }
 
