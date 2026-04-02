@@ -27,10 +27,58 @@ module R
     @@var_id = 0
     @@var_id_mutex = Mutex.new
     @dispatch_probe_cache = { func: {} }
+    # Phase 3: cache bridge dispatch_probe(handle, name) → { is_field, is_func } (FIFO eviction).
+    DISPATCH_PROBE_CACHE_MAX = 4096
+    @dispatch_probe_handle_cache = {}
+    @dispatch_probe_handle_fifo = []
+    @dispatch_probe_cache_mx = Mutex.new
+    @dispatch_probe_cache_hits = 0
+    @dispatch_probe_cache_misses = 0
     TRANSPORT_NL = "\uE000".freeze
 
     # Maximum recursion depth when unboxing lists. Beyond this we raise UnboxDepthError.
     MAX_UNBOX_DEPTH = 100
+
+    class << self
+      attr_reader :dispatch_probe_cache_hits, :dispatch_probe_cache_misses
+    end
+
+    def self.reset_dispatch_probe_cache_stats!
+      @dispatch_probe_cache_mx&.synchronize do
+        @dispatch_probe_cache_hits = 0
+        @dispatch_probe_cache_misses = 0
+      end
+    end
+
+    def self.dispatch_probe_handle_cache_size
+      @dispatch_probe_cache_mx.synchronize { @dispatch_probe_handle_cache.size }
+    end
+
+    def self.clear_dispatch_probe_handle_cache!
+      @dispatch_probe_cache_mx.synchronize do
+        @dispatch_probe_handle_cache.clear
+        @dispatch_probe_handle_fifo.clear
+      end
+    end
+
+    def self.dispatch_probe_cache_key(handle, name)
+      "#{handle}\u0000#{name}"
+    end
+
+    def self.store_dispatch_probe_handle_cache(key, is_field, is_func)
+      @dispatch_probe_cache_mx.synchronize do
+        if @dispatch_probe_handle_cache.key?(key)
+          @dispatch_probe_handle_cache[key] = { is_field: is_field, is_func: is_func }
+          return
+        end
+        while @dispatch_probe_handle_cache.size >= DISPATCH_PROBE_CACHE_MAX && !@dispatch_probe_handle_fifo.empty?
+          oldest = @dispatch_probe_handle_fifo.shift
+          @dispatch_probe_handle_cache.delete(oldest) if oldest
+        end
+        @dispatch_probe_handle_cache[key] = { is_field: is_field, is_func: is_func }
+        @dispatch_probe_handle_fifo << key
+      end
+    end
 
     # Generate a unique R-side variable name (e.g. g2_v1, g2_v2) for assignment results.
     def self.generate_var_name
@@ -418,6 +466,8 @@ module R
         return R::Object.build(name)
       end
 
+      # Phase 3: R.foo(...) — +internal+ is false/true from R.method_missing, not an R::Object. No per-handle
+      # field vs function ambiguity; go straight to function execution.
       unless internal.is_a?(R::Object)
         return self.exec_function(name, *args)
       end
@@ -439,15 +489,36 @@ module R
       is_field = false
       is_func = false
       if R.bridge.respond_to?(:dispatch_probe)
-        begin
-          probe = R.bridge.dispatch_probe(handle, name)
-          is_field = !!probe[:is_field]
-          is_func = !!probe[:is_func]
-          @dispatch_probe_cache[:func][name] = is_func
-        rescue StandardError => e
-          raise unless e.message.include?("invalid connection") || e.message.include?("invalid dispatch_probe params")
-          is_field = false
-          is_func = false
+        # Environments are mutable (rm, assign); do not cache probe results — stale is_field breaks semantics.
+        cache_probe = !internal.is_a?(::R::Environment)
+        probe_key = dispatch_probe_cache_key(handle, name)
+        cached_probe = nil
+        if cache_probe
+          @dispatch_probe_cache_mx.synchronize do
+            cached_probe = @dispatch_probe_handle_cache[probe_key]
+            @dispatch_probe_cache_hits += 1 if cached_probe
+          end
+        end
+        if cached_probe
+          is_field = !!cached_probe[:is_field]
+          is_func = !!cached_probe[:is_func]
+        else
+          begin
+            probe = R.bridge.dispatch_probe(handle, name)
+            is_field = !!probe[:is_field]
+            is_func = !!probe[:is_func]
+            if cache_probe
+              @dispatch_probe_cache_mx.synchronize do
+                @dispatch_probe_cache_misses += 1
+              end
+              store_dispatch_probe_handle_cache(probe_key, is_field, is_func)
+            end
+            @dispatch_probe_cache[:func][name] = is_func
+          rescue StandardError => e
+            raise unless e.message.include?("invalid connection") || e.message.include?("invalid dispatch_probe params")
+            is_field = false
+            is_func = false
+          end
         end
       else
         is_field = begin

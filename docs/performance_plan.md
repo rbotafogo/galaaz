@@ -64,13 +64,13 @@ Use these labels when recording timings or documenting before/after medians; the
 
 **Goal:** Obvious module-style function calls skip unnecessary `is_field` / `is_func` work; ambiguous `obj.name` keeps probing; expand/strengthen probe cache.
 
-- [ ] **Fast path:** `lib/R_interface/rsupport.rb` — direct function execution where the call shape is safe.
-- [ ] **Cache:** Hits/misses or equivalent for repeated symbols (align with optional counters in [performance.md](./performance.md)).
+- [x] **Fast path:** `lib/R_interface/rsupport.rb` — `R.foo(...)` already uses `exec_function` when `internal` is not an `R::Object` (documented explicitly).
+- [x] **Cache:** Per `(handle, name)` FIFO cache (max 4096) for `dispatch_probe` results; `R::Support.dispatch_probe_cache_hits` / `dispatch_probe_cache_misses`, `reset_dispatch_probe_cache_stats!`, `clear_dispatch_probe_handle_cache!`. **Not** used for `R::Environment` receivers (mutable bindings / `rm()`).
 
 **Regression (RSpec)**
 
-- [ ] Run `bin/run_rspec specs/r_object_send_dispatch_spec.rb specs/dispatch_probe_fallback_spec.rb specs/dispatch_probe_error_class_fallback_spec.rb` and full suite if time permits.
-- [ ] Add specs for fast-path vs ambiguous receiver behavior (no semantic change for valid programs).
+- [x] Run `bin/run_rspec specs/r_object_send_dispatch_spec.rb specs/dispatch_probe_fallback_spec.rb specs/dispatch_probe_error_class_fallback_spec.rb` and full suite if time permits.
+- [x] Add specs for fast-path vs ambiguous receiver behavior (no semantic change for valid programs).
 
 ---
 
