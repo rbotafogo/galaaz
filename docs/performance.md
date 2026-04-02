@@ -106,12 +106,12 @@ Need repeatable signals to prevent regressions and validate gains.
 
 Per-call bridge overhead is significant even when payloads are small. Batching reduces control-plane cost by sending multiple operations in one bridge packet.
 
-- Files: `lib/R_interface/rsupport.rb`, `lib/R_interface/new_bridge_adapter.rb`, `lib/new_bridge/session_client.rb`
+- Files: `lib/R_interface/rsupport.rb`, `lib/R_interface/new_bridge_adapter.rb`, `lib/new_bridge/session_client.rb`, gatekeeper `__G_BATCH_EVAL_WITH_RESULT__` in `ext/new_bridge/galaaz_gatekeeper_phase1.cpp`
 - Plan:
-  - Introduce explicit API first: `R.batch do ... end`.
+  - Introduce explicit API first: `R.batch do ... end`. **Shipped** — see [R.batch (explicit eval batching)](#rbatch-explicit-eval-batching) below.
   - Within a batch, queue compatible R operations and execute in order as one multi-op request.
   - Return per-op envelopes so Ruby can preserve object handles/types exactly.
-  - Add optional auto-batch micro-window later for transparent coalescing.
+  - Add optional auto-batch micro-window later for transparent coalescing (not done).
 - Expected impact:
   - Significant round-trip reduction in setup and output-heavy scripts.
   - Lower latency without changing user-level code structure.
@@ -174,9 +174,52 @@ Batching is feasible without requiring users to rewrite scripts into embedded R 
 - `puts` is not the bottleneck by itself; the expensive part is resolving `R.*` values used by `puts`.
 - Batching can coalesce those `R.*` evaluations before `puts` executes.
 - Recommended rollout:
-  1. explicit `R.batch` API (lowest risk),
+  1. explicit `R.batch` API (lowest risk) — **available**; semantics are documented in [R.batch (explicit eval batching)](#rbatch-explicit-eval-batching).
   2. benchmark and validate correctness,
   3. optional transparent auto-batching for common call patterns.
+
+## R.batch (explicit eval batching)
+
+The **`R.batch`** API runs several **`eval_r_with_result`-style assignments** in **one** bridge REQ/RET, reducing round-trips for setup-heavy Ruby code. It is the user-facing half of improvement track 6; implementation details and checklist live in [performance_plan.md](./performance_plan.md) (Phase 4).
+
+### Usage
+
+```ruby
+require 'galaaz'
+
+v1 = R::Support.generate_var_name
+v2 = R::Support.generate_var_name
+
+envelopes = R.batch do |b|
+  b.eval_with_result("#{v1} <- 1L")
+  b.eval_with_result("#{v2} <- #{v1} + 2L")
+end
+
+# Same legacy envelope hashes as sequential R.bridge.eval_r_with_result / Support paths:
+# envelopes[0][:type] => :scalar_integer, envelopes[0][:value] => 1, etc.
+vec = R::Object.build(envelopes[1][:handle], nil,
+                      r_class: envelopes[1][:r_class],
+                      wrapper_tag: envelopes[1][:wrapper_tag])
+```
+
+Each string passed to **`b.eval_with_result`** must be a **single assignment** in the same form the bridge already accepts after `__G_EVAL_WITH_RESULT__` (for example `"g2_v12 <- c(1, 2, 3)"`). Generate names with **`R::Support.generate_var_name`** so handles stay valid.
+
+### Semantics
+
+- **Ordering:** ops run in the order they were queued; results are returned as an **array of envelopes** in that same order.
+- **Fail-fast:** if op *k* fails in R, **later ops are not executed**. Ruby raises **`R::BatchEvaluationError`** with **`#failed_index`** (0-based) and the R error message. Earlier ops remain committed in the session environment, matching sequential `eval_r_with_result` behavior up to the failure.
+- **Empty batch:** `R.batch` with no `eval_with_result` calls raises **`ArgumentError`**.
+- **Limits:** at most **256** ops per batch; segments are separated on the wire by ASCII RS (`0x1E`). Assignments must not embed that byte.
+
+### What is not batched here
+
+This path only batches **eval-with-result assignments**. It does not combine arbitrary bridge commands (for example `__G_DISPATCH_PROBE__`, `__G_PULL_VECTOR__`, or plain side-effect `eval_r` snippets). Those still use the existing one-op APIs.
+
+### References
+
+- Ruby: `R.batch`, `R::BatchEvaluationError` in `lib/R_interface/r.rb`; collector and `R::Support.batch_eval_with_result` in `lib/R_interface/rsupport.rb`; `R::NewBridgeAdapter#batch_eval_r_with_result` in `lib/R_interface/new_bridge_adapter.rb`.
+- Gatekeeper: `__G_BATCH_EVAL_WITH_RESULT__` in `ext/new_bridge/galaaz_gatekeeper_phase1.cpp`.
+- Tests: `specs/r_batch_fail_fast_spec.rb`.
 
 ## Proposed Execution Sequence
 

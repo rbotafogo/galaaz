@@ -51,6 +51,18 @@ Observations from these samples:
 3. **Variance is real** (see sample A for galaaz). For reporting, run the harness **several times** or aggregate medians across days; do not trust a single triple.
 4. On these samples, **original vs optimized** galaaz warm times are **similar** once the process is hot; the expensive part is still **DESeq2 compute**. Output style (`puts` vs `R.cat`) matters more when the Ruby↔R chatter dominates; here it is a smaller slice.
 
+### Re-run after bridge work through Phase 4 (2026-04-02, same machine)
+
+Single run of each harness (no averaging across days). Codebase includes envelope `wrapper_tag`, `Object.build` probe avoidance, dispatch-probe cache, and `R.batch` (not used in these example scripts).
+
+| Harness | Run 1 | Run 2 | Run 3 | Warm (runs 2–3) |
+|--------|------:|------:|------:|----------------:|
+| R (`bench_r_three_same_process.R`) | 23.68 | 13.56 | 14.08 | **13.82** |
+| galaaz optimized (`bench_galaaz_three_same_process.rb optimized`) | 24.45 | 14.14 | 13.69 | **13.92** |
+| galaaz original (`… original`) | 25.62 | 14.83 | 13.76 | **14.29** |
+
+On this pass, **optimized galaaz warm (~13.9 s)** remains aligned with **R warm (~13.8 s)**; **original** is a few tenths slower on warm runs than **optimized**, consistent with extra Ruby↔R traffic from `puts` + embedded `R.*` in the non-optimized example.
+
 ## Historical context (galaaz “before” vs “after”)
 
 Earlier notes (e.g. [performance.md](./performance.md)) recorded galaaz **much slower** than R for this workload (e.g. warm loop on the order of **~45 s** vs R ~**26–28 s** on a one-shot `Rscript` baseline). With the **same warm semantics** as above (three runs in one process, optimized script using `R.cat`), **R lands near ~14 s warm** and **current galaaz can land in the same ~14 s band** on a representative run — i.e. **parity with single-process R**, not “magic faster than DESeq2,” when the pipeline is compute-heavy and both sides are warm.

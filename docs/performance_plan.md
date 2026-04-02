@@ -78,14 +78,14 @@ Use these labels when recording timings or documenting before/after medians; the
 
 **Goal:** `R.batch do ... end` queues compatible operations, sends **one** multi-op bridge request, returns **per-op** result envelopes on success. On first error: **fail-fast** (later ops not executed); surface error index / op identity for debugging. Same observable outcome as sequential calls when each step succeeds.
 
-- [ ] **Protocol:** Multi-op request/response with ordered results and structured errors.
-- [ ] **Ruby API:** `R.batch` block collector; document fail-fast semantics in code comments or [performance.md](./performance.md) if user-visible.
-- [ ] **Tests:** Happy path (multiple ops), failure on op *k* (verify op *k+1* did not run), ordering.
+- [x] **Protocol:** Gatekeeper `__G_BATCH_EVAL_WITH_RESULT__` + ops joined by ASCII RS (`0x1E`, max 256); RET MsgPack `kind=batch_eval` + `results` array, or `kind=batch_error` + `index` + `message` (success HTTP status so Ruby can read structured failure).
+- [x] **Ruby API:** `R.batch { |b| b.eval_with_result("g2_v… <- …") }` → `Array` of legacy envelopes; `R::BatchEvaluationError` with `#failed_index` (0-based). See `lib/R_interface/r.rb`, `new_bridge_adapter.rb`. User-facing notes: [performance.md — R.batch](./performance.md#rbatch-explicit-eval-batching).
+- [x] **Tests:** `specs/r_batch_fail_fast_spec.rb` — success chain, fail on op 1, empty batch.
 
 **Regression (RSpec)**
 
-- [ ] Run `bin/run_all_rspec`.
-- [ ] New file e.g. `specs/r_batch_fail_fast_spec.rb` (or under `new_bridge_specs/` if integration-heavy) covering success, single-op failure, and ordering.
+- [x] Run `bin/run_all_rspec`.
+- [x] New file `specs/r_batch_fail_fast_spec.rb` covering success, single-op failure, and ordering.
 
 ---
 

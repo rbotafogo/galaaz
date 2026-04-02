@@ -723,6 +723,88 @@ EvalResult eval_with_result_cmd(const std::string& cmd, const Rcpp::Environment&
   return payload_eval_with_result(val, var_name);
 }
 
+static void split_rs_records(const std::string& body, std::vector<std::string>& out) {
+  out.clear();
+  size_t start = 0;
+  while (start <= body.size()) {
+    size_t pos = body.find(static_cast<char>(0x1e), start);
+    if (pos == std::string::npos) {
+      out.push_back(body.substr(start));
+      break;
+    }
+    out.push_back(body.substr(start, pos - start));
+    start = pos + 1;
+  }
+}
+
+static std::string r_latest_error_message() {
+  try {
+    Rcpp::Function geterr("geterrmessage");
+    SEXP m = geterr();
+    if (Rf_isString(m) && Rf_length(m) >= 1) {
+      SEXP elt = STRING_ELT(m, 0);
+      if (elt != NA_STRING) {
+        const char* s = CHAR(elt);
+        if (s) return std::string(s);
+      }
+    }
+  } catch (...) {
+  }
+  return "evaluation error";
+}
+
+std::vector<uint8_t> payload_batch_eval_success(const std::vector<std::vector<uint8_t>>& items) {
+  std::vector<uint8_t> p;
+  pack_map2(p);
+  pack_str(p, "kind");
+  pack_str(p, "batch_eval");
+  pack_str(p, "results");
+  pack_array_header(p, static_cast<uint32_t>(items.size()));
+  for (const auto& it : items) {
+    p.insert(p.end(), it.begin(), it.end());
+  }
+  return p;
+}
+
+std::vector<uint8_t> payload_batch_error(int32_t idx, const std::string& msg) {
+  std::vector<uint8_t> p;
+  pack_map3(p);
+  pack_str(p, "kind");
+  pack_str(p, "batch_error");
+  pack_str(p, "index");
+  pack_int32(p, idx);
+  pack_str(p, "message");
+  pack_str(p, msg);
+  return p;
+}
+
+EvalResult eval_batch_eval_with_result_cmd(const std::string& cmd, const Rcpp::Environment& env) {
+  const std::string prefix = "__G_BATCH_EVAL_WITH_RESULT__";
+  if (!starts_with(cmd, prefix)) return {false, payload_error("bad batch eval prefix")};
+  std::string body = trim_copy(cmd.substr(prefix.size()));
+  std::vector<std::string> ops;
+  split_rs_records(body, ops);
+  if (ops.empty()) return {false, payload_error("empty batch")};
+  const size_t kMaxBatch = 256;
+  if (ops.size() > kMaxBatch) return {false, payload_error("batch too large (max 256)")};
+
+  std::vector<std::vector<uint8_t>> ok_items;
+  ok_items.reserve(ops.size());
+  for (size_t i = 0; i < ops.size(); ++i) {
+    std::string part = trim_copy(ops[i]);
+    if (part.empty()) {
+      return {true, payload_batch_error(static_cast<int32_t>(i), "empty batch segment")};
+    }
+    std::string full = std::string("__G_EVAL_WITH_RESULT__") + part;
+    EvalResult er = eval_with_result_cmd(full, env);
+    if (!er.ok) {
+      return {true, payload_batch_error(static_cast<int32_t>(i), r_latest_error_message())};
+    }
+    ok_items.push_back(std::move(er.payload));
+  }
+  return {true, payload_batch_eval_success(ok_items)};
+}
+
 EvalResult eval_unbox_walk_cmd(const std::string& cmd, const Rcpp::Environment& env) {
   // Format: __G_UNBOX_WALK__|<handle>|<max_depth>|<max_nodes>
   std::vector<std::string> parts;
@@ -1179,6 +1261,9 @@ static EvalResult eval_pull_vector_cmd(const std::string& cmd, const Rcpp::Envir
 EvalResult eval_code_payload(const std::string& code, const Rcpp::Environment& env) {
   if (starts_with(code, "__G_EVAL_WITH_RESULT__")) {
     return eval_with_result_cmd(code, env);
+  }
+  if (starts_with(code, "__G_BATCH_EVAL_WITH_RESULT__")) {
+    return eval_batch_eval_with_result_cmd(code, env);
   }
   if (starts_with(code, "__G_DISPATCH_PROBE__|")) {
     return eval_dispatch_probe_cmd(code, env);

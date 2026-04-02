@@ -591,6 +591,24 @@ module R
       id = id_str.sub("rb_obj_", "").to_i
       @ruby_objects[id]
     end
+
+    # Collects assignment strings for R.batch (Phase 4).
+    class BatchCollector
+      attr_reader :ops
+
+      def initialize
+        @ops = []
+      end
+
+      # Same form as a single bridge eval_with_result assignment, e.g. "#{vn} <- 1L".
+      def eval_with_result(assignment_code)
+        @ops << assignment_code.to_s
+      end
+    end
+
+    def self.batch_eval_with_result(assignment_codes)
+      R.bridge.batch_eval_r_with_result(Array(assignment_codes))
+    end
   end
 end
 

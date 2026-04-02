@@ -42,6 +42,16 @@ require_relative 'rmd_indexed_object'
 require_relative 'robject'
 
 module R
+  # Raised when R.batch hits an R error mid-batch (later ops are not executed).
+  class BatchEvaluationError < StandardError
+    attr_reader :failed_index
+
+    def initialize(message, failed_index = nil)
+      super(message)
+      @failed_index = failed_index
+    end
+  end
+
   # R↔Ruby bridge: NewBridge only.
   def self.bridge
     require_relative 'new_bridge_adapter'
@@ -72,6 +82,17 @@ module R
 
   def self.internal_eval(symbol, *args)
     R::Support.process_missing(symbol, true, *args)
+  end
+
+  # Queue several eval_r_with_result assignments and send them in one bridge round-trip.
+  # Fail-fast: on the first R error, remaining queued ops are not run (+R::BatchEvaluationError+,
+  # +#failed_index+ is 0-based). Same outcomes as sequential +eval_r_with_result+ when all succeed.
+  def self.batch
+    col = R::Support::BatchCollector.new
+    yield col
+    raise ArgumentError, 'R.batch requires at least one eval_with_result assignment' if col.ops.empty?
+
+    R::Support.batch_eval_with_result(col.ops)
   end
 
   #----------------------------------------------------------------------------------------

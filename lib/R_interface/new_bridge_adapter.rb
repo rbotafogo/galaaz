@@ -178,6 +178,22 @@ module R
       to_legacy_envelope(parsed)
     end
 
+    # Multiple eval_r_with_result-style assignments in one REQ/RET (Phase 4). Fail-fast: first R error
+    # skips remaining ops. Transport still returns HTTP-like success with payload kind +batch_error+.
+    # @return [Array<Hash>] legacy envelopes in order
+    # @raise [R::BatchEvaluationError] on first failed op (+#failed_index+ is 0-based)
+    def batch_eval_r_with_result(assignment_codes)
+      codes = Array(assignment_codes).map(&:to_s)
+      raise ArgumentError, 'batch_eval_r_with_result requires at least one assignment' if codes.empty?
+
+      body = codes.join("\u001E")
+      parsed = @client.eval_r("__G_BATCH_EVAL_WITH_RESULT__#{body}",
+                              session_id: current_session_id,
+                              parent_id: callback_parent_id,
+                              timeout: effective_bridge_timeout(timeout: nil))
+      decode_batch_eval_payload(parsed)
+    end
+
     # Single round-trip replacement for the two eval_r probes in
     # R::Support.process_missing_dispatch (is_field + is_func).
     # Gatekeeper: __G_DISPATCH_PROBE__|handle|name
@@ -597,6 +613,22 @@ module R
         "[1] \"#{unescape_scalar_character(val.to_s)}\""
       else
         parsed.to_s
+      end
+    end
+
+    def decode_batch_eval_payload(parsed)
+      raise "batch: expected Hash payload, got #{parsed.class}" unless parsed.is_a?(Hash)
+
+      case parsed['kind'].to_s
+      when 'batch_error'
+        idx = parsed['index']
+        idx = idx.to_i if idx && !idx.is_a?(Integer)
+        msg = parsed['message'].to_s
+        raise R::BatchEvaluationError.new(msg, idx)
+      when 'batch_eval'
+        Array(parsed['results']).map { |sub| to_legacy_envelope(sub) }
+      else
+        raise "batch: unknown payload kind #{parsed['kind'].inspect}"
       end
     end
 
