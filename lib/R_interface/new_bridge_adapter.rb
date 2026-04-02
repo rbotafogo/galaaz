@@ -31,6 +31,7 @@ module R
       #   Use rlang::missing_arg when available: tibble/tidyselect reject the legacy
       #   quote(f(,0))[[2]] sentinel ("Subscript ... can't contain the empty string").
       # The gatekeeper evaluates each REQ in a dedicated per-session env; globals are shared.
+      init_timeout = effective_bridge_timeout(timeout: nil)
       @client.eval_r(
         <<~RCODE,
           ({
@@ -113,7 +114,8 @@ module R
           })
         RCODE
         session_id: current_session_id,
-        parent_id: callback_parent_id
+        parent_id: callback_parent_id,
+        timeout: init_timeout
       )
       @ready = true
     end
@@ -253,11 +255,17 @@ module R
     end
 
     def effective_bridge_timeout(timeout: nil)
-      begin
-        timeout || Integer(ENV.fetch('GALAAZ_BRIDGE_TIMEOUT_SEC', '60'))
-      rescue StandardError
-        60
-      end
+      return timeout if timeout
+
+      raw = ENV['GALAAZ_BRIDGE_TIMEOUT_SEC']
+      return 60 if raw.nil?
+
+      s = raw.to_s.strip
+      return 60 if s.empty?
+
+      Integer(s)
+    rescue StandardError, ArgumentError
+      60
     end
 
     # Phase 5.3 callback stub registration for R::Support.parse_arg.

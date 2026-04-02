@@ -25,6 +25,13 @@ require 'singleton'
 require 'fileutils'
 require 'pathname'
 
+# gKnit touches the bridge before the first document chunk runs (install.packages, source, …).
+# If GALAAZ_BRIDGE_TIMEOUT_SEC is unset, use a generous default so render does not hit 60s while
+# the Rmd setup chunk has not yet run. Whitespace-only counts as unset.
+if ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'].nil? || ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'].to_s.strip.empty?
+  ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] = '300'
+end
+
 # Load these before anything else to ensure bridge is initialized and libraries are present
 R.install_and_loads('knitr', 'rmarkdown')
 

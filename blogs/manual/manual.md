@@ -1,9 +1,9 @@
 ---
 title: "Galaaz Manual"
-subtitle: "How to tightly couple Ruby and R in GraalVM"
+subtitle: "Coupling Ruby (JRuby) and GNU R for data science"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
-date: "2019"
+tags: [Galaaz, Ruby, JRuby, R, "GNU R", ggplot2, knitr, dplyr, Bioconductor, Arrow]
+date: "2026"
 bibliography: "../../examples/Bibliography/stats.bib"
 output:
   html_document:
@@ -33,7 +33,7 @@ community, a very large set of libraries and great for web development. However,
 libraries for data science, statistics, scientific plotting and machine learning. On the 
 other hand, R is considered one of the most powerful languages for solving all of the above 
 problems. Maybe the strongest competitor to R is Python with libraries such as NumPy, 
-Panda, SciPy, SciKit-Learn and a couple more.
+Pandas, SciPy, SciKit-Learn and a couple more.
 
 With Galaaz we do not intend to re-implement any of the scientific libraries in R, we allow
 for very tight coupling between the two languages to the point that the Ruby developer does
@@ -45,9 +45,8 @@ general-purpose programming language. It was designed and developed in the mid-1
 (RoR) by David Heinemeier Hansson. RoR is a web application framework first released
 around 2005. It makes extensive use of Ruby's metaprogramming features.  With RoR,
 Ruby became very popular.  According to [Ruby's Tiobe index](https://www.tiobe.com/tiobe-index/ruby/)
-it peeked in popularity around 2008, then declined until 2015 when it started picking up again.
-At the time of this writing (November 2018), the Tiobe index puts Ruby in 16th position as
-most popular language.
+it peaked in popularity around 2008, then declined until 2015 when it started picking up again.
+Ruby remains a significant language in web development and general-purpose scripting.
 
 Python, a language similar to Ruby, ranks 4th in the index.  Java, C and C++ take the
 first three positions.  Ruby is often criticized for its focus on web applications.
@@ -59,42 +58,23 @@ of libraries for data analysis.
 
 Until recently, there was no real perspective for Ruby to bridge this gap.
 Implementing a complete scientific computing infrastructure would take too long.
-Enters [Oracle's GraalVM](https://www.graalvm.org/):
 
-> GraalVM is a universal virtual machine for running applications written in
-> JavaScript, Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin,
-> and LLVM-based languages such as C and C++.
->
-> GraalVM removes the isolation between programming languages and enables
-> interoperability in a shared runtime. It can run either standalone or in the
-> context of OpenJDK, Node.js, Oracle Database, or MySQL.
->
-> GraalVM allows you to write polyglot applications with a seamless way to pass
-> values from one language to another. With GraalVM there is no copying or
-> marshaling necessary as it is with other polyglot systems. This lets you
-> achieve high performance when language boundaries are crossed. Most of the time
-> there is no additional cost for crossing a language boundary at all.
->
-> Often developers have to make uncomfortable compromises that require them
-> to rewrite their software in other languages. For example:
->
->  * That library is not available in my language. I need to rewrite it. 
->  * That language would be the perfect fit for my problem, but we cannot
->    run it in our environment. 
->  * That problem is already solved in my language, but the language is
->    too slow.
->   
->  With GraalVM we aim to allow developers to freely choose the right language for
->  the task at hand without making compromises.
+**Galaaz 2.0** couples **JRuby** (Ruby on the JVM) with **GNU R**—the same R you use for
+CRAN and Bioconductor. Ruby and R run in **separate processes**; the **Galaaz bridge**
+sends requests to R and returns results to Ruby. From your point of view you still write
+Ruby: `R.c(...)`, `R.library('ggplot2')`, `~:mtcars`, and dplyr-style chains on R objects.
+You do not need to learn R syntax to get a lot done, though reading R documentation for
+individual packages remains useful.
 
-As stated above, GraalVM is a _universal_ virtual machine that allows Ruby and R (and other
-languages) to run on the same environment.  GraalVM allows polyglot applications to
-_seamlessly_ interact with one another and pass values from one language to the other.
-Although a great idea, GraalVM still requires application writers to know several languages.
-To eliminate that requirement, we built Galaaz, a gem for Ruby, to tightly couple
-Ruby and R and allow those languages to interact in a way that the user will be unaware
-of such interaction. In other words, a Ruby programmer will be able to use all
-the capabilities of R without knowing the R syntax.
+Earlier experiments with Galaaz used Oracle’s **GraalVM** with TruffleRuby and FastR so that
+Ruby and R could share one runtime. That path is no longer the focus: **standard GNU R**
+gives full compatibility with the R package ecosystem (including compiled extensions and
+Bioconductor) while JRuby gives a mature Ruby with **real multithreading** for application
+and I/O code.
+
+The bridge handles **communication and typing** between the two worlds; large tables can
+also flow through **Apache Arrow** on the R side when you use the optional helpers described
+later in this manual.
 
 Library wrapping is a usual way of bringing features from one language into another.
 To improve performance, Python often wraps more efficient C libraries. For the
@@ -121,29 +101,96 @@ Galaaz is the Portuguese name for "Galahad".  From Wikipedia:
     His name should not be mistaken with Galehaut, a different knight from
     Arthurian legend. 
 
+# Command-line tools (`bin/`)
+
+The Galaaz repository ships many helpers under **`bin/`**. When working from a **clone**, call
+them as **`bin/<name>`** from the project root (or `./bin/<name>`). If you install the **gem**,
+only a subset is guaranteed on your `PATH` (see the gemspec: **`galaaz`**, **`gstudio`**, **`gknit`**, **`grun`**, **`gknit-draft`**); for development and CI, prefer the **`bin/`** copies so JVM flags and paths stay correct.
+
+Below, **current (Galaaz 2.0 + JRuby + GNU R)** means the tool is wired to **`jruby`** and
+**`bin/galaaz_jruby_env.inc.sh`** (or equivalent logic in Ruby via `lib/galaaz_jruby.rb`). **Legacy**
+means the script still targets **GraalVM** polyglot Ruby / FastR-era invocation and is **not**
+expected to work on a typical JRuby-only setup.
+
+## Bootstrap and environment
+
+| Script | Role | Expected to work in 2.0? |
+|--------|------|---------------------------|
+| **`bin/galaaz-bootstrap`** | **`--check`** / **`--apply`** diagnostics for **WSL2** (Docker CLI, optional TinyTeX/poppler prompts for gKnit PDF). Options: **`--runtime docker|local|auto`**, **`--[no-]prompt-doc-tools`**. | **Yes** (where WSL/Docker apply). |
+| **`bin/galaaz-jruby`** | Run **JRuby** with **`$LOAD_PATH`** including **`lib/`** and **required JVM flags** (Apache Arrow, etc.). Example: `bin/galaaz-jruby my_script.rb`, `bin/galaaz-jruby -S rspec …`. | **Yes** — preferred generic Ruby entrypoint. |
+| **`bin/galaaz_jruby_env.inc.sh`** | **`source`**d by bash wrappers; defines **`GALAAZ_REQUIRED_JRUBY_J_ARGS`**. Not run directly. | **Yes** (internal). |
+| **`bin/install-tinytex`** | Installs **TinyTeX** via upstream script (PDF for rmarkdown/gKnit). | **Yes** on Unix-like systems. |
+
+## Interactive use, examples, and Rake
+
+| Script | Role | Expected to work in 2.0? |
+|--------|------|---------------------------|
+| **`bin/gstudio`** | Launches **IRB** or **Pry** (flags **`-i`** / **`-p`**) with Galaaz preloaded via **`gstudio_irb.rb`** / **`gstudio_pry.rb`**, using JRuby + JVM flags. | **Yes**. |
+| **`bin/run_example`** | Runs one Ruby file with the same JRuby/JVM setup as tests (e.g. `bin/run_example examples/.../script.rb`). | **Yes**. |
+| **`bin/galaaz`** | Forwards arguments to **`rake`** from the repo root (`bin/galaaz specs:all`, etc.). Requires a Ruby with **`rake`** and the Rakefile environment you use (typically **JRuby** in this project). | **Yes** when invoked with a suitable Ruby. |
+
+## gKnit and document drafts
+
+| Script | Role | Expected to work in 2.0? |
+|--------|------|---------------------------|
+| **`bin/gknit`** | Renders **`.Rmd`** through **JRuby**, **`galaaz`**, and **`R::Rmarkdown.render`**. Use **`--output_format`** (e.g. **`pdf_document`**, **`html_document`**, **`all`**) to override the default; if omitted, the **first** YAML **`output:`** format is used. Also **`--output_file`**, **`--output_dir`**, **`--bridge_timeout_sec`**, **`--callback_timeout_ms`**. | **Yes** — main literate-programming CLI. |
+| **`bin/gknit-draft`** | Creates drafts from **rticles** (or similar) templates; implementation ends with **`ruby --polyglot --jvm`** (GraalVM-style). | **Uncertain / legacy** — prefer running draft logic under **`bin/galaaz-jruby`** or updating this script to match **`gknit`**. |
+| **`bin/gknit-draft.rb`** | Ruby body that calls **`GKnit.draft`**; can be run with JRuby if **`$LOAD_PATH`** and requires are set. | **Usable** with JRuby when invoked correctly; the **`bin/gknit-draft`** wrapper may need alignment. |
+| **`bin/gknit_Rscript`** | Invokes **`Rscript --jvm --polyglot`** and contains a **hard-coded** `LOAD_PATH` example. | **No** for standard 2.0 workflows — use **`bin/gknit`** instead. |
+
+## Tests
+
+| Script | Role | Expected to work in 2.0? |
+|--------|------|---------------------------|
+| **`bin/run_rspec`** | Default: all top-level files in **`specs/`** matching `*_spec.rb` / `*.spec.rb`, with **`spec_helper`** and JRuby flags. | **Yes** — see **`docs/testing.md`**. |
+| **`bin/run_all_rspec`** | Compiles **`ext/new_bridge`**, then **`specs/`** + **`new_bridge_specs/`** in one process (merged coverage). | **Yes**. |
+| **`bin/run_slow_rspec`** | Suites under **`slow-specs/`**. | **Yes** (may not load the same **`spec_helper`** as the main suite — see script header). |
+| **`bin/run_old_rspec`** | Legacy specs in **`old_specs/`**. | **Yes** for maintenance runs. |
+| **`bin/run_rspec_subset`** | Runs a numbered subset (1–18); see **`Documentation/Spec_Subsets.md`**. | **Yes**. |
+
+## Other
+
+| Script | Role | Expected to work in 2.0? |
+|--------|------|---------------------------|
+| **`bin/grun`** | **`exec "ruby --polyglot --jvm -I… -S #{ARGV[0]}"`** | **No** — GraalVM-era; use **`bin/galaaz-jruby -S …`** instead. |
+| **`bin/gstudio_irb.rb`**, **`bin/gstudio_pry.rb`** | Required by **`gstudio`**; not run alone. | **Yes** (via **`gstudio`**). |
+
+For day-to-day **2.0** use, rely on **`bin/galaaz-jruby`**, **`bin/gstudio`**, **`bin/gknit`**, **`bin/run_example`**, **`bin/run_rspec`** / **`bin/run_all_rspec`**, and **`bin/galaaz-bootstrap`** on WSL when using Dockerized R. Treat **`grun`**, **`gknit_Rscript`**, and the polyglot **`ruby`** invocation in **`gknit-draft`** as **legacy** until they are ported to the same JRuby path as **`gknit`**.
+
 # System Compatibility
 
-* Oracle Linux 7
-* Ubuntu 18.04 LTS
-* Ubuntu 16.04 LTS
-* Fedora 28
-* macOS 10.14 (Mojave)
-* macOS 10.13 (High Sierra)
+Typical development and CI targets:
+
+* **Linux** — recent Ubuntu LTS or comparable distributions (x86_64).
+* **macOS** — recent releases with JRuby and GNU R available.
+* **Windows** — use **WSL2** (same Linux stack as above); native Windows is not the primary target.
+
+The native **gatekeeper** component under `ext/new_bridge` is built with `make` and a C++ toolchain; see the project `README` if compilation fails on your platform.
 
 # Dependencies
 
-* TruffleRuby
-* FastR
-
+* **JRuby** — Ruby implementation on the JVM (Galaaz 2.0 is developed and tested with JRuby).
+* A **Java runtime** (JDK) compatible with your JRuby version.
+* **GNU R** — `R` on your `PATH`, with ability to install packages (CRAN / Bioconductor as needed).
+* **Ruby gems** — from the Galaaz repository, `bundle install` (see the `Gemfile` / gemspec).
+* Optional: **Docker** — if you run R in a container (common on WSL2); see bootstrap below.
+* Optional R packages for examples in this manual — e.g. `ggplot2`, `dplyr`, `knitr`, `kableExtra`, `arrow`, Bioconductor tools such as **DESeq2** (installed the usual R way).
 
 # Installation
 
-* Install GrallVM (http://www.graalvm.org/)
-* Install Ruby (gu install Ruby)
-* Install FastR (gu install R)
-* Install rake if you want to run the specs and examples (gem install rake)
+From a clone of the Galaaz repository:
 
-## Windows + WSL2 (Required for container workflow)
+1. Install **JRuby** and **GNU R** using your preferred package manager or Ruby version manager.
+2. Install **bundler** if needed, then run **`bundle install`** in the repository root.
+3. Build the bridge native code: **`make -C ext/new_bridge all`** (or **`rake compile_gatekeeper`**).
+4. Run Ruby scripts with the project load path and JVM flags the project expects — the **`bin/galaaz-jruby`** wrapper sources **`bin/galaaz_jruby_env.inc.sh`** and adds **`-I lib`**. This matters especially for **Apache Arrow** integration (see `docs/testing.md`).
+5. Ensure **`R`** starts GNU R and can install packages (network access to CRAN mirrors when you first call `R.install_and_loads`).
+
+For **gKnit**, **knitr**, **rmarkdown**, and LaTeX (PDF output), install the corresponding R packages and a TeX distribution if you need PDF; the repository includes helpers such as **`bin/install-tinytex`** where appropriate.
+
+A **table of all `bin/` scripts** (bootstrap, JRuby wrapper, gstudio, gknit, test runners, and which ones are legacy) is in the section **Command-line tools (`bin/`)** earlier in this manual.
+
+## Windows + WSL2 (optional: Docker / R in a container)
 
 If you run Galaaz on Windows through WSL2 and want containerized R instances,
 Docker Desktop is the supported setup.
@@ -199,7 +246,7 @@ WSL integration is enabled for the distro where Galaaz is installed.
 
   > galaaz -T
   
-  Shows a list with all available executalbe tasks.  To execute a task, substitute the
+  Shows a list with all available executable tasks.  To execute a task, substitute the
    'rake' word in the list with 'galaaz'.  For instance, the following line shows up
   after 'galaaz -T'
   
@@ -209,13 +256,36 @@ WSL integration is enabled for the distro where Galaaz is installed.
   
   > galaaz master_list:scatter_plot
 
+# JRuby, multithreading, and the R bridge
+
+Galaaz 2.0 runs Ruby on **JRuby**, so your application can use **real parallel threads** for
+I/O-bound work (HTTP clients, database connections, message consumers, and so on). R itself is
+still executed in a **single GNU R process** behind the Galaaz bridge.
+
+When several Ruby threads call into R at the same time, the bridge **serializes** those calls:
+each request is matched to a reply using an internal per-call **queue**, so you do not need to
+add your own mutex around every `R.foo` from application threads. (You should still use normal
+Ruby synchronization when **Ruby** data structures are shared between threads—for example, when
+appending rows from each thread into a shared array before sending them to R.)
+
+A practical pattern is:
+
+1. Use threads (or a connection pool) to read from **multiple databases or shards** in parallel.
+2. Merge the rows in Ruby under a `Mutex` if you collect into one structure.
+3. Hand the merged table to R **once** (for example with `R::Arrow.from_ruby_batches` and dplyr,
+   or by building a data frame) so heavy statistics run in R with fewer bridge round-trips.
+
+A runnable sketch lives in
+`examples/multithread_shards_to_r/shards_to_r.rb` (simulated shard queries; swap in your DB
+driver). For concurrency tests on the bridge itself, see `specs/bridge_concurrent_spec.rb` and
+`specs/arrow_from_ruby_batches_spec.rb`.
 
 # Accessing R from Ruby
 
-One of the nice aspects of Galaaz on GraalVM, is that variables and functions defined in R, can
-be easily accessed from Ruby.  For instance, to access the 'mtcars' data frame from R
-in Ruby, we use the ':mtcar' symbol preceded by the '~' operator, thus '~:r_vec' retrieves the 
-value of the 'mtcars' variable.
+One of the nice aspects of Galaaz is that variables and functions defined in R can
+be easily accessed from Ruby.  For instance, to access the `mtcars` data frame from R
+in Ruby, we use the symbol `:mtcars` preceded by the `~` operator: `~:mtcars` retrieves the 
+value of the `mtcars` object in R.
 
 
 ``` ruby
@@ -259,7 +329,7 @@ puts ~:mtcars
 ```
 
 To access an R function from Ruby, the R function needs to be preceeded by 'R.' scoping. 
-Bellow we see and example of creating a R::Vector by calling the 'c' R function
+Below we see an example of creating a R::Vector by calling the 'c' R function
 
 
 ``` ruby
@@ -315,7 +385,7 @@ puts vec.c(10, 20, 30)
 ```
 ## [1]  1  2  3  4 10 20 30
 ```
-We will talk about vector indexing in a latter section. But notice here that indexing
+We will talk about vector indexing in a later section. But notice here that indexing
 an R::Vector will return another R::Vector:
 
 
@@ -374,12 +444,12 @@ puts vec.map { |x| x + 2 }
 
 # gKnitting a Document
 
-This manual has been formatted usign gKnit.  gKnit uses Knitr and R markdown to knit 
-a document in Ruby or R and output it in any of the available formats for R markdown.
-gKnit runs atop of GraalVM, and Galaaz.  In gKnit, Ruby variables are persisted between 
+This manual has been formatted using gKnit.  gKnit uses knitr and R Markdown to knit 
+a document in Ruby or R and output it in any of the available formats for R Markdown.
+gKnit runs with **JRuby**, **GNU R**, and Galaaz.  In gKnit, Ruby variables are persisted between 
 chunks, making it an ideal solution for literate programming. Also, since it is based 
-on Galaaz, Ruby chunks can have access to R variables and Polyglot Programming with 
-Ruby and R is quite natural.
+on Galaaz, Ruby chunks can have access to R variables and combining Ruby with R in one 
+document is natural.
 
 The idea of "literate programming" was first introduced by Donald Knuth in the 
 1980's [@Knuth:literate_programming].
@@ -455,7 +525,7 @@ Now, any single code has dozens of variables that we might want to use and reuse
 Clearly, such an approach becomes quickly unmanageable. Probably, because of 
 this problem, it is very rare to see any __R markdown__ document in the Ruby community.
 
-When variables can be used accross chunks, then no overhead is needed:
+When variables can be used across chunks, then no overhead is needed:
 
 
 ``` ruby
@@ -510,7 +580,7 @@ gKnitting Ruby and R documents quickly.
 ## The Yaml header
 
 An __R markdown__ document should start with a Yaml header and be stored in a file with 
-'.Rmd' extension. This document has the following header for gKitting an HTML document.
+'.Rmd' extension. This document has the following header for gKnitting an HTML document.
 
 ```
 ---
@@ -518,7 +588,7 @@ title: "How to do reproducible research in Ruby with gKnit"
 author: 
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, GraalVM]
+tags: [Tech, Data Science, Ruby, R, JRuby, Galaaz]
 date: "20/02/2019"
 output:
   html_document:
@@ -532,6 +602,35 @@ output:
 ```
 
 For more information on the options in the Yaml header, [check here](https://bookdown.org/yihui/rmarkdown/html-document.html).
+
+## Choosing the output format when calling gknit
+
+Yes: you can select the render target on the **command line**. **`bin/gknit`** (or **`gknit`** on your `PATH`) forwards options to **`rmarkdown::render`** via **`R::Rmarkdown.render`**.
+
+* **`--output_format FORMAT`** — name of the format, as in the YAML `output:` block. Examples:
+  * **`html_document`** — HTML (often the default you list first under `output:`).
+  * **`pdf_document`** — PDF (you need a working LaTeX setup, e.g. TinyTeX; see **`bin/install-tinytex`**).
+  * **`md_document`**, **`github_document`**, or any other format defined in your YAML.
+  * **`all`** — render **every** format declared under `output:` in the document (same idea as in R Markdown).
+
+If you **omit** **`--output_format`**, gknit passes **`NULL`** for the format argument. In that case **rmarkdown** uses the **first** format listed under **`output:`** in the YAML (and if none is specified there, behavior follows the usual rmarkdown defaults, typically HTML).
+
+Other useful flags:
+
+* **`--output_file NAME`** — output file name (optional path; see also **`--output_dir`**).
+* **`--output_dir DIR`** — directory for the rendered file (created if missing).
+* **`--bridge_timeout_sec`** / **`--callback_timeout_ms`** — longer R or install steps (see elsewhere in this manual).
+
+Examples (run from the directory where paths make sense, or use absolute paths):
+
+```text
+bin/gknit blogs/manual/manual.Rmd
+bin/gknit --output_format html_document blogs/manual/manual.Rmd
+bin/gknit --output_format pdf_document blogs/manual/manual.Rmd
+bin/gknit --output_format all blogs/manual/manual.Rmd
+```
+
+Use **`gknit -h`** for the full option list.
 
 ## __R Markdown__ formatting
 
@@ -577,7 +676,7 @@ Running and executing Ruby and R code is actually what really interests us is th
 Inserting a code chunk is done by adding code in a block delimited by three back ticks 
 followed by an open
 curly brace ('{') followed with the engine name (r, ruby, rb, include, ...), an 
-any optional chunk_label and options, as shown bellow:
+any optional chunk_label and options, as shown below:
 
 ````
 ```{engine_name [chunk_label], [chunk_options]}
@@ -683,7 +782,7 @@ grammar of graphics" [@Wilkinson:grammar_of_graphics]. The idea of the grammar o
 is to build a graphics by adding layers to the plot.  More information can be found in
 https://towardsdatascience.com/a-comprehensive-guide-to-the-grammar-of-graphics-for-effective-visualization-of-multi-dimensional-1f92b4ed4149.
 
-In the plot bellow the 'mpg' dataset from base R is used. "The data concerns city-cycle fuel 
+In the plot below the 'mpg' dataset from base R is used. "The data concerns city-cycle fuel 
 consumption in miles per gallon, to be predicted in terms of 3 multivalued discrete and 5 
 continuous attributes." (Quinlan, 1993)
 
@@ -1393,7 +1492,7 @@ true, ruby's 'require\_relative' semantics is used to load the file, when false,
 ```
 ````
 
-Bellow we include file 'model.rb', which is in the same directory of this blog.  
+Below we include file 'model.rb', which is in the same directory of this blog.  
 This code uses R 'caret' package to split a dataset in a train and test sets.
 The 'caret' package is a very important a useful package for doing Data Analysis,
 it has hundreds of functions for all steps of the Data Analysis workflow.  To
@@ -1482,9 +1581,9 @@ puts model.test.head
 gKnit also allows developers to document and load files that are not in the same directory
 of the '.Rmd' file.
 
-Here is an example of loading the 'find.rb' file from TruffleRuby. In this example, relative
-is set to FALSE, so Ruby will look for the file in its $LOAD\_PATH, and the user does not
-need to no it's directory.
+Here is an example of loading Ruby’s standard library file `find.rb`. In this example, relative
+is set to FALSE, so Ruby will look for the file in its `$LOAD_PATH`, and the user does not
+need to know its directory on disk.
 
 ````
 ```{include find, relative = FALSE}
@@ -1597,9 +1696,9 @@ the Yaml header to generate this blog in PDF format instead of HTML:
 
 ```
 ---
-title: "gKnit - Ruby and R Knitting with Galaaz in GraalVM"
+title: "gKnit - Ruby and R Knitting with Galaaz"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr, gknit]
+tags: [Galaaz, Ruby, R, JRuby, knitr, gknit]
 date: "29 October 2018"
 output:
   pdf\_document:
@@ -1611,7 +1710,7 @@ output:
 
 ## Template based documents generation
 
-When a document is converted to PDF it follows a certain convertion template. We've seen above
+When a document is converted to PDF it follows a certain conversion template. We've seen above
 the use of 'galaaz.sty' as a basic template to generate a PDF document.  Using the 
 'gknit-draft' app that comes with Galaaz, the same .Rmd file can be compiled to different 
 looking PDF documents. Galaaz automatically loads the 'rticles' R package that comes with
@@ -1661,11 +1760,11 @@ gknit-draft --filename my_r_article --template rjournal_article --package rticle
 
 # Accessing R variables
 
-Galaaz allows Ruby to access variables created in R.  For example, the 'mtcars' data set is 
-available in R and can be accessed from Ruby by using the 'tilda' operator followed by the
-symbol for the variable, in this case ':mtcar'.  In the code bellow method 'outputs' is 
-used to output the 'mtcars' data set nicely formatted in HTML by use of the 'kable' and
-'kable_styling' functions. Method 'outputs' is only available when used with 'gknit'.
+Galaaz allows Ruby to access variables created in R.  For example, the `mtcars` data set is 
+available in R and can be accessed from Ruby by using the tilde operator followed by the
+symbol for the variable, in this case `:mtcars`.  In the code below, method `outputs` is 
+used to output the `mtcars` data set nicely formatted in HTML by use of the `kable` and
+`kable_styling` functions. Method `outputs` is only available when used with gKnit.
 
 
 ``` ruby
@@ -2258,7 +2357,7 @@ vec = R.c(1, hello, 5)
 ## org/jruby/RubyBasicObject.java:2695:in 'instance_eval'
 ## org/jruby/RubyBasicObject.java:2723:in 'instance_eval'
 ## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:741:in 'block in initialize'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:282:in 'block in register_callback_proc_stub'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:295:in 'block in register_callback_proc_stub'
 ## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:346:in 'block in handle_call'
 ```
 
@@ -2294,7 +2393,7 @@ In this next example, method 'c' is chainned after 'vec1'.  This also looks like
 method of the vector, but in reallity, this is actually closer to the pipe operator.  When
 Galaaz identifies that 'c' is not a method of 'vec' it actually tries to call 'R.c' with 
 'vec1' as the first argument concatenated with all the other available arguments.  The code
-bellow is automatically converted to the code above.
+below is automatically converted to the code above.
 
 
 ``` ruby
@@ -2353,7 +2452,7 @@ puts vec4[3]
 ## [1] 33
 ```
 
-We can also index a vector with another vector.  For example, in the code bellow, we take elements
+We can also index a vector with another vector.  For example, in the code below, we take elements
 1, 3, 5, and 7 from vec3:
 
 
@@ -2805,7 +2904,7 @@ Galaaz extends Ruby to work with complex expressions, similar to R's expressions
 
 ## Expressions from operators
 
-The code bellow 
+The code below 
 creates an expression summing two symbols
 
 
@@ -2970,7 +3069,7 @@ puts exp.eval(df)
 # Manipulating Data
 
 One of the major benefits of Galaaz is to bring strong data manipulation to Ruby. The following
-examples were extracted from Hardley's "R for Data Science" (https://r4ds.had.co.nz/). This
+examples were extracted from Hadley's "R for Data Science" (https://r4ds.had.co.nz/). This
 is a highly recommended book for those not already familiar with the 'tidyverse' style of
 programming in R. In the sections to follow, we will limit ourselves to convert the R code to
 Galaaz. 
@@ -2982,9 +3081,9 @@ locally, and if not, installs it. This data frame contains all 336,776 flights t
 departed from New York City in 2013. The data comes from the US Bureau of 
 Transportation Statistics.
 
-Dplyr uses 'tibbles' in place of data frames; unfortunately, tibbles do not print yet properly in
-Galaaz due to a bug in fastR.  In order to print a tibble we need to convert it to a data frame
-using the 'as\_\_data__frame' method.
+Dplyr often uses **tibbles** in place of classic data frames. In Galaaz, printing may differ from
+the R console; if you need a classic tabular printout, convert with **`as__data__frame`** (or use
+`head` / `str` in R via `R` calls).
 
 
 ``` ruby
@@ -3527,12 +3626,256 @@ ans = flights[:all, E.list(:arr_delay, :dep_delay)]
 ## 6:         0
 ```
 
+# Apache Arrow
+
+[Apache Arrow](https://arrow.apache.org/) is a **columnar** in-memory format used heavily in R
+and Python for analytics. In Galaaz, **Ruby does not hold an Arrow C++ table itself**; instead you
+build ordinary Ruby structures (arrays of row hashes), and **`R::Arrow.from_ruby_batches`** creates
+a real **Arrow `Table` inside GNU R**. From there you use R’s **`arrow`** and **`dplyr`** packages
+as usual: **`group_by`** on the Arrow table, **`summarise`** for aggregates, then **`collect()`** to
+materialize a tibble when you need in-memory R rows.
+
+That pattern matches production use: **JRuby threads** (or sequential code) assemble many rows in
+Ruby; you pay **one** bridge-heavy handoff to R; **dplyr** runs vectorised work on the Arrow table
+in R.
+
+**Prerequisites:** install R packages **`arrow`** and **`dplyr`**. Run scripts with
+**`bin/galaaz-jruby`** (or the same JVM flags as in **`docs/testing.md`**) so the Arrow JNI stack is
+available.
+
+## Other `R::Arrow` helpers
+
+The Ruby module **`R::Arrow`** (see `lib/R_interface/r_arrow.rb`) also includes:
+
+* **`R::Arrow.table_from(df)`** — wrap an R `data.frame` / tibble as an Arrow table.
+* **`R::Arrow.read_feather` / `write_feather`**, **`read_parquet`**, **`dataset(path)`** — file and
+  dataset IO on paths visible to R.
+
+## Example: many Ruby rows → Arrow in R → grouped statistics
+
+The repository test **`slow-specs/arrow_large_pipeline_spec.rb`** builds **200k rows** in parallel
+(eight threads × 25,000 rows), pushes them through **`R::Arrow.from_ruby_batches`**, then checks that
+**dplyr** group summaries match a Ruby reference calculation. The same logic appears below at a
+**smaller scale** so this manual can knit quickly; increase `thread_count` and `rows_per_thread`
+when experimenting locally.
+
+
+``` ruby
+# Same idea as slow-specs/arrow_large_pipeline_spec.rb (scaled down for gKnit).
+unless R::Support.eval("requireNamespace('arrow', quietly=TRUE) && requireNamespace('dplyr', quietly=TRUE)") == true
+  puts '(Skip: install R packages arrow and dplyr, and use bin/galaaz-jruby when running outside gKnit.)'
+else
+  thread_count = 4
+  rows_per_thread = 500
+  group_count = 5
+
+  batches = []
+  mutex = Mutex.new
+  threads = []
+
+  thread_count.times do |tid|
+    threads << Thread.new do
+      start = tid * rows_per_thread
+      local = (start...(start + rows_per_thread)).map do |i|
+        {
+          id: i,
+          grp: "g#{i % group_count}",
+          value: (i % 17) + 1,
+          weight: ((i % 5) + 1) * 0.5
+        }
+      end
+      mutex.synchronize { batches << local }
+    end
+  end
+  threads.each(&:join)
+
+  tbl = R::Arrow.from_ruby_batches(batches)
+  puts "R class after from_ruby_batches: #{tbl.rclass}"
+
+  grouped = R.dplyr___group_by(tbl, :grp)
+  summarised = R.dplyr___summarise(
+    grouped,
+    n: E.n(),
+    total: E.sum(:value),
+    wsum: E.sum(:value * :weight)
+  )
+  out = R.dplyr___collect(summarised)
+
+  puts 'Per-group summary (first rows):'
+  puts R.as__data__frame(out).head(10)
+
+  total_n = 0
+  (1..(out.nrow >> 0)).each { |i| total_n += (out[['n']][i] >> 0) }
+  puts "Sum of group counts n (should equal #{thread_count * rows_per_thread}): #{total_n}"
+end
+```
+
+```
+## R class after from_ruby_batches: Table
+## Per-group summary (first rows):
+##   grp   n total   wsum
+## 1  g0 400  3589 1794.5
+## 2  g1 400  3598 3598.0
+## 3  g2 400  3590 5385.0
+## 4  g3 400  3599 7198.0
+## 5  g4 400  3591 8977.5
+## Sum of group counts n (should equal 2000): 2000
+```
+
+**What to notice:** (1) Ruby only sees **`Hash`** rows and Ruby **`Thread`** objects; (2) a single
+**`from_ruby_batches`** call creates the Arrow table in R; (3) **`dplyr___group_by`** /
+**`dplyr___summarise`** / **`dplyr___collect`** mirror **`dplyr::group_by`** /
+**`dplyr::summarise`** / **`dplyr::collect`** on an Arrow-backed table. For a lighter test, see
+**`specs/arrow_from_ruby_batches_spec.rb`**; for the full-size benchmark, run
+**`bin/run_slow_rspec slow-specs/arrow_large_pipeline_spec.rb`**.
+
+# Bioconductor and DESeq2
+
+**Bioconductor** packages are ordinary R packages installed from the Bioconductor repositories.
+Galaaz does not treat them specially: once installed in **GNU R**, you load them with
+**`R.library`** like any CRAN package.
+
+## Installing Bioconductor packages
+
+From an R session (or `R -e '...'`), use **BiocManager** (see
+[bioconductor.org](https://bioconductor.org/install/)):
+
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+BiocManager::install(c("DESeq2", "airway"))
+```
+
+The **`airway`** package ships the example **`SummarizedExperiment`** used below. **DESeq2**
+pulls in several dependencies; the first install can take several minutes.
+
+## Example: DESeq2 on the airway dataset
+
+The script **`examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb`** is the canonical
+version in the repository. Run it from the **Galaaz repository root** with JRuby, for example:
+
+```text
+bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+```
+
+The workflow in Ruby mirrors a standard DESeq2 vignette:
+
+1. **`R.library('DESeq2')`** and **`R.library('airway')`**, then **`R.data('airway')`** so the
+   object exists in R’s global environment.
+2. **`airway = ~:airway`** pulls the experiment into a Galaaz wrapper so you can pass it to R
+   functions as a Ruby value.
+3. **`R.DESeqDataSet(..., design: (:all.til :cell + :dex))`** builds the **`DESeqDataSet`**. The
+   **`(:all.til :cell + :dex)`** form is Galaaz’s way of passing the one-sided formula
+   **`~ cell + dex`** (adjust for the design you need).
+4. Prefilter rows with almost no counts: **`keep = R.rowSums(R.counts(dds)) >= 10`** and
+   **`dds = dds[keep, :all]`**.
+5. **`dds = R.DESeq(dds)`** fits the model; **`res = R.results(dds, contrast: R.c('dex', 'trt', 'untrt'))`**
+   extracts the treatment contrast (adjust **`contrast`** for your experiment).
+6. Summaries use normal Ruby string interpolation on **`R.nrow`**, **`R.ncol`**, **`R.colnames`**, etc.
+7. **`R.pdf(...); R.plotMA(res, ...); R.dev__off`** writes DESeq2’s MA plot (path is relative to the
+   process working directory—use the repo root when running the bundled script).
+
+Related benchmarks and warm-run notes live under **`docs/deseq2_airway_benchmark.md`** and
+**`examples/bioconductor_deseq2_airway/bench_*.rb`**.
+
+Below is the full listing (same as the file in the repository). It is **not** executed while this
+manual is knitted, because **DESeq2** is heavy and may be absent on the build machine.
+
+
+``` ruby
+# Source of truth: examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+# Run from repository root: bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+
+require 'galaaz'
+
+R.library('DESeq2')
+R.library('airway')
+R.data('airway')
+
+airway = ~:airway
+
+# Build DESeq2 dataset with one-sided formula: ~ cell + dex.
+dds = R.DESeqDataSet(airway, design: (:all.til :cell + :dex))
+
+# Prefilter genes with almost no counts.
+keep = R.rowSums(R.counts(dds)) >= 10
+dds = dds[keep, :all]
+
+# Fit DE model and extract treatment effect.
+dds = R.DESeq(dds)
+res = R.results(dds, contrast: R.c('dex', 'trt', 'untrt'))
+
+# Compact sanity outputs for quick verification.
+puts "Samples: #{R.ncol(dds)}"
+puts "Genes after prefilter: #{R.nrow(dds)}"
+puts "Result rows: #{R.nrow(res)}"
+puts "Result columns: #{R.colnames(res)}"
+puts "Significant genes (padj < 0.05): #{R.sum(res.padj < 0.05, na__rm: true)}"
+
+res_ordered = res[R.order(res.padj), :all]
+puts R.head(R.as__data__frame(res_ordered), 10)
+
+# Standard DESeq2 plot call written to file.
+R.pdf('examples/bioconductor_deseq2_airway/plotMA_galaaz.pdf')
+R.plotMA(res, ylim: R.c(-5, 5))
+R.dev__off
+```
+
+If **DESeq2** and **airway** are installed, the next chunk loads the data and prints a short
+preview (it does **not** run **`DESeq`** so the manual knits quickly).
+
+
+``` ruby
+unless R::Support.eval("requireNamespace('DESeq2', quietly=TRUE) && requireNamespace('airway', quietly=TRUE)")
+  puts '(Skip: install DESeq2 and airway via BiocManager in R to run the full example.)'
+else
+  R.library('DESeq2')
+  R.library('airway')
+  R.data('airway')
+  airway = ~:airway
+  puts 'airway object (head of assay / dims via R):'
+  puts "ncol(samples): #{R.ncol(airway)}"
+  puts R.head(R.assay(airway), 3)
+end
+```
+
+```
+## airway object (head of assay / dims via R):
+## ncol(samples): [1] 8
+##                 SRR1039508 SRR1039509 SRR1039512 SRR1039513 SRR1039516
+## ENSG00000000003        679        448        873        408       1138
+## ENSG00000000005          0          0          0          0          0
+## ENSG00000000419        467        515        621        365        587
+##                 SRR1039517 SRR1039520 SRR1039521
+## ENSG00000000003       1047        770        572
+## ENSG00000000005          0          0          0
+## ENSG00000000419        799        417        508
+```
+
+# Performance
+
+For realistic analyses, **most wall-clock time is spent inside GNU R** (model fitting, I/O inside
+R, graphics). The Galaaz **bridge** adds overhead mainly from **starting a session**, **serializing
+requests**, and **wrapping results** in Ruby objects—not from reimplementing R’s numerical work.
+
+Practical tips:
+
+* Keep **hot loops** in R or vectorized code when possible; use Ruby for orchestration, I/O, and
+  glue.
+* **Reuse one process**: running many short scripts cold-starts Ruby, the JVM, and R each time;
+  a long-lived process or repeated calls in one run amortize setup (see benchmarks below).
+* **Batch data**: merge shards in Ruby, then call **`R::Arrow.from_ruby_batches`** (or build one
+  data frame) instead of millions of tiny R calls.
+
+For measured discussion (including DESeq2-style workloads and warm comparisons), see
+**`docs/performance.md`** and **`docs/deseq2_airway_benchmark.md`** in the Galaaz repository.
+
 # Graphics in Galaaz
 
 Creating graphics in Galaaz is quite easy, as it can use all the power of ggplot2.  There are
-many resources in the web that teaches ggplot, so here we give a quick example of ggplot 
+many resources on the web that teach ggplot, so here we give a quick example of ggplot 
 integration with Ruby.  We continue to use the :mtcars dataset and we will plot a diverging
-bar plot, showing cars that have 'above' or 'below' gas consuption. Let's first prepare
+bar plot, showing cars that have 'above' or 'below' gas consumption. Let's first prepare
 the data frame with the necessary data:
 
 
@@ -3556,7 +3899,7 @@ mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean)/mtcars.mpg.sd).round 2
 # 0, returns 'below', otherwise returns 'above'
 mtcars.mpg_type = (mtcars.mpg_z < 0).ifelse("below", "above")
 
-# order the mtcar data set by the mpg_z vector from smaler to larger values
+# order the mtcars data set by the mpg_z vector from smaller to larger values
 mtcars = mtcars[mtcars.mpg_z.order, :all]
 
 # convert the car_name column to a factor to retain sorted order in plot
@@ -3582,21 +3925,21 @@ puts mtcars.head
 ## Chrysler Imperial     Chrysler Imperial -0.89    below
 ## Maserati Bora             Maserati Bora -0.84    below
 ```
-Now, lets plot the diverging bar plot.  When using gKnit, there is no need to call
-'R.awt' to create a plotting device, since gKnit does take care of it. Galaaz 
+Now, let's plot the diverging bar plot.  When using gKnit, you normally do **not** need to open a
+graphics device manually; gKnit arranges the figure device for chunk output. Galaaz 
 provides integration with ggplot. The interested reader should check online for more
 information on ggplot, since it is outside the scope of this manual describing 
-how ggplot works. We give here but a brief description on how this plot is generated.
+how ggplot works. Here we give only a brief description of how this plot is generated.
 
-ggplot implements the 'grammar of graphics'. In this approach, plots are build by
+ggplot implements the 'grammar of graphics'. In this approach, plots are built by
 adding layers to the plot.  On the first layer we describe what we want on the 'x'
 and 'y' axis of the plot.  In this case, we have 'car_name' on the 'x' axis and 
 'mpg\_z' on the 'y' axis. Then the type of graph is specified by adding
 'geom\_bar' (for a bar graph).  We specify that our bars should be filled using 
-'mpg\_type', which is either 'above' or 'bellow' giving then two colours for
+'mpg\_type', which is either 'above' or 'below' giving then two colours for
 filling. On the next layer we specify the labels for the graph, then we add the
 title and subtitle.  Finally, in a bar chart usually bars go on the vertical direction,
-but in this graph we want the bars to be horizontally layed so we add 'coord\_flip'.
+but in this graph we want the bars to be horizontally laid so we add 'coord\_flip'.
 
 
 ``` ruby
@@ -3618,7 +3961,7 @@ puts mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
 # Coding with Tidyverse
 
 In R, and when coding with 'tidyverse', arguments to a function are usually not 
-*referencially transparent*. That is, you can’t replace a value with a seemingly equivalent 
+*referentially transparent*. That is, you can’t replace a value with a seemingly equivalent 
 object that you’ve defined elsewhere. To see the problem, let's first define a data frame:
 
 
@@ -3643,8 +3986,8 @@ filter(df, my_var == 1)
 ```
 It generates the following error: "object 'x' not found.
 
-However, in Galaaz, arguments are referencially transparent as can be seen by the 
-code bellow.  Note initally that 'my_var = :x' will not give the error "object 'x' not found" 
+However, in Galaaz, arguments are referentially transparent as can be seen by the 
+code below.  Note initially that 'my_var = :x' will not give the error "object 'x' not found" 
 since ':x' is treated as an expression and assigned to my\_var. Then when doing (my\_var.eq 1), 
 my\_var is a variable that resolves to ':x' and it becomes equivalent to (:x.eq 1) which is
 what we want.
@@ -3659,7 +4002,7 @@ puts df.filter(my_var.eq 1)
 ##   x y
 ## 1 1 3
 ```
-As stated by Hardley
+As stated by Hadley
 
 > dplyr code is ambiguous. Depending on what variables are defined where, 
 > filter(df, x == y) could be equivalent to any of:
@@ -3726,7 +4069,7 @@ Unfortunately, in R, this function can fail silently if one of the variables isn
 in the data frame, but is present in the global environment.  We will not go through here how
 to solve this problem in R.
 
-In Galaaz the method mutate_y bellow will work fine and will never fail silently.
+In Galaaz the method mutate_y below will work fine and will never fail silently.
 
 
 ``` ruby
@@ -3749,7 +4092,7 @@ puts df1
 ## 3 3
 ```
 
-Note that method mutate_y will fail independetly from the fact that variable 'a' is defined and
+Note that method mutate_y will fail independently from the fact that variable 'a' is defined and
 in the scope of the method.  Variable 'a' has no relationship with the symbol ':a' used in the
 definition of 'mutate\_y' above:
 
@@ -3765,9 +4108,9 @@ mutate_y(df1)
 ```
 ## Different expressions
 
-Let's move to the next problem as presented by Hardley where trying to write a function in R 
+Let's move to the next problem as presented by Hadley where trying to write a function in R 
 that will receive two argumens, the first a variable and the second an expression is not trivial.
-Bellow we create a data frame and we want to write a function that groups data by a variable and
+Below we create a data frame and we want to write a function that groups data by a variable and
 summarises it by an expression:
 
 
@@ -3822,7 +4165,7 @@ as.data.frame(d2)
 ## 2  2 3
 ```
 
-As shown by Hardley, one might expect this function to do the trick:
+As shown by Hadley, one might expect this function to do the trick:
 
 
 ``` r
@@ -3838,7 +4181,7 @@ my_summarise <- function(df, group_var) {
 
 In order to solve this problem, coding with dplyr requires the introduction of many new concepts
 and functions such as 'quo', 'quos', 'enquo', 'enquos', '!!' (bang bang), '!!!' (triple bang). 
-Again, we'll leave to Hardley the explanation on how to use all those functions.
+Again, we'll leave to Hadley the explanation on how to use all those functions.
 
 Now, let's try to implement the same function in galaaz.  The next code block first prints the
 'df' data frame defined previously in R (to access an R variable from Galaaz, we use the tilda 
@@ -3903,7 +4246,7 @@ In the previous section we've managed to get rid of all NSE formulation for a si
 does this remain true for more complex examples, or will the Galaaz way prove inpractical for
 more complex code?
 
-In the next example Hardley proposes us to write a function that given an expression such as 'a'
+In the next example Hadley proposes us to write a function that given an expression such as 'a'
 or 'a * b', calculates three summaries.  What we want a function that does the same as these R
 statements:
 
@@ -3952,7 +4295,7 @@ careful about is the use of 'E' to build expressions from functions 'mean', 'sum
 
 ## Different input and output variable
 
-Now the next challenge presented by Hardley is to vary the name of the output variables based on 
+Now the next challenge presented by Hadley is to vary the name of the output variables based on 
 the received expression.  So, if the input expression is 'a', we want our data frame columns to
 be named 'mean\_a' and 'sum\_a'.  Now, if the input expression is 'b', columns
 should be named 'mean\_b' and 'sum\_b'.
@@ -3978,7 +4321,7 @@ mutate(df, mean_b = mean(b), sum_b = sum(b))
 #> 4     2     2     5     4      3    15
 #> # … with 1 more row
 ```
-In order to solve this problem in R, Hardley needs to introduce some more new functions and notations:
+In order to solve this problem in R, Hadley needs to introduce some more new functions and notations:
 'quo_name' and the ':=' operator from package 'rlang'
 
 Here is our Ruby code:
@@ -4024,7 +4367,7 @@ and variable mean\_name is not followed by ':' but by '=>'.  This is standard Ru
 
 ## Capturing multiple variables
 
-Moving on with new complexities, Hardley proposes us to solve the problem in which the 
+Moving on with new complexities, Hadley proposes us to solve the problem in which the 
 summarise function will receive any number of grouping variables.
 
 This again is quite standard Ruby.  In order to receive an undefined number of paramenters
@@ -4116,7 +4459,7 @@ puts (~:starwars).head
 ## # ℹ 5 more variables: homeworld <chr>, species <chr>, films <list>,
 ## #   vehicles <list>, starships <list>
 ```
-The grouped_mean function bellow will receive a grouping variable and calculate summaries for
+The grouped_mean function below will receive a grouping variable and calculate summaries for
 the value\_variables given:
 
 
@@ -4206,17 +4549,19 @@ puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year"))
 ## 15 yellow             81.1            76.4    11
 ```
 
-
-[TO BE CONTINUED...]
-
+The examples above cover programmatic dplyr with string column names and `_at` helpers. The same
+Galaaz patterns (symbols, `E.*` for expression-safe functions, and Ruby methods on R-backed objects)
+extend to other tidyverse workflows; consult R package documentation for function-specific
+arguments.
 
 # Contributing
 
 * Fork it
-* Create your feature branch (git checkout -b my-new-feature)
-* Write Tests!
-* Commit your changes (git commit -am 'Add some feature')
-* Push to the branch (git push origin my-new-feature)
-* Create new Pull Request
+* Create your feature branch (`git checkout -b my-new-feature`)
+* Write tests — use **`bin/run_rspec`** or **`bin/run_all_rspec`** with **JRuby** so JVM flags and
+  the load path match **`docs/testing.md`**
+* Commit your changes (`git commit -am 'Add some feature'`)
+* Push to the branch (`git push origin my-new-feature`)
+* Open a pull request
 
 # References
