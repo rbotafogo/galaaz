@@ -4,6 +4,7 @@
 #
 # Usage:
 #   bin/run_rspec              # run fast specs in specs/ only
+#   bin/run_all_rspec          # top-level specs/ + new_bridge_specs/ + gatekeeper compile (see docs/testing.md)
 #   bin/run_slow_rspec         # run slow specs in slow-specs/
 #   bin/run_rspec specs/protocol_result_spec.rb
 #   GALAAZ_DEBUG=1 bin/run_rspec specs/r_vector_subsetting.spec.rb:61 ...
@@ -17,4 +18,5 @@ fi
 exec jruby -I "$ROOT/lib" \
   $GALAAZ_REQUIRED_JRUBY_J_ARGS \
   ${GALAAZ_JRUBY_OPTS:-} \
+  -r "$ROOT/specs/spec_helper.rb" \
   -S bundle exec rspec "$@"

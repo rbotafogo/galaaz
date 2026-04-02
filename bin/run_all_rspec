@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Run default galaaz specs (specs/) and NewBridge gatekeeper specs (new_bridge_specs/)
+# in a single RSpec process so SimpleCov produces one merged report under coverage/.
+#
+# Compiles ext/new_bridge (incremental make) first — required for integration specs.
+#
+# Usage:
+#   bin/run_all_rspec
+#   bin/run_all_rspec --format documentation
+#   bin/run_all_rspec new_bridge_specs/phase0_protocol_spec.rb
+#
+# If the first argument is an option (starts with -), default dirs are prepended
+# so `bin/run_all_rspec --format doc` still runs specs/ + new_bridge_specs/.
+#
+# For specs/ only (faster day-to-day): bin/run_rspec
+set -e
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=galaaz_jruby_env.inc.sh
+source "$ROOT/bin/galaaz_jruby_env.inc.sh"
+
+echo "[run_all_rspec] compiling gatekeeper: ext/new_bridge"
+make -C "$ROOT/ext/new_bridge" -s all
+
+# Same top-level file set as bin/run_rspec (maxdepth 1), plus whole new_bridge_specs/ tree.
+DEFAULT_SPECS=()
+while IFS= read -r f; do
+  DEFAULT_SPECS+=("$f")
+done < <(find "$ROOT/specs" -maxdepth 1 -type f \( -name '*_spec.rb' -o -name '*.spec.rb' \) | sort)
+DEFAULT_SPECS+=( "$ROOT/new_bridge_specs" )
+
+# With no args, run those paths. If args are only RSpec options (e.g. --format progress),
+# prepend defaults so flags alone do not mean "run zero files".
+if [ $# -eq 0 ]; then
+  set -- "${DEFAULT_SPECS[@]}"
+elif [[ "${1:-}" == -* ]]; then
+  set -- "${DEFAULT_SPECS[@]}" "$@"
+fi
+exec jruby -I "$ROOT/lib" \
+  $GALAAZ_REQUIRED_JRUBY_J_ARGS \
+  ${GALAAZ_JRUBY_OPTS:-} \
+  -r "$ROOT/specs/spec_helper.rb" \
+  -S bundle exec rspec "$@"

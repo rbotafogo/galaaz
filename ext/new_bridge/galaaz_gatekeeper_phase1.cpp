@@ -983,6 +983,155 @@ Rcpp::Environment session_env(Rcpp::Environment& g, const std::string& sid) {
   return Rcpp::as<Rcpp::Environment>(sessions[sid]);
 }
 
+// Split `__G_*__|a|b|...` command strings (same rules as other gatekeeper commands).
+static std::vector<std::string> split_pipe_cmd(const std::string& cmd) {
+  std::vector<std::string> parts;
+  size_t start = 0;
+  while (start <= cmd.size()) {
+    size_t pos = cmd.find('|', start);
+    if (pos == std::string::npos) pos = cmd.size();
+    parts.push_back(cmd.substr(start, pos - start));
+    start = pos + 1;
+    if (pos == cmd.size()) break;
+  }
+  return parts;
+}
+
+// Bulk atomic vector read in one MsgPack payload:
+//   {"kind":"integer_vector|double_vector|logical_vector|character_vector","values":[...]}
+// Forms:
+//   __G_PULL_VECTOR__|<handle>                          — full vector
+//   __G_PULL_VECTOR__|<handle>|<start_1based>|<count>  — contiguous slice (count may be 0)
+static EvalResult eval_pull_vector_cmd(const std::string& cmd, const Rcpp::Environment& env) {
+  std::vector<std::string> parts = split_pipe_cmd(cmd);
+  if (parts.empty() || parts[0] != "__G_PULL_VECTOR__") {
+    return {false, payload_error("bad pull_vector")};
+  }
+
+  std::string handle = trim_copy(parts[1]);
+  if (!valid_bridge_handle_token(handle)) {
+    return {false, payload_error("invalid pull_vector handle")};
+  }
+
+  R_xlen_t from0 = 0;
+  R_xlen_t count = 0;
+  bool full = (parts.size() == 2);
+  if (full) {
+    // count set after resolve
+  } else if (parts.size() == 4) {
+    long long start1 = std::atoll(parts[2].c_str());
+    long long len = std::atoll(parts[3].c_str());
+    if (start1 < 1 || len < 0) {
+      return {false, payload_error("invalid pull_vector slice")};
+    }
+    from0 = static_cast<R_xlen_t>(start1 - 1);
+    count = static_cast<R_xlen_t>(len);
+  } else {
+    return {false, payload_error("bad pull_vector args")};
+  }
+
+  SEXP sym = Rf_install(handle.c_str());
+  SEXP vec = Rf_findVar(sym, env);
+  if (vec == R_UnboundValue) {
+    return {false, payload_error("pull_vector unknown handle")};
+  }
+
+  R_xlen_t n = XLENGTH(vec);
+  if (full) {
+    from0 = 0;
+    count = n;
+  } else {
+    if (from0 > n || count > n - from0) {
+      return {false, payload_error("pull_vector slice out of bounds")};
+    }
+  }
+
+  constexpr R_xlen_t kMaxPull = 100000000;
+  if (count > kMaxPull) {
+    return {false, payload_error("pull_vector too large")};
+  }
+  if (count > static_cast<R_xlen_t>(UINT32_MAX)) {
+    return {false, payload_error("pull_vector too large")};
+  }
+
+  auto pack_values_map = [](const char* kind_tag, std::vector<uint8_t>& vals_arr) -> std::vector<uint8_t> {
+    std::vector<uint8_t> p;
+    pack_map2(p);
+    pack_str(p, "kind");
+    pack_str(p, kind_tag);
+    pack_str(p, "values");
+    p.insert(p.end(), vals_arr.begin(), vals_arr.end());
+    return p;
+  };
+
+  if (count == 0) {
+    std::vector<uint8_t> vals;
+    pack_array_header(vals, 0);
+    return {true, pack_values_map("integer_vector", vals)};
+  }
+
+  switch (TYPEOF(vec)) {
+    case INTSXP: {
+      std::vector<uint8_t> vals;
+      pack_array_header(vals, static_cast<uint32_t>(count));
+      for (R_xlen_t i = 0; i < count; ++i) {
+        int v = INTEGER(vec)[from0 + i];
+        if (v == NA_INTEGER) {
+          pack_nil(vals);
+        } else {
+          pack_int32(vals, v);
+        }
+      }
+      return {true, pack_values_map("integer_vector", vals)};
+    }
+    case REALSXP: {
+      std::vector<uint8_t> vals;
+      pack_array_header(vals, static_cast<uint32_t>(count));
+      for (R_xlen_t i = 0; i < count; ++i) {
+        double v = REAL(vec)[from0 + i];
+        if (R_IsNA(v)) {
+          pack_nil(vals);
+        } else {
+          pack_double64(vals, v);
+        }
+      }
+      return {true, pack_values_map("double_vector", vals)};
+    }
+    case LGLSXP: {
+      std::vector<uint8_t> vals;
+      pack_array_header(vals, static_cast<uint32_t>(count));
+      for (R_xlen_t i = 0; i < count; ++i) {
+        int v = LOGICAL(vec)[from0 + i];
+        if (v == NA_LOGICAL) {
+          pack_nil(vals);
+        } else {
+          pack_bool(vals, v != 0);
+        }
+      }
+      return {true, pack_values_map("logical_vector", vals)};
+    }
+    case STRSXP: {
+      std::vector<uint8_t> vals;
+      pack_array_header(vals, static_cast<uint32_t>(count));
+      for (R_xlen_t i = 0; i < count; ++i) {
+        if (STRING_ELT(vec, from0 + i) == NA_STRING) {
+          pack_nil(vals);
+        } else {
+          const char* s = CHAR(STRING_ELT(vec, from0 + i));
+          if (!s) {
+            pack_nil(vals);
+          } else {
+            pack_str(vals, std::string(s));
+          }
+        }
+      }
+      return {true, pack_values_map("character_vector", vals)};
+    }
+    default:
+      return {false, payload_error("pull_vector unsupported type")};
+  }
+}
+
 // Evaluate one R expression and return a compact MsgPack payload map:
 //   {"kind":"integer|double|logical|character","value":...}
 // or {"kind":"error","message":"..."}.
@@ -998,6 +1147,9 @@ EvalResult eval_code_payload(const std::string& code, const Rcpp::Environment& e
   }
   if (starts_with(code, "__G_UNBOX_MATERIALIZE__|")) {
     return eval_unbox_materialize_cmd(code, env);
+  }
+  if (starts_with(code, "__G_PULL_VECTOR__|")) {
+    return eval_pull_vector_cmd(code, env);
   }
   ParseStatus ps = PARSE_OK;
   SEXP px = R_ParseVector(Rf_mkString(code.c_str()), 1, &ps, R_GlobalEnv);

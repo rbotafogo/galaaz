@@ -10,7 +10,6 @@ require_relative '../lib/R_interface/r'
 RSpec.describe 'Phase 5.3 integration callbacks smoke (R.bridge seam)' do
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    skip 'requires new bridge (avoid GALAAZ_BRIDGE_IMPL=shadow)' if R.shadow_bridge_selected?
   end
 
   it 'invokes a Ruby Proc from R and returns a scalar result' do

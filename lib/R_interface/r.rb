@@ -26,12 +26,9 @@ require 'msgpack'
 
 # Load required R libraries
 dir = File.dirname(File.expand_path('.', __FILE__))
-# Polyglot.eval_file('R', "#{dir}/r_libs.R") # Disabled for 2.0 Shadow Bridge
+# Polyglot.eval_file('R', "#{dir}/r_libs.R")
 
 # Bridge and Support first
-# NOTE: `shadow_bridge` is loaded for temporary backward compatibility only.
-# It is deprecated/obsolete and planned for removal after NewBridge migration.
-require_relative 'shadow_bridge'
 require_relative 'rsupport'
 
 # Operator modules next (so R::Object can include them)
@@ -45,19 +42,8 @@ require_relative 'rmd_indexed_object'
 require_relative 'robject'
 
 module R
-  # Opt-in values for the deprecated/obsolete legacy FIFO bridge (R::ShadowBridge).
-  # Default is NewBridge (MsgPack session client + gatekeeper .so).
-  SHADOW_BRIDGE_IMPL_VALUES = %w[shadow shadow_bridge legacy].freeze
-
-  def self.shadow_bridge_selected?
-    SHADOW_BRIDGE_IMPL_VALUES.include?(ENV['GALAAZ_BRIDGE_IMPL'].to_s.strip.downcase)
-  end
-
-  # R↔Ruby bridge: NewBridge by default.
-  # ShadowBridge selection remains only for temporary compatibility and is deprecated.
+  # R↔Ruby bridge: NewBridge only.
   def self.bridge
-    return R::ShadowBridge.instance if shadow_bridge_selected?
-
     require_relative 'new_bridge_adapter'
     R::NewBridgeAdapter.instance
   end

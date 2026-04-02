@@ -23,6 +23,7 @@
 
 require 'rake/tasklib'
 require 'rake/testtask'
+require 'shellwords'
 
 require_relative 'version'
 require_relative 'lib/galaaz_jruby'
@@ -237,6 +238,26 @@ end
 desc 'Publish gem to rubygems'
 task :publish_gem do
   (sh %{ gem push #{$gem_name}-#{$version}.gem })
+end
+
+#===========================================================================================
+# NewBridge gatekeeper + combined spec run (JRuby; see also bin/run_all_rspec)
+#===========================================================================================
+
+desc 'Compile the NewBridge gatekeeper shared library (ext/new_bridge; incremental make)'
+task :compile_gatekeeper do
+  Dir.chdir('ext/new_bridge') { sh 'make all' }
+end
+
+desc 'Run specs/ and new_bridge_specs/ under JRuby with SimpleCov (same idea as bin/run_all_rspec)'
+task :specs_all_with_new_bridge => [:compile_gatekeeper] do
+  root = File.expand_path(__dir__)
+  inv = MakeTask.galaaz_jruby_invocation
+  top = Dir[File.join(root, 'specs', '*_spec.rb')] + Dir[File.join(root, 'specs', '*.spec.rb')]
+  files = top.sort.map { |p| Shellwords.escape(p) }.join(' ')
+  nb = Shellwords.escape(File.join(root, 'new_bridge_specs'))
+  helper = Shellwords.escape(File.join(root, 'specs', 'spec_helper.rb'))
+  sh %{ #{inv} -r #{helper} -S bundle exec rspec #{files} #{nb} }
 end
 
 =begin

@@ -57,25 +57,18 @@ module R
         return (arr.length == 1 ? arr[0] : arr)
       end
 
-      # For indexed unboxing, use binary transport
+      # For indexed unboxing, use binary transport + result protocol (no printed-text parsing).
       idx = index
-      len_raw = ::R.bridge.eval_r("length(#{@r_interop})")
-      m = len_raw.match(/\[1\] (.*)/)
-      len = m ? m[1].to_i : 0
+      len = atomic_vector_length
+      ::Kernel.raise(::IndexError.new("index #{idx} out of array bounds: 0...#{len - 1}")) if idx >= len
 
-      ::Kernel.raise(::IndexError.new("index #{idx} out of array bounds: 0...#{len-1}")) if
-        (idx >= len) 
-      
-      # Determine type
-      type_raw = ::R.bridge.eval_r("typeof(#{@r_interop})")
-      type = type_raw.match(/\[1\] \"(.*)\"/)[1] rescue "double"
+      type = atomic_vector_typeof
 
       case type
       when 'integer'
         data = ::R.bridge.pull_integer_vector(@r_interop, 1, idx, 1)
         data[0]
       when 'character'
-        # Single path: result protocol (raw binary envelope). No parsing of printed output.
         var_name = ::R::Support.generate_var_name
         assignment = "#{var_name} <- #{@r_interop}[[#{idx + 1}]]"
         envelope = ::R.bridge.eval_r_with_result(assignment)
@@ -84,16 +77,15 @@ module R
         v = envelope[:value]
         (v.is_a?(::String) && v =~ /^rb_obj_\d+$/) ? ::R::Support.get_ruby_object(v) : v
       when 'logical'
-        # Use eval_r to extract the single element as text (NA must not become false — knitr uses NA for "inherit default").
-        raw = ::R.bridge.eval_r("#{@r_interop}[[#{idx + 1}]]")
-        line = raw.lines.map(&:strip).find { |l| l =~ /\A\[\d+\]\s/ }
-        token = line&.sub(/\A\[\d+\]\s+/, '')&.strip
-        case token
-        when 'TRUE' then true
-        when 'FALSE' then false
-        when 'NA' then nil
-        else
-          raw.strip.include?('TRUE') ? true : false
+        var_name = ::R::Support.generate_var_name
+        assignment = "#{var_name} <- #{@r_interop}[[#{idx + 1}]]"
+        envelope = ::R.bridge.eval_r_with_result(assignment)
+        raise "Result protocol: no envelope for logical element #{@r_interop}[[#{idx + 1}]]" unless envelope
+        raise "Result protocol: expected scalar_logical, got #{envelope[:type]}" unless envelope[:type] == :scalar_logical
+        case envelope[:value]
+        when true then true
+        when false then false
+        else nil
         end
       else
         data = ::R.bridge.pull_double_vector(@r_interop, 1, idx, 1)
@@ -122,10 +114,8 @@ module R
     CHUNK_SIZE = 1_000_000 # 1M rows per page
 
     def stitch(halo: 0, &block)
-      # 1. Get length
-      len_raw = ::R.bridge.eval_r("length(#{@r_interop})")
-      len = len_raw.match(/\[1\] (.*)/)[1].to_i
-      
+      len = atomic_vector_length
+
       # 2. Allocate result vector in R
       res_name = ::R::Support.generate_var_name
       ::R.bridge.eval_r("#{res_name} <- numeric(#{len})")
@@ -211,7 +201,33 @@ module R
     #--------------------------------------------------------------------------------------
 
     def <=>(other_vector)
-      puts "comparison called"
+      ::Kernel.raise(::NotImplementedError, "R::Vector#<=> is not implemented")
+    end
+
+    private
+
+    # Length via result protocol (scalar assignment envelope), not printed `[1] n` text.
+    def atomic_vector_length
+      var_name = ::R::Support.generate_var_name
+      env = ::R.bridge.eval_r_with_result("#{var_name} <- length(#{@r_interop})")
+      raise "Result protocol: no envelope for length(#{@r_interop})" unless env
+      case env[:type]
+      when :scalar_integer
+        env[:value].to_i
+      when :scalar_double
+        env[:value].to_i
+      else
+        raise "Result protocol: expected scalar length, got #{env[:type].inspect}"
+      end
+    end
+
+    # R typeof() as string via result protocol.
+    def atomic_vector_typeof
+      var_name = ::R::Support.generate_var_name
+      env = ::R.bridge.eval_r_with_result("#{var_name} <- typeof(#{@r_interop})")
+      raise "Result protocol: no envelope for typeof(#{@r_interop})" unless env
+      raise "Result protocol: expected scalar_character for typeof, got #{env[:type]}" unless env[:type] == :scalar_character
+      env[:value].to_s
     end
 
   end

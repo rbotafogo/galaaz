@@ -25,15 +25,19 @@ module R
 
   module Support
     @@var_id = 0
+    @@var_id_mutex = Mutex.new
     @dispatch_probe_cache = { func: {} }
+    TRANSPORT_NL = "\uE000".freeze
 
     # Maximum recursion depth when unboxing lists. Beyond this we raise UnboxDepthError.
     MAX_UNBOX_DEPTH = 100
 
     # Generate a unique R-side variable name (e.g. g2_v1, g2_v2) for assignment results.
     def self.generate_var_name
-      @@var_id += 1
-      "g2_v#{@@var_id}"
+      @@var_id_mutex.synchronize do
+        @@var_id += 1
+        "g2_v#{@@var_id}"
+      end
     end
 
     # Convert a Ruby method name to the R name: __ => ., ___ => ::, rclass => class, eql => ==.
@@ -193,7 +197,7 @@ module R
               cmd_part <- sub('--G_CMD--(seq=[0-9]+--)?', '', line)
               cmd <- trimws(cmd_part)
               # Restore newlines (Ruby sends U+E000 as placeholder so FIFO is one line)
-              cmd <- gsub(\"#{R::ShadowBridge::TRANSPORT_NL}\", \"\\n\", cmd, fixed=TRUE)
+              cmd <- gsub(\"#{TRANSPORT_NL}\", \"\\n\", cmd, fixed=TRUE)
               recv_log <- Sys.getenv('GALAAZ_R_RECEIVED_LOG', '')
               if (nchar(recv_log) > 0L) tryCatch({
                 write('---CMD---\\n', file=recv_log, append=TRUE)
@@ -223,7 +227,7 @@ module R
               })
             } else if (startsWith(line, '--G_RET--')) {
               res_handle <- trimws(sub('--G_RET--', '', line))
-              res_handle <- gsub(\"#{R::ShadowBridge::TRANSPORT_NL}\", \"\\n\", res_handle, fixed=TRUE)
+              res_handle <- gsub(\"#{TRANSPORT_NL}\", \"\\n\", res_handle, fixed=TRUE)
               if (nchar(res_handle) > 0L) return(eval(parse(text=res_handle), envir = .GlobalEnv))
               return(invisible(NULL))
             }

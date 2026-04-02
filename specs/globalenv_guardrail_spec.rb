@@ -6,8 +6,7 @@ describe 'GlobalEnv mutable write guardrail' do
   it 'does not introduce unapproved .GlobalEnv$... <- writes in active bridge path' do
     root = Pathname.new(__dir__).join('..').expand_path
 
-    # Intentionally scoped to active lib paths (ShadowBridge excluded as obsolete).
-    scoped_files = Dir[root.join('lib/**/*.rb').to_s].reject { |p| p.end_with?('lib/R_interface/shadow_bridge.rb') }
+    scoped_files = Dir[root.join('lib/**/*.rb').to_s]
 
     allow_by_file = {
       'lib/R_interface/rdevice.rb' => [

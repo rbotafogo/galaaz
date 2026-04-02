@@ -147,12 +147,9 @@ module R
       out = @client.eval_r(code, session_id: current_session_id, parent_id: callback_parent_id, timeout: effective_timeout)
       format_scalar_print(out)
     rescue NewBridge::SessionClient::RProcessError => e
-      # Phase 5.3 compatibility: many eval_r call sites are side-effect only
-      # (e.g. function definitions) and do not require a scalar return value.
-      # The phase1 gatekeeper returns "unsupported type" for non-scalars, so
-      # run in side-effect mode and return an empty string.
-      msg = e.message.to_s
-      raise unless msg.include?('unsupported type') || msg.include?('phase1 requires length-1 scalar')
+      # Compatibility fallback for side-effect-only evals:
+      # only retry when the error clearly matches phase1 scalar restrictions.
+      raise unless phase1_scalar_fallback_error?(e)
 
       @client.eval_r("({ #{code}; 0L })", session_id: current_session_id, parent_id: callback_parent_id, timeout: effective_timeout)
       ''
@@ -394,45 +391,44 @@ module R
       { status: status, nodes: parsed['nodes'].to_i, max_depth: parsed['max_depth'].to_i, value: parsed['value'] }
     end
 
-    # Minimal pull path for Phase 5.1 unboxing support.
-    # Reads vectors element-by-element via the existing eval path.
+    # Unbox atomic vectors to Ruby Arrays.
+    # Primary path: gatekeeper `__G_PULL_VECTOR__` (one round-trip for full vector).
+    # Fallback: per-element scalar eval (complex types, older gatekeeper, errors).
     def pull_vector(var_name)
-      len = @client.eval_r("length(#{var_name})", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))['value'].to_i
-      return [] if len <= 0
-
-      (1..len).map do |i|
-        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
-        case parsed['kind']
-        when 'integer', 'double', 'character'
-          parsed['kind'] == 'character' ? unescape_scalar_character(parsed['value'].to_s) : parsed['value']
-        when 'logical'
-          parsed['value'].nil? ? R::NA : parsed['value']
-        else
-          parsed['value']
-        end
+      begin
+        raw = eval_pull_vector_payload(var_name)
+        out = decode_pull_vector_bulk_payload(raw)
+        return out unless out.nil?
+      rescue NewBridge::SessionClient::RProcessError
+        # Unsupported SEXP type, unknown handle, or legacy binary without pull_vector.
       end
+      pull_vector_elementwise(var_name)
     end
 
     # Indexed vector unboxing helpers expected by R::Vector#unboxed_get.
     # offset is 0-based (Ruby index), R indexing is 1-based.
     def pull_integer_vector(var_name, _total_size, offset = 0, chunk_size = nil)
       chunk_size ||= 1
-      start_i = offset + 1
-      end_i = offset + chunk_size
-      (start_i..end_i).map do |i|
-        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
-        parsed['value']
+      start_1 = offset + 1
+      begin
+        raw = eval_pull_vector_payload(var_name, slice_start_1based: start_1, slice_count: chunk_size)
+        out = decode_pull_vector_bulk_payload(raw, want_kind: 'integer_vector')
+        return out if out.is_a?(Array) && out.size == chunk_size
+      rescue NewBridge::SessionClient::RProcessError
       end
+      pull_integer_vector_elementwise(var_name, offset, chunk_size)
     end
 
     def pull_double_vector(var_name, _total_size, offset = 0, chunk_size = nil)
       chunk_size ||= 1
-      start_i = offset + 1
-      end_i = offset + chunk_size
-      (start_i..end_i).map do |i|
-        parsed = @client.eval_r("#{var_name}[[#{i}]]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
-        parsed['value']
+      start_1 = offset + 1
+      begin
+        raw = eval_pull_vector_payload(var_name, slice_start_1based: start_1, slice_count: chunk_size)
+        out = decode_pull_vector_bulk_payload(raw, want_kind: 'double_vector')
+        return out if out.is_a?(Array) && out.size == chunk_size
+      rescue NewBridge::SessionClient::RProcessError
       end
+      pull_double_vector_elementwise(var_name, offset, chunk_size)
     end
 
     # Push Ruby numeric array values into an R numeric vector.
@@ -473,40 +469,30 @@ module R
       nil
     end
 
-    # Minimal data.frame unboxing for Phase 5.2.
-    # Returns a Ruby hash: { "colname" => [values...] }.
+    # data.frame unboxing: Ruby hash { "colname" => [values...] }.
     #
-    # Uses scalar eval for each cell to stay compatible with phase1's
-    # length-1 scalar limitation.
+    # Column-wise bulk path: assign each column to a temp `g2_v*` handle, then
+    # `pull_vector` (uses `__G_PULL_VECTOR__` when supported). Per-cell scalar
+    # evals are avoided for atomic columns; list / unsupported columns still
+    # fall back inside `pull_vector`.
     def pull_dataframe(var_name)
-      ncol = @client.eval_r("length(#{var_name})", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))['value'].to_i
+      t = effective_bridge_timeout(timeout: nil)
+      sid = current_session_id
+      pid = callback_parent_id
+
+      ncol = @client.eval_r("length(#{var_name})", session_id: sid, parent_id: pid, timeout: t)['value'].to_i
       return {} if ncol <= 0
 
       col_hash = {}
 
       (1..ncol).each do |i|
-        # names(df)[i] is a character vector of length 1 -> length-1 scalar.
-        col_name_parsed = @client.eval_r("names(#{var_name})[#{i}]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
+        col_name_parsed = @client.eval_r("names(#{var_name})[#{i}]", session_id: sid, parent_id: pid, timeout: t)
         col_name = col_name_parsed['value']
         col_name = col_name.to_s if col_name
 
-        col_type = @client.eval_r("typeof(#{var_name}[[#{i}]])", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))['value'].to_s
-        nrow = @client.eval_r("length(#{var_name}[[#{i}]])", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))['value'].to_i
-        nrow = 0 if nrow.negative?
-
-        values = (1..nrow).map do |j|
-          parsed = @client.eval_r("#{var_name}[[#{i}]][[#{j}]]", session_id: current_session_id, timeout: effective_bridge_timeout(timeout: nil))
-          case parsed['kind']
-          when 'logical'
-            parsed['value'].nil? ? R::NA : parsed['value']
-          when 'integer', 'double', 'character'
-            parsed['value']
-          else
-            parsed['value']
-          end
-        end
-
-        col_hash[col_name] = values
+        tmp = ::R::Support.generate_var_name
+        @client.eval_r("({ #{tmp} <- #{var_name}[[#{i}]]; 0L })", session_id: sid, parent_id: pid, timeout: t)
+        col_hash[col_name] = pull_vector(tmp)
       end
 
       col_hash
@@ -640,6 +626,101 @@ module R
          .gsub(/\\n/, "\n")
          .gsub(/\\"/, '"')
          .gsub(/\\\\/, "\\")
+    end
+
+    # Gatekeeper bulk vector read: `__G_PULL_VECTOR__|handle` or slice `|start|count` (1-based start).
+    def eval_pull_vector_payload(var_name, slice_start_1based: nil, slice_count: nil)
+      cmd =
+        if slice_start_1based.nil?
+          "__G_PULL_VECTOR__|#{var_name}"
+        else
+          "__G_PULL_VECTOR__|#{var_name}|#{slice_start_1based.to_i}|#{slice_count.to_i}"
+        end
+      @client.eval_r(cmd,
+                     session_id: current_session_id,
+                     parent_id: callback_parent_id,
+                     timeout: effective_bridge_timeout(timeout: nil))
+    end
+
+    def vector_bulk_kind?(k)
+      %w[integer_vector double_vector logical_vector character_vector].include?(k.to_s)
+    end
+
+    # Returns Ruby Array or nil if +parsed+ is not a bulk vector payload.
+    def decode_pull_vector_bulk_payload(parsed, want_kind: nil)
+      return nil unless parsed.is_a?(Hash)
+
+      k = parsed['kind'].to_s
+      return nil unless vector_bulk_kind?(k)
+      return nil if want_kind && k != want_kind.to_s
+
+      vals = Array(parsed['values'])
+      case k
+      when 'integer_vector', 'double_vector'
+        vals
+      when 'logical_vector'
+        vals.map { |v| v.nil? ? R::NA : v }
+      when 'character_vector'
+        vals.map { |v| v.nil? ? nil : unescape_scalar_character(v.to_s) }
+      else
+        nil
+      end
+    end
+
+    def pull_vector_elementwise(var_name)
+      len = @client.eval_r("length(#{var_name})",
+                           session_id: current_session_id,
+                           parent_id: callback_parent_id,
+                           timeout: effective_bridge_timeout(timeout: nil))['value'].to_i
+      return [] if len <= 0
+
+      (1..len).map do |i|
+        parsed = @client.eval_r("#{var_name}[[#{i}]]",
+                                session_id: current_session_id,
+                                parent_id: callback_parent_id,
+                                timeout: effective_bridge_timeout(timeout: nil))
+        case parsed['kind']
+        when 'integer', 'double', 'character'
+          parsed['kind'] == 'character' ? unescape_scalar_character(parsed['value'].to_s) : parsed['value']
+        when 'logical'
+          parsed['value'].nil? ? R::NA : parsed['value']
+        else
+          parsed['value']
+        end
+      end
+    end
+
+    def pull_integer_vector_elementwise(var_name, offset, chunk_size)
+      start_i = offset + 1
+      end_i = offset + chunk_size
+      (start_i..end_i).map do |i|
+        parsed = @client.eval_r("#{var_name}[[#{i}]]",
+                                session_id: current_session_id,
+                                parent_id: callback_parent_id,
+                                timeout: effective_bridge_timeout(timeout: nil))
+        parsed['value']
+      end
+    end
+
+    def pull_double_vector_elementwise(var_name, offset, chunk_size)
+      start_i = offset + 1
+      end_i = offset + chunk_size
+      (start_i..end_i).map do |i|
+        parsed = @client.eval_r("#{var_name}[[#{i}]]",
+                                session_id: current_session_id,
+                                parent_id: callback_parent_id,
+                                timeout: effective_bridge_timeout(timeout: nil))
+        parsed['value']
+      end
+    end
+
+    def phase1_scalar_fallback_error?(error)
+      msg = error.message.to_s.strip
+      return true if msg =~ /\Aphase1 requires length-1 scalar\z/
+      return true if msg =~ /\Aunsupported type\z/
+      return true if msg =~ /payload_error\("phase1 requires length-1 scalar"\)/
+      return true if msg =~ /payload_error\("unsupported type"\)/
+      false
     end
   end
 end

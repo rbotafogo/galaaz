@@ -11,7 +11,6 @@ require_relative '../lib/R_interface/r'
 RSpec.describe 'Phase 5.5 integration unbox_walk (R.bridge seam)' do
   before(:all) do
     skip 'R not on PATH' unless system('command -v R >/dev/null 2>&1')
-    skip 'requires new bridge (avoid GALAAZ_BRIDGE_IMPL=shadow)' if R.shadow_bridge_selected?
   end
 
   it 'reports depth_limit for deeply nested lists in one probe call' do
