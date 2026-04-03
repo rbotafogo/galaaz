@@ -7,9 +7,33 @@ require 'tmpdir'
 require 'timeout'
 
 require_relative 'envelope'
+require_relative 'eval_result'
 require_relative 'framing'
 
 module NewBridge
+  # Pending async +eval_r_async+ entry: completion runs on a background thread (not the reader).
+  class AsyncPendingEntry
+    attr_reader :instance_id, :block
+    attr_accessor :timer_thread
+
+    def initialize(instance_id, block)
+      @instance_id = instance_id
+      @block = block
+      @timer_thread = nil
+    end
+
+    def cancel_timer!
+      t = @timer_thread
+      return unless t&.alive?
+      return if Thread.current.equal?(t)
+
+      t.kill
+      t.join(0.05)
+    rescue StandardError
+      nil
+    end
+  end
+
   # NewBridge::SessionClient
   #
   # Responsibilities (Ruby side, inside one Ruby process):
@@ -32,7 +56,7 @@ module NewBridge
   #
   # Threading model
   # - One reader thread (`reader_loop`) continuously reads frames and dispatches:
-  #   - `RET` -> pushes into the per-call Queue waiting on REQ
+  #   - `RET` -> pushes into the per-call Queue (sync +eval_r+) or schedules async completion (+eval_r_async+)
   #   - `CALL` -> spawns a new thread to execute the Ruby callback
   # - Callback threads send `RET` back to R while keeping the reader thread free,
   #   which is required to support nested REQ servicing while waiting for a callback.
@@ -246,6 +270,39 @@ module NewBridge
       parsed
     end
 
+    # Schedule one REQ and invoke +block+ on a background thread when RET arrives (or on failure).
+    #
+    # Unlike +eval_r+, this method returns immediately with the +call_id+ String; it does not wait
+    # for R unless +timeout+ is nil (wait forever on the Ruby side for RET) or a Numeric (raise
+    # completion with {TimeoutError} if RET is late).
+    #
+    # @param timeout [nil, Numeric] +nil+ means no limit; a positive number starts a timer thread.
+    # @return [String] +call_id+ for correlation / debugging
+    # @raise [ArgumentError] if no block is given
+    def eval_r_async(code, session_id: 'default', instance_id: 'default', parent_id: nil, timeout: nil, &block)
+      raise ArgumentError, 'eval_r_async requires a block' unless block
+
+      call_id = SecureRandom.uuid
+      slot = AsyncPendingEntry.new(instance_id, block)
+      @pending_mx.synchronize { @pending[call_id] = slot }
+
+      req = Envelope.encode(
+        'call_id' => call_id,
+        'type' => 'REQ',
+        'session_id' => session_id,
+        'instance_id' => instance_id,
+        'parent_id' => parent_id,
+        'payload' => code
+      )
+      @write_mx.synchronize { Framing.write_frame(@sock, req) }
+
+      if timeout
+        slot.timer_thread = Thread.new { async_timeout_wait(call_id, slot, timeout) }
+      end
+
+      call_id
+    end
+
     # Register a Ruby callback for R->Ruby `CALL` envelopes.
     #
     # The gatekeeper will invoke this callback when it receives a `CALL` with the
@@ -313,8 +370,18 @@ module NewBridge
         debug_log("RX type=#{h['type']} call_id=#{h['call_id']} session_id=#{h['session_id']} instance_id=#{h['instance_id']}") if h.is_a?(Hash)
         case h['type']
         when 'RET'
-          q = @pending_mx.synchronize { @pending.delete(h['call_id']) }
-          q&.push(h)
+          entry = @pending_mx.synchronize { @pending.delete(h['call_id']) }
+          case entry
+          when Queue
+            entry.push(h)
+          when AsyncPendingEntry
+            entry.cancel_timer!
+            Thread.new { deliver_eval_r_async_completion(entry, h) }
+          when nil
+            debug_log("stray RET call_id=#{h['call_id']}")
+          else
+            debug_log("unexpected pending type=#{entry.class} call_id=#{h['call_id']}")
+          end
         when 'CALL'
           handle_call(h)
         end
@@ -380,10 +447,71 @@ module NewBridge
     # Signal all pending eval_r requests that the socket is closed,
     # allowing waiting `eval_r` calls to raise promptly.
     def signal_closed
-      @pending_mx.synchronize do
-        @pending.each_value { |q| q.push(:closed) }
+      entries = @pending_mx.synchronize do
+        e = @pending.dup
         @pending.clear
+        e
       end
+      entries.each do |_call_id, entry|
+        case entry
+        when Queue
+          entry.push(:closed)
+        when AsyncPendingEntry
+          entry.cancel_timer!
+          Thread.new { invoke_async_block_safe(entry, EvalResult.failure(RProcessError.new('R connection closed'))) }
+        else
+          debug_log("signal_closed: skip pending type=#{entry.class}")
+        end
+      end
+    end
+
+    def ret_hash_to_eval_result(ret, expected_instance_id)
+      unless ret.is_a?(Hash)
+        return EvalResult.failure(RProcessError.new("invalid RET payload type=#{ret.class}"))
+      end
+
+      if ret['instance_id'] && ret['instance_id'] != expected_instance_id
+        return EvalResult.failure(RProcessError.new("instance_id mismatch: expected=#{expected_instance_id} got=#{ret['instance_id']}"))
+      end
+
+      payload = ret['payload']
+      unless payload.is_a?(Hash)
+        return EvalResult.failure(RProcessError.new("invalid RET payload inner type=#{payload.class} (expected map)"))
+      end
+
+      return EvalResult.failure(RProcessError.new(payload['message'] || payload.inspect)) if ret['status'] != 'success'
+
+      EvalResult.success(payload)
+    end
+
+    def deliver_eval_r_async_completion(slot, ret_env)
+      result = ret_hash_to_eval_result(ret_env, slot.instance_id)
+      invoke_async_block_safe(slot, result)
+    end
+
+    def invoke_async_block_safe(slot, result)
+      slot.block.call(result)
+    rescue StandardError => e
+      debug_log("eval_r_async block raised #{e.class}: #{e.message}")
+      raise if ENV['GALAAZ_ASYNC_RAISE_COMPLETION']
+
+      nil
+    end
+
+    def async_timeout_wait(call_id, slot, timeout)
+      sleep(timeout.to_f)
+      timed_out = false
+      @pending_mx.synchronize do
+        if @pending[call_id].equal?(slot)
+          @pending.delete(call_id)
+          timed_out = true
+        end
+      end
+      return unless timed_out
+
+      invoke_async_block_safe(slot, EvalResult.failure(TimeoutError.new(
+        format('no RET for %<id>s (timeout=%<timeout>.3fs)', id: call_id, timeout: timeout.to_f)
+      )))
     end
 
     def append_r_stderr(text)

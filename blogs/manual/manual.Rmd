@@ -282,6 +282,57 @@ A runnable sketch lives in
 driver). For concurrency tests on the bridge itself, see `specs/bridge_concurrent_spec.rb` and
 `specs/arrow_from_ruby_batches_spec.rb`.
 
+## Long-running R calls and a completion block
+
+For R work that can take a long time, the bridge can avoid a Ruby-side **wait timeout** by
+scheduling the call and resuming in a **block** when the `RET` arrives.
+
+- **`R.eval_r_async(code, timeout: nil) { |result| ... }`** — string eval; on success, `result.value`
+  is the same formatted string as **`R.eval_r`** (use `timeout: nil` for no Ruby-side limit).
+- **`R::Async.<rname>(...) { |result| ... }`** — same dispatch as **`R.<rname>(...)`**, but async;
+  on success, `result.value` is an **`R::Object`** (or unboxed Ruby value / Symbol), like synchronous
+  **`R.<rname>`**. Optional keyword **`timeout:`** applies a Ruby-side wait limit (completion receives
+  **`NewBridge::SessionClient::TimeoutError`** if R is too slow).
+
+**Important:** **`R.foo(...) { |x| }`** is already used for dplyr-style scopes (`R::Support.new_scope`),
+so async R calls must use **`R::Async`** or **`R.eval_r_async`**, not a bare **`R.foo` with a block.**
+
+`NewBridge::EvalResult` exposes **`#ok?`**, **`#value`**, and **`#error`**. The completion block runs on a
+**background thread** (not the bridge reader thread).
+
+The example below is **plain Ruby** (no Rails). The R snippet sleeps (standing in for heavy work) and then
+returns an integer so the success branch shows a **non-nil** value. (`Sys.sleep` alone returns **NULL** in R;
+on success **`result.value`** is then **`nil`** in Ruby—that is expected, not a bridge error.)
+
+```{ruby long_r_completion_block}
+require 'thread'
+
+completion = Queue.new
+
+R.eval_r_async('({ Sys.sleep(0.3); 42L })', timeout: nil) do |result|
+  if result.ok?
+    puts "[completion] R finished; eval_r-style value: #{result.value.inspect}"
+  else
+    puts "[completion] R/bridge error: #{result.error.class}: #{result.error.message}"
+  end
+  completion.push(:done)
+end
+
+3.times do |i|
+  puts "[main] other Ruby work step #{i + 1}"
+  sleep 0.05
+end
+
+completion.pop
+puts "[main] R completion has run; exiting."
+```
+
+In a **web application**, the HTTP response usually ends before R finishes, so you would not
+`Queue#pop` in the controller; you would persist an identifier, let the completion block write
+the outcome to storage, and notify the client (poll, WebSocket, Turbo Stream, etc.). The plain
+Ruby pattern above is only to show **when** the result exists (inside the block, or after data
+written there is observed elsewhere). Runnable specs live in **`new_bridge_specs/eval_r_async_spec.rb`**.
+
 # Accessing R from Ruby
 
 One of the nice aspects of Galaaz is that variables and functions defined in R can

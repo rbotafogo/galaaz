@@ -157,6 +157,61 @@ module R
       ''
     end
 
+    # Async string eval: +block+ receives +NewBridge::EvalResult+; on success +#value+ is the same
+    # formatted string as +eval_r+ (no phase1 scalar fallback retry on async path).
+    #
+    # @param timeout [nil, Numeric] +nil+ means wait without Ruby-side limit; numeric starts a timer.
+    def eval_r_async(code, timeout: nil, &block)
+      raise ArgumentError, 'eval_r_async requires a block' unless block
+
+      @client.eval_r_async(code.to_s,
+                           session_id: current_session_id,
+                           parent_id: callback_parent_id,
+                           timeout: timeout) do |raw|
+        mapped =
+          if raw.ok?
+            begin
+              NewBridge::EvalResult.success(format_scalar_print(raw.value))
+            rescue StandardError => e
+              NewBridge::EvalResult.failure(e)
+            end
+          else
+            raw
+          end
+        block.call(mapped)
+      end
+    end
+
+    # Async +eval_r_with_result+ payload; +block+ receives +NewBridge::EvalResult+ where success +#value+
+    # is a Hash +:envelope+, +:var_name+, +:r_expr+ for +R::Support.ruby_result_from_envelope+.
+    def eval_r_with_result_async(assignment_code, timeout: nil, &block)
+      raise ArgumentError, 'eval_r_with_result_async requires a block' unless block
+
+      code = "__G_EVAL_WITH_RESULT__#{assignment_code}"
+      @client.eval_r_async(code,
+                           session_id: current_session_id,
+                           parent_id: callback_parent_id,
+                           timeout: timeout) do |raw|
+        if raw.ok?
+          begin
+            env = to_legacy_envelope(raw.value)
+            m = assignment_code.match(/\A(\S+)\s*<-\s*(.*)\z/m)
+            unless m
+              block.call(NewBridge::EvalResult.failure(StandardError.new("eval_r_with_result_async: bad assignment #{assignment_code.inspect}")))
+              next
+            end
+            vn = m[1]
+            rx = m[2].to_s.strip
+            block.call(NewBridge::EvalResult.success(envelope: env, var_name: vn, r_expr: rx))
+          rescue StandardError => e
+            block.call(NewBridge::EvalResult.failure(e))
+          end
+        else
+          block.call(raw)
+        end
+      end
+    end
+
     # Return the printed representation of an R object as a Ruby string.
     def print_r(var_name)
       parsed = @client.eval_r("paste(capture.output(print(#{var_name})), collapse='\\n')",

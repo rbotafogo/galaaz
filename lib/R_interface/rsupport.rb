@@ -362,10 +362,13 @@ module R
         raise "Result protocol: no envelope (buffer missing or invalid)#{reason ? " [#{reason}]" : ''}"
       end
 
+      ruby_result_from_envelope(envelope, var_name, r_expr)
+    end
+
+    # Build the same Ruby value as +exec_function+ from a legacy envelope (+:handle+, scalars, +rb_obj_*+).
+    def self.ruby_result_from_envelope(envelope, var_name, r_expr)
       case envelope[:type]
       when :scalar_double, :scalar_integer, :scalar_logical, :scalar_character
-        # Always return R::Object (boxed). Callers unbox with .to_ruby, .unboxed_get(0), or >> 0.
-        # Exception: unwrap rb_obj_* handles (stored Ruby objects).
         val = envelope[:value]
         if envelope[:type] == :scalar_character && val.is_a?(String) && val =~ /^rb_obj_\d+$/
           return get_ruby_object(val)
@@ -376,10 +379,66 @@ module R
         sym_name = envelope[:value].to_s
         return sym_name.gsub("::", "___").gsub(".", "__").to_sym
       when :handle
-        # Never unbox single-cell for `[`; keep as R::Object so .all__equal and other R methods work.
         return R::Object.build(envelope[:handle], r_expr, r_class: envelope[:r_class], wrapper_tag: envelope[:wrapper_tag])
       else
         raise "Result protocol: unknown envelope type #{envelope[:type].inspect}"
+      end
+    end
+
+    # Async variant of +exec_function+; +block+ receives +NewBridge::EvalResult+ (+#value+ is like +exec_function+ return).
+    def self.exec_function_async(function, *args, unbox: false, timeout: nil, **kwargs, &block)
+      raise ArgumentError, 'exec_function_async requires a block' unless block
+
+      f_name = function.respond_to?(:r_interop) ? function.r_interop : function
+
+      if args.empty? && kwargs.empty? && (f_name.include?("::") || f_name.start_with?("g2_v"))
+        raise ArgumentError, 'exec_function_async does not support bare handle/namespace reference; use R.eval_r_async'
+      end
+
+      var_name = self.generate_var_name
+      all_args = kwargs.empty? ? args : args + [kwargs]
+
+      use_subscript_alist =
+        kwargs.empty? &&
+        f_name == MD_INDEX_BACKTICK &&
+        all_args.any? { |a| a.is_a?(::Symbol) && a == :all } &&
+        !all_args.any? { |a| a.is_a?(Hash) }
+
+      use_assign_alist =
+        !kwargs.empty? &&
+        f_name == MD_ASSIGN_BACKTICK &&
+        all_args.size == 2 &&
+        all_args[1].is_a?(Hash) &&
+        all_args[1].values.any? { |v| v.is_a?(::Symbol) && v == :all }
+
+      if use_subscript_alist
+        r_expr = build_subscript_do_call_alist(all_args)
+      elsif use_assign_alist
+        r_expr = build_subscript_assign_do_call_alist(all_args[0], all_args[1])
+      else
+        r_args = all_args.map { |arg| self.parse_arg(arg) }
+        if f_name == "eval" && args.size == 2 && !r_args[0].to_s.start_with?("g2_v", "quote(")
+          r_args[0] = "parse(text=#{r_args[0].to_s.inspect})"
+        end
+
+        r_expr = "#{f_name}(#{r_args.join(", ")})"
+      end
+      assignment = "#{var_name} <- #{r_expr}"
+
+      R.bridge.eval_r_with_result_async(assignment, timeout: timeout) do |result|
+        if result.ok?
+          begin
+            env = result.value[:envelope]
+            vn = result.value[:var_name]
+            rx = result.value[:r_expr]
+            obj = ruby_result_from_envelope(env, vn, rx)
+            block.call(NewBridge::EvalResult.success(obj))
+          rescue StandardError => e
+            block.call(NewBridge::EvalResult.failure(e))
+          end
+        else
+          block.call(result)
+        end
       end
     end
 

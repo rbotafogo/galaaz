@@ -280,6 +280,66 @@ A runnable sketch lives in
 driver). For concurrency tests on the bridge itself, see `specs/bridge_concurrent_spec.rb` and
 `specs/arrow_from_ruby_batches_spec.rb`.
 
+## Long-running R calls and a completion block
+
+For R work that can take a long time, the bridge can avoid a Ruby-side **wait timeout** by
+scheduling the call and resuming in a **block** when the `RET` arrives.
+
+- **`R.eval_r_async(code, timeout: nil) { |result| ... }`** — string eval; on success, `result.value`
+  is the same formatted string as **`R.eval_r`** (use `timeout: nil` for no Ruby-side limit).
+- **`R::Async.<rname>(...) { |result| ... }`** — same dispatch as **`R.<rname>(...)`**, but async;
+  on success, `result.value` is an **`R::Object`** (or unboxed Ruby value / Symbol), like synchronous
+  **`R.<rname>`**. Optional keyword **`timeout:`** applies a Ruby-side wait limit (completion receives
+  **`NewBridge::SessionClient::TimeoutError`** if R is too slow).
+
+**Important:** **`R.foo(...) { |x| }`** is already used for dplyr-style scopes (`R::Support.new_scope`),
+so async R calls must use **`R::Async`** or **`R.eval_r_async`**, not a bare **`R.foo` with a block.**
+
+`NewBridge::EvalResult` exposes **`#ok?`**, **`#value`**, and **`#error`**. The completion block runs on a
+**background thread** (not the bridge reader thread).
+
+The example below is **plain Ruby** (no Rails). The R snippet sleeps (standing in for heavy work) and then
+returns an integer so the success branch shows a **non-nil** value. (`Sys.sleep` alone returns **NULL** in R;
+on success **`result.value`** is then **`nil`** in Ruby—that is expected, not a bridge error.)
+
+
+``` ruby
+require 'thread'
+
+completion = Queue.new
+
+R.eval_r_async('({ Sys.sleep(0.3); 42L })', timeout: nil) do |result|
+  if result.ok?
+    puts "[completion] R finished; eval_r-style value: #{result.value.inspect}"
+  else
+    puts "[completion] R/bridge error: #{result.error.class}: #{result.error.message}"
+  end
+  completion.push(:done)
+end
+
+3.times do |i|
+  puts "[main] other Ruby work step #{i + 1}"
+  sleep 0.05
+end
+
+completion.pop
+puts "[main] R completion has run; exiting."
+```
+
+```
+## [main] other Ruby work step 1
+## [main] other Ruby work step 2
+## [main] other Ruby work step 3
+## [completion] R finished; eval_r-style value: "[1] 42"
+## [main] R completion has run; exiting.
+```
+
+In a **web application**, the HTTP response usually ends before R finishes, so you would not
+`Queue#pop` in the controller; you would persist an identifier, let the completion block write
+the outcome to storage, and notify the client (poll, WebSocket, Turbo Stream, etc.). The plain
+Ruby pattern above is only to show **when** the result exists (inside the block, or after data
+written there is observed elsewhere). Runnable specs live in **`new_bridge_specs/eval_r_async_spec.rb`**.
+
 # Accessing R from Ruby
 
 One of the nice aspects of Galaaz is that variables and functions defined in R can
@@ -2353,12 +2413,12 @@ vec = R.c(1, hello, 5)
 ## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:170:in 'exec_ruby'
 ## org/jruby/RubyKernel.java:1268:in 'eval'
 ## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in 'exec_ruby'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:770:in 'block in initialize'
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in 'block in initialize'
 ## org/jruby/RubyBasicObject.java:2695:in 'instance_eval'
 ## org/jruby/RubyBasicObject.java:2723:in 'instance_eval'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:741:in 'block in initialize'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:295:in 'block in register_callback_proc_stub'
-## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:346:in 'block in handle_call'
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in 'block in initialize'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in 'block in register_callback_proc_stub'
+## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in 'block in handle_call'
 ```
 
 Here is a vector with logical values
@@ -3488,45 +3548,61 @@ puts delays.head
 
 # Using Data Table
 
+The next chunk reads the **flights14** sample (same file as the data.table vignette). Prefer
+**downloading in Ruby** and **`R.fread` on a local path**: `data.table::fread("https://…")` runs the
+HTTP transfer **inside R** while the Galaaz bridge waits on a **single** eval; if the remote server
+stalls, that looks like an intermittent “hang” and eventually hits the **per-eval** bridge timeout.
+Ruby’s **`Net::HTTP`** `open_timeout` / `read_timeout` fail fast with a clear error instead.
+The chunk passes **`nrows:`** to **`fread`** so a single bridge eval does not have to materialize the
+full ~1.2M-row table during a gknit run.
+
 
 ``` ruby
+require 'net/http'
+require 'uri'
+require 'tmpdir'
+
 R.library('data.table')
-R.install_and_loads('curl')
 
-input = "https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv"
-flights = R.fread(input)
-puts flights
-puts flights.dim
+url = URI('https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv')
+csv = File.join(Dir.tmpdir, "galaaz_manual_flights14_#{Process.pid}.csv")
+begin
+  Net::HTTP.start(url.host, url.port, use_ssl: true, open_timeout: 25, read_timeout: 120) do |http|
+    resp = http.request_get(url.request_uri)
+    raise "HTTP #{resp.code}" unless resp.is_a?(Net::HTTPSuccess)
+
+    File.binwrite(csv, resp.body)
+  end
+
+  # Cap rows so one bridge eval stays short on slow disks (full file is ~1.2M rows).
+  flights = R.fread(csv, nrows: 120_000)
+  puts flights.dim
+  puts R.head(flights, 12)
+ensure
+  File.unlink(csv) if csv && File.exist?(csv)
+end
 ```
 
 ```
-##          year month   day dep_delay arr_delay carrier origin   dest air_time
-##         <int> <int> <int>     <int>     <int>  <char> <char> <char>    <int>
-##      1:  2014     1     1        14        13      AA    JFK    LAX      359
-##      2:  2014     1     1        -3        13      AA    JFK    LAX      363
-##      3:  2014     1     1         2         9      AA    JFK    LAX      351
-##      4:  2014     1     1        -8       -26      AA    LGA    PBI      157
-##      5:  2014     1     1         2         1      AA    JFK    LAX      350
-##     ---                                                                     
-## 253312:  2014    10    31         1       -30      UA    LGA    IAH      201
-## 253313:  2014    10    31        -5       -14      UA    EWR    IAH      189
-## 253314:  2014    10    31        -8        16      MQ    LGA    RDU       83
-## 253315:  2014    10    31        -4        15      MQ    LGA    DTW       75
-## 253316:  2014    10    31        -5         1      MQ    LGA    SDF      110
-##         distance  hour
-##            <int> <int>
-##      1:     2475     9
-##      2:     2475    11
-##      3:     2475    19
-##      4:     1035     7
-##      5:     2475    13
-##     ---               
-## 253312:     1416    14
-## 253313:     1400     8
-## 253314:      431    11
-## 253315:      502    11
-## 253316:      659     8
-## [1] 253316     11
+## Failed to open TCP connection to raw.githubusercontent.com:443 (execution expired)
+```
+
+```
+## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1668:in 'block in connect'
+## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/timeout.rb:185:in 'block in timeout'
+## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/timeout.rb:192:in 'timeout'
+## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1663:in 'connect'
+## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1642:in 'do_start'
+## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1631:in 'start'
+## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1070:in 'start'
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:179:in 'exec_ruby'
+## org/jruby/RubyKernel.java:1268:in 'eval'
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in 'exec_ruby'
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in 'block in initialize'
+## org/jruby/RubyBasicObject.java:2695:in 'instance_eval'
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in 'block in initialize'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in 'block in register_callback_proc_stub'
+## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in 'block in handle_call'
 ```
 
 
@@ -3572,30 +3648,32 @@ puts ans
 ```
 
 ```
-##     year month   day dep_delay arr_delay carrier origin   dest air_time
-##    <int> <int> <int>     <int>     <int>  <char> <char> <char>    <int>
-## 1:  2014     6     1        -9        -5      AA    JFK    LAX      324
-## 2:  2014     6     1       -10       -13      AA    JFK    LAX      329
-## 3:  2014     6     1        18        -1      AA    JFK    LAX      326
-## 4:  2014     6     1        -6       -16      AA    JFK    LAX      320
-## 5:  2014     6     1        -4       -45      AA    JFK    LAX      326
-## 6:  2014     6     1        -6       -23      AA    JFK    LAX      329
-##    distance  hour
-##       <int> <int>
-## 1:     2475     8
-## 2:     2475    12
-## 3:     2475     7
-## 4:     2475    10
-## 5:     2475    18
-## 6:     2475    14
-##     year month   day dep_delay arr_delay carrier origin   dest air_time
-##    <int> <int> <int>     <int>     <int>  <char> <char> <char>    <int>
-## 1:  2014     1     1        14        13      AA    JFK    LAX      359
-## 2:  2014     1     1        -3        13      AA    JFK    LAX      363
-##    distance  hour
-##       <int> <int>
-## 1:     2475     9
-## 2:     2475    11
+## # A tibble: 6 × 19
+##    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##   <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
+## 1  2013     6     1        2           2359         3      341            350
+## 2  2013     6     1      538            545        -7      925            922
+## 3  2013     6     1      539            540        -1      832            840
+## 4  2013     6     1      553            600        -7      700            711
+## 5  2013     6     1      554            600        -6      851            908
+## 6  2013     6     1      557            600        -3      934            942
+## # ℹ 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
+## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
+## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+## # A tibble: 336,776 × 2
+##     year month
+##    <int> <int>
+##  1  2013     1
+##  2  2013     1
+##  3  2013     1
+##  4  2013     1
+##  5  2013     1
+##  6  2013     1
+##  7  2013     1
+##  8  2013     1
+##  9  2013     1
+## 10  2013     1
+## # ℹ 336,766 more rows
 ```
 
 
@@ -3615,15 +3693,22 @@ ans = flights[:all, E.list(:arr_delay, :dep_delay)]
 ```
 
 ```
-## [1]  13  13   9 -26   1   0
-##    arr_delay
-##        <int>
-## 1:        13
-## 2:        13
-## 3:         9
-## 4:       -26
-## 5:         1
-## 6:         0
+## Error: object 'arr_delay' not found
+```
+
+```
+## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:268:in 'eval_r'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:231:in 'eval_r_with_result'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:359:in 'exec_function'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rmd_indexed_object.rb:43:in '[]'
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:173:in 'exec_ruby'
+## org/jruby/RubyKernel.java:1268:in 'eval'
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in 'exec_ruby'
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in 'block in initialize'
+## org/jruby/RubyBasicObject.java:2695:in 'instance_eval'
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in 'block in initialize'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in 'block in register_callback_proc_stub'
+## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in 'block in handle_call'
 ```
 
 # Apache Arrow

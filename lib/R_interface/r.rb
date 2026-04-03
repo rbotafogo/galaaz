@@ -95,6 +95,23 @@ module R
     R::Support.batch_eval_with_result(col.ops)
   end
 
+  # Async string eval against R; +block+ receives +NewBridge::EvalResult+ (+#value+ matches +eval_r+ on success).
+  def self.eval_r_async(code, timeout: nil, &block)
+    R.bridge.eval_r_async(code, timeout: timeout, &block)
+  end
+
+  # Async R function calls without blocking the caller. Requires a block; completion receives +NewBridge::EvalResult+.
+  # (+R.foo { ... }+ is reserved for dplyr-style scopes; use +R::Async.foo(...)+ for async completion.)
+  module Async
+    def self.method_missing(symbol, *args, **kwargs, &block)
+      raise ArgumentError, 'R::Async method calls require a block' unless block
+
+      timeout = kwargs.delete(:timeout)
+      name = R::Support.convert_symbol2r(symbol)
+      R::Support.exec_function_async(name, *args, timeout: timeout, **kwargs, &block)
+    end
+  end
+
   #----------------------------------------------------------------------------------------
   # Checks to see if the given libs are installed in R and if not, install them
   # @param libs [Array] Array of strings with the names of the libraries to check and
