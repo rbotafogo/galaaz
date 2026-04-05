@@ -1,4 +1,8 @@
 # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Dependabot’s Bundler job runs on CRuby (Linux), not JRuby. If Gemfile.lock only listed
+# PLATFORMS universal-java, update_files failed with exit 1. Keep x86_64-linux in the
+# lockfile alongside universal-java (bundle lock --add-platform x86_64-linux).
 version: 2
 updates:
   - package-ecosystem: bundler
