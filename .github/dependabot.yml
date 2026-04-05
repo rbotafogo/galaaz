@@ -3,10 +3,15 @@
 # Dependabot’s Bundler job runs on CRuby (Linux), not JRuby. If Gemfile.lock only listed
 # PLATFORMS universal-java, update_files failed with exit 1. Keep x86_64-linux in the
 # lockfile alongside universal-java (bundle lock --add-platform x86_64-linux).
+#
+# Bundler loads galaaz.gemspec (require './version', etc.). Dependabot must be allowed to
+# execute that manifest code or update_files can exit 1 with a generic error.
+# See: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference#insecure-external-code-execution
 version: 2
 updates:
   - package-ecosystem: bundler
     directory: /
+    insecure-external-code-execution: allow
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
