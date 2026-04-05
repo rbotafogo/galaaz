@@ -3,8 +3,8 @@ title: "How to do reproducible research in Ruby with gKnit"
 author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, GraalVM]
-date: "29/04/2019"
+tags: [Tech, Data Science, Ruby, R, JRuby, "GNU R", Galaaz, gKnit, knitr]
+date: "29/04/2019 (narrative updated for Galaaz 2.0, 2026)"
 bibliography: stats.bib
 output:
   pdf_document:
@@ -40,7 +40,7 @@ single document or set of documents that when distributed to peers could be reru
 the same output and reports.
 
 The R community has put a great deal of effort in reproducible research.  In 2002, Sweave was
-introduced and it allowed mixing R code with Latex generating high quality PDF documents.  A
+introduced and it allowed mixing R code with LaTeX, generating high-quality PDF documents.  A
 Sweave document could include code, the results of executing the code, graphics and text 
 such that it contained the whole narrative to reproduce the research.  In
 2012, Knitr, developed by Yihui Xie from RStudio was released to replace Sweave and to
@@ -49,7 +49,7 @@ were necessary for Sweave.
 
 With Knitr, __R markdown__ was also developed, an extension to the
 Markdown format.  With __R markdown__ and Knitr it is possible to generate reports in a multitude
-of formats such as HTML, markdown, Latex, PDF, dvi, etc.  __R markdown__ also allows the use of
+of formats such as HTML, Markdown, LaTeX, PDF, DVI, etc.  __R markdown__ also allows the use of
 multiple programming languages such as R, Ruby, Python, etc. in the same document.  
 
 In __R markdown__, text is interspersed with
@@ -96,8 +96,8 @@ puts lst
 ```
 
 In the Python community, the same effort to have code and text in an integrated environment
-started around the first decade of 2000. In 2006 iPython 0.7.2 was released.  In 2014,
-Fernando Pérez, spun off project Jupyter from iPython creating a web-based interactive
+started around the first decade of the 2000s. In 2006 IPython 0.7.2 was released.  In 2014,
+Fernando Pérez spun off the Jupyter project from IPython, creating a web-based interactive
 computation environment.  Jupyter can now be used with many languages, including Ruby with the
 iruby gem (https://github.com/SciRuby/iruby).  In order to have multiple languages in a Jupyter
 notebook the SoS kernel was developed (https://vatlab.github.io/sos-docs/).
@@ -109,15 +109,14 @@ written both in Ruby and/or R and output it in any of the available formats of _
 allows ruby developers to do literate programming and reproducible research by allowing them to
 have in a single document, text and code.
 
-gKnit runs atop of GraalVM, and Galaaz (an integration 
-library between Ruby and R - see bellow).  In gKnit, Ruby variables are persisted between 
-chunks, making  it an ideal solution for literate programming in this language.  Also, 
-since it is based on  Galaaz, Ruby chunks can have access to R variables and Polyglot Programming 
-with Ruby and R is quite natural.
+gKnit runs with **JRuby**, **GNU R**, and **Galaaz** (the integration layer between Ruby and R—see below).
+Knitr and **R Markdown** orchestrate the document; Galaaz’s engine keeps **Ruby state across chunks**
+and talks to R through the **bridge**. Ruby chunks can read and update R variables (`~:name`, `R.*`)
+without GraalVM-style polyglot interop.
 
 Galaaz has already been describe in the following posts:
 
-* https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021.  
+* https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021 (older GraalVM-era article; plotting ideas still apply).
 * https://medium.freecodecamp.org/how-to-make-beautiful-ruby-plots-with-galaaz-320848058857
 
 This is not a blog post on __R markdown__, and the interested user is directed to the following links
@@ -132,7 +131,7 @@ gKnitting Ruby and R documents quickly.
 ## The Yaml header
 
 An __R markdown__ document should start with a Yaml header and be stored in a file with 
-'.Rmd' extension. This document has the following header for gKitting an HTML document.
+'.Rmd' extension. This document has the following header for gKnitting an HTML document.
 
 ```
 ---
@@ -140,7 +139,7 @@ title: "How to do reproducible research in Ruby with gKnit"
 author: 
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, GraalVM]
+tags: [Tech, Data Science, Ruby, R, JRuby, "GNU R", Galaaz]
 date: "20/02/2019"
 output:
   html_document:
@@ -199,7 +198,7 @@ Running and executing Ruby and R code is actually what really interests us is th
 Inserting a code chunk is done by adding code in a block delimited by three back ticks 
 followed by an open
 curly brace ('{') followed with the engine name (r, ruby, rb, include, ...), an 
-any optional chunk_label and options, as shown bellow:
+any optional chunk_label and options, as shown below:
 
 ````
 ```{engine_name [chunk_label], [chunk_options]}`r ''`
@@ -288,7 +287,7 @@ grammar of graphics" [@Wilkinson:grammar_of_graphics]. The idea of the grammar o
 is to build a graphics by adding layers to the plot.  More information can be found in
 https://towardsdatascience.com/a-comprehensive-guide-to-the-grammar-of-graphics-for-effective-visualization-of-multi-dimensional-1f92b4ed4149.
 
-In the plot bellow the 'mpg' dataset from base R is used. "The data concerns city-cycle fuel 
+In the plot below the 'mpg' dataset from base R is used. "The data concerns city-cycle fuel 
 consumption in miles per gallon, to be predicted in terms of 3 multivalued discrete and 5 
 continuous attributes." (Quinlan, 1993)
 
@@ -369,7 +368,7 @@ where multiplication works as expected.
 
 ### Accessing R from Ruby
 
-One of the nice aspects of Galaaz on GraalVM, is that variables and functions defined in R, can
+One of the nice aspects of Galaaz 2.0 is that variables and functions defined in R can
 be easily accessed from Ruby.  This next chunk, reads data from R and uses the 'reduce_sum'
 function defined previously.  To access an R variable from Ruby the '~' function should be
 applied to the Ruby symbol representing the R variable.  Since the R variable is called 'r_vec',
@@ -563,7 +562,7 @@ Here, for instance, is a table definition in HTML and its output in the document
 </div>
 
 But manually creating HTML output is not always easy or desirable, specially
-if we intend the document to be rendered in other formats, for example, as Latex.
+if we intend the document to be rendered in other formats, for example, as LaTeX.
 Also, The above 
 table looks ugly.  The 'kableExtra' library is a great library for 
 creating beautiful tables. Take a look at https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
@@ -601,7 +600,7 @@ true, ruby's 'require\_relative' semantics is used to load the file, when false,
 ```
 ````
 
-Bellow we include file 'model.rb', which is in the same directory of this blog.  
+Below we include file 'model.rb', which is in the same directory of this blog.  
 This code uses R 'caret' package to split a dataset in a train and test sets.
 The 'caret' package is a very important a useful package for doing Data Analysis,
 it has hundreds of functions for all steps of the Data Analysis workflow.  To
@@ -634,9 +633,9 @@ puts model.test.head
 gKnit also allows developers to document and load files that are not in the same directory
 of the '.Rmd' file.
 
-Here is an example of loading the 'find.rb' file from TruffleRuby. In this example, relative
+Here is an example of loading the 'find.rb' file from **JRuby** (via `$LOAD_PATH`). In this example, relative
 is set to FALSE, so Ruby will look for the file in its $LOAD\_PATH, and the user does not
-need to no it's directory.
+need to know its directory.
 
 ````
 ```{include find, relative = FALSE}`r ''`
@@ -658,9 +657,9 @@ the Yaml header to generate this blog in PDF format instead of HTML:
 
 ```
 ---
-title: "gKnit - Ruby and R Knitting with Galaaz in GraalVM"
+title: "gKnit - Ruby and R Knitting with Galaaz (JRuby + GNU R)"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, knitr, gknit]
+tags: [Galaaz, Ruby, R, JRuby, "GNU R", knitr, gknit]
 date: "29 October 2018"
 output:
   pdf\_document:
@@ -673,27 +672,23 @@ output:
 
 # Conclusion
 
-In order to do reproducible research, one of the main basic tools needed is a systhem that
+In order to do reproducible research, one of the main basic tools needed is a system that
 allows "literate programming" where text, code and possibly a set of files can be compiled
 onto a report that can be easily distributed to peers. Peers should be able to use this
 same set of files to rerun the compilation by their own obtaining the exact same original
 report.  gKnit is such a system for Ruby and R.  It uses __R Markdown__ to integrate
-text and code chunks, where code chunks can either be part of the __R Markdwon__ file or
+text and code chunks, where code chunks can either be part of the __R Markdown__ file or
 be imported from files in the system.  Ideally, in reproducible research, all the files
-needed to rebuild a report should be easilly packed together (in the same zipped directory)
+needed to rebuild a report should be easily packed together (in the same zipped directory)
 and distributed to peers for reexecution.
 
-One of the promises of Oracle's GraalVM is that users/developers will be able to use the best tool
-for their task at hand, independently of the programming language the tool was written on.
-We developed and implemented Galaaz atop the GraalVM and Truffle interop messages and
-the time and effort to wrap Ruby over R - Galaaz - or to
-wrap Knitr with gKnit was a fraction of a fraction of a fraction (one man effort for a couple
-of hours a day, for approximately six months) of the time require to
-implement the original tools.  Trying to reimplement all R packages in Ruby would require the
-same effort it is taking Python to implement NumPy, Pandas and all supporting libraries and it
-is unlikely that this effort would ever be done.  GraalVM has allowed Ruby to profit "almost
-for free" from this huge set of libraries and tools that make R one of the most used
-languages for data analysis and machine learning.
+**Galaaz 2.0** pairs **JRuby** with **GNU R**: you keep the full CRAN/Bioconductor world in R while
+writing orchestration, reuse, and application code in Ruby. The effort to wrap Ruby over R (Galaaz)
+and to wrap Knitr as gKnit was tiny compared to reimplementing R’s ecosystem in Ruby—much like
+Python’s investment in NumPy and Pandas, which no Ruby project is likely to duplicate.
+
+An **earlier** prototype used Oracle’s **GraalVM** and Truffle interop; the **current** stack is
+deliberately **standard GNU R** plus the Galaaz **bridge**, documented in the project manual.
 
 More interesting than wrapping the R libraries with Ruby, is that Ruby adds
 value to R, by allowing developers to use powerful and modern constructs for code reuse that
@@ -703,11 +698,10 @@ readability.
 
 # Installing gKnit
 
-## Prerequisites
+## Prerequisites (Galaaz 2.0)
 
-* GraalVM (>= rc8)
-* TruffleRuby
-* FastR
+* **JRuby** and a compatible **JDK**
+* **GNU R** on your `PATH`
 
 The following R packages will be automatically installed when necessary, but could be installed prior
 to using gKnit if desired:
@@ -716,16 +710,17 @@ to using gKnit if desired:
 * gridExtra
 * knitr
 
-Installation of R packages requires a development environment and can be time consuming.  In Linux,
-the gnu compiler and tools should be enough.  I am not sure what is needed on the Mac.
+Installation of R packages requires a development environment and can be time consuming.  On Linux,
+the usual build tools are typically enough.  On macOS, Xcode command-line tools are commonly required.
 
 ## Preparation
 
-* gem install galaaz
+* Install the **galaaz** gem (RubyGems or a local build / `path:`).
 
 ## Usage
 
-* gknit \<filename\>
+* **`bin/gknit`** \<filename\> (from the Galaaz repo or your install layout); use **`--output_format all`** for HTML and PDF together.
+* Run Ruby with **`bin/galaaz-jruby`** when you need the same JVM flags as the project (see the manual).
 
 
 # References

@@ -3,8 +3,8 @@ title: "How to make Beautiful Ruby Plots with Galaaz"
 author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, GraalVM]
-date: "November 19th, 2018"
+tags: [Tech, Data Science, Ruby, R, JRuby, "GNU R", Galaaz]
+date: "November 19th, 2018 (narrative updated for Galaaz 2.0, 2026)"
 output:
   html_document:
     self_contained: true
@@ -41,42 +41,17 @@ of libraries for data analysis.
 
 Until recently, there was no real perspective for Ruby to bridge this gap.
 Implementing a complete scientific computing infrastructure would take too long.
-Enters [Oracle's GraalVM](https://www.graalvm.org/):
 
-> GraalVM is a universal virtual machine for running applications written in
-> JavaScript, Python 3, Ruby, R, JVM-based languages like Java, Scala, Kotlin,
-> and LLVM-based languages such as C and C++.
->
-> GraalVM removes the isolation between programming languages and enables
-> interoperability in a shared runtime. It can run either standalone or in the
-> context of OpenJDK, Node.js, Oracle Database, or MySQL.
->
-> GraalVM allows you to write polyglot applications with a seamless way to pass
-> values from one language to another. With GraalVM there is no copying or
-> marshaling necessary as it is with other polyglot systems. This lets you
-> achieve high performance when language boundaries are crossed. Most of the time
-> there is no additional cost for crossing a language boundary at all.
->
-> Often developers have to make uncomfortable compromises that require them
-> to rewrite their software in other languages. For example:
->
->  * That library is not available in my language. I need to rewrite it. 
->  * That language would be the perfect fit for my problem, but we cannot
->    run it in our environment. 
->  * That problem is already solved in my language, but the language is
->    too slow.
->   
->  With GraalVM we aim to allow developers to freely choose the right language for
->  the task at hand without making compromises.
+**Galaaz 2.0** couples **[JRuby](https://www.jruby.org/)** (Ruby on the JVM) with **GNU R**—the
+same R distribution used for data science everywhere. A **bridge** evaluates R from Ruby and
+exchanges data between the two processes so that, from Ruby, you call R functions and work
+with R objects using familiar Ruby syntax. In other words, a Ruby programmer can use the
+capabilities of R without memorizing all of R’s syntax for day-to-day tasks.
 
-As stated above, GraalVM is a _universal_ virtual machine that allows Ruby and R (and other
-languages) to run on the same environment.  GraalVM allows polyglot applications to
-_seamlessly_ interact with one another and pass values from one language to the other.
-Although a great idea, GraalVM still requires application writers to know several languages.
-To eliminate that requirement, we built Galaaz, a gem for Ruby, to tightly couple
-Ruby and R and allow those languages to interact in a way that the user will be unaware
-of such interaction. In other words, a Ruby programmer will be able to use all
-the capabilities of R without knowing the R syntax.
+An **earlier line of work** used Oracle’s **GraalVM** with **TruffleRuby** and **FastR** so that
+Ruby and R could share one JVM runtime. That stack is **no longer** what Galaaz targets;
+today’s Galaaz is developed and tested with **JRuby + GNU R** (see the project manual for setup
+and command-line tools).
 
 Library wrapping is a usual way of bringing features from one language into another.
 To improve performance, Python often wraps more efficient C libraries. For the
@@ -105,7 +80,7 @@ ggplot themes that will work the same as the Ruby module.  Yet, writing a new th
 requires specific knowledge on theme writing.  Ruby modules are standard to the
 language and don't need special knowledge.
 
-[Here](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021) we show a scatter plot in Ruby also with Galaaz.
+[Here](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021) is an older article (GraalVM-era Galaaz) with a scatter plot in Ruby; the **ideas** still apply under Galaaz 2.0 with JRuby and GNU R.
 
 # gKnit
 
@@ -643,17 +618,17 @@ developer, migration to Ruby is a matter of small syntactic changes with a very 
 learning curve. As the R developer becomes more proficient in Ruby, he can start using
 'classes', 'modules', 'procs', 'lambdas'.  
 
-Trying to bring to Ruby the power of R starting from scratch is an enourmous endeavour
+Trying to bring to Ruby the power of R starting from scratch is an enormous endeavour
 and would probably never be accomplished.  Today's data scientists would certainly
 stick with either Python or R.  Now, both the Ruby and R communities can benefit
-from this marriage, provided by Galaaz on top of GraalVM and Truffle's
-polyglot environment.  We presented the process to couple Ruby and R, but this 
-process can also be done to couple Ruby and JavaScript or Ruby and Python. 
-In a polyglot world a *uniglot* language might be extremely relevant.
+from this marriage: **Galaaz 2.0** uses **standard GNU R** for statistics and graphics
+and **JRuby** for application code, threading, and the JVM ecosystem.  We presented
+the process to couple Ruby and R; the coupling is implemented by the Galaaz bridge and
+**gKnit** for literate documents, not by a single GraalVM polyglot runtime.
 
-From the perspective of performance, GraalVM and Truffle promises improvements that could
-reach over 10 times, both for [FastR](https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb)
-and for [TruffleRuby](https://rubykaigi.org/2018/presentations/eregontp.html).
+For performance, expect **ordinary GNU R** behaviour for model fitting and plotting, while
+**JRuby** gives **real parallel threads** on the Ruby side and access to Java libraries when
+you need them.
 
 This article has shown how to improve a plot step-by-step.  Starting from a very simple
 boxplot with all default configurations, we moved slowly to our final plot.  The important
@@ -667,11 +642,11 @@ be of great help for any Rubyist trying to write articles, blogs or documentatio
 
 # Installing Galaaz
 
-## Prerequisites
+## Prerequisites (Galaaz 2.0)
 
-* GraalVM (>= rc8): https://github.com/oracle/graal/releases
-* TruffleRuby
-* FastR
+* **JRuby** — Ruby on the JVM ([jruby.org](https://www.jruby.org/))
+* A **JDK** compatible with your JRuby version
+* **GNU R** — `R` on your `PATH`, with compilers/tools available if packages must be built from source
 
 The following R packages will be automatically installed when necessary, but could be installed prior
 to using gKnit if desired:
@@ -680,14 +655,16 @@ to using gKnit if desired:
 * gridExtra
 * knitr
 
-Installation of R packages requires a development environment and can be time consuming.  In Linux,
-the gnu compiler and tools should be enough.  I am not sure what is needed on the Mac.
+Installation of R packages requires a development environment and can be time consuming.  On Linux,
+the usual build tools (e.g. a C/C++ compiler) are typically enough.  On macOS, Xcode command-line tools
+are commonly required.
 
 ## Preparation
 
-* gem install galaaz
+* Install the **galaaz** gem (from RubyGems when published, or `gem build` / `path:` from a checkout).
 
 ## Usage
 
-* gknit <filename>
-* In a scrip add: require 'galaaz'
+* From the Galaaz repository (or your installed layout), render documents with **`bin/gknit`** (see the project manual for flags such as `--output_format all`).
+* In Ruby code: `require 'galaaz'`
+* For running scripts with the correct JRuby and JVM options, use **`bin/galaaz-jruby`** as described in the manual.

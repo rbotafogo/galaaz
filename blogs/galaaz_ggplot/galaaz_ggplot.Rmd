@@ -1,9 +1,9 @@
 ---
 title: "Ruby Plotting with Galaaz"
-subtitle: "An example of tightly coupling Ruby and R in GraalVM"
+subtitle: "An example of tightly coupling Ruby and R (JRuby + GNU R, Galaaz 2.0)"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, R, TruffleRuby, FastR, GraalVM, ggplot2]
-date: "16 October 2018"
+tags: [Galaaz, Ruby, R, JRuby, "GNU R", ggplot2]
+date: "16 October 2018 (narrative updated for Galaaz 2.0, 2026)"
 output:
   html_document:
     self_contained: true
@@ -30,42 +30,19 @@ Galaaz is a system for tightly coupling Ruby and R.  Ruby is a powerful language
 a large community, a very large set of libraries and great for web development.  However,
 it lacks libraries for data science, statistics, scientific plotting and machine learning.
 On the other hand, R is considered one of the most powerful languages for solving all of the
-above problems.  Maybe the strongest competitor to R is Python with libraries such as NumPy,
-Panda, SciPy, SciKit-Learn and a couple more.
+above problems.  **Python** is a strong competitor: NumPy, pandas, SciPy, and scikit-learn are
+widely used examples among **many thousands** of packages on PyPI for numerical and ML work.
 
-With Galaaz we do not intend to re-implement any of the scientific libraries in R, we allow
+With Galaaz we do not intend to re-implement any of the scientific libraries in R; we allow
 for very tight coupling between the two languages to the point that the Ruby developer does
-not need to know that there is an R engine running.  For this to happen we use new
-technologies provided by Oracle: GraalVM, TruffleRuby and FastR:
+not need to think about R syntax for every call. **Galaaz 2.0** does this with **[JRuby](https://www.jruby.org/)**
+and **GNU R**: a **bridge** evaluates R from Ruby and exchanges data between processes.
 
-     GraalVM is a universal virtual machine for running applications
-     written in JavaScript, Python 3, Ruby, R, JVM-based languages like Java,
-     Scala, Kotlin, and LLVM-based languages such as C and C++.
+An **earlier** Galaaz prototype used Oracle’s **GraalVM** with **TruffleRuby** and **FastR** in one JVM.
+That stack is **historical**; today’s documentation and tooling assume **JRuby + GNU R** (see the
+project manual and **`bin/galaaz-jruby`** / **`bin/gknit`**).
 
-     GraalVM removes the isolation between programming languages and enables
-     interoperability in a shared runtime. It can run either standalone or in
-     the context of OpenJDK, Node.js, Oracle Database, or MySQL.
-
-     GraalVM allows you to write polyglot applications with a seamless way to
-     pass values from one language to another. With GraalVM there is no copying
-     or marshaling necessary as it is with other polyglot systems. This lets
-     you achieve high performance when language boundaries are crossed. Most
-     of the time there is no additional cost for crossing a language boundary
-     at all.
-
-     Often developers have to make uncomfortable compromises that require them
-     to rewrite their software in other languages. For example:
-
-      * “That library is not available in my language. I need to rewrite it.” 
-      * “That language would be the perfect fit for my problem, but we cannot
-        run it in our environment.” 
-      * “That problem is already solved in my language, but the language is
-        too slow.”
-    
-    With GraalVM we aim to allow developers to freely choose the right language
-    for the task at hand without making compromises.
-
-Interested readers should also check out the following sites:
+For background on the old stack:
 
 * [GraalVM Home](https://www.graalvm.org/)
 * [TruffleRuby](https://github.com/oracle/truffleruby)
@@ -89,11 +66,10 @@ Galaaz is the Portuguese name for "Galahad".  From Wikipedia:
 
 # Galaaz Demo
 
-## Prerequisites
+## Prerequisites (Galaaz 2.0)
 
-* GraalVM (>= rc7)
-* TruffleRuby
-* FastR
+* **JRuby** and a compatible **JDK**
+* **GNU R** on your `PATH`
 
 The following R packages will be automatically installed when necessary, but could be installed prior
 to the demo if desired:
@@ -101,8 +77,8 @@ to the demo if desired:
 * ggplot2
 * gridExtra
 
-Installation of R packages requires a development environment.  In Linux, the gnu compiler and
-tools should be enough.  I am not sure what is needed on the Mac.
+Installation of R packages requires a development environment.  On Linux, a typical build toolchain
+(GCC, headers) is usually enough.  On macOS, Apple’s **Xcode Command Line Tools** are commonly required.
 
 In order to run the 'specs' the following Ruby package is necessary:
 
@@ -114,25 +90,21 @@ In order to run the 'specs' the following Ruby package is necessary:
 
 ## Running the demo
 
-The ggplot for this demos was extracted from: http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html.
+The ggplot examples for this demo were adapted from: http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html.
 
-On the console do
+At the shell, from a suitable Galaaz environment:
 
-    > galaaz master_list:scatter_plot
+    galaaz master_list:scatter_plot
 
 ## Running other demos
 
-Doing on the console
+Running
 
-    > galaaz -T
+    galaaz -T
 
-will show a list with all available demos.  To run any of the demos in the list,
-substitute the call to
-'rake' to 'galaaz'.  For instance, one of the examples in the list is 'rake sthda:bar'.
-In order to run
-this example just do 'galaaz sthda:bar'.  Doing 'galaaz sthda:all' will run all demos in the sthda
-cathegory.  Some of the examples require 'rspec' do be available.  To install 'rspec' just do
-'gem install rspec'.
+lists available demo tasks.  To run a demo, use **`galaaz`** where you would otherwise invoke **`rake`**.
+For example, if the list shows `rake sthda:bar`, run `galaaz sthda:bar`.  To run every demo in the **sthda**
+category, use `galaaz sthda:all`.  Some examples require **rspec**; install it with `gem install rspec`.
 
 # The demo code
 
@@ -351,16 +323,16 @@ sp.plot
 
 R is a very powerful language for statistical analysis, data analytics, machine learning, plotting
 and many other scientific applications with a very large package ecosystem.  However R is often
-considered hard to learn and lacking modern computer languages constructs such as object oriented
-classes, modules, lambdas, etc.  For this reason, many developers have started or switched from R
-to Python.
+considered hard to learn and lacking modern language features such as object-oriented
+classes, modules, and first-class functions.  For that reason, many teams have standardized on
+Python (or stayed entirely inside R) rather than mixing ecosystems.
 
 With Galaaz, R programmers can almost transparently migrate from R to Ruby, since syntax is
-almost identical and they have fastR as the R engine.  FastR, by most benchmarks, can be orders of
-magnitude faster than Gnu R.  Further, by using Galaaz the R developer can start (slowly if needed)
-using all of Ruby's constructs and libraries that nicely complement R packages.
+almost identical and **GNU R** remains the engine for statistics and **ggplot2**. Further, by using
+Galaaz the R developer can start (slowly if needed) using Ruby’s constructs and libraries that
+nicely complement R packages.
 
-For the Ruby developer, Galaaz allows the immediate use of R functions completely transparently. As
-shown in the second example above, class ScatterPlot completely hides all the details an R calls
-from the Ruby developer, furthermore Galaaz is powered by TruffleRuby that can also be orders of
-magnitude faster than MRI Ruby.
+For the Ruby developer, Galaaz allows the immediate use of R functions with minimal ceremony. As
+shown in the second example above, class `ScatterPlot` hides most R call details from the Ruby
+developer. **JRuby** provides **real parallel threads** on the Ruby side and access to the JVM
+ecosystem when you need it.

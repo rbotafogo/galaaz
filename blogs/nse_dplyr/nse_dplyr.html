@@ -12,7 +12,6 @@
 <meta name="author" content="Rodrigo Botafogo" />
 <meta name="author" content="Daniel Mossé - University of Pittsburgh" />
 
-<meta name="date" content="2019-10-05" />
 
 <title>Non Standard Evaluation in dplyr with Galaaz</title>
 
@@ -355,7 +354,8 @@ display: none;
 Galaaz</h1>
 <h4 class="author">Rodrigo Botafogo</h4>
 <h4 class="author">Daniel Mossé - University of Pittsburgh</h4>
-<h4 class="date">10/05/2019</h4>
+<h4 class="date">10/05/2019 (narrative updated for Galaaz 2.0,
+2026)</h4>
 
 </div>
 
@@ -422,35 +422,18 @@ the Ruby developer, <em>dplyr</em> and the <em>tidyverse</em> libraries
 are a set of libraries for data manipulation in R, developed by Hardley
 Wickham, chief scientis at RStudio and a prolific R coder and
 writer.</p>
-<p>For the coupling of Ruby and R, we use new technologies provided by
-Oracle: GraalVM, TruffleRuby and FastR. GraalVM home page had the
-following definition:</p>
-<pre><code> GraalVM is a universal virtual machine for running applications
- written in JavaScript, Python 3, Ruby, R, JVM-based languages like Java,
- Scala, Kotlin, and LLVM-based languages such as C and C++.
-
- GraalVM removes the isolation between programming languages and enables
- interoperability in a shared runtime. It can run either standalone or in
- the context of OpenJDK, Node.js, Oracle Database, or MySQL.
-
- GraalVM allows you to write polyglot applications with a seamless way to
- pass values from one language to another. With GraalVM there is no copying
- or marshaling necessary as it is with other polyglot systems. This lets
- you achieve high performance when language boundaries are crossed. Most
- of the time there is no additional cost for crossing a language boundary
- at all.
-
- Often developers have to make uncomfortable compromises that require them
- to rewrite their software in other languages. For example:
-
-  * “That library is not available in my language. I need to rewrite it.” 
-  * “That language would be the perfect fit for my problem, but we cannot
-    run it in our environment.” 
-  * “That problem is already solved in my language, but the language is
-    too slow.”
-
-With GraalVM we aim to allow developers to freely choose the right language
-for the task at hand without making compromises.</code></pre>
+<p>For the coupling of Ruby and R, <strong>Galaaz 2.0</strong> uses
+<strong><a href="https://www.jruby.org/">JRuby</a></strong> (Ruby on the
+JVM) together with <strong>GNU R</strong>. A <strong>bridge</strong>
+sends expressions and data between Ruby and an R process so that Ruby
+can call <strong>dplyr</strong> and the rest of the tidyverse as if they
+were part of the same workflow. An <strong>earlier</strong> Galaaz line
+of work used Oracle’s <strong>GraalVM</strong> with
+<strong>TruffleRuby</strong> and <strong>FastR</strong> in a single
+runtime; that approach is <strong>no longer</strong> the supported
+stack—see the project <strong>manual</strong> for setup,
+<strong><code>bin/galaaz-jruby</code></strong>, and
+<strong>gKnit</strong>.</p>
 </div>
 <div id="tidyverse-and-dplyr" class="section level1">
 <h1>Tidyverse and dplyr</h1>
@@ -642,13 +625,7 @@ cryptic (in future releases of Galaza, we plan to improve the error
 message).</p>
 <pre class="ruby"><code>exp_wrong = (:a + :b) == :z
 puts exp_wrong</code></pre>
-<pre><code>## R Error (Nested): object &#39;a&#39; not found
-## 
-## Code: seq=1796 .GlobalEnv$g2_v698 &lt;- { a + b
-##  }
-## 
-## --- R traceback ---
-## No traceback available</code></pre>
+<pre><code>## Error: object &#39;a&#39; not found</code></pre>
 <p>The problem lies with the fact that when using ‘==’ we are comparing
 expression (:a + :b) to expression :z with ‘==’. When this comparison is
 executed, the system tries to evaluate :a, :b and :z, and those symbols,
@@ -690,7 +667,7 @@ function ‘eval’ with a binding.</p>
 below:</p>
 <pre class="ruby"><code>exp = (:a + :b) * 2.0 + :c ** 2 / :z
 puts exp.eval(R.list(a: 10, b: 20, c: 30, z: 40))</code></pre>
-<pre><code>## 72.5</code></pre>
+<pre><code>## [1] 72.5</code></pre>
 <p>with a data frame:</p>
 <pre class="ruby"><code>df = R.data__frame(
   a: R.c(1, 2, 3),
@@ -699,9 +676,7 @@ puts exp.eval(R.list(a: 10, b: 20, c: 30, z: 40))</code></pre>
   z: R.c(1000, 2000, 3000))
 
 puts exp.eval(df)</code></pre>
-<pre><code>## 31.0
-## 62.0
-## 93.0</code></pre>
+<pre><code>## [1] 31 62 93</code></pre>
 </div>
 </div>
 <div id="using-galaaz-to-call-r-functions" class="section level1">
@@ -766,7 +741,7 @@ puts ~:flights.dim
 # and the structure
 ~:flights.str</code></pre>
 <pre><code>## ~(dim(flights))
-## &lt;environment: 0x5e7b81404938&gt;</code></pre>
+## &lt;environment: 0x61a6457991a8&gt;</code></pre>
 <p>Now, let’s use a first verb of <em>dplyr</em>: ‘filter’. This verb,
 obviously, will filter the data by the given expression. In the next
 block, we filter by columns ‘month’ and ‘day’. The first argument to the
@@ -918,9 +893,8 @@ no relationship with the symbol ‘:a’ used in the definition of
 ‘mutate_y’ above:</p>
 <pre class="ruby"><code>a = 10
 mutate_y(df1)</code></pre>
-<pre><code>## R Error (Nested): ℹ In argument: `y &lt;- a + x`.
-## 
-## Code: seq=6092 .GlobalEnv$g2_v2295 &lt;- mutate(g2_v2207, y &lt;- a + x)</code></pre>
+<pre><code>## Error in strsplit(path, &quot;/&quot;) : non-character argument
+## Calls: mutate ... .rlang_purrr_map_mold -&gt; vapply -&gt; FUN -&gt; path_trim_prefix -&gt; strsplit</code></pre>
 </div>
 <div id="different-expressions" class="section level2">
 <h2>Different expressions</h2>
@@ -1273,23 +1247,21 @@ puts grouped_mean((~:starwars), &quot;eye_color&quot;, E.c(&quot;mass&quot;, &qu
 </div>
 <div id="further-reading" class="section level1">
 <h1>Further reading</h1>
-<p>For more information on GraalVM, TruffleRuby, fastR, R and Galaaz
-check out the following sites/posts:</p>
 <ul>
-<li><a href="https://www.graalvm.org/">GraalVM Home</a></li>
-<li><a href="https://github.com/oracle/truffleruby">TruffleRuby</a></li>
-<li><a href="https://github.com/oracle/fastr">FastR</a></li>
-<li><a href="https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb">Faster
-R with FastR</a></li>
+<li><a href="https://www.jruby.org/">JRuby</a> — Ruby on the JVM (Galaaz
+2.0)</li>
 <li><a href="https://medium.freecodecamp.org/how-to-make-beautiful-ruby-plots-with-galaaz-320848058857">How
-to make Beautiful Ruby Plots with Galaaz</a></li>
+to make Beautiful Ruby Plots with Galaaz</a> (plots; narrative partly
+pre-2.0)</li>
 <li><a href="https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021">Ruby
-Plotting with Galaaz: An example of tightly coupling Ruby and R in
-GraalVM</a></li>
+Plotting with Galaaz in GraalVM</a> (older stack; ideas still
+useful)</li>
 <li><a href="https://towardsdatascience.com/how-to-do-reproducible-research-in-ruby-with-gknit-c26d2684d64e">How
 to do reproducible research in Ruby with gKnit</a></li>
 <li><a href="https://r4ds.had.co.nz/">R for Data Science</a></li>
 <li><a href="https://adv-r.hadley.nz/">Advanced R</a></li>
+<li>Historical context: <a href="https://www.graalvm.org/">GraalVM</a>,
+<a href="https://github.com/oracle/truffleruby">TruffleRuby</a>, <a href="https://github.com/oracle/fastr">FastR</a></li>
 </ul>
 </div>
 <div id="conclusion" class="section level1">

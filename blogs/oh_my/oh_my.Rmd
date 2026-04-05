@@ -3,8 +3,8 @@ title: "Extending R with classes, modules, procs, lambdas, oh my!"
 author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, GraalVM]
-date: "November 19th, 2018"
+tags: [Tech, Data Science, Ruby, R, JRuby, "GNU R", Galaaz]
+date: "November 19th, 2018 (narrative updated for Galaaz 2.0, 2026)"
 output:
   html_document:
     self_contained: true
@@ -25,17 +25,19 @@ fontsize: 11pt
 
 # Introduction
 
-This paper introduces and compares Galaaz with R's S4.  It is a shameless rip off of 
+This paper introduces and compares Galaaz with R's S4.  It is **modeled closely** on
 ["A '(not so)' Short Introduction to S4"](https://cran.r-project.org/doc/contrib/Genolini-S4tutorialV0-5en.pdf) by Christophe Genolini and follows the same structure and examples presented there.
 
 Galaaz is a Ruby Gem (library) that allows very tight integration between Ruby and R.  
-It's integration is much tigher and transparent from what one can get beetween RinRuby
-or similar solutions in Python
+Its integration is tighter and more transparent than what one can get between RinRuby
+or similar solutions in Python,
 such as [PypeR](https://pypi.python.org/pypi/PypeR/1.1.0), [rpy2](http://rpy2.bitbucket.org/)
-and  other similar solutions.  Galaaz targets the GraalVM and it
-integrates with FastR, a high performance R interpreter for the GraalVM.  
+and other similar solutions.
 
-GraalVM:
+**Galaaz 2.0** runs on **[JRuby](https://www.jruby.org/)** and drives **GNU R** through a **bridge**,
+so Ruby code can create and manipulate R objects and call R functions while staying idiomatic Ruby.
+An earlier prototype used Oracle’s **GraalVM** with **TruffleRuby** and **FastR**; that stack is
+historical and is **not** what current Galaaz targets.
 
 
 # Bases of Object Programming
@@ -70,7 +72,7 @@ type information is also not a "compile" time type, since R is not compiled.  Th
 checked at runtime.  The same checking can be done in Ruby and we will do it later in this 
 document.
 
-In the example bellow, we create 
+In the example below, we create 
 class Trajectories with two instance variables, 'times' and 'matrix'.  We will not go over 
 the details of instance variables in Ruby, but here we created those variables with the 
 keyword 'attr_reader' and a colom before the variables name:
@@ -85,7 +87,7 @@ end
 
 
 In order to create a new instance of object Trajectories we call method new on the class and
-we can store the result in a varible (not an instance variable) as bellow:
+we can store the result in a variable (not an instance variable) as below:
 
 ```{ruby traj_variable}
 @traj = Trajectories.new
@@ -109,7 +111,7 @@ puts @traj.times
 Since there is no content stored in 'times' nor 'matrix', nil is returned.  In order to add
 a value in the variables, we need to add a constructor to the class Trajectories.  In R, a 
 constructor is build by default, in Ruby, this has to be created by adding a method called
-'initialize'.  In the example bellow, we will create the initializer that accepts two values,
+'initialize'.  In the example below, we will create the initializer that accepts two values,
 a 'times' value and a 'matrix' value and they are used to initialize the value of the 
 instance variables:
 
@@ -144,7 +146,7 @@ i.e., R functions are all defined in Galaaz in the R namespace.
 Since Galaaz is Ruby and not R, some syntax adjustments are sometimes necessary.  For instance,
 in R, a range is represented as '(1:4)', in Ruby, the same range is represented as '(1..4)'. 
 When passing arguments to an R function in R one uses the '=' sign after the slot name; in R,
-one uses the ':' operator after parameter's name as we can see bellow:
+one uses the ':' operator after parameter's name as we can see below:
 
 ```{ruby initializing_trajectories}
 # Create a Trajectories passing a times vector, but no matrix parameter
@@ -245,7 +247,7 @@ recommend its use, there are many cases in which default values are useful and m
 We have already seen default values in this document, with the default being 'nil'.  This was
 necessary in order to be able to create our constructor and passing it the proper values.
 
-In the example bellow, a class TrajectoriesBis is created with default value 1 for times and a 
+In the example below, a class TrajectoriesBis is created with default value 1 for times and a 
 matrix with no elements in matrix.
 
 ```{ruby}
@@ -339,7 +341,7 @@ Trajectories to add methods to it.  In SS4, a method 'plot' is added to Trajecto
 point, Renjin and Galaaz do not yet have plotting capabilities, so we will have to skip this 
 method and go directly to the implementation of the 'print' method.
 
-Bellow is the R code for method print:
+Below is the R code for method print:
 
 ```
 > setMethod ("print","Trajectories",
@@ -439,7 +441,7 @@ features of Galaaz, some we have already seen, others will be described now:
   an R vector that holds a number, then @num.gz is a number that can be used normally with Ruby
   methods;
 
-* R functions and Ruby methods can be used freely in Galaaz.  We show bellow two different ways
+* R functions and Ruby methods can be used freely in Galaaz.  We show below two different ways
   of getting the minimum of a number, either by calling R.min or by getting the minimum of an 
   array, with the min method;
 

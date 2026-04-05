@@ -3,8 +3,8 @@ title: "Extending R with classes, modules, procs, lambdas, oh my!"
 author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, GraalVM]
-date: "November 19th, 2018"
+tags: [Tech, Data Science, Ruby, R, JRuby, "GNU R", Galaaz]
+date: "November 19th, 2018 (narrative updated for Galaaz 2.0, 2026)"
 output:
   html_document:
     self_contained: true
@@ -27,13 +27,15 @@ This paper introduces and compares Galaaz with R's S4.  It is a shameless rip of
 ["A '(not so)' Short Introduction to S4"](https://cran.r-project.org/doc/contrib/Genolini-S4tutorialV0-5en.pdf) by Christophe Genolini and follows the same structure and examples presented there.
 
 Galaaz is a Ruby Gem (library) that allows very tight integration between Ruby and R.  
-It's integration is much tigher and transparent from what one can get beetween RinRuby
-or similar solutions in Python
+Its integration is tighter and more transparent than what one can get between RinRuby
+or similar solutions in Python,
 such as [PypeR](https://pypi.python.org/pypi/PypeR/1.1.0), [rpy2](http://rpy2.bitbucket.org/)
-and  other similar solutions.  Galaaz targets the GraalVM and it
-integrates with FastR, a high performance R interpreter for the GraalVM.  
+and other similar solutions.
 
-GraalVM:
+**Galaaz 2.0** runs on **[JRuby](https://www.jruby.org/)** and drives **GNU R** through a **bridge**,
+so Ruby code can create and manipulate R objects and call R functions while staying idiomatic Ruby.
+An earlier prototype used Oracle’s **GraalVM** with **TruffleRuby** and **FastR**; that stack is
+historical and is **not** what current Galaaz targets.
 
 
 # Bases of Object Programming
@@ -100,7 +102,7 @@ puts @traj
 ```
 
 ```
-## #<RC::Trajectories:0x7ddcb0dc>;
+## #<RC::Trajectories:0x395d137e>
 ```
 
 To see the contents of an object, one needs to access its components using the '.' operator:
@@ -108,10 +110,6 @@ To see the contents of an object, one needs to access its components using the '
 
 ``` ruby
 puts @traj.times
-```
-
-```
-## ;
 ```
 
 # Constructor
@@ -182,7 +180,7 @@ puts @traj.times
 ```
 
 ```
-## 1; 2; 3; 4;
+## [1] 1 2 3 4
 ```
 
 We now have the expected value.  Note that the 'times' vector is printed exactly as it would
@@ -196,7 +194,11 @@ puts @traj2.matrix
 ```
 
 ```
-## 1; 3; 1; 2; 3; 4;
+## [1] 1 3
+## 
+##      [,1] [,2]
+## [1,]    1    3
+## [2,]    2    4
 ```
 
 Let's now build the same examples as in SS4:  Three hospitals take part in a 
@@ -259,7 +261,15 @@ puts @trajStAnne.times
 ```
 
 ```
-## 1; 3; 4; 5;         [,1] [,2] [,3] [,4]; g2_v790 15.0 15.1 15.2 15.2; g2_v791 16.0 15.9 16.0 16.4; g2_v792 15.2   NA 15.3 15.3; g2_v793 15.7 15.6 15.8 16.0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 12; 14; 16; 18; 20; 22; 24; 26; 28; 30; 32;
+## [1] 1 3 4 5
+## 
+##         [,1] [,2] [,3] [,4]
+## g2_v662 15.0 15.1 15.2 15.2
+## g2_v663 16.0 15.9 16.0 16.4
+## g2_v664 15.2   NA 15.3 15.3
+## g2_v665 15.7 15.6 15.8 16.0
+## 
+##  [1]  1  2  3  4  5  6  7  8  9 10 12 14 16 18 20 22 24 26 28 30 32
 ```
 
 We will not at this time print trajStAnne.matrix, since this is a huge matrix and the result
@@ -308,7 +318,10 @@ puts @traj_bis.matrix
 ```
 
 ```
-## 1; 0;
+## 1
+## 
+##      [,1]
+## [1,]    0
 ```
 
 Note that '@traj_bis.times' is the numeric 1, and what we actually want is a vector
@@ -346,7 +359,10 @@ puts @traj_bis.matrix
 ```
 
 ```
-## 1; 0;
+## [1] 1
+## 
+##      [,1]
+## [1,]    0
 ```
 
 
@@ -443,7 +459,18 @@ end
 ```
 
 ```
-## *** Class Trajectories, method Print *** ; times = 1; 3; 4; 5; traj =;         [,1] [,2] [,3] [,4]; g2_v790 15.0 15.1 15.2 15.2; g2_v791 16.0 15.9 16.0 16.4; g2_v792 15.2   NA 15.3 15.3; g2_v793 15.7 15.6 15.8 16.0; ******* End Print (trajectories) ******* ;
+## *** Class Trajectories, method Print *** 
+## times = 1
+## 3
+## 4
+## 5
+## traj =
+##         [,1] [,2] [,3] [,4]
+## g2_v662 15.0 15.1 15.2 15.2
+## g2_v663 16.0 15.9 16.0 16.4
+## g2_v664 15.2   NA 15.3 15.3
+## g2_v665 15.7 15.6 15.8 16.0
+## ******* End Print (trajectories) *******
 ```
 
 For Cochin, the result is correct. For Saint-Anne, print will display too much
@@ -528,11 +555,26 @@ end
 ```
 
 ```
-## R Error (Nested): object 'g2_v804' not found; Code: seq=4211 isTRUE('nrow' %in% names(g2_v804)) || (is.environment(g2_v804) && isTRUE(exists('nrow', envir = g2_v804, inherits = FALSE))); --- R traceback ---; No traceback available
+## parse error
 ```
 
 ```
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:348:in 'eval_r_in_callback'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:317:in 'eval_r'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:375:in 'process_missing_dispatch'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:296:in 'process_missing'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/robject.rb:304:in 'method_missing'; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:123:in 'show'; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:113:in 'exec_ruby'; org/jruby/RubyKernel.java:1268:in 'eval'; /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:112:in 'exec_ruby'; /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:664:in 'block in initialize'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:753:in 'process_callback'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:714:in 'read_stdout_until_g_end_for_result'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:674:in 'eval_r_with_result_top_level'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in 'block in eval_r_with_result'; org/jruby/ext/monitor/Monitor.java:85:in 'synchronize'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/shadow_bridge.rb:532:in 'eval_r_with_result'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:247:in 'exec_function'; /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rpkg.rb:46:in 'method_missing'; -e:5:in 'block in <main>'; org/jruby/RubyDir.java:441:in 'chdir'; -e:4:in '<main>';
+## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:268:in 'eval_r'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:231:in 'eval_r_with_result'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:359:in 'exec_function'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:618:in 'process_missing_dispatch'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:468:in 'process_missing'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/robject.rb:404:in 'method_missing'
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:180:in 'show'
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:170:in 'exec_ruby'
+## org/jruby/RubyKernel.java:1268:in 'eval'
+## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in 'exec_ruby'
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in 'block in initialize'
+## org/jruby/RubyBasicObject.java:2695:in 'instance_eval'
+## org/jruby/RubyBasicObject.java:2723:in 'instance_eval'
+## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in 'block in initialize'
+## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in 'block in register_callback_proc_stub'
+## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in 'block in handle_call'
 ```
 
 Our show method has the same problem as SS4, i.e., if an empty trajectories object is created and

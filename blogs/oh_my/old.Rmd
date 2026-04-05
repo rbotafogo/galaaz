@@ -1,9 +1,10 @@
 ---
 title: "Extending R with classes, modules, procs, lambdas, oh my!"
+subtitle: "Archived variant (Renjin-era narrative); see `oh_my.Rmd` and the Galaaz 2.0 manual for current stack"
 author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, GraalVM]
+tags: [Archived, Tech, Data Science, Ruby, R, Renjin]
 date: "November 19th, 2018"
 output:
   html_document:
@@ -25,11 +26,11 @@ fontsize: 11pt
 
 # Introduction
 
-This paper introduces and compares Galaaz with R's S4.  It is a shameless rip off of 
+This paper introduces and compares Galaaz with R's S4.  It is **modeled closely** on
 ["A '(not so)' Short Introduction to S4"](https://cran.r-project.org/doc/contrib/Genolini-S4tutorialV0-5en.pdf) by Christophe Genolini and follows the same structure and examples presented there.
 
 Galaaz is a Ruby Gem (library) that allows very tight integration between Ruby and R.  
-It's integration is much tigher and transparent from what one can get beetween RinRuby
+Its integration is tighter and more transparent than what one can get between RinRuby
 or similar solutions in Python
 such as [PypeR](https://pypi.python.org/pypi/PypeR/1.1.0), [rpy2](http://rpy2.bitbucket.org/)
 and  other similar solutions.  Galaaz targets the Java Virtual Machine and it
@@ -84,7 +85,7 @@ type information is also not a "compile" time type, since R is not compiled.  Th
 checked at runtime.  The same checking can be done in Ruby and we will do it later in this 
 document.
 
-In the example bellow, we create 
+In the example below, we create 
 class Trajectories with two instance variables, 'times' and 'matrix'.  We will not go over 
 the details of instance variables in Ruby, but here we created those variables with the 
 keyword 'attr_reader' and a column before the variables name:
@@ -101,7 +102,7 @@ end
 
 
 In order to create a new instance of object Trajectories we call method new on the class and
-we can store the result in a varible (not an instance variable) as bellow:
+we can store the result in a variable (not an instance variable) as below:
 
 ```
 traj = Trajectories.new
@@ -125,7 +126,7 @@ puts traj.times
 Since there is no content stored in 'times' nor 'matrix', nil is returned.  In order to add
 a value in the variables, we need to add a constructor the class Trajectories.  In R, a 
 constructor is build by default, in Ruby, this has to be created by adding a method called
-'initialize'.  In the example bellow, we will create the initializer that accepts two values,
+'initialize'.  In the example below, we will create the initializer that accepts two values,
 a 'times' value and a 'matrix' value and they are used to initialize the value of the 
 instance variables:
 EOT
@@ -154,7 +155,7 @@ i.e., R functions are all defined in Galaaz in the R namespace.
 Since Galaaz is Ruby and not R, some syntax adjustments are sometimes necessary.  For instance,
 in R, a range is represented as '(1:4)', in Ruby, the same range is represented as '(1..4)'. 
 When passing arguments to an R function in R one uses the '=' sign after the slot name; in R,
-one uses the ':' operator after parameter's name as we can see bellow:
+one uses the ':' operator after parameter's name as we can see below:
 EOT
 
 ```
@@ -274,7 +275,7 @@ recommend its use, there are many cases in which default values are useful and m
 We have already seen default values in this document, with the default being 'nil'.  This was
 necessary in order to be able to create our constructor and passing it the proper values.
 
-In the example bellow, a class TrajectoriesBis is created with default value 1 for times and a 
+In the example below, a class TrajectoriesBis is created with default value 1 for times and a 
 matrix with no elements in matrix.
 
 ```{ruby}
@@ -377,7 +378,7 @@ Trajectories to add methods to it.  In SS4, a method 'plot' is added to Trajecto
 point, Renjin and Galaaz do not yet have plotting capabilities, so we will have to skip this 
 method and go directly to the implementation of the 'print' method.
 
-Bellow is the R code for method print:
+Below is the R code for method print:
 
 ```
 > setMethod ("print","Trajectories",
@@ -469,7 +470,7 @@ features of Galaaz, some we have already seen, others will be described now:
   an R vector that holds a number, then @num.gz is a number that can be used normally with Ruby
   methods;
 
-* R functions and Ruby methods can be used freely in Galaaz.  We show bellow two different ways
+* R functions and Ruby methods can be used freely in Galaaz.  We show below two different ways
   of getting the minimum of a number, either by calling R.min or by getting the minimum of an 
   array, with the min method;
 
@@ -1191,7 +1192,7 @@ to this point was protected from any changes to those variables.  If we need to 
 to those variable, then setters are needed.  In this case, the simple setter as shown above is
 not ideal, since it would allow changes that break the restriction that variable times has to
 have the same length as the number of columns of matrix.  In order to do the verification we
-need to implement a more sophisticated setter.  In the example bellow, we add the 'times=' setter
+need to implement a more sophisticated setter.  In the example below, we add the 'times=' setter
 that receives as input one argument.  First we convert the given argument to an R object, then
 check to see that the length of times is the same as the number of columns and if everything is
 fine, then we set the value of instance variable times:
@@ -1282,7 +1283,7 @@ have already seen in many of the examples above.  The example in SS4 presents a 
 different output if its input is numeric, character has both.  Let's write a class in Ruby that
 does the same for Numeric and String.  In Ruby we do not define global functions, we always define
 methods inside classes or modules (as we will see later).  Also, Ruby is not typed, so methods are
-not called depending on their types as in SS4 examples.  Bellow, method test will be called with
+not called depending on their types as in SS4 examples.  Below, method test will be called with
 one parameter.  At the time of calling we do not know the type of the argument, the method can
 then check is the received argument is a Numeric or a String and at this time, decide what should
 be printed. 
@@ -1774,7 +1775,7 @@ As we can now see, trajCochin and cochin_internal have different content, while 
 still has the same value in index 0, i.e. 15.0, trajCochin matrix has value 1 in index 1.  This
 shows that Renjin when assigning to trajCochin.matrix[1] makes a copy of the original data.
 
-Bellow, we use method 'get' which is a synonym of method 'as__mdarray' to again get the content
+Below, we use method 'get' which is a synonym of method 'as__mdarray' to again get the content
 of trajCochin.matrix.  This variable has as first element the value 1, as set previously.
 
 ```
@@ -1942,7 +1943,7 @@ As you can see, 'ruby.array' is still the same Ruby object.
 Avatars maintain some properties of their original world.  Although the concept of method
 chaning is foreign to R, chaining can be used with imported objects from Ruby. Method
 chaining occurs when the result of a applying a method on an object returns an object (usually
-the same object) in which another method can be applied.  In the example bellow, method '<<'
+the same object) in which another method can be applied.  In the example below, method '<<'
 will be applied multiple times for ruby.array
 EOT
 

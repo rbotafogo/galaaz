@@ -1,6 +1,6 @@
 The following is the Ruby code and plot for the above example.  There is a small difference between
-the code in the example and the code bellow.  If the example is ran, the plot will appear on the
-screen, bellow, we generate an 'svg' image and then include it in this document.  In order to
+the code in the example and the code below.  If the example is **run**, the plot will appear on the
+screen; below, we generate an SVG image and then include it in this document.  In order to
 generate and image, the R.svg device is used.  To generate the plot on the screen, use the R.awt
 device, as commented on the code.
 
