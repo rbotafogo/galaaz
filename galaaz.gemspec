@@ -8,27 +8,21 @@ Gem::Specification.new do |gem|
   gem.name    = $gem_name
   gem.version = $version
   gem.date    = Date.today.to_s
-  gem.executables << 'galaaz' << 'gstudio' << 'gknit' << 'grun' << 'gknit-draft'
+  gem.executables << 'galaaz' << 'gstudio' << 'gknit' << 'gbookdown' << 'grun' << 'gknit-draft'
   gem.summary     = "Tightly coupling Ruby and R"
   gem.description = <<-EOF
-Galaaz brings the power of R to the Ruby community. Galaaz 
-is based on TruffleRuby and FastR, GraalVM-based interpreters for Ruby and the R language 
-for statistical computing respectively.
+Galaaz brings the full R ecosystem to Ruby developers. Galaaz 2.0 runs Ruby on JRuby and
+talks to standard GNU R—the same R you use with CRAN and Bioconductor—in a separate
+process. A bridge handles requests, results, and typing so you can drive R from Ruby
+(for example calling R functions, loading packages, and working with R objects) without
+giving up multithreaded JRuby for application code.
 
-Over the past two decades, the R language for statistical computing has emerged as the de 
-facto standard for analysts, statisticians, and scientists. Today, a wide range of 
-enterprises – from pharmaceuticals to insurance – depend on R for key business uses. FastR 
-is a new implementation of the R language and environment for the Graal Virtual Machine.
+Like RinRuby, rpy2, or reticulate, Galaaz is a cross-language bridge; unlike embedding a
+second interpreter in one VM, using GNU R means compiled R packages and Bioconductor work
+as usual. Large tables can optionally flow through Apache Arrow on the R side when you use
+the helpers described in the project documentation.
 
-Galaaz tightly couples Ruby and R and allows the use of R inside a Ruby script. In a sense, 
-Galaaz is similar to other solutions such as RinRuby, Rpy2, PipeR, and reticulate 
-(https://blog.rstudio.com/2018/03/26/reticulate-r-interface-to-python/). However, since 
-Galaaz couples TruffleRuby and FastR that both target the JVM there is no need to integrate 
-both solutions and there is no need to send data between Ruby and R, as it all resides in 
-the same VM. 
-
-Further, installation of Galaaz does not require the installation of GNU R. When installing
-GraalVM, just install TruffleRuby and FastR.
+You need both JRuby and a working GNU R installation in PATH for the bridge to run.
 EOF
 
   gem.authors  = ['Rodrigo Botafogo']
@@ -40,14 +34,15 @@ EOF
   # gem.platform='java'
 
   # gem.add_runtime_dependency 'pry', '~> 0.10'
-  
+
+  gem.add_runtime_dependency('msgpack', '~> 1.0')
+
   gem.add_development_dependency('rspec', "~> 3.8")
-  gem.add_development_dependency('msgpack')
   gem.add_development_dependency('simplecov', "~> 0.16")
   gem.add_development_dependency('rdoc', ">=6.1.2.1")
   # gem.add_development_dependency('rake', '~> 12.0')
 
-  # ensure the gem is built out of versioned files
+  # Ship the manual and LaTeX style with the gem (blogs/manual, supporting Rmd/sty).
   # Collect all files that do not end with '~'
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
             'lib/**/*[!~]', 'specs/**/*[!~]', 'ext/**/*[!~]', 'examples/**/*[!~]',

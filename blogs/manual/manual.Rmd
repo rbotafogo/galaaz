@@ -404,6 +404,115 @@ the outcome to storage, and notify the client (poll, WebSocket, Turbo Stream, et
 Ruby pattern above is only to show **when** the result exists (inside the block, or after data
 written there is observed elsewhere). Runnable specs live in **`new_bridge_specs/eval_r_async_spec.rb`**.
 
+## Galaaz + Rails (JRuby) integration baseline
+
+This section documents the baseline we used to create a working Rails app with Galaaz in WSL.
+The goals were:
+
+1. Rails boots under **JRuby**.
+2. Galaaz is loaded from a local checkout (before publishing to RubyGems).
+3. A request path can execute **`R.eval(...)`** and return a result.
+
+### 1) Create the app with JRuby-friendly options
+
+Rails defaults can pull gems that are not ideal on JRuby-first setups (for example sqlite native
+extension paths and deployment extras). A minimal app avoids early friction:
+
+```bash
+cd /home/rbotafogo/desenv_linux
+jruby -S rails new hedi --skip-git --minimal --skip-kamal --skip-solid --skip-active-record
+```
+
+Then install gems:
+
+```bash
+cd /home/rbotafogo/desenv_linux/hedi
+jruby -S bundle install
+```
+
+### 2) Use Galaaz as a local path gem
+
+For local development we keep a stable path:
+
+- `~/gems/galaaz` -> symlink to your Galaaz checkout
+- optional built gem archive in `~/gems/pkg/`
+
+In Rails `Gemfile`:
+
+```ruby
+gem "galaaz", path: "/home/rbotafogo/gems/galaaz", require: false
+```
+
+And load after Rails boot in `config/application.rb`:
+
+```ruby
+config.after_initialize { require "galaaz" }
+```
+
+Why `require: false` + `after_initialize`? In this integration, loading Galaaz too early via
+`Bundler.require` triggered Rails/JRuby initialization failures.
+
+### 3) Simple request-path smoke test
+
+A direct smoke test from Rails runner:
+
+```bash
+cd /home/rbotafogo/desenv_linux/hedi
+jruby -S bundle exec rails runner "puts R.eval('sum(c(1,2,3,4,5))').inspect"
+```
+
+Expected output:
+
+```text
+15.0
+```
+
+### 4) HTTP endpoint pattern
+
+For this baseline, a small Rack endpoint was the most stable first step to prove request-time R
+evaluation. (A full ActionController stack can be enabled later as the app evolves.)
+
+Minimal pattern:
+
+1. Define a Rack app class under `lib/` that runs `R.eval(...)` and returns HTML/JSON.
+2. Point a route to that Rack app (`root to: MyRackApp`).
+3. Verify with browser/curl.
+
+### 5) Running from WSL and opening from Windows
+
+Recommended bind:
+
+```bash
+jruby -S bundle exec rails server -b 0.0.0.0 -p 3000
+```
+
+Then open from Windows:
+
+- `http://localhost:3000` (usually works with WSL localhost forwarding), or
+- `http://<wsl-ip>:3000` if needed.
+
+In development, if Host Authorization blocks requests with unexpected Host headers, use:
+
+```ruby
+# config/environments/development.rb
+config.hosts.clear
+```
+
+### 6) Troubleshooting checklist
+
+- `Could not find ... in locally installed gems`:
+  run `jruby -S bundle install` in the Rails app directory.
+- Stale PID after crash:
+  remove `tmp/pids/server.pid`.
+- Local Galaaz path changed:
+  verify `Gemfile` path target exists and rerun bundler.
+- R runtime issues:
+  confirm GNU R is installed and on `PATH` in the same shell where Rails runs.
+
+As new Rails features are added (controllers, jobs, websockets, background rendering, plot
+generation), extend this section with concrete, runnable snippets and the associated operational
+checks.
+
 # Accessing R from Ruby
 
 One of the nice aspects of Galaaz is that variables and functions defined in R can

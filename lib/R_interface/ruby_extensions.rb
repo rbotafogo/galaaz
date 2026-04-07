@@ -63,7 +63,11 @@ class Symbol
   end
 
   # Ruby coercion/path methods: do not treat as R calls; let Symbol behave normally (super => NoMethodError).
-  SYMBOL_RUBY_RESERVED = %i[to_str to_path to_ary to_int to_f to_r to_proc].freeze
+  # Include to_hash / to_h so Rails and stdlib implicit conversions (e.g. Time.at) do not hit method_missing.
+  # Include :call so Puma/Rack (e.g. workers :auto) does not treat Symbol as callable via respond_to?(:call).
+  SYMBOL_RUBY_RESERVED = %i[
+    to_str to_path to_ary to_int to_f to_r to_proc to_hash to_h to_a call
+  ].freeze
 
   # Unknown methods (e.g. .sin, .cos) are interpreted as R function calls with self as first argument.
   # So :x.sin => same as E.sin(:x) => R expression sin(x); :y.assign :x.sin works like :y.assign E.sin(:x).

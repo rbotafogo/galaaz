@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+# coding: utf-8
+
+require 'optparse'
+require 'shellwords'
+
+options = {}
+parser = OptionParser.new do |opts|
+  opts.banner = 'Usage: gbookdown [options]'
+
+  opts.on('-f', '--filename FILE', 'Bookdown input file (typically index.Rmd).') do |opt|
+    options[:input_file] = opt
+  end
+
+  opts.on('--output_format FORMAT',
+          "Bookdown output format (e.g. 'bookdown::gitbook', 'bookdown::pdf_book').") do |opt|
+    options[:output_format] = opt
+  end
+
+  opts.on('--bridge_timeout_sec TIMEOUT_SEC', Integer,
+          'Bridge request timeout in seconds for Ruby->R eval calls.') do |opt|
+    options[:bridge_timeout_sec] = opt
+  end
+
+  opts.on('--callback_timeout_ms TIMEOUT_MS', Integer,
+          'Callback timeout in milliseconds for R<->Ruby calls.') do |opt|
+    options[:callback_timeout_ms] = opt
+  end
+end
+
+remaining_args = parser.permute(ARGV.dup)
+ARGV.replace(remaining_args)
+
+options[:input_file] ||= ARGV[0]
+raise 'Input file name is required. Add -f FILE. For help, type gbookdown -h' if options[:input_file].nil?
+
+input_file = File.expand_path(options[:input_file], Dir.pwd)
+raise "File #{input_file} does not exist!" unless File.exist?(input_file)
+
+input_dir = File.dirname(input_file)
+output_format = options[:output_format].nil? ? 'nil' : %("#{options[:output_format]}")
+r_call = "bookdown::render_book(#{File.basename(input_file).inspect}, #{output_format})"
+
+puts '================================'
+puts "gBookdown #{input_file} with options:"
+puts "   * Output format: \t #{output_format}"
+
+code = <<EOF
+ENV['GALAAZ_CALLBACK_TIMEOUT_MS'] = #{options[:callback_timeout_ms].to_s.inspect} if #{!options[:callback_timeout_ms].nil?}
+ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] = #{options[:bridge_timeout_sec].to_s.inspect} if #{!options[:bridge_timeout_sec].nil?}
+require %q(galaaz)
+require %q(gknit)
+
+Dir.chdir(#{input_dir.inspect}) do
+  R.install_and_loads('bookdown')
+  R::Support.eval(#{r_call.inspect})
+end
+EOF
+
+libx = File.expand_path('../lib', File.dirname(__FILE__))
+require File.join(libx, 'galaaz_jruby')
+jvm_args = GalaazJRuby.shell_j_arg_string
+exec "jruby #{jvm_args} -I#{libx} -e #{Shellwords.escape(code)}"
+
