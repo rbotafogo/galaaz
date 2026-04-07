@@ -307,7 +307,7 @@ And this is the final code for making the scatter plot with the midwest data
 require 'galaaz'
 require 'ggplot'
 
-sp = ScatterPlot.new(~:midwest, x: :area, y: :poptotal)
+sp = ScatterPlot.new(~R[:midwest], x: :area, y: :poptotal)
 sp.title = "Midwest Dataset - Scatterplot"
 sp.subtitle = "Area Vs Population"
 sp.caption = "Source: midwest"

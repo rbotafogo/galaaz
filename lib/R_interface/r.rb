@@ -42,6 +42,10 @@ require_relative 'rmd_indexed_object'
 require_relative 'robject'
 
 module R
+  def self.[](name)
+    R::SymbolRef.new(name)
+  end
+
   # Raised when R.batch hits an R error mid-batch (later ops are not executed).
   class BatchEvaluationError < StandardError
     attr_reader :failed_index

@@ -40,17 +40,17 @@ describe R do
         df[r, :all]  
       end
 
-      puts subset(@sample_df, :a >= 4)
+      puts subset(@sample_df, R[:a] >= 4)
 
       y = 4
       x = 4
       condition = 4
       condition_call = 4
 
-      puts subset(@sample_df, :a == 4)
-      puts subset(@sample_df, :a == y)
-      puts subset(@sample_df, :a == condition)
-      puts subset(@sample_df, :a == condition_call)
+      puts subset(@sample_df, R[:a] == 4)
+      puts subset(@sample_df, R[:a] == y)
+      puts subset(@sample_df, R[:a] == condition)
+      puts subset(@sample_df, R[:a] == condition_call)
     end
     
   end

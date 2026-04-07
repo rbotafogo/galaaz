@@ -17,7 +17,7 @@ describe 'Arrow semantics' do
 
   it 'writes and reads Feather through namespaced Arrow helpers' do
     path = File.join(Dir.tmpdir, 'galaaz_arrow_semantics.feather')
-    df1 = R.data__frame(x: (1..5), y: (~:letters)[(1..5)])
+    df1 = R.data__frame(x: (1..5), y: (~R[:letters])[(1..5)])
 
     R::Arrow.write_feather(df1, path)
     df2 = R::Arrow.read_feather(path)

@@ -81,7 +81,7 @@ describe R::Environment do
       env.e2 = 20
       env.e3 = R.c(1, 2, 3, 4)
 
-      expr = :e1 + :e2 + :e3
+      expr = R[:e1] + R[:e2] + R[:e3]
       expect(expr.to_s).to eq('e1 + e2 + e3')
       expect(expr.eval(env)).to eq R.c(31, 32, 33, 34)
     end

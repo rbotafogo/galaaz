@@ -3228,7 +3228,7 @@ symbol, in this case ':in' and the second argument is the vector:
 
 
 ``` ruby
-puts flights.filter(:month._ :in, R.c(11, 12)).head
+puts flights.filter(R[:month]._ :in, R.c(11, 12)).head
 ```
 
 ```
@@ -3464,8 +3464,8 @@ puts flights_sm.head
 
 ``` ruby
 flights_sm = flights_sm.
-               mutate(gain: :dep_delay - :arr_delay,
-                      speed: :distance / :air_time * 60)
+               mutate(gain: R[:dep_delay] - R[:arr_delay],
+                      speed: R[:distance] / R[:air_time] * 60)
 puts flights_sm.head
 ```
 
@@ -3686,10 +3686,10 @@ puts ans.head
 
 # Select arr_delay column, but return as a data.table instead.
 
-ans = flights[:all, :arr_delay.list]
+ans = flights[:all, R[:arr_delay].list]
 puts ans.head
 
-ans = flights[:all, E.list(:arr_delay, :dep_delay)]
+ans = flights[:all, E.list(R[:arr_delay], R[:dep_delay])]
 ```
 
 ```

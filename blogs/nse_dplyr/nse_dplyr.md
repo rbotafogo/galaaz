@@ -224,7 +224,7 @@ puts exp1
 In Galaaz, we can build any complex mathematical expression such as:
 
 ``` ruby
-exp2 = (:a + :b) * 2.0 + :c ** 2 / :z
+exp2 = (R[:a] + R[:b]) * 2.0 + R[:c] ** 2 / R[:z]
 puts exp2
 ```
 
@@ -241,7 +241,7 @@ while ‘2.0’ is a float.
 It is also possible to use inequality operators in building expressions:
 
 ``` ruby
-exp3 = (:a + :b) >= :z
+exp3 = (R[:a] + R[:b]) >= R[:z]
 puts exp3
 ```
 
@@ -253,7 +253,7 @@ without any problem:
 ``` ruby
 x = 20
 y = 30.0
-exp_var = (:a + :b) * x <= :z - y
+exp_var = (R[:a] + R[:b]) * x <= R[:z] - y
 puts exp_var
 ```
 
@@ -264,7 +264,7 @@ Galaaz provides both symbolic representations for operators, such as
 .ge, etc.). So the same expression written above can also be written as
 
 ``` ruby
-exp4 = (:a + :b).ge :z
+exp4 = (R[:a] + R[:b]).ge R[:z]
 puts exp4
 ```
 
@@ -279,14 +279,14 @@ In order to write an expression involving ‘==’ we need to use the method
 ‘.eq’ and for ‘=’ we need the function ‘.assign’:
 
 ``` ruby
-exp5 = (:a + :b).eq :z
+exp5 = (R[:a] + R[:b]).eq R[:z]
 puts exp5
 ```
 
     ## a + b == z
 
 ``` ruby
-exp6 = :y.assign :a + :b
+exp6 = R[:y].assign R[:a] + R[:b]
 puts exp6
 ```
 
@@ -298,14 +298,14 @@ cryptic (in future releases of Galaza, we plan to improve the error
 message).
 
 ``` ruby
-exp_wrong = (:a + :b) == :z
+exp_wrong = (R[:a] + R[:b]) == R[:z]
 puts exp_wrong
 ```
 
     ## Error: object 'a' not found
 
 The problem lies with the fact that when using ‘==’ we are comparing
-expression (:a + :b) to expression :z with ‘==’. When this comparison is
+expression (R[:a] + R[:b]) to expression R[:z] with ‘==’. When this comparison is
 executed, the system tries to evaluate :a, :b and :z, and those symbols,
 at this time, are not bound to anything giving the “object ‘a’ not
 found” message.
@@ -320,7 +320,7 @@ we want the function to be part of the expression, we call the function
 preceeding it by the letter E, such as ‘E.sin(x)’
 
 ``` ruby
-exp7 = :y.assign E.sin(:x)
+exp7 = R[:y].assign E.sin(R[:x])
 puts exp7
 ```
 
@@ -329,7 +329,7 @@ puts exp7
 Function expressions can also be written using ‘.’ notation:
 
 ``` ruby
-exp8 = :y.assign :x.sin
+exp8 = R[:y].assign R[:x].sin
 puts exp8
 ```
 
@@ -340,7 +340,7 @@ the ‘.’. For instance, the R concatenate function ‘c’, that concatenates
 two or more arguments can be part of an expression as:
 
 ``` ruby
-exp9 = :x.c(:y)
+exp9 = R[:x].c(R[:y])
 puts exp9
 ```
 
@@ -359,7 +359,7 @@ a binding.
 A binding can be provided with a list or a data frame as shown below:
 
 ``` ruby
-exp = (:a + :b) * 2.0 + :c ** 2 / :z
+exp = (R[:a] + R[:b]) * 2.0 + R[:c] ** 2 / R[:z]
 puts exp.eval(R.list(a: 10, b: 20, c: 30, z: 40))
 ```
 
@@ -438,7 +438,7 @@ want to create the expression *y* = *s**i**n*(45<sup>∘</sup>), which is
 *y* = 0.850.... In this case, we will use ‘R.sin’:
 
 ``` ruby
-exp10 = :y.assign R.sin(45)
+exp10 = R[:y].assign R.sin(45)
 puts exp10
 ```
 
@@ -458,9 +458,9 @@ Let’s start by taking a look at this dataset:
 ``` ruby
 R.library('nycflights13')
 # check it's dimension
-puts ~:flights.dim
+puts ~R[:flights].dim
 # and the structure
-~:flights.str
+~R[:flights].str
 ```
 
     ## ~(dim(flights))
@@ -478,7 +478,7 @@ filter function to filter by columns, looking for entries in which the
 month and day are equal to 1.
 
 ``` ruby
-puts R.filter(:flights, (:month.eq 1), (:day.eq 1))
+puts R.filter(:flights, (R[:month].eq 1), (R[:day].eq 1))
 ```
 
     ## # A tibble: 842 × 19
@@ -539,11 +539,11 @@ expression such as ‘x == 1’, we would get an error, since there is no
 variable ‘x’ defined and if ‘x’ was a variable then ‘x == 1’ would
 either be ‘true’ or ‘false’. Our goal is to filter our data frame
 returning all rows in which the ‘x’ value is equal to 1. To express this
-we want: ‘:x.eq 1’, where :x will be interpreted by filter as the ‘x’
+we want: ‘R[:x].eq 1’, where :x will be interpreted by filter as the ‘x’
 column.
 
 ``` ruby
-puts df.filter(:x.eq 1)
+puts df.filter(R[:x].eq 1)
 ```
 
     ##   x y
@@ -562,14 +562,14 @@ filter(df, my_var == 1)
 Generates the following error: “object ‘x’ not found.
 
 However, in Galaaz, arguments are referencially transparent as can be
-seen by the code bellow. Note initally that ‘my_var = :x’ will not give
+seen by the code bellow. Note initally that ‘my_var = R[:x]’ will not give
 the error “object ‘x’ not found” since ‘:x’ is treated as an expression
 and assigned to my_var. Then when doing (my_var.eq 1), my_var is a
-variable that resolves to ‘:x’ and it becomes equivalent to (:x.eq 1)
+variable that resolves to ‘:x’ and it becomes equivalent to (R[:x].eq 1)
 which is what we want.
 
 ``` ruby
-my_var = :x
+my_var = R[:x]
 puts df.filter(my_var.eq 1)
 ```
 
@@ -588,9 +588,9 @@ As stated by Hardley
 
 In galaaz this ambiguity does not exist, filter(df, x.eq y) is not a
 valid expression as expressions are build with symbols. In doing
-filter(df, :x.eq y) we are looking for elements of the ‘x’ column that
+filter(df, R[:x].eq y) we are looking for elements of the ‘x’ column that
 are equal to a previously defined y variable. Finally in filter(df,
-:x.eq :y) we are looking for elements in which the ‘x’ column value is
+R[:x].eq :y) we are looking for elements in which the ‘x’ column value is
 equal to the ‘y’ column value. This can be seen in the following two
 chunks of code:
 
@@ -599,7 +599,7 @@ y = 1
 x = 2
 
 # looking for values where the 'x' column is equal to the 'y' column
-puts df.filter(:x.eq :y)
+puts df.filter(R[:x].eq R[:y])
 ```
 
     ##   x y
@@ -608,7 +608,7 @@ puts df.filter(:x.eq :y)
 ``` ruby
 # looking for values where the 'x' column is equal to the 'y' variable
 # in this case, the number 1
-puts df.filter(:x.eq y)
+puts df.filter(R[:x].eq y)
 ```
 
     ##   x y
@@ -643,7 +643,7 @@ silently.
 
 ``` ruby
 def mutate_y(df)
-  df.mutate(:y.assign :a + :x)
+  df.mutate(R[:y].assign R[:a] + R[:x])
 end
 ```
 
@@ -750,16 +750,16 @@ R variable name as symbol, i.e., ‘:df’. We then create the
 by variable ‘:g1’:
 
 ``` ruby
-puts ~:df
+puts ~R[:df]
 print "
 "
 
 def my_summarize(df, group_var)
   df.group_by(group_var).
-    summarize(a: :a.mean)
+    summarize(a: R[:a].mean)
 end
 
-puts my_summarize(:df, :g1)
+puts my_summarize(~R[:df], R[:g1])
 ```
 
     ##   g1 g2 a b
@@ -778,7 +778,7 @@ puts my_summarize(:df, :g1)
 It works!!! Well, let’s make sure this was not just some coincidence
 
 ``` ruby
-puts my_summarize(:df, :g2)
+puts my_summarize(~R[:df], R[:g2])
 ```
 
     ## # A tibble: 2 × 2
@@ -825,8 +825,8 @@ def my_summarise2(df, expr)
   )
 end
 
-puts my_summarise2((~:df), :a)
-puts my_summarise2((~:df), :a * :b)
+puts my_summarise2((~R[:df]), :a)
+puts my_summarise2((~R[:df]), R[:a] * R[:b])
 ```
 
     ##   mean sum n
@@ -881,8 +881,8 @@ def my_mutate(df, expr)
             sum_name => E.sum(expr))
 end
 
-puts my_mutate((~:df), :a)
-puts my_mutate((~:df), :b)
+puts my_mutate((~R[:df]), :a)
+puts my_mutate((~R[:df]), :b)
 ```
 
     ##   g1 g2 a b mean_a sum_a
@@ -923,7 +923,7 @@ def my_summarise3(df, *group_vars)
     summarise(a: E.mean(:a))
 end
 
-puts my_summarise3((~:df), :g1, :g2)
+puts my_summarise3((~R[:df]), :g1, :g2)
 ```
 
     ## # A tibble: 4 × 3
@@ -954,7 +954,7 @@ used, so ‘x = a’ is immediately evaluate and variable ‘x’ will receive
 the value of variable ‘a’ as soon as the Ruby statement is executed.
 Ruby also provides the notion of a symbol; ‘:a’ is a symbol and does not
 evaluate to anything. Galaaz uses Ruby symbols to build expressions that
-are not bound to anything: ‘:a.eq :b’ is clearly an expression and has
+are not bound to anything: ‘R[:a].eq :b’ is clearly an expression and has
 no relationship whatsoever with the statment ‘a = b’. By using symbols,
 variables and expressions all the possible ambiguities that are found in
 R are eliminated in Galaaz.
@@ -966,7 +966,7 @@ the R function will know how to deal with an input of the form ‘a = b’,
 now for the Ruby developer it might not be immediately clear if it
 should call the function passing the value ‘true’ if variable ‘a’ is
 equal to variable ‘b’ or if it should call the function passing the
-expression ‘:a.eq :b’.
+expression ‘R[:a].eq :b’.
 
 # Advanced dplyr features
 
@@ -992,7 +992,7 @@ data frame used in ‘starwars’ that describes features of characters in
 the Starwars movies:
 
 ``` ruby
-puts (~:starwars).head
+puts (~R[:starwars]).head
 ```
 
     ## # A tibble: 6 × 14
@@ -1062,11 +1062,11 @@ def grouped_mean(data, grouping_variables, value_variables)
   data.
     group_by_at(grouping_variables).
     mutate(count: E.n).
-    summarise_at(E.c(value_variables, "count"), ~:mean, na__rm: true).
+    summarise_at(E.c(value_variables, "count"), R[:mean], na__rm: true).
     rename_at(value_variables, E.funs(E.paste0("mean_", value_variables)))
 end
 
-puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year"))
+puts grouped_mean((~R[:starwars]), "eye_color", E.c("mass", "birth_year"))
 ```
 
     ## # A tibble: 15 × 4

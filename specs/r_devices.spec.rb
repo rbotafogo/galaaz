@@ -30,7 +30,7 @@ describe R do
     # Read the R ToothGrowth variable and assign it to the
     # Ruby instance variable @tooth_growth that will be 
     # available to all Ruby chunks in this document.
-    @tooth_growth = ~:ToothGrowth
+    @tooth_growth = ~R[:ToothGrowth]
     
     # convert the dose to a factor
     @tooth_growth.dose = @tooth_growth.dose.as__factor

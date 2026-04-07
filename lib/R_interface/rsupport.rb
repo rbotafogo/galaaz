@@ -198,6 +198,8 @@ module R
         # :all means "all" in that dimension; R uses missing argument. Bridge defines missing_arg().
         return "missing_arg()" if arg == :all
         arg.to_s.gsub(/__/,".")
+      when R::SymbolRef
+        arg.to_r_symbol
       when String
         # If it's already a handle, don't quote it
         if arg.start_with?("g2_v")

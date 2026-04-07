@@ -35,59 +35,57 @@ module R
   end
 end
 
-class Symbol
-  include R::BinaryOperators
-  include R::ExpBinOp
-  include R::LogicalOperators
+module R
+  class SymbolRef
+    include R::BinaryOperators
+    include R::ExpBinOp
+    include R::LogicalOperators
 
-  def +@
-    var_name = R::Support.generate_var_name
-    R.bridge.eval_r("#{var_name} <- as.name('#{self.to_s.gsub(/__/,".")}')")
-    R::Object.build(var_name)
-  end
+    REF_RUBY_RESERVED = %i[
+      to_str to_path to_ary to_int to_f to_r to_proc to_hash to_h to_a call
+    ].freeze
 
-  def ~@
-    expr = self.to_s.gsub(/__/,".")
-    var_name = R::Support.generate_var_name
-    R.bridge.eval_r("#{var_name} <- #{expr}")
-    R::Object.build(var_name)
-  end
+    def initialize(name)
+      @name = name
+    end
 
-  def succ
-    self.to_s.succ.to_sym
-  end
+    def to_r_symbol
+      @name.to_s.gsub(/__/, ".")
+    end
 
-  # Column range DSL used in dplyr select, e.g. :year.up_to(:day) -> year:day
-  def up_to(other_object)
-    R::Language.build("`:`", self, other_object)
-  end
+    def +@
+      var_name = R::Support.generate_var_name
+      R.bridge.eval_r("#{var_name} <- as.name('#{to_r_symbol}')")
+      R::Object.build(var_name)
+    end
 
-  # Ruby coercion/path methods: do not treat as R calls; let Symbol behave normally (super => NoMethodError).
-  # Include to_hash / to_h so Rails and stdlib implicit conversions (e.g. Time.at) do not hit method_missing.
-  # Include :call so Puma/Rack (e.g. workers :auto) does not treat Symbol as callable via respond_to?(:call).
-  SYMBOL_RUBY_RESERVED = %i[
-    to_str to_path to_ary to_int to_f to_r to_proc to_hash to_h to_a call
-  ].freeze
+    def ~@
+      expr = to_r_symbol
+      var_name = R::Support.generate_var_name
+      R.bridge.eval_r("#{var_name} <- #{expr}")
+      R::Object.build(var_name)
+    end
 
-  # Unknown methods (e.g. .sin, .cos) are interpreted as R function calls with self as first argument.
-  # So :x.sin => same as E.sin(:x) => R expression sin(x); :y.assign :x.sin works like :y.assign E.sin(:x).
-  def method_missing(method_name, *args)
-    super if SYMBOL_RUBY_RESERVED.include?(method_name)
-    name = R::Support.convert_symbol2r(method_name)
-    r_args = [self, *args].map { |arg| R::Support.parse_arg(arg) }
-    expr = "#{name}(#{r_args.join(", ")})"
-    res = R::Language.allocate
-    res.instance_variable_set(:@r_interop, expr)
-    res.expression = expr
-    res
-  end
+    def up_to(other_object)
+      R::Language.build("`:`", self, other_object)
+    end
 
-  # Claim we respond to unknown methods so :x.sin is handled by method_missing, but return false for
-  # :r_interop, :expression, and Ruby coercion/path methods so parse_arg and stdlib work correctly.
-  def respond_to_missing?(method_name, include_private = false)
-    return false if method_name == :r_interop || method_name == :expression
-    return false if SYMBOL_RUBY_RESERVED.include?(method_name)
-    true
+    def method_missing(method_name, *args)
+      super if REF_RUBY_RESERVED.include?(method_name)
+      name = R::Support.convert_symbol2r(method_name)
+      r_args = [self, *args].map { |arg| R::Support.parse_arg(arg) }
+      expr = "#{name}(#{r_args.join(", ")})"
+      res = R::Language.allocate
+      res.instance_variable_set(:@r_interop, expr)
+      res.expression = expr
+      res
+    end
+
+    def respond_to_missing?(method_name, include_private = false)
+      return false if method_name == :r_interop || method_name == :expression
+      return false if REF_RUBY_RESERVED.include?(method_name)
+      true
+    end
   end
 end
 
@@ -101,6 +99,126 @@ module E
     res.instance_variable_set(:@r_interop, expr)
     res.expression = expr
     res
+  end
+end
+
+module Galaaz
+  module SymbolDSL
+    SYMBOL_RUBY_RESERVED = %i[
+      to_str to_path to_ary to_int to_f to_r to_proc to_hash to_h to_a call
+    ].freeze
+
+    refine Symbol do
+      def __galaaz_ref
+        R::SymbolRef.new(self)
+      end
+
+      def +(other_object)
+        __galaaz_ref + other_object
+      end
+
+      def -(other_object)
+        __galaaz_ref - other_object
+      end
+
+      def *(other_object)
+        __galaaz_ref * other_object
+      end
+
+      def /(other_object)
+        __galaaz_ref / other_object
+      end
+
+      def **(other_object)
+        __galaaz_ref ** other_object
+      end
+
+      def %(other_object)
+        __galaaz_ref % other_object
+      end
+
+      def int_div(other_object)
+        __galaaz_ref.int_div(other_object)
+      end
+
+      def eq(other_object)
+        __galaaz_ref.eq(other_object)
+      end
+
+      def eql(other_object)
+        __galaaz_ref.eql(other_object)
+      end
+
+      def <(other_object)
+        __galaaz_ref < other_object
+      end
+
+      def <=(other_object)
+        __galaaz_ref <= other_object
+      end
+
+      def >(other_object)
+        __galaaz_ref > other_object
+      end
+
+      def >=(other_object)
+        __galaaz_ref >= other_object
+      end
+
+      def !=(other_object)
+        __galaaz_ref != other_object
+      end
+
+      def ne(other_object)
+        __galaaz_ref.ne(other_object)
+      end
+
+      def til(other_object)
+        __galaaz_ref.til(other_object)
+      end
+
+      def inter(other_object)
+        __galaaz_ref.inter(other_object)
+      end
+
+      def assign(other_object)
+        __galaaz_ref.assign(other_object)
+      end
+
+      def _(op, other_object)
+        __galaaz_ref._(op, other_object)
+      end
+
+      def &(other_object)
+        __galaaz_ref.&(other_object)
+      end
+
+      def |(other_object)
+        __galaaz_ref.|(other_object)
+      end
+
+      def +@
+        __galaaz_ref.+@
+      end
+
+      def ~@
+        __galaaz_ref.~@
+      end
+
+      def up_to(other_object)
+        __galaaz_ref.up_to(other_object)
+      end
+
+      def method_missing(method_name, *args)
+        return super if Galaaz::SymbolDSL::SYMBOL_RUBY_RESERVED.include?(method_name)
+        __galaaz_ref.public_send(method_name, *args)
+      end
+
+      def respond_to_missing?(method_name, include_private = false)
+        return false if Galaaz::SymbolDSL::SYMBOL_RUBY_RESERVED.include?(method_name)
+        __galaaz_ref.respond_to?(method_name, include_private) || super
+      end
+    end
   end
 end
 

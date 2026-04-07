@@ -23,7 +23,7 @@ describe "Field access (obj.name → R [[, not $)" do
 
   context "data frame column access" do
     it "returns column when accessed by method (df.mpg)" do
-      df = ~:mtcars
+      df = ~R[:mtcars]
       expect(df.mpg).to be_a(R::Vector)
       expect(df.mpg.length >> 0).to be >= 1
     end

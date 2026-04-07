@@ -44,7 +44,7 @@ describe R do
   context "Using Ruby Procs as parameters to R functions and expressions" do
 
     before(:each) do
-      @x = @y = R.seq(-~:pi, ~:pi, length: 10)
+      @x = @y = R.seq(-~R[:pi], ~R[:pi], length: 10)
     end
     
     it "should accept a Proc as parameter" do

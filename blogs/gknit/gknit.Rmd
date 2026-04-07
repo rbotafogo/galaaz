@@ -111,7 +111,7 @@ have in a single document, text and code.
 
 gKnit runs with **JRuby**, **GNU R**, and **Galaaz** (the integration layer between Ruby and R—see below).
 Knitr and **R Markdown** orchestrate the document; Galaaz’s engine keeps **Ruby state across chunks**
-and talks to R through the **bridge**. Ruby chunks can read and update R variables (`~:name`, `R.*`)
+and talks to R through the **bridge**. Ruby chunks can read and update R variables (`~R[:name]`, `R.*`)
 without GraalVM-style polyglot interop.
 
 Galaaz has already been describe in the following posts:
@@ -372,17 +372,17 @@ One of the nice aspects of Galaaz 2.0 is that variables and functions defined in
 be easily accessed from Ruby.  This next chunk, reads data from R and uses the 'reduce_sum'
 function defined previously.  To access an R variable from Ruby the '~' function should be
 applied to the Ruby symbol representing the R variable.  Since the R variable is called 'r_vec',
-in Ruby, the symbol to acess it is ':r_vec' and thus '~:r_vec' retrieves the value of the
+in Ruby, the symbol to acess it is ':r_vec' and thus '~R[:r_vec]' retrieves the value of the
 variable.
 
 ```{ruby access_r}
-puts ~:r_vec
+puts ~R[:r_vec]
 ```
 
 In order to call an R function, the 'R.' module is used as follows
 
 ```{ruby call_r_func}
-puts R.reduce_sum(~:r_vec)
+puts R.reduce_sum(~R[:r_vec])
 ```
 
 ### Ruby Plotting
@@ -409,7 +409,7 @@ ten aspects are:
 
 ```{ruby diverging_plot_pre}
 # copy the R variable :mtcars to the Ruby mtcars variable
-mtcars = ~:mtcars
+mtcars = ~R[:mtcars]
 
 # create a new column 'car_name' to store the car names so that it can be
 # used for plotting. The 'rownames' of the data frame cannot be used as
@@ -568,11 +568,11 @@ table looks ugly.  The 'kableExtra' library is a great library for
 creating beautiful tables. Take a look at https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
 
 In the next chunk, we output the 'mtcars' dataframe from R in a nicely formatted 
-table.  Note that we retrieve the mtcars dataframe by using '~:mtcars'.
+table.  Note that we retrieve the mtcars dataframe by using '~R[:mtcars]'.
 
 ```{ruby nice_table}
 R.install_and_loads('kableExtra')
-outputs (~:mtcars).kable.kable_styling
+outputs (~R[:mtcars]).kable.kable_styling
 ```
 
 ### Including Ruby files in a chunk
@@ -621,7 +621,7 @@ will install the package if it is not already installed and can take a while.
 ```
 
 ```{ruby model_partition}
-mtcars = ~:mtcars
+mtcars = ~R[:mtcars]
 model = Model.new(mtcars, percent_train: 0.8)
 model.partition(:mpg)
 puts model.train.head

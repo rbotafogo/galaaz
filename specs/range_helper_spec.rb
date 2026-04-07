@@ -14,7 +14,7 @@ describe 'range_helper / up_to DSL' do
       tailnum: R.c('N1', 'N2')
     )
 
-    out = R.dplyr___select(df, :year.up_to(:day))
+    out = R.dplyr___select(df, R[:year].up_to(R[:day]))
     cols = R.names(out) >> nil
     expect(cols).to eq(%w[year month day])
   end

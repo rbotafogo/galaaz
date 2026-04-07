@@ -8,7 +8,7 @@ output:
 ```
 
 ```{ruby, echo=FALSE}
-mtcars = ~:mtcars
+mtcars = ~R[:mtcars]
 model = Model.new(mtcars, percent_train: 0.8)
 puts model.class
 ```

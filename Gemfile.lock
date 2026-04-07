@@ -2,6 +2,7 @@ PATH
   remote: .
   specs:
     galaaz (2.0.0)
+      msgpack (~> 1.0)
 
 GEM
   remote: https://rubygems.org/
@@ -57,7 +58,6 @@ PLATFORMS
 
 DEPENDENCIES
   galaaz!
-  msgpack
   rdoc (>= 6.1.2.1)
   rspec (~> 3.8)
   simplecov (~> 0.16)

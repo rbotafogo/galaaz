@@ -135,7 +135,7 @@ have in a single document, text and code.
 
 gKnit runs with **JRuby**, **GNU R**, and **Galaaz** (the integration layer between Ruby and R—see below).
 Knitr and **R Markdown** orchestrate the document; Galaaz’s engine keeps **Ruby state across chunks**
-and talks to R through the **bridge**. Ruby chunks can read and update R variables (`~:name`, `R.*`)
+and talks to R through the **bridge**. Ruby chunks can read and update R variables (`~R[:name]`, `R.*`)
 without GraalVM-style polyglot interop.
 
 Galaaz has already been describe in the following posts:
@@ -429,12 +429,12 @@ One of the nice aspects of Galaaz 2.0 is that variables and functions defined in
 be easily accessed from Ruby.  This next chunk, reads data from R and uses the 'reduce_sum'
 function defined previously.  To access an R variable from Ruby the '~' function should be
 applied to the Ruby symbol representing the R variable.  Since the R variable is called 'r_vec',
-in Ruby, the symbol to acess it is ':r_vec' and thus '~:r_vec' retrieves the value of the
+in Ruby, the symbol to acess it is ':r_vec' and thus '~R[:r_vec]' retrieves the value of the
 variable.
 
 
 ``` ruby
-puts ~:r_vec
+puts ~R[:r_vec]
 ```
 
 ```
@@ -445,7 +445,7 @@ In order to call an R function, the 'R.' module is used as follows
 
 
 ``` ruby
-puts R.reduce_sum(~:r_vec)
+puts R.reduce_sum(~R[:r_vec])
 ```
 
 ```
@@ -477,7 +477,7 @@ ten aspects are:
 
 ``` ruby
 # copy the R variable :mtcars to the Ruby mtcars variable
-mtcars = ~:mtcars
+mtcars = ~R[:mtcars]
 
 # create a new column 'car_name' to store the car names so that it can be
 # used for plotting. The 'rownames' of the data frame cannot be used as
@@ -654,12 +654,12 @@ table looks ugly.  The 'kableExtra' library is a great library for
 creating beautiful tables. Take a look at https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
 
 In the next chunk, we output the 'mtcars' dataframe from R in a nicely formatted 
-table.  Note that we retrieve the mtcars dataframe by using '~:mtcars'.
+table.  Note that we retrieve the mtcars dataframe by using '~R[:mtcars]'.
 
 
 ``` ruby
 R.install_and_loads('kableExtra')
-outputs (~:mtcars).kable.kable_styling
+outputs (~R[:mtcars]).kable.kable_styling
 ```
 
 <table class="table" style="margin-left: auto; margin-right: auto;">
@@ -1218,7 +1218,7 @@ end
 
 
 ``` ruby
-mtcars = ~:mtcars
+mtcars = ~R[:mtcars]
 model = Model.new(mtcars, percent_train: 0.8)
 model.partition(:mpg)
 puts model.train.head
@@ -1336,7 +1336,7 @@ module Find
   # Skips the current file or directory, restarting the loop with the next
   # entry. If the current file is a directory, that directory will not be
   # recursively entered. Meaningful only within the block associated with
-  # Find::find.
+  # Find:R[:find].
   #
   # See the +Find+ module documentation for an example.
   #

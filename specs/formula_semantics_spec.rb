@@ -8,45 +8,45 @@ describe 'Formula semantics' do
       f1 = R.formula('mpg ~ wt + cyl')
       expect(f1.to_s.lines.first.chomp).to eq('mpg ~ wt + cyl')
 
-      f2 = :mpg.til :wt + :cyl
+      f2 = R[:mpg].til R[:wt] + R[:cyl]
       expect(f2.to_s.lines.first.chomp).to eq('mpg ~ wt + cyl')
     end
 
     it 'builds interaction formulas with operators' do
-      f1 = :y.til :x * :x2
+      f1 = R[:y].til R[:x] * R[:x2]
       expect(f1.to_s.lines.first.chomp).to eq('y ~ x * x2')
 
-      f2 = :y.til :x + :x2 + (:x.inter :x2)
+      f2 = R[:y].til R[:x] + R[:x2] + (R[:x].inter R[:x2])
       expect(f2.to_s.lines.first.chomp).to eq('y ~ x + x2 + x:x2')
 
-      f3 = :y.til :a + (:b._ :in, :a)
+      f3 = R[:y].til R[:a] + (R[:b]._ :in, R[:a])
       expect(f3.to_s.lines.first.chomp).to eq('y ~ a + b %in% a')
     end
 
     it 'builds formulas using dot and one-sided forms' do
-      rhs_dot = :supp.til :__
+      rhs_dot = R[:supp].til R[:__]
       expect(rhs_dot.to_s.lines.first.chomp).to eq('supp ~ .')
       expect(rhs_dot.rclass).to eq('formula')
 
-      lhs_dot = :__.til :supp
+      lhs_dot = R[:__].til R[:supp]
       expect(lhs_dot.to_s.lines.first.chomp).to eq('. ~ supp')
       expect(lhs_dot.rclass).to eq('formula')
 
-      one_sided = :all.til :supp
+      one_sided = R[:all].til R[:supp]
       expect(one_sided.to_s.lines.first.chomp).to eq('~supp')
       expect(one_sided.rclass).to eq('formula')
     end
 
     it 'builds conditional and function-lhs formulas' do
-      cond = :Sepal__Width.til :Petal__Width | :Species
+      cond = R[:Sepal__Width].til R[:Petal__Width] | R[:Species]
       expect(cond.to_s.lines.first.chomp).to eq('Sepal.Width ~ Petal.Width | Species')
 
-      lhs_fun = E.log(:y).til :a + E.log(:x)
+      lhs_fun = E.log(:y).til R[:a] + E.log(:x)
       expect(lhs_fun.to_s.lines.first.chomp).to eq('log(y) ~ a + log(x)')
     end
 
     it "builds subtraction operator formula terms" do
-      f = :y.til :x1 - :x2
+      f = R[:y].til R[:x1] - R[:x2]
       expect(f.to_s.lines.first.chomp).to eq('y ~ x1 - x2')
     end
   end
@@ -58,7 +58,7 @@ describe 'Formula semantics' do
       x2 = R.rnorm(5)
       y = R.rnorm(5)
 
-      formula = :y.til :x * :x2
+      formula = R[:y].til R[:x] * R[:x2]
       model = R.model__frame(formula, data: R.data__frame(x: x, y: y, x2: x2))
 
       expect((model[1, 1] >> 0)).to be_within(1e-9).of(1.2240817974394615)
@@ -68,7 +68,7 @@ describe 'Formula semantics' do
     end
 
     it 'fits lm on mtcars and predicts expected trend values' do
-      fit = R.lm((:mpg.til :wt + :cyl), data: :mtcars)
+      fit = R.lm((R[:mpg].til R[:wt] + R[:cyl]), data: :mtcars)
       expect((fit.coefficients[[1]] >> 0)).to be_within(1e-9).of(39.68626148025295)
       expect((fit.coefficients[['wt']] >> 0)).to be_within(1e-9).of(-3.190972138983746)
       expect((fit.coefficients[['cyl']] >> 0)).to be_within(1e-9).of(-1.507794968259798)

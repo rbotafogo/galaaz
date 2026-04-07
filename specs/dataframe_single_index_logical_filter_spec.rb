@@ -10,7 +10,7 @@ describe 'DataFrame single-index logical filtering' do
       value: R.c(1, 2, 3)
     )
 
-    out = df[(:origin.eq('JFK')) & (:month.eq(6))]
+    out = df[(R[:origin].eq('JFK')) & (R[:month].eq(6))]
     n = out.nrow >> 0
     origins = out.origin >> nil
     origins = [origins] unless origins.is_a?(Array)

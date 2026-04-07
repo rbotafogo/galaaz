@@ -18,7 +18,7 @@ describe R::DataFrame do
 
   context "subsetting with '[' and '[['" do
     before(:each) do
-      @mtcars = ~:mtcars
+      @mtcars = ~R[:mtcars]
     end
 
     it 'subsets a single column by index' do
@@ -52,7 +52,7 @@ describe R::DataFrame do
 
   context "assignment with '[<-'" do
     before(:each) do
-      @mtcars = ~:mtcars
+      @mtcars = ~R[:mtcars]
     end
 
     it 'adds a column and updates cells by index' do
@@ -68,7 +68,7 @@ describe R::DataFrame do
 
   context 'iteration helpers' do
     it 'iterates columns with each_column and exposes column names' do
-      mtcars = ~:mtcars
+      mtcars = ~R[:mtcars]
       seen = {}
 
       mtcars.each_column do |col, col_name|
@@ -81,7 +81,7 @@ describe R::DataFrame do
     end
 
     it 'iterates rows with each_row and exposes row names' do
-      mtcars = ~:mtcars
+      mtcars = ~R[:mtcars]
       seen = {}
 
       mtcars.each_row do |row, row_name|
@@ -100,7 +100,7 @@ describe R::DataFrame do
       @df = R.data__frame(
         x: R.rep((1..3), each: 2),
         y: (6..1),
-        z: R.factor((~:letters)[(1..6)])
+        z: R.factor((~R[:letters])[(1..6)])
       )
       R.set__seed(10)
     end

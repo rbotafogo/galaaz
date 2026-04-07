@@ -116,13 +116,13 @@ The ToothGrowth dataset contains three columns: 'len', 'supp' and 'dose'.  Let's
 take a look at a few rows of this dataset. In Galaaz, R variables are accessed
 by using the corresponding Ruby symbol with the tilde (`~`) operator. Note in the
 following chunk that 'ToothGrowth' is the R  variable and Ruby's 'tooth_growth' is
-assigned the value of '~:ToothGrowth'.
+assigned the value of '~R[:ToothGrowth]'.
 
 ```{ruby head}
 # Read the R ToothGrowth variable and assign it to the
 # Ruby instance variable tooth_growth that will be 
 # available to all Ruby chunks in this document.
-tooth_growth = ~:ToothGrowth
+tooth_growth = ~R[:ToothGrowth]
 # print the first few elements of the dataset
 puts tooth_growth.head
 ```
@@ -228,16 +228,16 @@ the 'facet_grid' method is a [_formula_](https://thomasleeper.com/Rcourse/Tutori
 
 In Galaaz we give programmers the flexibility to use two different ways to write formulas.
 In the first way, we use Ruby expressions and the '.til' function. The formula 'x ~ y', becomes
-':x.til :y'. More information on expressions can be found in [Galaaz Manual](https://www.rubydoc.info/gems/galaaz/).
+'R[:x].til :y'. More information on expressions can be found in [Galaaz Manual](https://www.rubydoc.info/gems/galaaz/).
 
 
 Another way of writing a formula is to use the 'formula' function with the actual formula as
 a string.  The formula ```x ~ y``` in R can be written as ```R.formula("x ~ y")```.  For more
 complex formulas, the use of the 'formula' function is preferred.
 
-The formula ```:all.til :supp``` indicates to the 'facet_grid' function that it needs to
+The formula ```R[:all].til :supp``` indicates to the 'facet_grid' function that it needs to
 facet the plot based on the ```supp``` variable and split the plot vertically.  Changing
-the formula to ```:supp.til :all``` would split the plot horizontally.
+the formula to ```R[:supp].til :all``` would split the plot horizontally.
 
 ```{ruby facet_by_delivery, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
 
@@ -245,7 +245,7 @@ base_tooth = tooth_growth.ggplot(E.aes(x: :dose, y: :len, group: :dose))
 
 bp = base_tooth + R.geom_boxplot +
       # Split in vertical direction
-      R.facet_grid(:all.til :supp)
+      R.facet_grid(R[:all].til :supp)
 
 puts bp
 ```
@@ -381,7 +381,7 @@ a boxplot known as a _violin plot_ with jittered data.
 
 ```{ruby violin_with_jitter, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
 violin = base_tooth + R.geom_violin(E.aes(fill: :dose)) + 
-   R.facet_grid(:all.til :supp) +
+   R.facet_grid(R[:all].til :supp) +
    R.geom_jitter(shape: 23, color: "cyan3", size: 1) +
    R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
                        breaks: R.c("2","1","0.5"))
@@ -524,7 +524,7 @@ Each animal received one of three dose levels of vitamin C.
 EOT
 
 bp = tooth_growth.ggplot(E.aes(x: :supp, y: :len, group: :supp)) + 
-     R.geom_boxplot(E.aes(fill: :supp)) + R.facet_grid(:all.til :dose) +
+     R.geom_boxplot(E.aes(fill: :supp)) + R.facet_grid(R[:all].til :dose) +
      R.scale_fill_manual(values: R.c("cyan", "deepskyblue4")) +
      R.labs(title: "Tooth Growth:  Length by Dose",
             subtitle: "Faceted by dose",

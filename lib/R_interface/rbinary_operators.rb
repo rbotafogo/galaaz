@@ -201,7 +201,8 @@ module R
 
     def til(other_object)
       return R::Support.exec_function_name("`~`", other_object) if
-        ((self.is_a? Symbol) && (self == :all))
+        ((self.is_a?(Symbol) && (self == :all)) ||
+         (self.is_a?(R::SymbolRef) && self.to_r_symbol == "all"))
       exec_bin_oper("`~`", other_object)
     end
 

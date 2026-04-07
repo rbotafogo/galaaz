@@ -81,7 +81,7 @@ describe R do
     
     it "should retrieve named R objects to Ruby variables by using '~' " do
       # retrieve x and hyp from R and attribute it to local Ruby variables
-      x = ~:x
+      x = ~R[:x]
 
       expect(x.is_a? R::Vector).to eq true
       expect(x.length).to eq 3
@@ -107,7 +107,7 @@ describe R do
       # to create a double vector through the Ruby interface, we need that at least
       # one element of the vector is a 'float'
       double = R.c(1.0, 2, 3)
-      expect((~:x).identical double).to eq true
+      expect((~R[:x]).identical double).to eq true
       expect(R.hyp(3, 4).all__equal(5)).to eq true
       # @TODO: this should work but raises the following error:
       # TypeError:
@@ -119,7 +119,7 @@ describe R do
 
     it "should box R functions in R::Closure Ruby class" do
       # hyp is an R function and works like a named function in Ruby
-      hyp = ~:hyp
+      hyp = ~R[:hyp]
       
       # calling a named function or block is done by use of the 'call' method
       expect(hyp.call(3, 4)).to eq 5.0
@@ -129,7 +129,7 @@ describe R do
     
     it "should print values the same way as R" do
       # retrieve x and hyp from R and attribute it to local Ruby variables
-      x = ~:x
+      x = ~R[:x]
       
       # Converting to string (to_s) will print as an R vector would
       expect(x[1].to_s).to eq ("[1] 1")
@@ -138,7 +138,7 @@ describe R do
 
     it "should allow logical comparison using R::Objects" do
       # retrieve x and hyp from R and attribute it to local Ruby variables
-      x = ~:x
+      x = ~R[:x]
 
       expect(x[1].all__equal(1)).to eq true
       expect(x[2].identical(1)).to eq false

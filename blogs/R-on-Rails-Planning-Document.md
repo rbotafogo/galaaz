@@ -154,7 +154,7 @@ require 'galaaz'
 require 'ggplot'
 
 R.install_and_loads('ggplot2')
-mpg = ~:mpg  # Access R's mpg dataset
+mpg = ~R[:mpg]  # Access R's mpg dataset
 
 # Native Ruby method calls, not string evaluation
 plot = mpg.ggplot(E.aes(x: :displ, y: :hwy)) +
@@ -209,20 +209,20 @@ require 'galaaz'
 df = R.data__frame(x: (1..5), y: (5..1))
 
 # Simple filtering with expressions
-filtered = df.filter(:x.eq 1)  # Filter where column x equals 1
+filtered = df.filter(R[:x].eq 1)  # Filter where column x equals 1
 
 # Using variables is explicit and unambiguous
 my_var = 1
-filtered = df.filter(:x.eq my_var)  # Column x equals Ruby variable my_var
+filtered = df.filter(R[:x].eq my_var)  # Column x equals Ruby variable my_var
 
 # Column-to-column comparison
-filtered = df.filter(:x.eq :y)  # Column x equals column y
+filtered = df.filter(R[:x].eq :y)  # Column x equals column y
 
 # Complex expressions
-filtered = df.filter((:x + :y).gte 5)
+filtered = df.filter((R[:x] + R[:y]).gte 5)
 ```
 
-**Why this works**: Galaaz expressions (`:x.eq 1`) are explicit about what's a column reference (symbol `:x`) vs. what's a Ruby value (`my_var`). No ambiguity, no tidyeval complexity.
+**Why this works**: Galaaz expressions (`R[:x].eq 1`) are explicit about what's a column reference (symbol `:x`) vs. what's a Ruby value (`my_var`). No ambiguity, no tidyeval complexity.
 
 **Example from specs** (r_nse.spec.rb):
 ```ruby
@@ -234,7 +234,7 @@ end
 
 # Usage: explicit expression with symbol :a
 subset(df, :a >= 4)
-subset(df, :a.eq 4)
+subset(df, R[:a].eq 4)
 ```
 
 ---
@@ -261,11 +261,11 @@ Galaaz code:
 require 'galaaz'
 require 'ggplot'
 
-tooth_growth = ~:ToothGrowth
+tooth_growth = ~R[:ToothGrowth]
 
 plot = tooth_growth.ggplot(E.aes(x: :dose, y: :len)) +
        R.geom_boxplot +
-       R.facet_grid(:all.til :supp) +  # Formula: ~supp
+       R.facet_grid(R[:all].til R[:supp]) +  # Formula: ~supp
        R.labs(title: "Tooth Growth", x: "Dose", y: "Length")
 
 plot.print
@@ -307,11 +307,11 @@ require 'ggplot'
 R.install_and_loads('ISLR', 'MASS')  # Install if needed, then load
 
 # Access R's Boston dataset
-boston = ~:Boston
+boston = ~R[:Boston]
 
 # Simple linear regression
 # R: lm(medv ~ lstat, data=Boston)
-boston_lm = R.lm((:medv.til :lstat), data: :Boston)
+boston_lm = R.lm((R[:medv].til :lstat), data: :Boston)
 
 puts boston_lm.coef        # Coefficients
 puts boston_lm.confint     # Confidence intervals
@@ -326,11 +326,11 @@ pred = R.predict(boston_lm,
                  interval: "prediction")
 
 # Multiple regression (from ch3_multiple_regression.rb)
-lm_fit = R.lm((:medv.til :lstat + :age), data: :Boston)
+lm_fit = R.lm((R[:medv].til R[:lstat] + R[:age]), data: :Boston)
 puts lm_fit.summary
 
 # Polynomial terms
-lm_fit5 = R.lm((:medv.til E.poly(:lstat, 5)), data: :Boston)
+lm_fit5 = R.lm((R[:medv].til E.poly(:lstat, 5)), data: :Boston)
 puts lm_fit5.summary
 ```
 
@@ -626,7 +626,7 @@ dataset = R::Arrow.dataset('/data/events.parquet')
 # Query without loading entire file
 summary = R.dplyr___collect(
   dataset \
-    .dplyr___filter(:value > 50) \
+     .dplyr___filter(R[:value] > 50) \
     .dplyr___group_by(:category) \
     .dplyr___summarise(count: E.n(), avg: E.mean(:value))
 )
@@ -698,7 +698,7 @@ results = Parallel.map(data_partitions, in_processes: 4) do |region_data|
     r.install_and_loads('dplyr', 'caret')
     
     # R computation
-    model = r.lm((:sales.til :marketing_spend + :competition_index), 
+    model = r.lm((R[:sales].til :marketing_spend + :competition_index), 
                  data: region_data)
     
     predictions = r.predict(model, newdata: region_data)

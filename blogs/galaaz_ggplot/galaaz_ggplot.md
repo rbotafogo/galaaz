@@ -107,7 +107,7 @@ require 'ggplot'
 R.options(scipen: 999)  # turn-off scientific notation like 1e+48
 R.theme_set(R.theme_bw)  # pre-set the bw theme.
 
-midwest = ~:midwest
+midwest = ~R[:midwest]
 
 # Scatterplot
 gg = midwest.ggplot(E.aes(x: :area, y: :poptotal)) + 
@@ -328,7 +328,7 @@ data
 require 'galaaz'
 require 'ggplot'
 
-sp = ScatterPlot.new(~:midwest, x: :area, y: :poptotal)
+sp = ScatterPlot.new(~R[:midwest], x: :area, y: :poptotal)
 sp.title = "Midwest Dataset - Scatterplot"
 sp.subtitle = "Area Vs Population"
 sp.caption = "Source: midwest"

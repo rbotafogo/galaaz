@@ -99,7 +99,7 @@ describe "Result protocol (Phase 5)" do
     end
   end
 
-  context "Public API uses protocol (R.c, R.list, ~:sym)" do
+  context "Public API uses protocol (R.c, R.list, ~R[:sym])" do
 
     it "R.c builds vector via protocol" do
       v = R.c(1, 2, 3)
@@ -112,9 +112,9 @@ describe "Result protocol (Phase 5)" do
       expect(v).to be_a(R::List)
     end
 
-    it "~:x retrieves object via protocol" do
+    it "~R[:x] retrieves object via protocol" do
       R::Support.eval("x_protocol_test <- c(10, 20)")
-      v = ~:x_protocol_test
+      v = ~R[:x_protocol_test]
       expect(v).to be_a(R::Vector)
       expect(v[1]).to eq 10
     end
