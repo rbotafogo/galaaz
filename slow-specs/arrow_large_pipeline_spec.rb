@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'galaaz'
+using Galaaz::SymbolDSL
 
 RSpec.describe 'Arrow large pipeline (slow)' do
   before(:all) do
@@ -45,12 +46,12 @@ RSpec.describe 'Arrow large pipeline (slow)' do
     tbl = R::Arrow.from_ruby_batches(batches)
     expect(tbl.rclass.split(' ')).to include('Table')
 
-    grouped = R.dplyr___group_by(tbl, :grp)
+    grouped = R.dplyr___group_by(tbl, R[:grp])
     summarised = R.dplyr___summarise(
       grouped,
       n: E.n(),
-      total: E.sum(:value),
-      wsum: E.sum(:value * :weight)
+      total: E.sum(R[:value]),
+      wsum: E.sum(R[:value] * R[:weight])
     )
     out = R.dplyr___collect(summarised)
 

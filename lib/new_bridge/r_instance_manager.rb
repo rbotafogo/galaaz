@@ -335,15 +335,36 @@ module NewBridge
       ''
     end
 
+    # Hostnames/IPs the container should try when dialing back to JRuby.
+    #
+    # On WSL2 + Docker Desktop, +host.docker.internal+ / host-gateway points at the
+    # Desktop VM, not the WSL distro where JRuby listens — so prefer the WSL eth0 IP
+    # first. Elsewhere, prefer +host.docker.internal+ and keep the local IP as fallback.
     def bridge_host_candidates(relearn: false)
-      cands = ['host.docker.internal']
       wsl_ip = local_wsl_ip
-      cands << wsl_ip if wsl_ip && !wsl_ip.empty?
+      wsl_ip = nil if wsl_ip.nil? || wsl_ip.empty?
+
+      cands = if running_in_wsl?
+                [wsl_ip, 'host.docker.internal'].compact
+              else
+                ['host.docker.internal', wsl_ip].compact
+              end
+
       if !relearn && @preferred_bridge_host
         ([@preferred_bridge_host] + cands).uniq
       else
         cands.uniq
       end
+    end
+
+    def running_in_wsl?
+      return true unless ENV['WSL_DISTRO_NAME'].to_s.empty?
+      return true unless ENV['WSL_INTEROP'].to_s.empty?
+
+      ver = File.exist?('/proc/version') ? File.read('/proc/version') : ''
+      !!(ver =~ /microsoft|wsl/i)
+    rescue StandardError
+      false
     end
 
     def local_wsl_ip

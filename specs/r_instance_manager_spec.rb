@@ -213,6 +213,7 @@ describe NewBridge::RInstanceManager do
 
   it 'builds bridge host candidates honoring preferred host cache' do
     mgr.instance_variable_set(:@preferred_bridge_host, 'cached.host')
+    allow(mgr).to receive(:running_in_wsl?).and_return(false)
     allow(mgr).to receive(:local_wsl_ip).and_return('172.22.0.5')
 
     with_cache = mgr.send(:bridge_host_candidates, relearn: false)
@@ -221,6 +222,18 @@ describe NewBridge::RInstanceManager do
     expect(with_cache.first).to eq('cached.host')
     expect(with_cache).to include('host.docker.internal', '172.22.0.5')
     expect(relearn).to eq(%w[host.docker.internal 172.22.0.5])
+  end
+
+  it 'prefers WSL IP before host.docker.internal when running in WSL' do
+    allow(mgr).to receive(:running_in_wsl?).and_return(true)
+    allow(mgr).to receive(:local_wsl_ip).and_return('172.22.0.5')
+
+    expect(mgr.send(:bridge_host_candidates, relearn: true)).to eq(%w[172.22.0.5 host.docker.internal])
+
+    mgr.instance_variable_set(:@preferred_bridge_host, 'cached.host')
+    with_cache = mgr.send(:bridge_host_candidates, relearn: false)
+    expect(with_cache.first).to eq('cached.host')
+    expect(with_cache).to eq(%w[cached.host 172.22.0.5 host.docker.internal])
   end
 
   it 'handles docker log and cleanup helper branches' do

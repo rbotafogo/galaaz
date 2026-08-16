@@ -6,16 +6,17 @@
 require 'open3'
 require 'tmpdir'
 
-root = File.expand_path('../../..', __dir__)
+root = File.expand_path('../..', __dir__)
 $LOAD_PATH.unshift(File.join(root, 'lib')) unless $LOAD_PATH.include?(File.join(root, 'lib'))
 
 require 'new_bridge'
 
 RSpec.describe 'NewBridge Phase 4.5 (local + container multi-version)' do
-  let(:phase1_cpp) { File.expand_path('../../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
+  # slow-specs/new_bridge -> repo root is ../..
+  let(:phase1_cpp) { File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__) }
 
   def project_root
-    File.expand_path('../../..', __dir__)
+    File.expand_path('../..', __dir__)
   end
 
   def docker_ok?
@@ -73,9 +74,9 @@ RSpec.describe 'NewBridge Phase 4.5 (local + container multi-version)' do
     puts '[phase4.5] spawning local runtime'
     mgr.spawn(runtime: 'local', instance_id: 'local-r', version: 'local')
     puts '[phase4.5] spawning container runtime 4.3.3'
-    mgr.spawn(runtime: 'container', instance_id: 'ctr-latest', version: '4.3.3', image: latest_tag, accept_timeout: 35)
+    mgr.spawn(runtime: 'container', instance_id: 'ctr-latest', version: '4.3.3', image: latest_tag, accept_timeout: 60)
     puts '[phase4.5] spawning container runtime 3.6.3'
-    mgr.spawn(runtime: 'container', instance_id: 'ctr-legacy', version: '3.6.3', image: legacy_tag, accept_timeout: 35)
+    mgr.spawn(runtime: 'container', instance_id: 'ctr-legacy', version: '3.6.3', image: legacy_tag, accept_timeout: 60)
 
     # Same expression through all runtimes.
     expr = '40L + 2L'
@@ -98,9 +99,11 @@ RSpec.describe 'NewBridge Phase 4.5 (local + container multi-version)' do
     expect(v_local['value']).to be >= 300
   ensure
     puts '[phase4.5] stopping non-default runtimes and forcing container cleanup'
-    mgr&.set_default_instance('local-r')
-    mgr&.stop_all(keep_default: true, force_container: true)
-    puts '[phase4.5] stopping default local runtime'
+    if mgr && mgr.instance_ids.include?('local-r')
+      mgr.set_default_instance('local-r')
+      mgr.stop_all(keep_default: true, force_container: true)
+      puts '[phase4.5] stopping default local runtime'
+    end
     mgr&.stop_all(force_container: true)
   end
 end

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'galaaz'
+using Galaaz::SymbolDSL
 
 RSpec.describe 'Formula legacy datasets (slow)' do
   before(:all) do
@@ -12,7 +13,7 @@ RSpec.describe 'Formula legacy datasets (slow)' do
   end
 
   it 'fits classic Boston regressions with expected coefficients' do
-    fit = R.lm((:medv.til :lstat + :age), data: :Boston)
+    fit = R.lm((R[:medv].til R[:lstat] + R[:age]), data: :Boston)
 
     expect((fit.coefficients[[1]] >> 0)).to be_within(1e-8).of(33.2227605317)
     expect((fit.coefficients[['lstat']] >> 0)).to be_within(1e-8).of(-1.0320685641)
@@ -20,7 +21,7 @@ RSpec.describe 'Formula legacy datasets (slow)' do
   end
 
   it 'fits polynomial regression on Boston with stable coefficients' do
-    fit = R.lm((:medv.til E.poly(:lstat, 5)), data: :Boston)
+    fit = R.lm((R[:medv].til E.poly(R[:lstat], 5)), data: :Boston)
 
     expect((fit.coefficients[[1]] >> 0)).to be_within(1e-8).of(22.53280632411)
     expect((fit.coefficients[[2]] >> 0)).to be_within(1e-8).of(-152.4595487225)
