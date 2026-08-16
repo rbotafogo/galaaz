@@ -2,6 +2,7 @@
 *~
 *.#
 test/coverage/
+coverage/
 doc
 .yardoc
 src/build/
@@ -31,6 +32,7 @@ logs/
 
 # Ruby/Bundler artifacts
 .bundle/
+*.gem
 
 # Vendored JRuby gems installed by Bundler
 vendor/bundle/
