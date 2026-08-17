@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Galaaz documentation</title>
+  <title>Galaaz 2.0 — JRuby and GNU R</title>
   <style>
     :root {
       --bg: #f7f4ef;
@@ -61,16 +61,50 @@
       font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
       font-size: 0.9em;
     }
+    pre {
+      background: rgba(11, 95, 75, 0.06);
+      border: 1px solid var(--line);
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
   </style>
 </head>
 <body>
   <main>
     <h1>Galaaz</h1>
     <p class="lede">
-      Documentation, blogs, and example outputs for Galaaz 2.0
-      (JRuby + GNU&nbsp;R). Source and runnable examples ship in the gem;
-      rendered HTML/PDF live here.
+      Galaaz 2.0 drives <strong>GNU&nbsp;R</strong> from <strong>JRuby</strong>
+      over a process bridge. You write Ruby (<code>R.c(...)</code>, dplyr-style
+      chains, ggplot2) and talk to the same R you use for CRAN and Bioconductor.
+      It is not the older GraalVM / TruffleRuby / FastR stack.
     </p>
+
+    <h2>Install</h2>
+    <p>
+      You need JRuby (tested with 10.1.1.0), Java 21, GNU&nbsp;R with
+      <code>Rscript</code>, a C++ toolchain, and Rcpp
+      (<code>install.packages("Rcpp")</code>). MRI Ruby is not supported.
+    </p>
+    <pre>jruby -S gem install galaaz
+gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+make -C "${gem_dir}/ext/new_bridge" all</pre>
+    <p>
+      Full steps, WSL/Docker notes, and the contributor clone path are in the
+      <a href="blogs/manual/manual.html#installation">manual</a>
+      and the
+      <a href="https://github.com/rbotafogo/galaaz/blob/galaaz2_0/README.md">README</a>.
+      The gem is on
+      <a href="https://rubygems.org/gems/galaaz">RubyGems</a>
+      (<a href="https://github.com/rbotafogo/galaaz/blob/galaaz2_0/CHANGELOG.md">changelog</a>).
+    </p>
+    <p>
+      Maintainers can prove a RubyGems install in a throwaway Ubuntu container
+      (no git repo inside):
+    </p>
+    <pre>./docker/cold-install/run.sh published-specs</pre>
 
     <h2>Manual</h2>
     <ul>
@@ -90,17 +124,16 @@
 
     <h2>Repository</h2>
     <ul>
-      <li><a href="https://github.com/rbotafogo/galaaz">Source on GitHub</a></li>
+      <li><a href="https://github.com/rbotafogo/galaaz">Source on GitHub</a> (branch <code>galaaz2_0</code>)</li>
+      <li><a href="https://rubygems.org/gems/galaaz">galaaz on RubyGems</a></li>
       <li><a href="https://github.com/rbotafogo/galaaz/tree/galaaz2_0/examples">Examples (source)</a></li>
       <li><a href="https://github.com/rbotafogo/galaaz/tree/galaaz2_0/specs">Specs</a></li>
       <li><a href="examples/">Example rendered PDFs on this site</a></li>
     </ul>
 
     <p class="note">
-      After <code>gem install galaaz</code>, build the native bridge from the gem root:
-      <code>make -C "$(dirname "$(dirname "$(gem which galaaz)")")/ext/new_bridge" all</code>
-      (from a clone: <code>make -C ext/new_bridge all</code>).
-      Rendered manuals and blogs are on this site; sources ship inside the gem.
+      Source and runnable examples ship in the gem; knitted HTML/PDF live here.
+      After install, use <code>gstudio</code> for an interactive shell.
     </p>
   </main>
 </body>
