@@ -424,7 +424,7 @@ an instance variable) as below:</p>
 Trajectories object. In Ruby, printing variable ‘traj’ will only print
 the class name of the object and not it contents as in R.</p>
 <pre class="ruby"><code>puts @traj</code></pre>
-<pre><code>## #&lt;RC::Trajectories:0x20b4745b&gt;</code></pre>
+<pre><code>## #&lt;RC::Trajectories:0x1e6bdce4&gt;</code></pre>
 <p>To see the contents of an object, one needs to access its components
 using the ‘.’ operator:</p>
 <pre class="ruby"><code>puts @traj.times</code></pre>
@@ -745,11 +745,11 @@ vector, etc. we can use ‘.’ notation to call the function. This makes
 the function look like a method of the object. For instance,
 R.nrow(<span class="citation">@matrix</span>), can be called by doing
 <span class="citation">@matrix.nrow</span>;</p></li>
-<li><p>In R, every number is converted to a vector and this can be done
-with method R.i. Converting a vector with only one number back to a
-number can be done with method ‘.gz’. So if <span class="citation">@num</span> is an R vector that holds a number, then
-<span class="citation">@num.gz</span> is a number that can be used
-normally with Ruby methods;</p></li>
+<li><p>In R, every number is a length-1 vector. In Galaaz 2.0, unwrap a
+length-1 R vector to a Ruby number with <code>&gt;&gt; 0</code> (or
+<code>unboxed_get(0)</code>). Older Galaaz docs used <code>.gz</code> /
+<code>&lt;&lt; 0</code> for the same idea; <code>&lt;&lt;</code> still
+works as a compatibility alias for <code>&gt;&gt;</code>;</p></li>
 <li><p>R functions and Ruby methods can be used freely in Galaaz. We
 show below two different ways of getting the minimum of a number, either
 by calling R.min or by getting the minimum of an array, with the min
@@ -759,15 +759,15 @@ as named parameter idiom, is a common syntax for invoking multiple
 method calls in object-oriented programming languages. Each method
 returns an object, allowing the calls to be chained together in a single
 statement without requiring variables to store the intermediate results.
-For instance <span class="citation">@matrix.nrow.gz</span>, which
-returns the number of rows of the matrix as a number;</p></li>
+For instance <code>@matrix.nrow &gt;&gt; 0</code>, which returns the
+number of rows of the matrix as a Ruby number;</p></li>
 <li><p>Ranges in Ruby are represented by (x..y), where x is the
 beginning of the range and y its end. An R matrix can be indexed by
 range, <a href="mailto:object@traj" class="email">object@traj</a>[1:nrowShow,1:ncolShow], the same result is
 obtained in Galaaz by indexing <span class="citation">@matrix
 [(1..nrow_show), (1..ncol_show)]</span>. Observe that this statement is
-then chained with the format function and with the pp method to print
-the matrix.</p></li>
+then chained with the format function and printed with
+<code>puts</code>.</p></li>
 </ul>
 <pre class="ruby"><code>class Trajectories
 
@@ -812,27 +812,27 @@ end</code></pre>
 ## 32
 ## * Traj (limited to a matrix 10x10) = 
 ##       [,1]    [,2]    [,3]    [,4]    [,5]    [,6]    [,7]    [,8]    [,9]   
-##  [1,] &quot;16.35&quot; &quot;16.33&quot; &quot;16.43&quot; &quot;16.42&quot; &quot;16.58&quot; &quot;16.85&quot; &quot;16.99&quot; &quot;17.36&quot; &quot;17.15&quot;
-##  [2,] &quot;15.97&quot; &quot;16.28&quot; &quot;16.10&quot; &quot;16.53&quot; &quot;17.05&quot; &quot;16.98&quot; &quot;16.89&quot; &quot;16.87&quot; &quot;17.12&quot;
-##  [3,] &quot;16.16&quot; &quot;16.23&quot; &quot;16.02&quot; &quot;16.13&quot; &quot;16.36&quot; &quot;16.82&quot; &quot;16.85&quot; &quot;17.09&quot; &quot;17.22&quot;
-##  [4,] &quot;16.06&quot; &quot;15.89&quot; &quot;16.08&quot; &quot;16.35&quot; &quot;16.90&quot; &quot;16.97&quot; &quot;17.04&quot; &quot;17.40&quot; &quot;17.31&quot;
-##  [5,] &quot;16.14&quot; &quot;16.50&quot; &quot;16.51&quot; &quot;16.58&quot; &quot;16.45&quot; &quot;16.79&quot; &quot;17.07&quot; &quot;17.19&quot; &quot;17.42&quot;
-##  [6,] &quot;16.09&quot; &quot;16.05&quot; &quot;16.51&quot; &quot;16.92&quot; &quot;16.72&quot; &quot;16.93&quot; &quot;16.84&quot; &quot;16.68&quot; &quot;17.05&quot;
-##  [7,] &quot;16.02&quot; &quot;16.10&quot; &quot;15.89&quot; &quot;16.49&quot; &quot;16.47&quot; &quot;16.69&quot; &quot;16.61&quot; &quot;17.37&quot; &quot;17.28&quot;
-##  [8,] &quot;15.92&quot; &quot;15.93&quot; &quot;16.26&quot; &quot;16.29&quot; &quot;17.03&quot; &quot;16.58&quot; &quot;17.11&quot; &quot;17.42&quot; &quot;17.00&quot;
-##  [9,] &quot;15.99&quot; &quot;16.24&quot; &quot;16.52&quot; &quot;16.29&quot; &quot;16.39&quot; &quot;16.85&quot; &quot;17.35&quot; &quot;16.87&quot; &quot;17.38&quot;
-## [10,] &quot;16.00&quot; &quot;16.10&quot; &quot;16.30&quot; &quot;16.34&quot; &quot;16.52&quot; &quot;16.70&quot; &quot;17.02&quot; &quot;16.75&quot; &quot;17.04&quot;
+##  [1,] &quot;15.95&quot; &quot;16.15&quot; &quot;16.25&quot; &quot;16.62&quot; &quot;16.86&quot; &quot;16.77&quot; &quot;16.80&quot; &quot;16.94&quot; &quot;17.26&quot;
+##  [2,] &quot;16.20&quot; &quot;16.11&quot; &quot;16.37&quot; &quot;16.50&quot; &quot;16.70&quot; &quot;16.71&quot; &quot;17.12&quot; &quot;16.89&quot; &quot;17.37&quot;
+##  [3,] &quot;15.94&quot; &quot;16.20&quot; &quot;16.51&quot; &quot;16.41&quot; &quot;16.86&quot; &quot;16.83&quot; &quot;16.99&quot; &quot;16.86&quot; &quot;17.22&quot;
+##  [4,] &quot;15.64&quot; &quot;16.25&quot; &quot;16.31&quot; &quot;16.36&quot; &quot;16.69&quot; &quot;16.47&quot; &quot;17.06&quot; &quot;16.86&quot; &quot;17.22&quot;
+##  [5,] &quot;16.44&quot; &quot;16.01&quot; &quot;16.08&quot; &quot;16.48&quot; &quot;16.39&quot; &quot;16.43&quot; &quot;17.06&quot; &quot;17.28&quot; &quot;17.40&quot;
+##  [6,] &quot;16.10&quot; &quot;15.78&quot; &quot;16.26&quot; &quot;16.31&quot; &quot;16.71&quot; &quot;16.81&quot; &quot;16.81&quot; &quot;16.84&quot; &quot;17.04&quot;
+##  [7,] &quot;15.98&quot; &quot;15.94&quot; &quot;16.44&quot; &quot;16.96&quot; &quot;16.40&quot; &quot;17.10&quot; &quot;17.06&quot; &quot;17.45&quot; &quot;16.89&quot;
+##  [8,] &quot;16.29&quot; &quot;16.00&quot; &quot;16.28&quot; &quot;16.29&quot; &quot;16.49&quot; &quot;16.73&quot; &quot;16.72&quot; &quot;17.26&quot; &quot;17.48&quot;
+##  [9,] &quot;16.12&quot; &quot;16.36&quot; &quot;16.53&quot; &quot;16.52&quot; &quot;16.68&quot; &quot;16.75&quot; &quot;16.89&quot; &quot;17.05&quot; &quot;16.98&quot;
+## [10,] &quot;15.92&quot; &quot;16.32&quot; &quot;16.39&quot; &quot;16.28&quot; &quot;16.61&quot; &quot;17.05&quot; &quot;17.09&quot; &quot;17.39&quot; &quot;17.33&quot;
 ##       [,10]  
-##  [1,] &quot;17.19&quot;
-##  [2,] &quot;17.53&quot;
-##  [3,] &quot;17.05&quot;
-##  [4,] &quot;17.07&quot;
-##  [5,] &quot;17.73&quot;
-##  [6,] &quot;17.43&quot;
-##  [7,] &quot;17.49&quot;
-##  [8,] &quot;17.41&quot;
-##  [9,] &quot;17.15&quot;
-## [10,] &quot;17.77&quot;
+##  [1,] &quot;17.80&quot;
+##  [2,] &quot;17.37&quot;
+##  [3,] &quot;17.54&quot;
+##  [4,] &quot;17.79&quot;
+##  [5,] &quot;17.75&quot;
+##  [6,] &quot;17.62&quot;
+##  [7,] &quot;16.97&quot;
+##  [8,] &quot;17.33&quot;
+##  [9,] &quot;17.50&quot;
+## [10,] &quot;17.33&quot;
 ## ******* End Show (trajectories) *******</code></pre>
 <p>Our show method has the same problem as SS4, i.e., if an empty
 trajectories object is created and we try to ‘show’ it, it will generate
@@ -871,6 +871,1144 @@ a possibility in Ruby, it seems that this is not the case for S4.</p>
 end</code></pre>
 <pre class="ruby"><code>@empty_traj.show</code></pre>
 <pre><code>## *** Class Trajectories is empty!! ***</code></pre>
+</div>
+<div id="to-remove-an-object" class="section level1">
+<h1>To Remove an Object</h1>
+<p>As far as I know, there isn’t a good way of removing a defined class,
+but there might be one and the interested user is directed to google it!
+In principle, there should not be any real need to remove a defined
+class. Both in R and Galaaz, large programs are usually written in a
+file and the file loaded. If one writes a wrong class, the better
+solution is to correct it and then load it again. If the class is
+written directly on the console, then leaving it there will not have any
+serious impact.</p>
+</div>
+<div id="method-count_missing" class="section level1">
+<h1>Method count_missing</h1>
+<p>In R, methods ‘print’ and ‘show’ are methods that already exist. SS4
+wants to add a method called ‘countMissing’ which does not exist in R,
+and thus requires some special preparation. In Ruby, every method we’ve
+created is a new method that exists inside the class. The fact that
+‘print’ happens to be also a method for class Kernel and ‘show’ is not,
+is not of special interest. Actually we’ve seen that in order to call
+method print from the Kernel class we had to call Kernel.print.</p>
+<p>To create method ‘count_missing’ we just need to reopen the
+Trajectories class and add the method the same way we’ve done with
+method ‘show’. Again, let’s first look at R’s ‘countMissing’ and then at
+Ruby’s:</p>
+<pre><code>&gt; setMethod(
++ f= &quot;countMissing&quot;,
++ signature= &quot;Trajectories&quot;,
++ definition=function(object){
++ return(sum(is.na(object@traj)))
++ }
++ )</code></pre>
+<p>Here we introduce another particular case of Galaaz. R has many
+methods that have a ‘.’ in their names, such as ‘is.na’. In Ruby, the
+dot ‘.’ has a special meaning as it is the way we call a method on an
+object. Doing ‘R.is.na’ will not work. So, in Galaaz, R functions that
+have a dot in them will have the dot substituted by ’__’. So, method
+is.na in Galaaz, becomes R.is__na. In method count_missing we use method
+chaining and convert the final count to a Ruby number with
+<code>&gt;&gt; 0</code> (unbox).</p>
+<pre class="ruby"><code>class Trajectories
+
+  def count_missing
+    return @matrix.is__na.sum &gt;&gt; 0
+  end
+
+end</code></pre>
+<pre class="ruby"><code>puts @trajCochin.count_missing</code></pre>
+<pre><code>## 1</code></pre>
+</div>
+<div id="to-see-the-methods" class="section level1">
+<h1>To See the Methods</h1>
+<p>In order to see the methods we have defined so far, we call on class
+Trajectories the method ‘instance_methods’ passing it one argument,
+‘false’, as follows:</p>
+<pre class="ruby"><code>puts Trajectories.instance_methods(false)</code></pre>
+<pre><code>## count_missing
+## times
+## print
+## show
+## matrix</code></pre>
+<p>It is interesting to observe that we see our three methods
+‘count_missing’, ‘print’ and ‘show’, but we also see two other methods
+‘times’ and ‘matrix’, but those last two as far as we know are just
+instance variables and not methods, right? More on that when we talk
+about Accessors.</p>
+<p>Galaaz and Ruby do not by default provide a way to see a method’s
+code. However, if the user uses a Ruby console such as Pry, then seeing
+methods and debugging is possible. Pry is beyond the scope of this
+document.</p>
+</div>
+<div id="construction" class="section level1">
+<h1>Construction</h1>
+<p>Every class in Ruby has a constructor, if not explicitly defined, at
+least implicitly. Method initialize is the constructor method and the
+one that coordinates the whole construction process.</p>
+</div>
+<div id="inspector" class="section level1">
+<h1>Inspector</h1>
+<p>There is no default ‘inspector’ in Ruby as in R, although there is
+nothing that prevents the developer from inspecting and validating the
+input. For example, in the object Trajectories, one may want to check
+that the number of elements in ‘times’ is equal to the number of columns
+in ‘matrix’ and if they are not, issue an error. In order to understand
+why this restriction exists, the user is again directed to SS4.</p>
+<p>Here we show the R code for this validation:</p>
+<pre><code>&gt; setClass(
++ Class=&quot;Trajectories&quot;,
++ representation(times=&quot;numeric&quot;,traj=&quot;matrix&quot;),
++ validity=function(object){
++ cat(&quot;~~~ Trajectories: inspector ~~~ \\n&quot;)
++ if(length(object@times)!=ncol(object@traj)){
++ stop (&quot;[Trajectories: validation] the number of temporal measurements does not correspond
++ }else{}
++ return(TRUE)
++ }
++ )</code></pre>
+<p>In order to implement this validation we will coordinate it in the
+initialize method.</p>
+<pre class="ruby"><code>class Trajectories
+
+  def initialize(times: nil, matrix: nil)
+    @times = times
+    @matrix = matrix
+
+    # validate the input, to make sure that size of @times and the number of columns in
+    # @matrix are the same
+    puts (&quot;~~~ Trajectories: inspector ~~~ &quot;)
+    raise &quot;[Trajectories: validation] the number of temporal measurements does not correspond with the number of columns in the matrix&quot; if ((@times.length &gt;&gt; 0) != (@matrix.ncol &gt;&gt; 0))
+
+    # show the object just created
+    show
+
+  end
+
+end</code></pre>
+<p>Let’s first create a Trajectories that validates fine, i.e., the
+number of elements in <span class="citation">@times</span> is equal to
+the number of columns of the matrix. In this case, we will show a
+message saying that validation was done and then print the object.</p>
+<pre class="ruby"><code>ok = Trajectories.new(times: R.c(1..2), matrix: R.matrix((1..2), ncol: 2))</code></pre>
+<pre><code>## ~~~ Trajectories: inspector ~~~ 
+## *** Class Trajectories, method Show *** 
+## times = 1
+## 2
+## * Traj (limited to a matrix 10x10) = 
+## 1
+## 2
+## ******* End Show (trajectories) *******</code></pre>
+<p>Now, if we try to create a Trajectories that does not pass the
+validation criteria, our code will raise an exception. Exceptions are a
+standard way to deal with errors in Ruby code and many other object
+oriented languages. The interested reader should look for further
+documentation on exceptions on the web.</p>
+<pre class="ruby"><code>error = Trajectories.new(times: R.c(1..3), matrix: R.matrix((1..2), ncol: 2))</code></pre>
+<pre><code>## [Trajectories: validation] the number of temporal measurements does not correspond with the number of columns in the matrix</code></pre>
+<p>The validation above does not consider the case when an empty object
+is created. Here we will check to see if either times or matrix are nil;
+if either one of them is nil, then we will raise an exception and
+interrupt the creation of the object. We also create a method validate
+that is called from our initialize method.</p>
+<p>Method validate has some interesting features about the integration
+of Galaaz and R. We compare lengths after unboxing with
+<code>&gt;&gt; 0</code>, so the comparison is ordinary Ruby arithmetic
+on numbers. (A length-1 R logical can likewise be treated as a Ruby
+boolean via <code>&gt;&gt; 0</code>.)</p>
+<pre class="ruby"><code>class Trajectories
+
+  def initialize(times: nil, matrix: nil)
+    @times = times
+    @matrix = matrix
+
+    # call method validate to validate our input
+    validate
+
+    # show the object just created
+    show
+
+  end
+
+  def validate
+
+    # Let&#39;s first check that we do not have an empty object
+    raise &quot;Neither times nor matrix can be an empty object&quot; if (@times.nil? || @matrix.nil?)
+
+    # validate the input, to make sure that size of @times and the number of columns in
+    # @matrix are the same
+    puts (&quot;~~~ Trajectories: inspector ~~~ &quot;)
+    raise &quot;[Trajectories: validation] the number of temporal measurements does not correspond with the number of columns in the matrix&quot; if ((@times.length &gt;&gt; 0) != (@matrix.ncol &gt;&gt; 0))
+
+  end
+
+end</code></pre>
+<p><strong>Note:</strong> with this stricter <code>validate</code>,
+<code>Trajectories.new</code> no longer accepts empty objects. The
+earlier <code>@empty_traj = Trajectories.new</code> /
+<code>@empty_traj.show</code> pattern from part 1 no longer applies for
+<em>new</em> constructions; existing instances created before this
+reopen still exist in memory, but calling <code>new</code> with missing
+<code>times</code> or <code>matrix</code> will raise.</p>
+<p>Let’s try then creating an empty object:</p>
+<pre class="ruby"><code>error = Trajectories.new</code></pre>
+<pre><code>## Neither times nor matrix can be an empty object</code></pre>
+<p>Another example:</p>
+<pre class="ruby"><code>error = Trajectories.new(times: 1)</code></pre>
+<pre><code>## Neither times nor matrix can be an empty object</code></pre>
+<p>Let’s see now that the implementation is correct and that it does not
+raise an error on valid input:</p>
+<pre class="ruby"><code>ok = Trajectories.new(times: R.c(1, 2), matrix: R.matrix((1..2), ncol: 2))</code></pre>
+<pre><code>## ~~~ Trajectories: inspector ~~~ 
+## *** Class Trajectories, method Show *** 
+## times = 1
+## 2
+## * Traj (limited to a matrix 10x10) = 
+## 1
+## 2
+## ******* End Show (trajectories) *******</code></pre>
+<p>The ‘initialize’ method is called ONLY during the initial creation of
+the object. If any instance variable is later modified, no control is
+done. At this moment though, there is no way to change the value of any
+of our instance variables.</p>
+<pre><code>error.times = R.c(1, 2, 3)</code></pre>
+<p>The Trajectories class works for R objects and expects as input R
+objects. Passing R objects in all examples has been the obligation of
+the programmer. Galaaz, however, can also accept many Ruby values
+(ranges, arrays of numbers, and so on) if we convert them at the
+boundary. There is no <code>R.convert</code> in Galaaz 2.0; a small
+helper is enough: leave <code>nil</code> alone, keep objects that are
+already <code>R::Object</code>, and otherwise wrap with <code>R.c</code>
+(which accepts ranges as well as scalars and vectors). Matrices that are
+already R objects are kept as-is.</p>
+<pre class="ruby"><code>class Trajectories
+
+  def as_r(x)
+    return nil if x.nil?
+    return x if x.is_a?(R::Object)
+    R.c(x)
+  end
+
+  def initialize(times: nil, matrix: nil)
+    @times = as_r(times)
+    @matrix = as_r(matrix)
+
+    # call method validate to validate our input
+    validate
+
+    # show the object just created
+    show
+
+  end
+
+  def validate
+
+    # Let&#39;s first check that we do not have an empty object
+    raise &quot;Neither times nor matrix can be an empty object&quot; if (@times.nil? || @matrix.nil?)
+
+    # validate the input, to make sure that size of @times and the number of columns in
+    # @matrix are the same
+    puts (&quot;~~~ Trajectories: inspector ~~~ &quot;)
+    tl = @times.length &gt;&gt; 0; mc = @matrix.ncol &gt;&gt; 0
+    raise &quot;[Trajectories: validation] the number of temporal measurements #{tl} does not correspond with the number of columns in the matrix #{mc}&quot; if (tl != mc)
+
+  end
+
+end</code></pre>
+<p>And now let’s create a new Trajectories, but we will now pass a Ruby
+range for times:</p>
+<pre class="ruby"><code>ok = Trajectories.new(times: (1..2), matrix: R.matrix((1..2), ncol: 2))</code></pre>
+<pre><code>## ~~~ Trajectories: inspector ~~~ 
+## *** Class Trajectories, method Show *** 
+## times = 1
+## 2
+## * Traj (limited to a matrix 10x10) = 
+## 1
+## 2
+## ******* End Show (trajectories) *******</code></pre>
+<p>Perfect! This works fine.</p>
+<p><em>(Historical note: an earlier Galaaz prototype on Renjin also
+demonstrated sharing storage with the MDArray gem. Those shared-store
+demos are not part of Galaaz 2.0 / the GNU R bridge, and are omitted
+here.)</em></p>
+</div>
+<div id="the-initializator" class="section level1">
+<h1>The Initializator</h1>
+<p>As we have seen, method ‘initialize’ is the main object creator
+orchestrator. This method can be as complex as needed. So, let’s get on
+with some improvements to our Trajectories class.</p>
+<p>It would be rather pleasant that the columns of the matrix of the
+trajectories have names, the names of measurements times. In the same
+way, the lines could be subscripted by a number of individual.</p>
+<p>To do this in R, one also uses method initialize:</p>
+<pre><code>&gt; setMethod(
++ f=&quot;initialize&quot;,
++ signature=&quot;Trajectories&quot;,
++ definition=function(.Object,times,traj){
++ cat(&quot;~~~ Trajectories: initializator ~~~ \\n&quot;)
++ colnames(traj) &lt;- paste(&quot;T&quot;,times,sep=&quot;&quot;)
++ rownames(traj) &lt;- paste(&quot;I&quot;,1:nrow(traj),sep= &quot;&quot;)
++ .Object@traj &lt;- traj # Assignment of the slots
++ .Object@times &lt;- times
++ return(.Object) # return of the object
++ }
++ )</code></pre>
+<p>In R, it is possible to assign a value to the result of a function,
+for example <code>colnames(x) &lt;- c(&quot;v1&quot;, &quot;v2&quot;, &quot;v3&quot;)</code>. In
+Galaaz 2.0 the same idea is expressed with ordinary Ruby setters on the
+R object: <code>@matrix.colnames = ...</code> and
+<code>@matrix.rownames = ...</code>.</p>
+<pre class="ruby"><code>class Trajectories
+
+  def as_r(x)
+    return nil if x.nil?
+    return x if x.is_a?(R::Object)
+    R.c(x)
+  end
+
+  def initialize(times: nil, matrix: nil)
+    @times = as_r(times)
+    @matrix = as_r(matrix)
+
+    # call method validate to validate our input
+    validate
+
+    # Add row and column names
+    puts (&quot;~~~ Trajectories: initializator ~~~ &quot;)
+    @matrix.colnames = R.paste(&quot;T&quot;, @times, sep: &quot;&quot;)
+    @matrix.rownames = R.paste(&quot;I&quot;, (1..(@matrix.nrow &gt;&gt; 0)), sep: &quot;&quot;)
+
+    # show the object just created
+    show
+
+  end
+
+end</code></pre>
+<pre class="ruby"><code>@traj = Trajectories.new(times: R.c(1,2,4,8), matrix: R.matrix((1..8), nrow: 2))</code></pre>
+<pre><code>## ~~~ Trajectories: inspector ~~~ 
+## ~~~ Trajectories: initializator ~~~ 
+## *** Class Trajectories, method Show *** 
+## times = 1
+## 2
+## 4
+## 8
+## * Traj (limited to a matrix 10x10) = 
+##    T1  T2  T4  T8 
+## I1 &quot;1&quot; &quot;3&quot; &quot;5&quot; &quot;7&quot;
+## I2 &quot;2&quot; &quot;4&quot; &quot;6&quot; &quot;8&quot;
+## ******* End Show (trajectories) *******</code></pre>
+<p>Note that we still call our ‘validate’ method and it is still an
+error to create an empty Trajectories or one in which the sizes are
+wrong:</p>
+<pre class="ruby"><code>error = Trajectories.new(times: R.c(1, 2, 48), matrix: R.matrix((1..8), nrow: 2))</code></pre>
+<pre><code>## [Trajectories: validation] the number of temporal measurements 3 does not correspond with the number of columns in the matrix 4</code></pre>
+<p>A constructor does not necessarily take the instance variable of the
+object as argument. For example, if we know (that is not the case in
+reality, but let us imagine so) that the BMI increases by 0.1 every
+week, we could build trajectories by providing the number of weeks and
+the initial weights.</p>
+<p>First the code in R, we skip the definition of class
+TrajectoriesBis:</p>
+<pre><code>&gt; setMethod (&quot;initialize&quot;,
++ &quot;TrajectoriesBis&quot;,
++ function(.Object,nbWeek,BMIinit){
++ traj &lt;- outer(BMIinit,1:nbWeek,function(init,week){return(init+0.1*week)})
++ colnames(traj) &lt;- paste(&quot;T&quot;,1:nbWeek,sep=&quot;&quot;)
++ rownames(traj) &lt;- paste(&quot;I&quot;,1:nrow(traj),sep=&quot;&quot;)
++ .Object@times &lt;- 1:nbWeek
++ .Object@traj &lt;- traj
++ return(.Object)
++ }
++ )</code></pre>
+<p>Now, let’s make a TrajectoriesBis in Galaaz. Here again, we should
+point out some characteristics of our code:</p>
+<ul>
+<li><p>We made initialize with two positional arguments, instead of
+named arguments, i.e., the first argument is the number of weeks and the
+second bmi_init. In this case, when making a new object the position of
+the arguments is important and there is no way to pass the argument by
+name;</p></li>
+<li><p>R function outer was called as if a method from bmi_init using
+dot notation, although one could use R.outer without problem;</p></li>
+<li><p>Function ‘outer’ expects an R function as its 3rd argument. In
+order to build an R function from Galaaz, we need to pass the function
+definition as a string to R.eval.</p></li>
+</ul>
+<pre class="ruby"><code>class TrajectoriesBis
+
+  attr_reader :times
+  attr_reader :matrix
+
+  def initialize(number_weeks, bmi_init)
+    @matrix = bmi_init.outer((1..number_weeks),
+                             R.eval(&quot;function(init, week) {return(init + 0.1 * week)}&quot;))
+    @times = R.c((1..number_weeks))
+  end
+
+end
+
+@traj_bis = TrajectoriesBis.new(4, R.c(16,17,15.6))</code></pre>
+<pre class="ruby"><code>puts @traj_bis.matrix</code></pre>
+<pre><code>##      [,1] [,2] [,3] [,4]
+## [1,] 16.1 16.2 16.3 16.4
+## [2,] 17.1 17.2 17.3 17.4
+## [3,] 15.7 15.8 15.9 16.0</code></pre>
+<p>It is always possible to pass a Ruby variable into a string by
+interpolating it. Put the variable inside <code>#{...}</code>. As an
+example, let’s also require the BMI increase as a parameter. (A common
+mistake is to escape the interpolation — writing
+<code>\#{increment}</code> — which leaves the characters literally in
+the R source and does not substitute the Ruby value. Use real
+interpolation:)</p>
+<pre class="ruby"><code>class TrajectoriesBis
+
+  def initialize(number_weeks, bmi_init, increment)
+    @matrix = bmi_init.outer((1..number_weeks),
+                             R.eval(&quot;function(init, week) {return(init + #{increment} * week)}&quot;))
+    @times = R.c((1..number_weeks))
+  end
+
+end
+
+@traj_bis = TrajectoriesBis.new(4, R.c(16,17,15.6), 0.3)</code></pre>
+<pre class="ruby"><code>puts @traj_bis.matrix</code></pre>
+<pre><code>##      [,1] [,2] [,3] [,4]
+## [1,] 16.3 16.6 16.9 17.2
+## [2,] 17.3 17.6 17.9 18.2
+## [3,] 15.9 16.2 16.5 16.8</code></pre>
+</div>
+<div id="constructors-for-users" class="section level1">
+<h1>Constructors for Users</h1>
+<p>Many times, it is interesting to have different ways of constructing
+an object depending on what information our users have or want to
+provide to the constructor. Although we have only one initialize method,
+we can create multiple methods, that do some preprocessing and then call
+the initialize method to carry out the object building.</p>
+<p>In order to do that, we use what are called class methods, instead of
+instance methods. All the methods we’ve created so far are instance
+methods; class methods are defined by prepending the self keyword to the
+method’s name. Still using the assumption that the BMI will grow by 0.1
+per week, let’s define a regular trajectory without having to define a
+TrajectoriesBis as above:</p>
+<pre><code>&gt; regularTrajectories &lt;- function(nbWeek,BMIinit) {
++ traj &lt;- outer(BMIinit,1:nbWeek,function(init,week){return(init+0.1*week)})
++ times &lt;- 1: nbWeek
++ return(new(Class=&quot;Trajectories&quot;,times=times,traj=traj))
++ }
+&gt; regularTrajectories(nbWeek=3,BMIinit=c(14,15,16))</code></pre>
+<p>Notice how method ‘regular’ is defined as ‘self.regular’, making it a
+class method. The last statement of the method definition is actually a
+call to the Trajectories constructor ‘new’ passing the calculated values
+for times and matrix.</p>
+<p>Notice also how method regular is called, similar to the way new is
+called by adding it after class Trajectories name:
+‘Trajectories.regular’.</p>
+<pre class="ruby"><code>class Trajectories
+
+  def self.regular(number_weeks: nil, bmi_init: nil)
+    matrix = bmi_init.outer((1..number_weeks),
+                            R.eval(&quot;function(init, week) {return(init + 0.1 * week)}&quot;))
+    times = R.c((1..number_weeks))
+    Trajectories.new(times: times, matrix: matrix)
+  end
+
+end</code></pre>
+<pre class="ruby"><code>@regular = Trajectories.regular(bmi_init: R.c(14, 15, 16), number_weeks: 3)</code></pre>
+<pre><code>## ~~~ Trajectories: inspector ~~~ 
+## ~~~ Trajectories: initializator ~~~ 
+## *** Class Trajectories, method Show *** 
+## times = 1
+## 2
+## 3
+## * Traj (limited to a matrix 10x10) = 
+##    T1      T2      T3     
+## I1 &quot;14.10&quot; &quot;14.20&quot; &quot;14.30&quot;
+## I2 &quot;15.10&quot; &quot;15.20&quot; &quot;15.30&quot;
+## I3 &quot;16.10&quot; &quot;16.20&quot; &quot;16.30&quot;
+## ******* End Show (trajectories) *******</code></pre>
+<p>We have already seen that constructors can be as complex as needed,
+calling other methods and doing calculations on the received parameters.
+On this last example, we will check if the times variable was provided.
+If it is not provided, then we will use matrix columns to define the
+times:</p>
+<pre class="ruby"><code>class Trajectories
+
+  def self.init(times: nil, matrix: nil)
+    times = R.c((1..(matrix.ncol &gt;&gt; 0))) if times.nil?
+    Trajectories.new(times: times, matrix: matrix)
+  end
+
+end</code></pre>
+<pre class="ruby"><code>@traj = Trajectories.init(matrix: R.matrix((1..8), ncol: 4))</code></pre>
+<pre><code>## ~~~ Trajectories: inspector ~~~ 
+## ~~~ Trajectories: initializator ~~~ 
+## *** Class Trajectories, method Show *** 
+## times = 1
+## 2
+## 3
+## 4
+## * Traj (limited to a matrix 10x10) = 
+##    T1  T2  T3  T4 
+## I1 &quot;1&quot; &quot;3&quot; &quot;5&quot; &quot;7&quot;
+## I2 &quot;2&quot; &quot;4&quot; &quot;6&quot; &quot;8&quot;
+## ******* End Show (trajectories) *******</code></pre>
+</div>
+<div id="accessors" class="section level1">
+<h1>Accessors</h1>
+<p>Accessors are methods for getting and setting the value of instance
+variables.</p>
+</div>
+<div id="get" class="section level1">
+<h1>Get</h1>
+<p>Getters are methods for getting the value of an instance variable. We
+have been using getters since the beginning of this document, without
+explicitly saying so. When defining attr_reader :times and attr_reader
+:matrix, we have actually defined two getter methods for reading the
+values of variables times and matrix respectively. We can however define
+getters explicitly:</p>
+<pre class="ruby"><code>class TrajectoriesBis
+
+  def initialize(times: nil, matrix: nil)
+    @times = times
+    @matrix = matrix
+  end
+
+  def times
+    @times
+  end
+
+  def matrix
+    @matrix
+  end
+
+end
+
+@traj = TrajectoriesBis.new(times: 1, matrix: 2)</code></pre>
+<pre class="ruby"><code>puts @traj.times</code></pre>
+<pre><code>## 1</code></pre>
+<pre class="ruby"><code>puts @traj.matrix</code></pre>
+<pre><code>## 2</code></pre>
+<p>It is also possible to define more sophisticated getters. For example
+one can regularly need the BMI at inclusion. In R, one would index a
+matrix as matrix[,1]. In Ruby, it is a syntax error to have a ‘,’ just
+after the ‘[’. In this case we need to add ‘nil’ as in matrix[nil,
+1]:</p>
+<pre class="ruby"><code>class Trajectories
+
+  def get_traj_inclusion
+    @matrix[nil, 1]
+  end
+
+end</code></pre>
+<pre class="ruby"><code>puts @trajCochin.get_traj_inclusion</code></pre>
+<pre><code>## numeric(0)</code></pre>
+</div>
+<div id="set" class="section level1">
+<h1>Set</h1>
+<p>A setter is a method that assigns a value to a variable. As with
+getters, Ruby also provides an easy way to write setters and allow you
+to also write them explicitly. Let’s first use the simple way:</p>
+<pre class="ruby"><code>class TrajectoriesBis
+
+  attr_writer :times
+  attr_writer :matrix
+
+  def initialize(times: nil, matrix: nil)
+    @times = times
+    @matrix = matrix
+  end
+
+end
+
+@traj = TrajectoriesBis.new
+@traj.times = R.c(1, 2)
+@traj.matrix = R.matrix((1..2), ncol: 2)</code></pre>
+<pre class="ruby"><code>puts @traj.matrix</code></pre>
+<pre><code>##      [,1] [,2]
+## [1,]    1    2</code></pre>
+<p>Note that now we can use ‘=’ to assign a value to both variables
+times and matrix. Without setters, changing the value of variables times
+and matrix was not possible. Our class, up to this point was protected
+from any changes to those variables. If we need to allow changes to
+those variables, then setters are needed. In this case, the simple
+setter as shown above is not ideal, since it would allow changes that
+break the restriction that variable times has to have the same length as
+the number of columns of matrix. In order to do the verification we need
+to implement a more sophisticated setter. In the example below, we add
+the ‘times=’ setter that receives as input one argument. First we
+convert the given argument to an R object, then check to see that the
+length of times is the same as the number of columns and if everything
+is fine, then we set the value of instance variable times:</p>
+<pre class="ruby"><code>class Trajectories
+
+  def as_r(x)
+    return nil if x.nil?
+    return x if x.is_a?(R::Object)
+    R.c(x)
+  end
+
+  def times=(times)
+    times = as_r(times)
+    tl = times.length &gt;&gt; 0; mc = @matrix.ncol &gt;&gt; 0
+    raise &quot;[Trajectories: validation] the number of temporal measurements #{tl} does not correspond with the number of columns in the matrix #{mc}&quot; if (tl != mc)
+    @times = times
+  end
+
+end</code></pre>
+<pre class="ruby"><code>@trajCochin.times = (1..5)</code></pre>
+<pre><code>## [Trajectories: validation] the number of temporal measurements 5 does not correspond with the number of columns in the matrix 4</code></pre>
+<p>We now set the value appropriately and will not get any errors:</p>
+<pre class="ruby"><code>@trajCochin.times = R.c(1, 5, 6, 8)</code></pre>
+</div>
+<div id="the-operator" class="section level1">
+<h1>The Operator ‘[’</h1>
+<p>It is also possible to define getters by using the operator ‘[’. This
+operator is not usually used for returning instance variables and it is
+preferable to use the methods we’ve used above; however, for
+completeness with SS4 we are showing how to define this here. Operator
+‘[’ is better left to be used for array/matrix indices.</p>
+<pre class="ruby"><code>class Trajectories
+
+  def [](var_name)
+
+    case var_name
+    when &quot;times&quot;
+      @times
+    when &quot;matrix&quot;
+      @matrix
+    else
+      raise &quot;Unknown instance variable&quot;
+    end
+
+  end
+
+end</code></pre>
+<pre class="ruby"><code>puts @trajCochin[&quot;times&quot;]</code></pre>
+<pre><code>## [1] 1 5 6 8</code></pre>
+<p>Similarly, we could use operator ‘[]=’ to assign a value to times and
+matrix. We will not do this here as we think that the other options are
+better and the interested user can easily find help, if needed to
+implement such method.</p>
+</div>
+<div id="to-go-further" class="section level1">
+<h1>To Go Further</h1>
+<p>This section will introduce advanced features of Object Oriented
+programming such as Inheritance and Modules and will also show some
+aspects of S4 that do not apply to Ruby.</p>
+</div>
+<div id="methods-using-several-arguments" class="section level1">
+<h1>Methods Using Several Arguments</h1>
+<p>In Ruby, methods can have as many arguments as needed and those
+methods are defined the way we have already seen in many of the examples
+above. The example in SS4 presents a method that prints different output
+if its input is numeric, character or both. Let’s write a class in Ruby
+that does the same for Numeric and String. In Ruby we do not define
+global functions, we always define methods inside classes or modules (as
+we will see later). Also, Ruby is not typed, so methods are not called
+depending on their types as in SS4 examples. Below, method test will be
+called with one parameter. At the time of calling we do not know the
+type of the argument; the method can then check if the received argument
+is a Numeric or a String and at this time, decide what should be
+printed.</p>
+<pre class="ruby"><code>class Test
+
+  def test(input)
+
+    case input
+    when Numeric
+      puts &quot;The input is numeric: #{input}&quot;
+    when String
+      puts &quot;The input is a string: #{input}&quot;
+    else
+      puts &quot;The input is neither a number nor a string&quot;
+    end
+
+  end
+
+end
+
+@t = Test.new</code></pre>
+<pre class="ruby"><code>@t.test(5)</code></pre>
+<pre><code>## The input is numeric: 5</code></pre>
+<pre class="ruby"><code>@t.test(&quot;Hello&quot;)</code></pre>
+<pre><code>## The input is a string: Hello</code></pre>
+<p>Ruby has ways of dealing with multiple arguments, missing arguments,
+undefined number of arguments, named arguments, unnamed arguments, etc.
+This is beyond the scope of this document and we suggest the interested
+reader to go to the many resources about Ruby that can easily be found
+on the web.</p>
+<p>We will now create a new class ‘Partition’ that we will use later in
+this document. This class will have only the basic methods needed for
+the examples to work.</p>
+<pre class="ruby"><code>class Partition
+
+  attr_reader :nb_groups
+  attr_reader :part
+
+  def initialize(nb_groups, part)
+    @nb_groups = nb_groups
+    @part = part
+  end
+
+end
+
+@partCochin = Partition.new(2, R.c(&quot;A&quot;,&quot;B&quot;,&quot;A&quot;,&quot;B&quot;).factor)
+@partStAnne = Partition.new(2, R.c(&quot;A&quot;,&quot;B&quot;).rep(R.c(50,30)).factor)</code></pre>
+<pre class="ruby"><code>puts @partCochin.part</code></pre>
+<pre><code>## [1] A B A B
+## Levels: A B</code></pre>
+<pre class="ruby"><code>puts @partStAnne.part</code></pre>
+<pre><code>##  [1] A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+## [39] A A A A A A A A A A A A B B B B B B B B B B B B B B B B B B B B B B B B B B
+## [77] B B B B
+## Levels: A B</code></pre>
+<p>We will suppose that part is always composed of capital letters going
+from A to LETTERS[nb_groups].</p>
+</div>
+<div id="inheritance" class="section level1">
+<h1>Inheritance</h1>
+<p>Ruby being a powerful Object Oriented language has the concept of
+Inheritance, but it does not allow for multiple inheritance. Multiple
+inheritance has many drawbacks and Ruby just does not support it.
+However, Ruby has other concepts that make up for the lack of multiple
+inheritance as we will see in the following examples.</p>
+<p>So, let’s go back to SS4 examples. We want now to define a class
+called TrajPartitioned that inherits from class Trajectories. When a
+class has a parent, all methods available for the parent are also
+available to the child.</p>
+<pre class="ruby"><code>class TrajPartitioned &lt; Trajectories
+
+  attr_reader :list_partitions
+
+end</code></pre>
+<p>That’s all there is to it! We’ve just created a class TrajPartitioned
+that inherits all methods from class Trajectories and at this point does
+nothing different from Trajectories, but adds a new instance variable:
+list_partitions.</p>
+<p>Creating TrajPartitioned without arguments will generate an error,
+since a Trajectories requires both times and matrix to be non null.</p>
+<pre class="ruby"><code>@tdPitie = TrajPartitioned.new</code></pre>
+<pre><code>## Neither times nor matrix can be an empty object</code></pre>
+<p>Let’s try to create a TrajPartitioned, but passing to it two
+partitions. For that, let’s first create a new Partition:</p>
+<pre class="ruby"><code>@partCochin2 = Partition.new(3, R.c(&quot;A&quot;, &quot;C&quot;, &quot;C&quot;, &quot;B&quot;).factor)</code></pre>
+<p>And now let’s create the TrajPartitioned:</p>
+<pre class="ruby"><code>@tdCochin = TrajPartitioned.new(times: R.c(1,3,4,5), matrix: @trajCochin.matrix,
+                               list_partitions: R.list(@partCochin, @partCochin2))</code></pre>
+<pre><code>## unknown keyword: :list_partitions</code></pre>
+<p>This didn’t work: R function ‘list’ expects R objects, and in this
+case, <span class="citation">@partCochin</span> and <span class="citation">@partCochin2</span> are Ruby classes, so trying to
+apply function list to them does not work. Clearly, we will have to work
+in the realm of Ruby to keep the list of partitions. This is not a
+problem as Ruby has data structures to maintain a list of objects, the
+Array. Let’s then try another solution:</p>
+<pre class="ruby"><code>@tdCochin = TrajPartitioned.new(times: R.c(1,3,4,5), matrix: @trajCochin.matrix,
+                               list_partitions: [@partCochin, @partCochin2])</code></pre>
+<pre><code>## unknown keyword: :list_partitions</code></pre>
+<p>We now get a second error: ‘unknown keyword: list_partitions’. Class
+TrajPartitioned inherits from class Trajectories and class Trajectories
+has an initialize function that requires two parameters, times and
+matrix; list_partitions is not a parameter for initialize and is thus
+unknown. In order to fix this problem we need to create an initialize
+method for class TrajPartitioned.</p>
+</div>
+<div id="the-super-keyword" class="section level1">
+<h1>The ‘super’ Keyword</h1>
+<p>R has a method called ‘callNextMethod’ for control flow between
+inherited classes. In Ruby, we have a model that is a bit different.
+When a method is called on a subclass, if this method is not found it
+will be searched in the parent class and it will go up the hierarchy of
+classes until it is found or an error is issued. If we want the parent
+method to be called we can call ‘super’:</p>
+<pre class="ruby"><code>class TrajPartitioned
+
+  def initialize(times: nil, matrix: nil, list_partitions: nil)
+    super(times: times, matrix: matrix)
+    @list_partitions = list_partitions
+  end
+
+end</code></pre>
+<p>Let’s try our example again:</p>
+<pre class="ruby"><code>@tdCochin = TrajPartitioned.new(times: R.c(1,3,4,5), matrix: @trajCochin.matrix,
+                               list_partitions: [@partCochin, @partCochin2])</code></pre>
+<pre><code>## ~~~ Trajectories: inspector ~~~ 
+## ~~~ Trajectories: initializator ~~~ 
+## *** Class Trajectories, method Show *** 
+## times = 1
+## 3
+## 4
+## 5
+## * Traj (limited to a matrix 10x10) = 
+##    T1      T3      T4      T5     
+## I1 &quot;15.00&quot; &quot;15.10&quot; &quot;15.20&quot; &quot;15.20&quot;
+## I2 &quot;16.00&quot; &quot;15.90&quot; &quot;16.00&quot; &quot;16.40&quot;
+## I3 &quot;15.20&quot; &quot;   NA&quot; &quot;15.30&quot; &quot;15.30&quot;
+## I4 &quot;15.70&quot; &quot;15.60&quot; &quot;15.80&quot; &quot;16.00&quot;
+## ******* End Show (trajectories) *******</code></pre>
+<p>Now <span class="citation">@tdCochin</span> is created correctly;
+however, the ‘show’ method only shows information about times and
+matrix, there is nothing about our new list_partitions variable. This is
+so, since there is no method ‘show’ in TrajPartitioned, so method ‘show’
+from Trajectories is executed.</p>
+<p>So, let’s start by writing a ‘print’ method, that will print all the
+information we have in TrajPartitioned. The flow of control for this
+method is: Ruby sees a call to ‘print’, so it checks to see if ‘print’
+is a method for TrajPartitioned. Since we have just defined this method,
+Ruby finds it and executes it. The first command in print is a call to
+‘super’, which will call the parent ‘print’ method, that prints
+information for ‘times’ and ‘matrix’. When the parent ‘print’ finishes
+control continues after the ‘super’ call, printing the number of
+available partitions.</p>
+<pre class="ruby"><code>class TrajPartitioned
+
+  def print
+    super
+    puts (&quot;the object also contains #{@list_partitions.length} partition&quot;)
+    puts (&quot;***** Fine of print (TrajPartitioned) *****&quot;)
+  end
+
+end</code></pre>
+<pre class="ruby"><code>@tdCochin.print</code></pre>
+<pre><code>## *** Class Trajectories, method Print *** 
+## times = 1
+## 3
+## 4
+## 5
+## traj =
+##      T1   T3   T4   T5
+## I1 15.0 15.1 15.2 15.2
+## I2 16.0 15.9 16.0 16.4
+## I3 15.2   NA 15.3 15.3
+## I4 15.7 15.6 15.8 16.0
+## ******* End Print (trajectories) ******* 
+## the object also contains 2 partition
+## ***** Fine of print (TrajPartitioned) *****</code></pre>
+<p>Notice that this model is much cleaner than ‘callNextMethod’ and is
+not subject to any of the difficulties presented in SS4 and there is no
+need for the keywords “is”, “as” and “as&lt;-”, although Ruby provides
+methods to check the class of an object, its hierarchy, etc. when
+needed.</p>
+<p>In Ruby there is no similar method as “setIs” and it is not possible
+to convert one class into another, but there are other ways of getting
+the necessary results. Let’s then implement a method that returns the
+partition with the least number of groups. First, as usual, the R code
+with ‘setIs’:</p>
+<pre><code>&gt; setIs(
++ class1=&quot;TrajPartitioned&quot;,
++ class2=&quot;Partition&quot;,
++ coerce=function(from,to){
++ numberGroups &lt;- sapply(tdCochin@listPartitions,getNbGroups)
++ Smallest &lt;- which.min(-numberGroups)
++ to&lt;-new(&quot;Partition&quot;)
++ to@nbGroups &lt;- getNbGroups(from@listPartitions[[Smallest]])
++ to@part &lt;- getPart(from@listPartitions[[Smallest]])
++ return(to)
++ }
++ )</code></pre>
+<p>And now the Ruby code. Here we are getting deeper into Ruby and it is
+becoming harder for a pure R developer to understand the code. We will
+describe it in more detail:</p>
+<ul>
+<li><p>We define a method called ‘to_part’ that has one argument
+‘which’. By default ‘which’ is ‘:min’, the name of the minimum method.
+This means that if no argument is given to to_part it will assume which
+= :min;</p></li>
+<li><p><span class="citation">@list_partitions</span> is a Ruby array.
+Method map is similar to method sapply in R, it applies a ‘block’ to
+every element of the array, returning an array. Describing blocks is
+beyond the scope of this document, but we can think of it as if it were
+a function. The block is in ‘{}’ and has one argument named ‘part’.
+Thus, map goes through all elements of the array, and gets the nb_groups
+of the element and returns them into the number_groups array.</p></li>
+<li><p>number_groups is an array and doing number_groups.min returns the
+minimum value in number_groups and number_groups.max the maximum. We can
+call a method on an object by ‘sending’ the method name to the object,
+so, number_groups.send(:min) is equivalent to
+number_groups.min;</p></li>
+<li><p>Method ‘index’ for array, returns the index of a given element.
+So, number_groups.index(3) would return the index of the element ‘3’.
+Then number_groups.index(number_groups.min) returns the index of the
+minimum element in the array. This is the equivalent of R
+which.min(number_groups);</p></li>
+<li><p>Finally, number_groups.index(number_groups.send(which)), will
+return the index of the element we ask for, be it :min or :max. Note
+that if we pass another value, this would be an error.</p></li>
+</ul>
+<pre class="ruby"><code>class TrajPartitioned
+
+  def to_part(which = :min)
+    number_groups = @list_partitions.map { |part| part.nb_groups }
+    selected = number_groups.index(number_groups.send(which))
+    return @list_partitions[selected]
+  end
+
+end</code></pre>
+<p>To get the partition with the minimum number of elements:</p>
+<pre class="ruby"><code>puts @tdCochin.to_part.part</code></pre>
+<pre><code>## [1] A B A B
+## Levels: A B</code></pre>
+<p>To get the partition with the maximum number of elements:</p>
+<pre class="ruby"><code>puts @tdCochin.to_part(:max).part</code></pre>
+<pre><code>## [1] A C C B
+## Levels: A B C</code></pre>
+<p>In this example we did not follow exactly the R code from SS4. The
+reason for that is that ‘list_partitions’ is a list of Ruby classes and
+we cannot run sapply on this list. If we try to call a ‘getNbGroups’ or
+in the Ruby case nb_groups via R’s sapply, the code will crash.</p>
+</div>
+<div id="virtual-classes" class="section level1">
+<h1>Virtual Classes</h1>
+<p>In Ruby there are no “Virtual Classes”, but it is possible to
+implement derived classes from a parent class with methods that behave
+properly according to the object’s class. Following SS4 we will
+implement two classes: PartitionSimple and PartitionEval which are
+subclasses of class PartitionFather. PartitionFather will just be a
+regular class. Methods defined in PartitionFather will be available to
+be used in the subclasses</p>
+<p>Here is the R code of those classes and the implementation of a
+method in PartitionFather that multiplies the number of groups by 2:</p>
+<pre><code>&gt; setClass(
++ Class=&quot;PartitionFather&quot;,
++ representation=representation(nbGroups=&quot;numeric&quot;,&quot;VIRTUAL&quot;)
++ )
+
+&gt; setClass(
++ Class=&quot;PartitionSimple&quot;,
++ representation=representation(part=&quot;factor&quot;),
++ contains=&quot;PartitionFather&quot;
++ )
+
+&gt; setClass(
++ Class=&quot;PartitionEval&quot;,
++ representation=representation(part=&quot;ordered&quot;),
++ contains=&quot;PartitionFather&quot;
++ )
+
+&gt; setGeneric(&quot;nbMultTwo&quot;,function(object){standardGeneric(&quot;nbMultTwo&quot;)})
+
+&gt; setMethod(&quot;nbMultTwo&quot;,&quot;PartitionFather&quot;,
++ function(object){
++ object@nbGroups &lt;- object@nbGroups*2
++ return (object)
++ }
++ )</code></pre>
+<p>Since Ruby has no type definition, there is no really need for a
+parent class and subclasses. However, we will implement those classes in
+order to show Ruby’s inheritance:</p>
+<pre class="ruby"><code># Parent class.  Differently from SS4, both &#39;nb_groups&#39; and &#39;part&#39; are defined in the
+# parent class.
+class PartitionFather
+
+  attr_reader :nb_groups
+  attr_reader :part
+
+  # initialize class PartitionFather with the number of groups and parts.  Note that we
+  # use R.c for nb_groups in order to convert the number of groups into an R vector.
+  def initialize(nb_groups: 0, part: nil)
+    @nb_groups = R.c(nb_groups)
+    @part = part
+  end
+
+  # method nb_mult_two can be called from all subclasses
+  def nb_mult_two
+    @nb_groups * 2
+  end
+
+  # method &#39;to_s&#39; is called whenever we try to print a Ruby object.  This method emulates
+  # R &#39;print&#39; method that prints all the slots.
+  def to_s
+    puts (&quot;Variable &#39;nb_groups&#39;:&quot;)
+    puts @nb_groups
+    puts
+    puts (&quot;Variable &#39;part&#39;:&quot;)
+    puts @part
+    puts
+  end
+
+end
+
+# Class PartitionSimple is a subclass of PartitionFather.  To make a subclass of a
+# class we use the operator &#39;&lt;&#39;.  Since the whole logic is in the parent class
+# PartitionSimple is just an empty class
+class PartitionSimple &lt; PartitionFather
+
+end
+
+# PartitionEval is also only an empty class
+class PartitionEval &lt; PartitionFather
+
+end</code></pre>
+<pre class="ruby"><code>@a = PartitionSimple.new(nb_groups: 3, part: ((~R[:LETTERS])[R.c(1, 2, 3, 2, 2, 1)].factor))
+puts @a</code></pre>
+<pre><code>## Variable &#39;nb_groups&#39;:
+## 3
+## 
+## Variable &#39;part&#39;:
+## [1] A B C B B A
+## Levels: A B C
+## 
+## #&lt;RC::PartitionSimple:0x27371ac4&gt;</code></pre>
+<pre class="ruby"><code>puts @a.nb_mult_two</code></pre>
+<pre><code>## [1] 6</code></pre>
+<pre class="ruby"><code>@b = PartitionEval.new(nb_groups: 5, part: (~R[:LETTERS])[R.c(1, 5, 3, 4, 2, 4)].ordered)
+puts @b</code></pre>
+<pre><code>## Variable &#39;nb_groups&#39;:
+## 5
+## 
+## Variable &#39;part&#39;:
+## [1] A E C D B D
+## Levels: A &lt; B &lt; C &lt; D &lt; E
+## 
+## #&lt;RC::PartitionEval:0xe36882f&gt;</code></pre>
+<pre class="ruby"><code>puts @b.nb_mult_two</code></pre>
+<pre><code>## [1] 10</code></pre>
+<p>The example above, although it replicates SS4 is not actually very
+useful from the point of view of class hierarchy in Ruby. We will then
+write a new function to_s in class PartitionSimple that will print the
+name of the class:</p>
+<pre class="ruby"><code>class PartitionSimple
+
+  def to_s
+    puts(&quot;Class PartitionSimple&quot;)
+    super
+  end
+
+end</code></pre>
+<pre class="ruby"><code>puts @a</code></pre>
+<pre><code>## Class PartitionSimple
+## Variable &#39;nb_groups&#39;:
+## 3
+## 
+## Variable &#39;part&#39;:
+## [1] A B C B B A
+## Levels: A B C
+## 
+## #&lt;RC::PartitionSimple:0x27371ac4&gt;</code></pre>
+<p>As can be seen, ‘puts <span class="citation">@a</span>’ now calls
+method ‘to_s’ defined in class PartitionSimple. This method prints
+‘Class PartitionSimple’ and then calls the super method, i.e., method
+‘to_s’ from class PartitionFather.</p>
+<p>Note though that ‘puts <span class="citation">@b</span>’ still prints
+the same output, since it has no particular ‘to_s’ method.</p>
+<pre class="ruby"><code>puts @b</code></pre>
+<pre><code>## Variable &#39;nb_groups&#39;:
+## 5
+## 
+## Variable &#39;part&#39;:
+## [1] A E C D B D
+## Levels: A &lt; B &lt; C &lt; D &lt; E
+## 
+## #&lt;RC::PartitionEval:0xe36882f&gt;</code></pre>
+</div>
+<div id="internal-modification-of-an-object" class="section level1">
+<h1>Internal Modification of an Object</h1>
+<div id="method-to-modify-a-field" class="section level2">
+<h2>Method to Modify a Field</h2>
+<p>Let us return to our trajectories example and define a third method
+that imputes data for missing values. To simplify, we will impute by
+replacing by the mean values. This is the R code to do this:</p>
+<pre><code>&gt; meanWithoutNa &lt;- function (x){mean(x,na.rm=TRUE)}
+&gt; setGeneric(&quot;impute&quot;,function (.Object){standardGeneric(&quot;impute&quot;)})
+&gt; setMethod(
++ f=&quot;impute&quot;,
++ signature=&quot;Trajectories&quot;,
++ def=function(.Object){
++ average &lt;- apply(.Object@traj,2,meanWithoutNa)
++ for (iCol in 1:ncol(.Object@traj)){
++ .Object@traj[is.na(.Object@traj[,iCol]),iCol] &lt;- average[iCol]
++ }
++ return(.Object)
++ }
++ )</code></pre>
+<p>The code above, as explained in SS4 creates a new object and does not
+change the original one. So, calling impute(trajCochin) will work
+correctly by creating a new object but will not change trajCochin. This
+works fine, but can be memory expensive if the matrix is a large
+one.</p>
+<p>Let’s now implement the same method in Galaaz 2.0. We stay on the R
+side of the bridge: for each column, compute the mean with
+<code>na.rm = true</code>, then replace NA entries with that mean (via
+<code>R.ifelse</code> / <code>is__na</code>), and rebuild the matrix
+with <code>R.cbind</code>. No MDArray iteration is required.</p>
+<pre class="ruby"><code>class Trajectories
+
+  def impute
+    ncols = @matrix.ncol &gt;&gt; 0
+    imputed = (1..ncols).map do |j|
+      col = @matrix[nil, j]
+      avg = col.mean(na__rm: true)
+      R.ifelse(col.is__na, avg, col)
+    end
+    col_names = @matrix.colnames
+    row_names = @matrix.rownames
+    @matrix = R.cbind(*imputed)
+    @matrix.colnames = col_names unless col_names.nil?
+    @matrix.rownames = row_names unless row_names.nil?
+    self
+  end
+
+end</code></pre>
+<pre class="ruby"><code>@trajCochin.impute
+puts @trajCochin.matrix</code></pre>
+<pre><code>## $rownames
+## [1] &quot;I1&quot; &quot;I2&quot; &quot;I3&quot; &quot;I4&quot;</code></pre>
+<p>It works, and <code>@trajCochin.matrix</code> was updated. Under GNU
+R, assignment follows R’s usual copy-on-write semantics: replacing
+<code>@matrix</code> (or assigning into an R object through the bridge)
+binds a new vector/matrix rather than mutating a shared MDArray store.
+That is a deliberate difference from the Renjin/MDArray mutation
+experiments in the older paper; those demos are not part of Galaaz
+2.0.</p>
+</div>
+</div>
+<div id="conclusions-i" class="section level1">
+<h1>Conclusions I</h1>
+<p>This ends the SS4 paper material for classes and inheritance. We
+believe we have shown that R S4 can be substituted by Galaaz and Ruby
+classes and that Galaaz makes an easy transition from R developers to
+Ruby. Ruby is a very flexible and powerful language and has many
+interesting libraries, where Rails is maybe one of the best known, but
+there are thousands of others. For those interested in getting deeper
+into Ruby’s libraries, we suggest they look at:</p>
+<ul>
+<li><a href="https://github.com/markets/awesome-ruby" class="uri">https://github.com/markets/awesome-ruby</a></li>
+<li><a href="http://bestgems.org/" class="uri">http://bestgems.org/</a></li>
+</ul>
+<p>For those interested in Ruby and science, we recommend:</p>
+<ul>
+<li><a href="http://sciruby.com/" class="uri">http://sciruby.com/</a></li>
+</ul>
+<p><strong>Galaaz 2.0</strong> runs on <strong>JRuby</strong> and talks
+to <strong>GNU R</strong> through the bridge described in this series —
+the same integration model used throughout the examples above.</p>
+</div>
+<div id="callbacks-and-r-calling-into-ruby" class="section level1">
+<h1>Callbacks and R calling into Ruby</h1>
+<p>On this paper we have focused on accessing R functions from Ruby and
+have shown how to integrate Ruby with R from the point of view of a Ruby
+developer. The complementary direction — R calling back into Ruby — is
+also supported in Galaaz 2.0.</p>
+<p>Galaaz 2.0 uses the <strong>bridge callback</strong> mechanism: Ruby
+procs (and related callables) can be passed where R expects functions,
+so algorithms written in R (for example optimizers or higher-order
+<code>*apply</code> helpers) can invoke Ruby logic without leaving the
+bridge session. Details, options such as callback timeouts, and further
+examples are in the project manual and on the documentation site: <a href="https://rbotafogo.github.io/galaaz/">https://rbotafogo.github.io/galaaz/</a>.</p>
+<p>We do not reproduce here the older Renjin-era material on packing
+Ruby objects as R external pointers, constructing Ruby classes from R
+via JVM APIs, or calling Java collections from R scripts. Those sections
+belonged to a different runtime; the callback bridge is the supported
+path in Galaaz 2.0.</p>
+</div>
+<div id="conclusions-ii" class="section level1">
+<h1>Conclusions II</h1>
+<p><strong>JRuby + GNU R + Galaaz</strong> gives a practical polyglot
+stack: idiomatic Ruby for structure and libraries, GNU R for statistics
+and the CRAN/Bioconductor ecosystem, and Galaaz as the bridge between
+them. As always, choose the right tools for the job at hand — and when
+the job sits between an R-only workflow and a broader polyglot
+application, Galaaz is designed to connect those worlds.</p>
 </div>
 
 
