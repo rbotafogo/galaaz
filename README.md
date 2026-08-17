@@ -304,26 +304,39 @@ The native **gatekeeper** component under `ext/new_bridge` is built with `make` 
 
 # Dependencies
 
-* **JRuby** — Ruby implementation on the JVM (Galaaz 2.0 is developed and tested with JRuby).
-* A **Java runtime** (JDK) compatible with your JRuby version.
-* **GNU R** — `R` on your `PATH`, with ability to install packages (CRAN / Bioconductor as needed).
-* **Ruby gems** — from the Galaaz repository, `bundle install` (see the `Gemfile` / gemspec).
+* **JRuby** — Galaaz 2.0 requires JRuby (tested with **10.1.1.0**) and a matching **JDK** (tested with **Java 21**). MRI Ruby is not supported.
+* **GNU R** — `R` and `Rscript` on your `PATH` (tested with **4.3.3**), plus a C++ toolchain (`g++`, `make`) and the **Rcpp** package to compile the gatekeeper.
+* **galaaz gem** — runtime dependency `msgpack` is pulled in by `gem install`.
 * Optional: **Docker** — if you run R in a container (common on WSL2); see bootstrap below.
 * Optional R packages for examples in this manual — e.g. `ggplot2`, `dplyr`, `knitr`, `kableExtra`, `arrow`, Bioconductor tools such as **DESeq2** (installed the usual R way).
 
 # Installation
 
-From a clone of the Galaaz repository:
+The supported install is **`gem install` + compile the gatekeeper**. You do not need a git clone.
 
-1. Install **JRuby** and **GNU R** using your preferred package manager or Ruby version manager.
-2. Install **bundler** if needed, then run **`bundle install`** in the repository root.
-3. Build the bridge native code: **`make -C ext/new_bridge all`** (or **`rake compile_gatekeeper`**).
-4. Run Ruby scripts with the project load path and JVM flags the project expects — the **`bin/galaaz-jruby`** wrapper sources **`bin/galaaz_jruby_env.inc.sh`** and adds **`-I lib`**. This matters especially for **Apache Arrow** integration (see `docs/testing.md`).
-5. Ensure **`R`** starts GNU R and can install packages (network access to CRAN mirrors when you first call `R.install_and_loads`).
+1. Install **JRuby**, a compatible **JDK**, and **GNU R** (with `Rscript` and a C++ compiler).
+2. In R, install **Rcpp**: `install.packages("Rcpp")`.
+3. Install the gem: `jruby -S gem install galaaz`
+4. Compile the native gatekeeper from the installed gem:
 
-For **gKnit**, **knitr**, **rmarkdown**, and LaTeX (PDF output), install the corresponding R packages and a TeX distribution if you need PDF; the repository includes helpers such as **`bin/install-tinytex`** where appropriate.
+   ```
+   gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+   make -C "${gem_dir}/ext/new_bridge" all
+   ```
+
+5. Ensure **`R`** starts GNU R and can install packages (network access to CRAN when you first call `R.install_and_loads`). For **Apache Arrow** on Java 9+, pass `-J--add-opens=java.base/java.nio=ALL-UNNAMED` to JRuby (from a checkout, `bin/galaaz-jruby` does this).
+
+For **gKnit**, **knitr**, **rmarkdown**, and LaTeX (PDF output), install the corresponding R packages, **Pandoc**, and a TeX distribution if you need PDF; the repository includes helpers such as **`bin/install-tinytex`** where appropriate.
 
 A **table of all `bin/` scripts** (bootstrap, JRuby wrapper, gstudio, gknit, test runners, and which ones are legacy) is in the section **Command-line tools (`bin/`)** earlier in this manual.
+
+### From a repository checkout (contributors)
+
+1. Install **bundler** if needed, then run **`jruby -S bundle install`** in the repository root.
+2. Build the bridge native code: **`make -C ext/new_bridge all`** (or **`rake compile_gatekeeper`**).
+3. Run scripts with **`bin/galaaz-jruby`** (sources **`bin/galaaz_jruby_env.inc.sh`** and adds **`-I lib`**).
+
+Maintainers can prove a built `.gem` on a throwaway Ubuntu machine (no repo inside the container) with **`./docker/cold-install/run.sh`**.
 
 ## Windows + WSL2 (optional: Docker / R in a container)
 

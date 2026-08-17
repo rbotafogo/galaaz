@@ -214,15 +214,6 @@ blogs.each do |dir|
 end
 
 #===========================================================================================
-# Loads R and require libraries to run Galaaz
-#===========================================================================================
-
-desc 'Prepare R for running'
-task :make_r do
-  (sh %{ gu install r })
-end
-
-#===========================================================================================
 # Makes a gem for publishing in RubyGems
 #===========================================================================================
 
@@ -259,80 +250,3 @@ task :specs_all_with_new_bridge => [:compile_gatekeeper] do
   helper = Shellwords.escape(File.join(root, 'specs', 'spec_helper.rb'))
   sh %{ #{inv} -r #{helper} -S bundle exec rspec #{files} #{nb} }
 end
-
-=begin
-desc 'default task'
-task :default => [:install_gem]
-
-desc 'Install the gem in the standard location'
-task :install_gem => [:make_gem] do
-  sh "gem install #{$gem_name}-#{$version}-java.gem"
-end
-
-desc 'Make documentation'
-task :make_doc do
-  sh "yard doc lib/*.rb lib/**/*.rb"
-end
-
-Rake::TestTask.new do |t|
-  t.libs << "test"
-  t.test_files = FileList['test/complete.rb']
-  t.ruby_opts = ["--server", "-Xinvokedynamic.constants=true", "-J-Xmn512m", 
-                 "-J-Xms1024m", "-J-Xmx1024m"]
-  t.verbose = true
-  t.warning = true
-end
-
-#===========================================================================================
-# New Bridge Gatekeeper compilation tasks
-#===========================================================================================
-
-GATEKEEPER_DIR = "ext/new_bridge"
-GATEKEEPER_SO  = "#{GATEKEEPER_DIR}/galaaz_gatekeeper.so"
-GATEKEEPER_SRC = "#{GATEKEEPER_DIR}/galaaz_gatekeeper_phase1.cpp"
-
-desc "Compile the Galaaz gatekeeper shared library (fast runtime loading)"
-task :compile_gatekeeper do
-  puts "Compiling gatekeeper shared library..."
-  Dir.chdir(GATEKEEPER_DIR) do
-    sh "make clean all"
-  end
-  puts "Gatekeeper compiled: #{GATEKEEPER_SO}"
-end
-
-desc "Clean gatekeeper compilation artifacts"
-task :clean_gatekeeper do
-  Dir.chdir(GATEKEEPER_DIR) do
-    sh "make clean"
-  end
-end
-
-desc "Run all New Bridge specs (auto-compiles gatekeeper if needed)"
-task :new_bridge_specs => [:compile_gatekeeper] do
-  sh %{ bundle exec rspec specs/new_bridge/ --format documentation }
-end
-
-desc "Run specific New Bridge phase specs"
-namespace :new_bridge do
-  task :phase0 => [:compile_gatekeeper] do
-    sh %{ bundle exec rspec specs/new_bridge/phase0_protocol_spec.rb --format documentation }
-  end
-  
-  task :phase1 => [:compile_gatekeeper] do
-    sh %{ bundle exec rspec specs/new_bridge/phase1_req_ret_spec.rb --format documentation }
-  end
-  
-  task :phase2 => [:compile_gatekeeper] do
-    sh %{ bundle exec rspec specs/new_bridge/phase2_multi_instance_spec.rb --format documentation }
-  end
-  
-  task :phase3 => [:compile_gatekeeper] do
-    sh %{ bundle exec rspec specs/new_bridge/phase3_callbacks_spec.rb --format documentation }
-  end
-  
-  task :all => [:compile_gatekeeper] do
-    sh %{ bundle exec rspec specs/new_bridge/ --format documentation }
-  end
-end
-
-=end

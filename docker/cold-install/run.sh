@@ -7,7 +7,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 IMAGE="${GALAAZ_COLD_INSTALL_IMAGE:-galaaz-cold-install:ubuntu}"
-JRUBY_VERSION="${JRUBY_VERSION:-10.0.3.0}"
+JRUBY_VERSION="${JRUBY_VERSION:-10.1.1.0}"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "cold-install: docker not on PATH" >&2

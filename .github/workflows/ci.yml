@@ -47,7 +47,7 @@ jobs:
       - name: Set up JRuby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: jruby-10.0.3.0
+          ruby-version: jruby-10.1.1.0
           bundler-cache: true
 
       - name: Set up R
@@ -71,7 +71,7 @@ jobs:
       - name: Compile gatekeeper and run fast specs
         env:
           GALAAZ_BRIDGE_TIMEOUT_SEC: '300'
-        run: bin/run_all_rspec --format progress
+        run: bash bin/run_all_rspec --format progress
 
   cold-install:
     name: Cold install (Ubuntu)
@@ -93,7 +93,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
           build-args: |
-            JRUBY_VERSION=10.0.3.0
+            JRUBY_VERSION=10.1.1.0
 
       - name: Build gem
         run: |

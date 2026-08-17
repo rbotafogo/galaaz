@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-require 'rubygems/platform'
 require './version'
 require 'date'
 
@@ -30,6 +29,8 @@ EOF
   gem.email    = 'rodrigo.a.botafogo@gmail.com'
   gem.homepage = 'https://github.com/rbotafogo/galaaz'
   gem.license = 'BSD-2-Clause'
+  # JRuby 9.4 is Ruby 3.1; Galaaz 2.0 is developed and tested on JRuby 10.1.1.0 (Ruby 4.0).
+  gem.required_ruby_version = '>= 3.1'
 
   # gem.add_runtime_dependency 'pry', '~> 0.10'
 
@@ -44,7 +45,7 @@ EOF
   # Rendered docs (PDF/HTML) and prebuilt native objects are published on GitHub Pages
   # and built locally (make -C ext/new_bridge), not packed into the gem.
   exclude_exts = %w[.pdf .html .htm .so .o]
-  fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
+  fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*', 'CHANGELOG*',
             'lib/**/*[!~]', 'specs/**/*[!~]', 'new_bridge_specs/**/*[!~]',
             'ext/**/*[!~]', 'examples/**/*[!~]',
             'r_requires/**/*[!~]', 'bin/**/*[!~]',
@@ -54,6 +55,7 @@ EOF
   gem.metadata["homepage_uri"] = gem.homepage
   gem.metadata["source_code_uri"] = 'https://github.com/rbotafogo/galaaz'
   gem.metadata["documentation_uri"] = 'https://rbotafogo.github.io/galaaz/'
+  gem.metadata["changelog_uri"] = 'https://github.com/rbotafogo/galaaz/blob/galaaz2_0/CHANGELOG.md'
   gem.metadata["yard.run"] = "yri" # use "yard" to build full HTML docs
 
 end

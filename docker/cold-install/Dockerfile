@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libuv1-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ARG JRUBY_VERSION=10.0.3.0
+ARG JRUBY_VERSION=10.1.1.0
 RUN curl -fsSL \
       "https://repo1.maven.org/maven2/org/jruby/jruby-dist/${JRUBY_VERSION}/jruby-dist-${JRUBY_VERSION}-bin.tar.gz" \
     | tar -xz -C /opt \
