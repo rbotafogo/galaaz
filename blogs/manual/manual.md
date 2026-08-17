@@ -3817,71 +3817,63 @@ puts delays.head
 
 # Using Data Table
 
-The next chunk reads the **flights14** sample (same file as the data.table vignette). Prefer
-**downloading in Ruby** and **`R.fread` on a local path**: `data.table::fread("https://…")` runs the
-HTTP transfer **inside R** while the Galaaz bridge waits on a **single** eval; if the remote server
-stalls, that looks like an intermittent “hang” and eventually hits the **per-eval** bridge timeout.
-Ruby’s **`Net::HTTP`** `open_timeout` / `read_timeout` fail fast with a clear error instead.
-The chunk passes **`nrows:`** to **`fread`** so a single bridge eval does not have to materialize the
-full ~1.2M-row table during a gknit run.
+The next chunk converts the **nycflights13** `flights` tibble already loaded above into a
+**`data.table`**. That keeps the manual offline and avoids downloading a remote CSV during gknit
+(network stalls look like bridge hangs when the transfer runs inside a single R eval).
 
 
 ``` ruby
-require 'net/http'
-require 'uri'
-require 'tmpdir'
-
 R.library('data.table')
 
-url = URI('https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv')
-csv = File.join(Dir.tmpdir, "galaaz_manual_flights14_#{Process.pid}.csv")
-begin
-  Net::HTTP.start(url.host, url.port, use_ssl: true, open_timeout: 25, read_timeout: 120) do |http|
-    resp = http.request_get(url.request_uri)
-    raise "HTTP #{resp.code}" unless resp.is_a?(Net::HTTPSuccess)
-
-    File.binwrite(csv, resp.body)
-  end
-
-  # Cap rows so one bridge eval stays short on slow disks (full file is ~1.2M rows).
-  flights = R.fread(csv, nrows: 120_000)
-  puts flights.dim
-  puts R.head(flights, 12)
-ensure
-  File.unlink(csv) if csv && File.exist?(csv)
-end
+flights = R.as__data__table(~R[:flights])
+puts flights.dim
+puts R.head(flights, 12)
 ```
 
 ```
-## [1] 120000     11
-##      year month   day dep_delay arr_delay carrier origin   dest air_time
-##     <int> <int> <int>     <int>     <int>  <char> <char> <char>    <int>
-##  1:  2014     1     1        14        13      AA    JFK    LAX      359
-##  2:  2014     1     1        -3        13      AA    JFK    LAX      363
-##  3:  2014     1     1         2         9      AA    JFK    LAX      351
-##  4:  2014     1     1        -8       -26      AA    LGA    PBI      157
-##  5:  2014     1     1         2         1      AA    JFK    LAX      350
-##  6:  2014     1     1         4         0      AA    EWR    LAX      339
-##  7:  2014     1     1        -2       -18      AA    JFK    LAX      338
-##  8:  2014     1     1        -3       -14      AA    JFK    LAX      356
-##  9:  2014     1     1        -1       -17      AA    JFK    MIA      161
-## 10:  2014     1     1        -2       -14      AA    JFK    SEA      349
-## 11:  2014     1     1        -5       -17      AA    EWR    MIA      161
-## 12:  2014     1     1         7        -5      AA    JFK    SFO      365
-##     distance  hour
-##        <int> <int>
-##  1:     2475     9
-##  2:     2475    11
-##  3:     2475    19
-##  4:     1035     7
-##  5:     2475    13
-##  6:     2454    18
-##  7:     2475    21
-##  8:     2475    15
-##  9:     1089    15
-## 10:     2422    18
-## 11:     1085    16
-## 12:     2586    17
+## [1] 336776     19
+##      year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##     <int> <int> <int>    <int>          <int>     <num>    <int>          <int>
+##  1:  2013     1     1      517            515         2      830            819
+##  2:  2013     1     1      533            529         4      850            830
+##  3:  2013     1     1      542            540         2      923            850
+##  4:  2013     1     1      544            545        -1     1004           1022
+##  5:  2013     1     1      554            600        -6      812            837
+##  6:  2013     1     1      554            558        -4      740            728
+##  7:  2013     1     1      555            600        -5      913            854
+##  8:  2013     1     1      557            600        -3      709            723
+##  9:  2013     1     1      557            600        -3      838            846
+## 10:  2013     1     1      558            600        -2      753            745
+## 11:  2013     1     1      558            600        -2      849            851
+## 12:  2013     1     1      558            600        -2      853            856
+##     arr_delay carrier flight tailnum origin   dest air_time distance  hour
+##         <num>  <char>  <int>  <char> <char> <char>    <num>    <num> <num>
+##  1:        11      UA   1545  N14228    EWR    IAH      227     1400     5
+##  2:        20      UA   1714  N24211    LGA    IAH      227     1416     5
+##  3:        33      AA   1141  N619AA    JFK    MIA      160     1089     5
+##  4:       -18      B6    725  N804JB    JFK    BQN      183     1576     5
+##  5:       -25      DL    461  N668DN    LGA    ATL      116      762     6
+##  6:        12      UA   1696  N39463    EWR    ORD      150      719     5
+##  7:        19      B6    507  N516JB    EWR    FLL      158     1065     6
+##  8:       -14      EV   5708  N829AS    LGA    IAD       53      229     6
+##  9:        -8      B6     79  N593JB    JFK    MCO      140      944     6
+## 10:         8      AA    301  N3ALAA    LGA    ORD      138      733     6
+## 11:        -2      B6     49  N793JB    JFK    PBI      149     1028     6
+## 12:        -3      B6     71  N657JB    JFK    TPA      158     1005     6
+##     minute           time_hour
+##      <num>              <POSc>
+##  1:     15 2013-01-01 05:00:00
+##  2:     29 2013-01-01 05:00:00
+##  3:     40 2013-01-01 05:00:00
+##  4:     45 2013-01-01 05:00:00
+##  5:      0 2013-01-01 06:00:00
+##  6:     58 2013-01-01 05:00:00
+##  7:      0 2013-01-01 06:00:00
+##  8:      0 2013-01-01 06:00:00
+##  9:      0 2013-01-01 06:00:00
+## 10:      0 2013-01-01 06:00:00
+## 11:      0 2013-01-01 06:00:00
+## 12:      0 2013-01-01 06:00:00
 ```
 
 
@@ -3926,15 +3918,42 @@ puts ans
 ```
 
 ```
-## Empty data.table (0 rows and 11 cols): year,month,day,dep_delay,arr_delay,carrier...
-##     year month   day dep_delay arr_delay carrier origin   dest air_time
-##    <int> <int> <int>     <int>     <int>  <char> <char> <char>    <int>
-## 1:  2014     1     1        14        13      AA    JFK    LAX      359
-## 2:  2014     1     1        -3        13      AA    JFK    LAX      363
-##    distance  hour
-##       <int> <int>
-## 1:     2475     9
-## 2:     2475    11
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <num>    <int>          <int>
+## 1:  2013     6     1        2           2359         3      341            350
+## 2:  2013     6     1      538            545        -7      925            922
+## 3:  2013     6     1      539            540        -1      832            840
+## 4:  2013     6     1      553            600        -7      700            711
+## 5:  2013     6     1      554            600        -6      851            908
+## 6:  2013     6     1      557            600        -3      934            942
+##    arr_delay carrier flight tailnum origin   dest air_time distance  hour
+##        <num>  <char>  <int>  <char> <char> <char>    <num>    <num> <num>
+## 1:        -9      B6    739  N618JB    JFK    PSE      200     1617    23
+## 2:         3      B6    725  N806JB    JFK    BQN      203     1576     5
+## 3:        -8      AA    701  N5EAAA    JFK    MIA      140     1089     5
+## 4:       -11      EV   5716  N835AS    JFK    IAD       42      228     6
+## 5:       -17      UA   1159  N33132    JFK    LAX      330     2475     6
+## 6:        -8      B6    715  N766JB    JFK    SJU      198     1598     6
+##    minute           time_hour
+##     <num>              <POSc>
+## 1:     59 2013-06-01 23:00:00
+## 2:     45 2013-06-01 05:00:00
+## 3:     40 2013-06-01 05:00:00
+## 4:      0 2013-06-01 06:00:00
+## 5:      0 2013-06-01 06:00:00
+## 6:      0 2013-06-01 06:00:00
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <num>    <int>          <int>
+## 1:  2013     1     1      517            515         2      830            819
+## 2:  2013     1     1      533            529         4      850            830
+##    arr_delay carrier flight tailnum origin   dest air_time distance  hour
+##        <num>  <char>  <int>  <char> <char> <char>    <num>    <num> <num>
+## 1:        11      UA   1545  N14228    EWR    IAH      227     1400     5
+## 2:        20      UA   1714  N24211    LGA    IAH      227     1416     5
+##    minute           time_hour
+##     <num>              <POSc>
+## 1:     15 2013-01-01 05:00:00
+## 2:     29 2013-01-01 05:00:00
 ```
 
 
@@ -3954,15 +3973,15 @@ ans = flights[:all, E.list(R[:arr_delay], R[:dep_delay])]
 ```
 
 ```
-## [1]  13  13   9 -26   1   0
+## [1]  11  20  33 -18 -25  12
 ##    arr_delay
-##        <int>
-## 1:        13
-## 2:        13
-## 3:         9
-## 4:       -26
-## 5:         1
-## 6:         0
+##        <num>
+## 1:        11
+## 2:        20
+## 3:        33
+## 4:       -18
+## 5:       -25
+## 6:        12
 ```
 
 # Apache Arrow
@@ -4405,7 +4424,8 @@ In Galaaz the method mutate_y below will work fine and will never fail silently.
 
 ``` ruby
 def mutate_y(df)
-  df.mutate(R[:y].assign R[:a] + R[:x])
+  # Mutate column names are Ruby kwargs (y: …). Use .assign only for R `<-` expressions.
+  df.mutate(y: R[:a] + R[:x])
 end
 ```
 Here we create a data frame that has only one column named 'x':
@@ -4424,7 +4444,7 @@ puts df1
 ```
 
 Note that method mutate_y will fail independently from the fact that variable 'a' is defined and
-in the scope of the method.  Variable 'a' has no relationship with the symbol ':a' used in the
+in the scope of the method.  Variable 'a' has no relationship with the symbol `R[:a]` used in the
 definition of 'mutate\_y' above:
 
 
@@ -4434,8 +4454,9 @@ mutate_y(df1)
 ```
 
 ```
-## Error in strsplit(path, "/") : non-character argument
-## Calls: mutate ... .rlang_purrr_map_mold -> vapply -> FUN -> path_trim_prefix -> strsplit
+## Error: ℹ In argument: `y = a + x`.
+## Caused by error:
+## ! object 'a' not found
 ```
 ## Different expressions
 

@@ -514,7 +514,8 @@ In Galaaz the method mutate_y below will work fine and will never fail silently.
 
 ```{ruby mutate_y, warning=FALSE}
 def mutate_y(df)
-  df.mutate(R[:y].assign R[:a] + R[:x])
+  # Mutate column names are Ruby kwargs (y: …). Use .assign only for R `<-` expressions.
+  df.mutate(y: R[:a] + R[:x])
 end
 ```
 Here we create a data frame that has only one column named 'x':
@@ -525,7 +526,7 @@ puts df1
 ```
 
 Note that method mutate_y will fail independetly from the fact that variable 'a' is defined and
-in the scope of the method.  Variable 'a' has no relationship with the symbol ':a' used in the
+in the scope of the method.  Variable 'a' has no relationship with the symbol `R[:a]` used in the
 definition of 'mutate\_y' above:
 
 ```{ruby call_mutate_y, warning = FALSE}

@@ -65,6 +65,27 @@
 static int g_bridge_fd = -1;
 // Instance id of the currently serviced REQ; reused by callback CALL messages.
 static std::string g_current_instance_id = "default";
+// Depth of galaaz_callback_call frames. Nested REQ evals run while this is > 0.
+static int g_callback_nesting_depth = 0;
+
+struct CallbackNestingGuard {
+  CallbackNestingGuard() { ++g_callback_nesting_depth; }
+  ~CallbackNestingGuard() { --g_callback_nesting_depth; }
+};
+
+// Under nested callback stacks, rlang's uncaught error formatter can fail
+// (path_trim_prefix -> strsplit) and overwrite geterrmessage() with that
+// secondary failure. Catching with tryCatch and re-stopping with
+// conditionMessage() preserves the causal dplyr/rlang message for Ruby.
+static std::string wrap_expr_preserve_condition_message(const std::string& expr_code) {
+  return "tryCatch((" + expr_code +
+         "), error = function(e) stop(conditionMessage(e), call. = FALSE))";
+}
+
+static std::string maybe_wrap_nested_eval_expr(const std::string& expr_code) {
+  if (g_callback_nesting_depth <= 0) return expr_code;
+  return wrap_expr_preserve_condition_message(expr_code);
+}
 
 // Raise an R exception with a stable gatekeeper prefix.
 void die(const char* m) { Rcpp::stop("galaaz_run_bridge: %s", m); }
@@ -699,8 +720,9 @@ EvalResult eval_with_result_cmd(const std::string& cmd, const Rcpp::Environment&
     return {false, payload_error("invalid eval_with_result assignment")};
   }
 
+  const std::string to_parse = maybe_wrap_nested_eval_expr(expr_code);
   ParseStatus ps = PARSE_OK;
-  SEXP px = R_ParseVector(Rf_mkString(expr_code.c_str()), 1, &ps, R_GlobalEnv);
+  SEXP px = R_ParseVector(Rf_mkString(to_parse.c_str()), 1, &ps, R_GlobalEnv);
   if (ps != PARSE_OK) return {false, payload_error("parse error")};
   SEXP expr = VECTOR_ELT(px, 0);
 
@@ -1277,8 +1299,9 @@ EvalResult eval_code_payload(const std::string& code, const Rcpp::Environment& e
   if (starts_with(code, "__G_PULL_VECTOR__|")) {
     return eval_pull_vector_cmd(code, env);
   }
+  const std::string to_parse = maybe_wrap_nested_eval_expr(code);
   ParseStatus ps = PARSE_OK;
-  SEXP px = R_ParseVector(Rf_mkString(code.c_str()), 1, &ps, R_GlobalEnv);
+  SEXP px = R_ParseVector(Rf_mkString(to_parse.c_str()), 1, &ps, R_GlobalEnv);
   if (ps != PARSE_OK) return {false, payload_error("parse error")};
   SEXP expr = VECTOR_ELT(px, 0);
   int err = 0;
@@ -1369,6 +1392,7 @@ static void process_single_req(int fd, const std::map<std::string, std::string>&
 // [[Rcpp::export(name="galaaz_callback_call_phase3")]]
 double galaaz_callback_call(std::string call_id, std::string payload, int timeout_ms) {
   if (g_bridge_fd < 0) Rcpp::stop("galaaz_callback_call: no active bridge connection");
+  CallbackNestingGuard nesting_guard;
 
   // Send CALL envelope to Ruby.
   // Frame format: [uint32 length][msgpack bytes].

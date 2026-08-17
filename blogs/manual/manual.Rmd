@@ -25,7 +25,7 @@ fontsize: 11pt
 ---
 
 ```{ruby setup, echo=FALSE}
-# Bridge default is 60s; slow chunks (e.g. fread of flights14) need more.
+# Bridge default is 60s; some chunks (Arrow, large dplyr pipes) need more.
 ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] ||= '300'
 
 R.options(crayon__enabled: false)
@@ -1927,38 +1927,16 @@ puts delays.head
 
 # Using Data Table
 
-The next chunk reads the **flights14** sample (same file as the data.table vignette). Prefer
-**downloading in Ruby** and **`R.fread` on a local path**: `data.table::fread("https://…")` runs the
-HTTP transfer **inside R** while the Galaaz bridge waits on a **single** eval; if the remote server
-stalls, that looks like an intermittent “hang” and eventually hits the **per-eval** bridge timeout.
-Ruby’s **`Net::HTTP`** `open_timeout` / `read_timeout` fail fast with a clear error instead.
-The chunk passes **`nrows:`** to **`fread`** so a single bridge eval does not have to materialize the
-full ~1.2M-row table during a gknit run.
+The next chunk converts the **nycflights13** `flights` tibble already loaded above into a
+**`data.table`**. That keeps the manual offline and avoids downloading a remote CSV during gknit
+(network stalls look like bridge hangs when the transfer runs inside a single R eval).
 
 ```{ruby fread}
-require 'net/http'
-require 'uri'
-require 'tmpdir'
-
 R.library('data.table')
 
-url = URI('https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv')
-csv = File.join(Dir.tmpdir, "galaaz_manual_flights14_#{Process.pid}.csv")
-begin
-  Net::HTTP.start(url.host, url.port, use_ssl: true, open_timeout: 25, read_timeout: 120) do |http|
-    resp = http.request_get(url.request_uri)
-    raise "HTTP #{resp.code}" unless resp.is_a?(Net::HTTPSuccess)
-
-    File.binwrite(csv, resp.body)
-  end
-
-  # Cap rows so one bridge eval stays short on slow disks (full file is ~1.2M rows).
-  flights = R.fread(csv, nrows: 120_000)
-  puts flights.dim
-  puts R.head(flights, 12)
-ensure
-  File.unlink(csv) if csv && File.exist?(csv)
-end
+flights = R.as__data__table(~R[:flights])
+puts flights.dim
+puts R.head(flights, 12)
 ```
 
 ```{ruby data_table}
@@ -2367,7 +2345,8 @@ In Galaaz the method mutate_y below will work fine and will never fail silently.
 
 ```{ruby mutate_y, warning=FALSE}
 def mutate_y(df)
-  df.mutate(R[:y].assign R[:a] + R[:x])
+  # Mutate column names are Ruby kwargs (y: …). Use .assign only for R `<-` expressions.
+  df.mutate(y: R[:a] + R[:x])
 end
 ```
 Here we create a data frame that has only one column named 'x':
@@ -2378,7 +2357,7 @@ puts df1
 ```
 
 Note that method mutate_y will fail independently from the fact that variable 'a' is defined and
-in the scope of the method.  Variable 'a' has no relationship with the symbol ':a' used in the
+in the scope of the method.  Variable 'a' has no relationship with the symbol `R[:a]` used in the
 definition of 'mutate\_y' above:
 
 ```{ruby call_mutate_y, warning = FALSE}

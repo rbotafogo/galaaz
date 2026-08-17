@@ -92,4 +92,32 @@ RSpec.describe 'NewBridge Phase 4 (Nested callbacks)' do
       expect(call_count).to eq(1)
     end
   end
+
+  # dplyr/rlang fancy errors can lose their causal message under nested callback
+  # stacks (path_trim_prefix/strsplit). Gatekeeper wraps nested evals so Ruby
+  # still sees "object 'a' not found".
+  it 'preserves causal dplyr error messages under nested eval', :slow do
+    with_client do |c|
+      probe = c.eval_r("isTRUE(requireNamespace('dplyr', quietly = TRUE))")
+      skip 'dplyr not installed' unless probe['value'] == true
+
+      nested_msg = nil
+      cb_call_id = c.register_callback do |_payload, call_id|
+        begin
+          c.eval_r(
+            "__G_EVAL_WITH_RESULT__tmp <- { library(dplyr); mutate(data.frame(x = 1:3), y = a + x) }",
+            parent_id: call_id
+          )
+        rescue NewBridge::SessionClient::RProcessError => e
+          nested_msg = e.message.to_s
+        end
+        1.0
+      end
+
+      c.eval_r("galaaz_callback_call_phase3('#{cb_call_id}', 'unused', 15000)", timeout: 30)
+
+      expect(nested_msg).to match(/object 'a' not found/)
+      expect(nested_msg).not_to match(/strsplit|path_trim_prefix/)
+    end
+  end
 end

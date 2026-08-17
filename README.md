@@ -32,8 +32,9 @@ Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language,
 community, a very large set of libraries and great for web development. However, it lacks 
 libraries for data science, statistics, scientific plotting and machine learning. On the 
 other hand, R is considered one of the most powerful languages for solving all of the above 
-problems. Maybe the strongest competitor to R is Python with libraries such as NumPy, 
-Pandas, SciPy, SciKit-Learn and a couple more.
+problems. **Python** is a strong competitor: NumPy, pandas, SciPy, and scikit-learn are
+widely used building blocks, and **PyPI** hosts many thousands of other packages for
+numerical work, machine learning, and beyond.
 
 With Galaaz we do not intend to re-implement any of the scientific libraries in R, we allow
 for very tight coupling between the two languages to the point that the Ruby developer does
@@ -44,15 +45,15 @@ general-purpose programming language. It was designed and developed in the mid-1
 "Matz" Matsumoto in Japan."  It reached high popularity with the development of Ruby on Rails
 (RoR) by David Heinemeier Hansson. RoR is a web application framework first released
 around 2005. It makes extensive use of Ruby's metaprogramming features.  With RoR,
-Ruby became very popular.  According to [Ruby's Tiobe index](https://www.tiobe.com/tiobe-index/ruby/)
+Ruby became very popular.  According to [Ruby’s place in the TIOBE index](https://www.tiobe.com/tiobe-index/ruby/)
 it peaked in popularity around 2008, then declined until 2015 when it started picking up again.
 Ruby remains a significant language in web development and general-purpose scripting.
 
 Python, a language similar to Ruby, ranks 4th in the index.  Java, C and C++ take the
 first three positions.  Ruby is often criticized for its focus on web applications.
 But Ruby can do [much more](https://github.com/markets/awesome-ruby) than just web applications.
-Yet, for scientific computing, Ruby lags way behind Python and R.  Python has
-Django framework for web, NumPy for numerical arrays, Pandas for data analysis.
+Yet, for scientific computing, Ruby lags behind Python and R.  Python offers Django and
+similar frameworks for the web, plus NumPy, pandas, and a deep catalog of science and ML libraries.
 R is a free software environment for statistical computing and graphics with thousands
 of libraries for data analysis. 
 
@@ -62,7 +63,7 @@ Implementing a complete scientific computing infrastructure would take too long.
 **Galaaz 2.0** couples **JRuby** (Ruby on the JVM) with **GNU R**—the same R you use for
 CRAN and Bioconductor. Ruby and R run in **separate processes**; the **Galaaz bridge**
 sends requests to R and returns results to Ruby. From your point of view you still write
-Ruby: `R.c(...)`, `R.library('ggplot2')`, `~:mtcars`, and dplyr-style chains on R objects.
+Ruby: `R.c(...)`, `R.library('ggplot2')`, `~R[:mtcars]`, and dplyr-style chains on R objects.
 You do not need to learn R syntax to get a lot done, though reading R documentation for
 individual packages remains useful.
 
@@ -76,7 +77,7 @@ The bridge handles **communication and typing** between the two worlds; large ta
 also flow through **Apache Arrow** on the R side when you use the optional helpers described
 later in this manual.
 
-Library wrapping is a usual way of bringing features from one language into another.
+Library wrapping is a common way to bring features from one language into another.
 To improve performance, Python often wraps more efficient C libraries. For the
 Python developer, the existence of such C libraries is hidden.  The problem with
 library wrapping is that for any new library, there is the need to handcraft a new
@@ -112,48 +113,182 @@ Below, **current (Galaaz 2.0 + JRuby + GNU R)** means the tool is wired to **`jr
 means the script still targets **GraalVM** polyglot Ruby / FastR-era invocation and is **not**
 expected to work on a typical JRuby-only setup.
 
-## Bootstrap and environment
+**Table layout:** names in the first column are **`bin/`** filenames (run as `bin/<name>` from the repo root). Long options and examples sit **outside** the tables so PDF columns stay readable.
 
-| Script | Role | Expected to work in 2.0? |
-|--------|------|---------------------------|
-| **`bin/galaaz-bootstrap`** | **`--check`** / **`--apply`** diagnostics for **WSL2** (Docker CLI, optional TinyTeX/poppler prompts for gKnit PDF). Options: **`--runtime docker|local|auto`**, **`--[no-]prompt-doc-tools`**. | **Yes** (where WSL/Docker apply). |
-| **`bin/galaaz-jruby`** | Run **JRuby** with **`$LOAD_PATH`** including **`lib/`** and **required JVM flags** (Apache Arrow, etc.). Example: `bin/galaaz-jruby my_script.rb`, `bin/galaaz-jruby -S rspec …`. | **Yes** — preferred generic Ruby entrypoint. |
-| **`bin/galaaz_jruby_env.inc.sh`** | **`source`**d by bash wrappers; defines **`GALAAZ_REQUIRED_JRUBY_J_ARGS`**. Not run directly. | **Yes** (internal). |
-| **`bin/install-tinytex`** | Installs **TinyTeX** via upstream script (PDF for rmarkdown/gKnit). | **Yes** on Unix-like systems. |
+
+
+<table class="table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Script </th>
+   <th style="text-align:left;"> Role </th>
+   <th style="text-align:left;"> 2.0? </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> galaaz-bootstrap </td>
+   <td style="text-align:left;"> WSL2 helper: Docker checks; optional TinyTeX or poppler for gKnit PDF. </td>
+   <td style="text-align:left;"> Yes* </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> galaaz-jruby </td>
+   <td style="text-align:left;"> JRuby with repo lib/ on LOAD_PATH and required JVM flags (e.g. Arrow). </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> galaaz_jruby_env.inc.sh </td>
+   <td style="text-align:left;"> Sourced by bash wrappers; sets GALAAZ_REQUIRED_JRUBY_J_ARGS. </td>
+   <td style="text-align:left;"> Yes† </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> install-tinytex </td>
+   <td style="text-align:left;"> Install TinyTeX for PDF output. </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+</tbody>
+</table>
+
+\* Where WSL/Docker apply. **`galaaz-bootstrap` flags:** `--check`, `--apply`, `--runtime` (`docker` \| `local` \| `auto`), `--[no-]prompt-doc-tools`.
+
+† Not run directly.
+
+**`galaaz-jruby` examples** (from repo root):
+
+```text
+bin/galaaz-jruby my_script.rb
+bin/galaaz-jruby -S rspec
+```
 
 ## Interactive use, examples, and Rake
 
-| Script | Role | Expected to work in 2.0? |
-|--------|------|---------------------------|
-| **`bin/gstudio`** | Launches **IRB** or **Pry** (flags **`-i`** / **`-p`**) with Galaaz preloaded via **`gstudio_irb.rb`** / **`gstudio_pry.rb`**, using JRuby + JVM flags. | **Yes**. |
-| **`bin/run_example`** | Runs one Ruby file with the same JRuby/JVM setup as tests (e.g. `bin/run_example examples/.../script.rb`). | **Yes**. |
-| **`bin/galaaz`** | Forwards arguments to **`rake`** from the repo root (`bin/galaaz specs:all`, etc.). Requires a Ruby with **`rake`** and the Rakefile environment you use (typically **JRuby** in this project). | **Yes** when invoked with a suitable Ruby. |
+<table class="table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Script </th>
+   <th style="text-align:left;"> Role </th>
+   <th style="text-align:left;"> 2.0? </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> gstudio </td>
+   <td style="text-align:left;"> IRB or Pry with Galaaz preloaded (JRuby + JVM flags). </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> run_example </td>
+   <td style="text-align:left;"> Run one Ruby file using the same JRuby/JVM setup as tests. </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> galaaz </td>
+   <td style="text-align:left;"> Forward arguments to rake (needs rake; usually JRuby). </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+</tbody>
+</table>
 
 ## gKnit and document drafts
 
-| Script | Role | Expected to work in 2.0? |
-|--------|------|---------------------------|
-| **`bin/gknit`** | Renders **`.Rmd`** through **JRuby**, **`galaaz`**, and **`R::Rmarkdown.render`**. Use **`--output_format`** (e.g. **`pdf_document`**, **`html_document`**, **`all`**) to override the default; if omitted, the **first** YAML **`output:`** format is used. Also **`--output_file`**, **`--output_dir`**, **`--bridge_timeout_sec`**, **`--callback_timeout_ms`**. | **Yes** — main literate-programming CLI. |
-| **`bin/gknit-draft`** | Creates drafts from **rticles** (or similar) templates; implementation ends with **`ruby --polyglot --jvm`** (GraalVM-style). | **Uncertain / legacy** — prefer running draft logic under **`bin/galaaz-jruby`** or updating this script to match **`gknit`**. |
-| **`bin/gknit-draft.rb`** | Ruby body that calls **`GKnit.draft`**; can be run with JRuby if **`$LOAD_PATH`** and requires are set. | **Usable** with JRuby when invoked correctly; the **`bin/gknit-draft`** wrapper may need alignment. |
-| **`bin/gknit_Rscript`** | Invokes **`Rscript --jvm --polyglot`** and contains a **hard-coded** `LOAD_PATH` example. | **No** for standard 2.0 workflows — use **`bin/gknit`** instead. |
+<table class="table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Script </th>
+   <th style="text-align:left;"> Role </th>
+   <th style="text-align:left;"> 2.0? </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> gknit </td>
+   <td style="text-align:left;"> Knit .Rmd via JRuby and R Markdown render. </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> gknit-draft </td>
+   <td style="text-align:left;"> Drafts from rticles-style templates; wrapper still uses legacy polyglot ruby. </td>
+   <td style="text-align:left;"> Legacy </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> gknit-draft.rb </td>
+   <td style="text-align:left;"> Ruby entry: GKnit.draft (use with JRuby + LOAD_PATH). </td>
+   <td style="text-align:left;"> JRuby </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> gknit_Rscript </td>
+   <td style="text-align:left;"> Polyglot Rscript launcher; hard-coded LOAD_PATH sample. </td>
+   <td style="text-align:left;"> No </td>
+  </tr>
+</tbody>
+</table>
+
+**`gknit` CLI** (see `gknit -h`): `--output_format`, `--output_file`, `--output_dir`, `--bridge_timeout_sec`, `--callback_timeout_ms`. If `--output_format` is omitted, the **first** YAML `output:` target wins.
+
+Prefer **`galaaz-jruby`** for **`gknit-draft`** workflows until that wrapper matches the **`gknit`** stack.
 
 ## Tests
 
-| Script | Role | Expected to work in 2.0? |
-|--------|------|---------------------------|
-| **`bin/run_rspec`** | Default: all top-level files in **`specs/`** matching `*_spec.rb` / `*.spec.rb`, with **`spec_helper`** and JRuby flags. | **Yes** — see **`docs/testing.md`**. |
-| **`bin/run_all_rspec`** | Compiles **`ext/new_bridge`**, then **`specs/`** + **`new_bridge_specs/`** in one process (merged coverage). | **Yes**. |
-| **`bin/run_slow_rspec`** | Suites under **`slow-specs/`**. | **Yes** (may not load the same **`spec_helper`** as the main suite — see script header). |
-| **`bin/run_old_rspec`** | Legacy specs in **`old_specs/`**. | **Yes** for maintenance runs. |
-| **`bin/run_rspec_subset`** | Runs a numbered subset (1–18); see **`Documentation/Spec_Subsets.md`**. | **Yes**. |
+<table class="table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Script </th>
+   <th style="text-align:left;"> Role </th>
+   <th style="text-align:left;"> 2.0? </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> run_rspec </td>
+   <td style="text-align:left;"> Top-level specs/*_spec.rb with spec_helper (see docs/testing.md). </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> run_all_rspec </td>
+   <td style="text-align:left;"> Compile ext/new_bridge; run specs/ and new_bridge_specs/ together. </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> run_slow_rspec </td>
+   <td style="text-align:left;"> Suites under slow-specs/ (read script header for spec_helper). </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> run_old_rspec </td>
+   <td style="text-align:left;"> Legacy suites under old_specs/. </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> run_rspec_subset </td>
+   <td style="text-align:left;"> Numbered subset 1–18 (Documentation/Spec_Subsets.md). </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+</tbody>
+</table>
 
 ## Other
 
-| Script | Role | Expected to work in 2.0? |
-|--------|------|---------------------------|
-| **`bin/grun`** | **`exec "ruby --polyglot --jvm -I… -S #{ARGV[0]}"`** | **No** — GraalVM-era; use **`bin/galaaz-jruby -S …`** instead. |
-| **`bin/gstudio_irb.rb`**, **`bin/gstudio_pry.rb`** | Required by **`gstudio`**; not run alone. | **Yes** (via **`gstudio`**). |
+<table class="table table-striped table-condensed" style="margin-left: auto; margin-right: auto;">
+ <thead>
+  <tr>
+   <th style="text-align:left;"> Script </th>
+   <th style="text-align:left;"> Role </th>
+   <th style="text-align:left;"> 2.0? </th>
+  </tr>
+ </thead>
+<tbody>
+  <tr>
+   <td style="text-align:left;"> grun </td>
+   <td style="text-align:left;"> Graal-era launcher: polyglot ruby with --jvm. Use galaaz-jruby -S instead. </td>
+   <td style="text-align:left;"> No </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> gstudio_irb.rb / gstudio_pry.rb </td>
+   <td style="text-align:left;"> Loaded by gstudio; not meant to be run standalone. </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+</tbody>
+</table>
 
 For day-to-day **2.0** use, rely on **`bin/galaaz-jruby`**, **`bin/gstudio`**, **`bin/gknit`**, **`bin/run_example`**, **`bin/run_rspec`** / **`bin/run_all_rspec`**, and **`bin/galaaz-bootstrap`** on WSL when using Dockerized R. Treat **`grun`**, **`gknit_Rscript`**, and the polyglot **`ruby`** invocation in **`gknit-draft`** as **legacy** until they are ported to the same JRuby path as **`gknit`**.
 
@@ -340,16 +475,125 @@ the outcome to storage, and notify the client (poll, WebSocket, Turbo Stream, et
 Ruby pattern above is only to show **when** the result exists (inside the block, or after data
 written there is observed elsewhere). Runnable specs live in **`new_bridge_specs/eval_r_async_spec.rb`**.
 
+## Galaaz + Rails (JRuby) integration baseline
+
+This section documents the baseline we used to create a working Rails app with Galaaz in WSL.
+The goals were:
+
+1. Rails boots under **JRuby**.
+2. Galaaz is loaded from a local checkout (before publishing to RubyGems).
+3. A request path can execute **`R.eval(...)`** and return a result.
+
+### 1) Create the app with JRuby-friendly options
+
+Rails defaults can pull gems that are not ideal on JRuby-first setups (for example sqlite native
+extension paths and deployment extras). A minimal app avoids early friction:
+
+```bash
+cd /home/rbotafogo/desenv_linux
+jruby -S rails new hedi --skip-git --minimal --skip-kamal --skip-solid --skip-active-record
+```
+
+Then install gems:
+
+```bash
+cd /home/rbotafogo/desenv_linux/hedi
+jruby -S bundle install
+```
+
+### 2) Use Galaaz as a local path gem
+
+For local development we keep a stable path:
+
+- `~/gems/galaaz` -> symlink to your Galaaz checkout
+- optional built gem archive in `~/gems/pkg/`
+
+In Rails `Gemfile`:
+
+```ruby
+gem "galaaz", path: "/home/rbotafogo/gems/galaaz", require: false
+```
+
+And load after Rails boot in `config/application.rb`:
+
+```ruby
+config.after_initialize { require "galaaz" }
+```
+
+Why `require: false` + `after_initialize`? In this integration, loading Galaaz too early via
+`Bundler.require` triggered Rails/JRuby initialization failures.
+
+### 3) Simple request-path smoke test
+
+A direct smoke test from Rails runner:
+
+```bash
+cd /home/rbotafogo/desenv_linux/hedi
+jruby -S bundle exec rails runner "puts R.eval('sum(c(1,2,3,4,5))').inspect"
+```
+
+Expected output:
+
+```text
+15.0
+```
+
+### 4) HTTP endpoint pattern
+
+For this baseline, a small Rack endpoint was the most stable first step to prove request-time R
+evaluation. (A full ActionController stack can be enabled later as the app evolves.)
+
+Minimal pattern:
+
+1. Define a Rack app class under `lib/` that runs `R.eval(...)` and returns HTML/JSON.
+2. Point a route to that Rack app (`root to: MyRackApp`).
+3. Verify with browser/curl.
+
+### 5) Running from WSL and opening from Windows
+
+Recommended bind:
+
+```bash
+jruby -S bundle exec rails server -b 0.0.0.0 -p 3000
+```
+
+Then open from Windows:
+
+- `http://localhost:3000` (usually works with WSL localhost forwarding), or
+- `http://<wsl-ip>:3000` if needed.
+
+In development, if Host Authorization blocks requests with unexpected Host headers, use:
+
+```ruby
+# config/environments/development.rb
+config.hosts.clear
+```
+
+### 6) Troubleshooting checklist
+
+- `Could not find ... in locally installed gems`:
+  run `jruby -S bundle install` in the Rails app directory.
+- Stale PID after crash:
+  remove `tmp/pids/server.pid`.
+- Local Galaaz path changed:
+  verify `Gemfile` path target exists and rerun bundler.
+- R runtime issues:
+  confirm GNU R is installed and on `PATH` in the same shell where Rails runs.
+
+As new Rails features are added (controllers, jobs, websockets, background rendering, plot
+generation), extend this section with concrete, runnable snippets and the associated operational
+checks.
+
 # Accessing R from Ruby
 
 One of the nice aspects of Galaaz is that variables and functions defined in R can
 be easily accessed from Ruby.  For instance, to access the `mtcars` data frame from R
-in Ruby, we use the symbol `:mtcars` preceded by the `~` operator: `~:mtcars` retrieves the 
+in Ruby, we use the symbol `:mtcars` preceded by the `~` operator: `~R[:mtcars]` retrieves the 
 value of the `mtcars` object in R.
 
 
 ``` ruby
-puts ~:mtcars
+puts ~R[:mtcars]
 ```
 
 ```
@@ -388,7 +632,32 @@ puts ~:mtcars
 ## Volvo 142E          21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
 ```
 
-To access an R function from Ruby, the R function needs to be preceeded by 'R.' scoping. 
+## Scoped symbols and lexical scoping
+
+Galaaz 2.0 uses **scoped symbols** by default. The canonical style is `R[:name]`:
+
+- `~R[:mtcars]` fetches an R object by name.
+- `R[:a] + R[:b]` builds an expression.
+- `R[:year].up_to(R[:day])` builds range expressions.
+
+If you prefer the terse `:x` syntax, you can opt in with lexical scoping using a Ruby refinement:
+
+```ruby
+module MyScript
+  using Galaaz::SymbolDSL
+
+  def self.run
+    expr = :a + :b
+    puts expr
+    puts ~:mtcars
+  end
+end
+```
+
+`using Galaaz::SymbolDSL` is **lexically scoped**: only code in that module/file scope gets `:x` DSL behavior.
+Outside that scope, plain Ruby `Symbol` behavior is unchanged.
+
+To access an R function from Ruby, the R function needs to be preceded by `R.` scoping. 
 Below we see an example of creating a R::Vector by calling the 'c' R function
 
 
@@ -528,7 +797,7 @@ single document or set of documents that when distributed to peers could be reru
 the same output and reports.
 
 The R community has put a great deal of effort in reproducible research.  In 2002, Sweave was
-introduced and it allowed mixing R code with Latex generating high quality PDF documents.  A
+introduced and it allowed mixing R code with LaTeX, generating high-quality PDF documents.  A
 Sweave document could include code, the results of executing the code, graphics and text 
 such that it contained the whole narrative to reproduce the research.  In
 2012, Knitr, developed by Yihui Xie from RStudio was released to replace Sweave and to
@@ -537,7 +806,7 @@ were necessary for Sweave.
 
 With Knitr, __R markdown__ was also developed, an extension to the
 Markdown format.  With __R markdown__ and Knitr it is possible to generate reports in a multitude
-of formats such as HTML, markdown, Latex, PDF, dvi, etc.  __R markdown__ also allows the use of
+of formats such as HTML, Markdown, LaTeX, PDF, DVI, etc.  __R markdown__ also allows the use of
 multiple programming languages such as R, Ruby, Python, etc. in the same document.  
 
 In __R markdown__, text is interspersed with
@@ -610,8 +879,8 @@ puts lst
 ```
 
 In the Python community, the same effort to have code and text in an integrated environment
-started around the first decade of 2000. In 2006 iPython 0.7.2 was released.  In 2014,
-Fernando Pérez, spun off project Jupyter from iPython creating a web-based interactive
+started around the first decade of the 2000s. In 2006 IPython 0.7.2 was released.  In 2014,
+Fernando Pérez spun off the Jupyter project from IPython, creating a web-based interactive
 computation environment.  Jupyter can now be used with many languages, including Ruby with the
 iruby gem (https://github.com/SciRuby/iruby).  In order to have multiple languages in a Jupyter
 notebook the SoS kernel was developed (https://vatlab.github.io/sos-docs/).
@@ -625,8 +894,8 @@ have in a single document, text and code.
 
 In gKnit, Ruby variables are persisted between 
 chunks, making  it an ideal solution for literate programming in this language.  Also, 
-since it is based on  Galaaz, Ruby chunks can have access to R variables and Polyglot Programming 
-with Ruby and R is quite natural.
+since it is based on Galaaz, Ruby chunks can access R variables (`~R[:name]`, `R.*`) through the
+**Galaaz bridge** while knitr drives **GNU R**—no GraalVM polyglot runtime is required.
 
 This is not a blog post on __R markdown__, and the interested user is directed to the following links
 for detailed information on its capabilities and use.
@@ -1044,18 +1313,18 @@ Here, for instance, is a table definition in HTML and its output in the document
 </div>
 
 But manually creating HTML output is not always easy or desirable, specially
-if we intend the document to be rendered in other formats, for example, as Latex.
+if we intend the document to be rendered in other formats, for example, as LaTeX.
 Also, The above 
 table looks ugly.  The 'kableExtra' library is a great library for 
 creating beautiful tables. Take a look at https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
 
 In the next chunk, we output the 'mtcars' dataframe from R in a nicely formatted 
-table.  Note that we retrieve the mtcars dataframe by using '~:mtcars'.
+table.  Note that we retrieve the mtcars dataframe by using '~R[:mtcars]'.
 
 
 ``` ruby
 R.install_and_loads('kableExtra')
-outputs (~:mtcars).kable.kable_styling
+outputs (~R[:mtcars]).kable.kable_styling
 ```
 
 <table class="table" style="margin-left: auto; margin-right: auto;">
@@ -1614,7 +1883,7 @@ end
 
 
 ``` ruby
-mtcars = ~:mtcars
+mtcars = ~R[:mtcars]
 model = Model.new(mtcars, percent_train: 0.8)
 model.partition(:mpg)
 puts model.train.head
@@ -1828,7 +2097,7 @@ used to output the `mtcars` data set nicely formatted in HTML by use of the `kab
 
 
 ``` ruby
-outputs (~:mtcars).kable.kable_styling
+outputs (~R[:mtcars]).kable.kable_styling
 ```
 
 <table class="table" style="margin-left: auto; margin-right: auto;">
@@ -2315,7 +2584,7 @@ table.
 | logical   | logical   |      logical |
 | integer   | numeric   |      integer |
 | double    | numeric   |       double |
-| complex   | complex   |      comples |
+| complex   | complex   |      complex |
 | character | character |    character |
 | raw       | raw       |          raw |
 
@@ -2810,7 +3079,7 @@ operator) and then the vector was indexed by its first element, extracting the n
 
 A data frame is a table like structure in which each column has the same number of 
 rows. Data frames are the basic structure for storing data for data analysis.  We have already
-seen a data frame previously when we accessed variable '~:mtcars'.  In order to create a
+seen a data frame previously when we accessed variable '~R[:mtcars]'.  In order to create a
 data frame, function 'data__frame' is used:
 
 
@@ -2836,9 +3105,9 @@ column can either be a numeric or the name of the row or column
 
 
 ``` ruby
-puts (~:mtcars).head
-puts (~:mtcars)[1, 2]
-puts (~:mtcars)['Datsun 710', 'mpg']
+puts (~R[:mtcars]).head
+puts (~R[:mtcars])[1, 2]
+puts (~R[:mtcars])['Datsun 710', 'mpg']
 ```
 
 ```
@@ -2858,7 +3127,7 @@ operator:
 
 
 ``` ruby
-puts (~:mtcars)[['mpg']]
+puts (~R[:mtcars])[['mpg']]
 ```
 
 ```
@@ -2871,7 +3140,7 @@ A data frame column can also be accessed as if it were an instance variable of t
 
 
 ``` ruby
-puts (~:mtcars).mpg
+puts (~R[:mtcars]).mpg
 ```
 
 ```
@@ -2885,7 +3154,7 @@ output):
 
 
 ``` ruby
-puts (~:mtcars)[R.c('mpg', 'hp')].head
+puts (~R[:mtcars])[R.c('mpg', 'hp')].head
 ```
 
 ```
@@ -2898,7 +3167,7 @@ A row slice can be obtained by indexing by row and using the ':all' keyword for 
 
 
 ``` ruby
-puts (~:mtcars)[R.c('Datsun 710', 'Camaro Z28'), :all]
+puts (~R[:mtcars])[R.c('Datsun 710', 'Camaro Z28'), :all]
 ```
 
 ```
@@ -2909,13 +3178,13 @@ puts (~:mtcars)[R.c('Datsun 710', 'Camaro Z28'), :all]
 
 Finally, a data frame can also be indexed with a logical vector.  In this next example, the
 'am' column of :mtcars is compared with 0 (with method 'eq').  When 'am' is equal to 0 the
-car is automatic.  So, by doing '(~:mtcars).am.eq 0' a logical vector is created with 
+car is automatic.  So, by doing '(~R[:mtcars]).am.eq 0' a logical vector is created with 
 'true' whenever 'am' is 0 and 'false' otherwise.
 
 
 ``` ruby
 # obtain a vector with 'true' for cars with automatic transmission
-automatic = (~:mtcars).am.eq 0
+automatic = (~R[:mtcars]).am.eq 0
 puts automatic
 ```
 
@@ -2931,7 +3200,7 @@ which all cars have automatic transmission.
 
 ``` ruby
 # slice the data frame by using this vector
-puts (~:mtcars)[automatic, :all]
+puts (~R[:mtcars])[automatic, :all]
 ```
 
 ```
@@ -2969,7 +3238,7 @@ creates an expression summing two symbols
 
 
 ``` ruby
-exp1 = :a + :b
+exp1 = R[:a] + R[:b]
 puts exp1
 ```
 
@@ -2980,7 +3249,7 @@ We can build any complex mathematical expression
 
 
 ``` ruby
-exp2 = (:a + :b) * 2.0 + :c ** 2 / :z
+exp2 = (R[:a] + R[:b]) * 2.0 + R[:c] ** 2 / R[:z]
 puts exp2
 ```
 
@@ -2992,7 +3261,7 @@ It is also possible to use inequality operators in building expressions
 
 
 ``` ruby
-exp3 = (:a + :b) >= :z
+exp3 = (R[:a] + R[:b]) >= :z
 puts exp3
 ```
 
@@ -3006,7 +3275,7 @@ above can also be written as
 
 
 ``` ruby
-exp4 = (:a + :b).ge :z
+exp4 = (R[:a] + R[:b]).ge :z
 puts exp4
 ```
 
@@ -3020,7 +3289,7 @@ need to use the method '.eq' and for '=' we need the function '.assign'
 
 
 ``` ruby
-exp5 = (:a + :b).eq :z
+exp5 = (R[:a] + R[:b]).eq :z
 puts exp5
 ```
 
@@ -3030,7 +3299,7 @@ puts exp5
 
 
 ``` ruby
-exp6 = :y.assign :a + :b
+exp6 = R[:y].assign R[:a] + R[:b]
 puts exp6
 ```
 
@@ -3042,11 +3311,11 @@ symbolic notation as otherwise, we end up writing invalid expressions such as
 
 
 ``` ruby
-exp_wrong = (:a + :b) == :z
+exp_wrong = (R[:a] + R[:b]) == :z
 puts exp_wrong
 ```
 and it might be difficult to understand what is going on here.  The problem lies with the fact that
-when using '==' we are comparing expression (:a + :b) to expression :z with '=='.  When the 
+when using '==' we are comparing expression (R[:a] + R[:b]) to expression :z with '=='.  When the 
 comparison is executed, the system tries to evaluate :a, :b and :z, and those symbols at 
 this time are not bound to anything and we get a "object 'a' not found" message.
 If we only use functional notation, this type of error will not occur.
@@ -3062,7 +3331,7 @@ by the letter E, such as 'E.sin(x)'
 
 
 ``` ruby
-exp7 = :y.assign E.sin(:x)
+exp7 = R[:y].assign E.sin(R[:x])
 puts exp7
 ```
 
@@ -3074,7 +3343,7 @@ Expressions can also be written using '.' notation:
 
 
 ``` ruby
-exp8 = :y.assign :x.sin
+exp8 = R[:y].assign R[:x].sin
 puts exp8
 ```
 
@@ -3086,7 +3355,7 @@ When a function has multiple arguments, the first one can be used before the '.'
 
 
 ``` ruby
-exp9 = :x.c(:y)
+exp9 = R[:x].c(R[:y])
 puts exp9
 ```
 
@@ -3101,7 +3370,7 @@ with a list:
 
 
 ``` ruby
-exp = (:a + :b) * 2.0 + :c ** 2 / :z
+exp = (R[:a] + R[:b]) * 2.0 + R[:c] ** 2 / R[:z]
 puts exp.eval(R.list(a: 10, b: 20, c: 30, z: 40))
 ```
 
@@ -3153,7 +3422,7 @@ R.library('dplyr')
 
 
 ``` ruby
-flights = ~:flights
+flights = ~R[:flights]
 puts flights.head
 ```
 
@@ -3175,11 +3444,11 @@ puts flights.head
 ## Filtering rows with Filter
 
 In this example we filter the flights data set by giving to the filter function two expressions:
-the first :month.eq 1
+the first R[:month].eq 1
 
 
 ``` ruby
-puts flights.filter((:month.eq 1), (:day.eq 1)).head
+puts flights.filter((R[:month].eq 1), (R[:day].eq 1)).head
 ```
 
 ```
@@ -3203,7 +3472,7 @@ All flights that departed in November of December
 
 
 ``` ruby
-puts flights.filter((:month.eq 11) | (:month.eq 12)).head
+puts flights.filter((R[:month].eq 11) | (R[:month].eq 12)).head
 ```
 
 ```
@@ -3273,7 +3542,7 @@ not.
 
 
 ``` ruby
-puts df.filter(:x > 1)
+puts df.filter(R[:x] > 1)
 ```
 
 ```
@@ -3287,7 +3556,7 @@ To match an NA use method 'is__na'
 
 
 ``` ruby
-puts df.filter((:x.is__na) | (:x > 1))
+puts df.filter((R[:x].is__na) | (R[:x] > 1))
 ```
 
 ```
@@ -3326,7 +3595,7 @@ To arrange in descending order, use function 'desc'
 
 
 ``` ruby
-puts flights.arrange(:dep_delay.desc).head
+puts flights.arrange(R[:dep_delay].desc).head
 ```
 
 ```
@@ -3369,7 +3638,7 @@ It is also possible to select column in a given range
 
 
 ``` ruby
-puts flights.select(:year.up_to :day).head
+puts flights.select(R[:year].up_to(R[:day])).head
 ```
 
 ```
@@ -3441,7 +3710,7 @@ puts flights.select(:year, :month, :day, E.everything).head
 
 ``` ruby
 flights_sm = flights.
-               select((:year.up_to :day),
+               select((R[:year].up_to(R[:day])),
                       E.ends_with('delay'),
                       :distance,
                       :air_time)
@@ -3503,7 +3772,7 @@ When a data frame is grouped with 'group_by' summaries apply to the given group:
 
 ``` ruby
 by_day = flights.group_by(:year, :month, :day)
-puts by_day.summarise(delay: :dep_delay.mean(na__rm: true)).head
+puts by_day.summarise(delay: R[:dep_delay].mean(na__rm: true)).head
 ```
 
 ```
@@ -3527,9 +3796,9 @@ delays = flights.
            group_by(:dest).
            summarise(
              count: E.n,
-             dist: :distance.mean(na__rm: true),
-             delay: :arr_delay.mean(na__rm: true)).
-           filter(:count > 20, :dest != "NHL")
+             dist: R[:distance].mean(na__rm: true),
+             delay: R[:arr_delay].mean(na__rm: true)).
+           filter(R[:count] > 20, R[:dest] != "NHL")
 
 puts delays.head
 ```
@@ -3548,61 +3817,63 @@ puts delays.head
 
 # Using Data Table
 
-The next chunk reads the **flights14** sample (same file as the data.table vignette). Prefer
-**downloading in Ruby** and **`R.fread` on a local path**: `data.table::fread("https://…")` runs the
-HTTP transfer **inside R** while the Galaaz bridge waits on a **single** eval; if the remote server
-stalls, that looks like an intermittent “hang” and eventually hits the **per-eval** bridge timeout.
-Ruby’s **`Net::HTTP`** `open_timeout` / `read_timeout` fail fast with a clear error instead.
-The chunk passes **`nrows:`** to **`fread`** so a single bridge eval does not have to materialize the
-full ~1.2M-row table during a gknit run.
+The next chunk converts the **nycflights13** `flights` tibble already loaded above into a
+**`data.table`**. That keeps the manual offline and avoids downloading a remote CSV during gknit
+(network stalls look like bridge hangs when the transfer runs inside a single R eval).
 
 
 ``` ruby
-require 'net/http'
-require 'uri'
-require 'tmpdir'
-
 R.library('data.table')
 
-url = URI('https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv')
-csv = File.join(Dir.tmpdir, "galaaz_manual_flights14_#{Process.pid}.csv")
-begin
-  Net::HTTP.start(url.host, url.port, use_ssl: true, open_timeout: 25, read_timeout: 120) do |http|
-    resp = http.request_get(url.request_uri)
-    raise "HTTP #{resp.code}" unless resp.is_a?(Net::HTTPSuccess)
-
-    File.binwrite(csv, resp.body)
-  end
-
-  # Cap rows so one bridge eval stays short on slow disks (full file is ~1.2M rows).
-  flights = R.fread(csv, nrows: 120_000)
-  puts flights.dim
-  puts R.head(flights, 12)
-ensure
-  File.unlink(csv) if csv && File.exist?(csv)
-end
+flights = R.as__data__table(~R[:flights])
+puts flights.dim
+puts R.head(flights, 12)
 ```
 
 ```
-## Failed to open TCP connection to raw.githubusercontent.com:443 (execution expired)
-```
-
-```
-## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1668:in 'block in connect'
-## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/timeout.rb:185:in 'block in timeout'
-## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/timeout.rb:192:in 'timeout'
-## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1663:in 'connect'
-## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1642:in 'do_start'
-## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1631:in 'start'
-## /home/rbotafogo/.asdf/installs/ruby/jruby-10.0.3.0/lib/ruby/stdlib/net/http.rb:1070:in 'start'
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:179:in 'exec_ruby'
-## org/jruby/RubyKernel.java:1268:in 'eval'
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in 'exec_ruby'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in 'block in initialize'
-## org/jruby/RubyBasicObject.java:2695:in 'instance_eval'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in 'block in initialize'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in 'block in register_callback_proc_stub'
-## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in 'block in handle_call'
+## [1] 336776     19
+##      year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##     <int> <int> <int>    <int>          <int>     <num>    <int>          <int>
+##  1:  2013     1     1      517            515         2      830            819
+##  2:  2013     1     1      533            529         4      850            830
+##  3:  2013     1     1      542            540         2      923            850
+##  4:  2013     1     1      544            545        -1     1004           1022
+##  5:  2013     1     1      554            600        -6      812            837
+##  6:  2013     1     1      554            558        -4      740            728
+##  7:  2013     1     1      555            600        -5      913            854
+##  8:  2013     1     1      557            600        -3      709            723
+##  9:  2013     1     1      557            600        -3      838            846
+## 10:  2013     1     1      558            600        -2      753            745
+## 11:  2013     1     1      558            600        -2      849            851
+## 12:  2013     1     1      558            600        -2      853            856
+##     arr_delay carrier flight tailnum origin   dest air_time distance  hour
+##         <num>  <char>  <int>  <char> <char> <char>    <num>    <num> <num>
+##  1:        11      UA   1545  N14228    EWR    IAH      227     1400     5
+##  2:        20      UA   1714  N24211    LGA    IAH      227     1416     5
+##  3:        33      AA   1141  N619AA    JFK    MIA      160     1089     5
+##  4:       -18      B6    725  N804JB    JFK    BQN      183     1576     5
+##  5:       -25      DL    461  N668DN    LGA    ATL      116      762     6
+##  6:        12      UA   1696  N39463    EWR    ORD      150      719     5
+##  7:        19      B6    507  N516JB    EWR    FLL      158     1065     6
+##  8:       -14      EV   5708  N829AS    LGA    IAD       53      229     6
+##  9:        -8      B6     79  N593JB    JFK    MCO      140      944     6
+## 10:         8      AA    301  N3ALAA    LGA    ORD      138      733     6
+## 11:        -2      B6     49  N793JB    JFK    PBI      149     1028     6
+## 12:        -3      B6     71  N657JB    JFK    TPA      158     1005     6
+##     minute           time_hour
+##      <num>              <POSc>
+##  1:     15 2013-01-01 05:00:00
+##  2:     29 2013-01-01 05:00:00
+##  3:     40 2013-01-01 05:00:00
+##  4:     45 2013-01-01 05:00:00
+##  5:      0 2013-01-01 06:00:00
+##  6:     58 2013-01-01 05:00:00
+##  7:      0 2013-01-01 06:00:00
+##  8:      0 2013-01-01 06:00:00
+##  9:      0 2013-01-01 06:00:00
+## 10:      0 2013-01-01 06:00:00
+## 11:      0 2013-01-01 06:00:00
+## 12:      0 2013-01-01 06:00:00
 ```
 
 
@@ -3633,7 +3904,7 @@ puts data_table.ID
 
 ``` ruby
 # subset rows in i
-ans = flights[(:origin.eq "JFK") & (:month.eq 6)]
+ans = flights[(R[:origin].eq "JFK") & (R[:month].eq 6)]
 puts ans.head
 
 # Get the first two rows from flights.
@@ -3641,39 +3912,48 @@ puts ans.head
 ans = flights[(1..2)]
 puts ans
 
-# Sort flights first by column origin in ascending order, and then by dest in descending order:
-
+# Sort by origin asc, then dest desc (example kept commented):
 # ans = flights[E.order(:origin, -(:dest))]
 # puts ans.head
 ```
 
 ```
-## # A tibble: 6 × 19
-##    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##   <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
-## 1  2013     6     1        2           2359         3      341            350
-## 2  2013     6     1      538            545        -7      925            922
-## 3  2013     6     1      539            540        -1      832            840
-## 4  2013     6     1      553            600        -7      700            711
-## 5  2013     6     1      554            600        -6      851            908
-## 6  2013     6     1      557            600        -3      934            942
-## # ℹ 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
-## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
-## #   hour <dbl>, minute <dbl>, time_hour <dttm>
-## # A tibble: 336,776 × 2
-##     year month
-##    <int> <int>
-##  1  2013     1
-##  2  2013     1
-##  3  2013     1
-##  4  2013     1
-##  5  2013     1
-##  6  2013     1
-##  7  2013     1
-##  8  2013     1
-##  9  2013     1
-## 10  2013     1
-## # ℹ 336,766 more rows
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <num>    <int>          <int>
+## 1:  2013     6     1        2           2359         3      341            350
+## 2:  2013     6     1      538            545        -7      925            922
+## 3:  2013     6     1      539            540        -1      832            840
+## 4:  2013     6     1      553            600        -7      700            711
+## 5:  2013     6     1      554            600        -6      851            908
+## 6:  2013     6     1      557            600        -3      934            942
+##    arr_delay carrier flight tailnum origin   dest air_time distance  hour
+##        <num>  <char>  <int>  <char> <char> <char>    <num>    <num> <num>
+## 1:        -9      B6    739  N618JB    JFK    PSE      200     1617    23
+## 2:         3      B6    725  N806JB    JFK    BQN      203     1576     5
+## 3:        -8      AA    701  N5EAAA    JFK    MIA      140     1089     5
+## 4:       -11      EV   5716  N835AS    JFK    IAD       42      228     6
+## 5:       -17      UA   1159  N33132    JFK    LAX      330     2475     6
+## 6:        -8      B6    715  N766JB    JFK    SJU      198     1598     6
+##    minute           time_hour
+##     <num>              <POSc>
+## 1:     59 2013-06-01 23:00:00
+## 2:     45 2013-06-01 05:00:00
+## 3:     40 2013-06-01 05:00:00
+## 4:      0 2013-06-01 06:00:00
+## 5:      0 2013-06-01 06:00:00
+## 6:      0 2013-06-01 06:00:00
+##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
+##    <int> <int> <int>    <int>          <int>     <num>    <int>          <int>
+## 1:  2013     1     1      517            515         2      830            819
+## 2:  2013     1     1      533            529         4      850            830
+##    arr_delay carrier flight tailnum origin   dest air_time distance  hour
+##        <num>  <char>  <int>  <char> <char> <char>    <num>    <num> <num>
+## 1:        11      UA   1545  N14228    EWR    IAH      227     1400     5
+## 2:        20      UA   1714  N24211    LGA    IAH      227     1416     5
+##    minute           time_hour
+##     <num>              <POSc>
+## 1:     15 2013-01-01 05:00:00
+## 2:     29 2013-01-01 05:00:00
 ```
 
 
@@ -3684,7 +3964,7 @@ puts ans
 ans = flights[:all, :arr_delay]
 puts ans.head
 
-# Select arr_delay column, but return as a data.table instead.
+# arr_delay as data.table (not plain vector).
 
 ans = flights[:all, R[:arr_delay].list]
 puts ans.head
@@ -3693,22 +3973,15 @@ ans = flights[:all, E.list(R[:arr_delay], R[:dep_delay])]
 ```
 
 ```
-## Error: object 'arr_delay' not found
-```
-
-```
-## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:268:in 'eval_r'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:231:in 'eval_r_with_result'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:359:in 'exec_function'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rmd_indexed_object.rb:43:in '[]'
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:173:in 'exec_ruby'
-## org/jruby/RubyKernel.java:1268:in 'eval'
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in 'exec_ruby'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in 'block in initialize'
-## org/jruby/RubyBasicObject.java:2695:in 'instance_eval'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in 'block in initialize'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in 'block in register_callback_proc_stub'
-## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in 'block in handle_call'
+## [1]  11  20  33 -18 -25  12
+##    arr_delay
+##        <num>
+## 1:        11
+## 2:        20
+## 3:        33
+## 4:       -18
+## 5:       -25
+## 6:        12
 ```
 
 # Apache Arrow
@@ -3746,9 +4019,9 @@ when experimenting locally.
 
 
 ``` ruby
-# Same idea as slow-specs/arrow_large_pipeline_spec.rb (scaled down for gKnit).
+# Scaled-down version of slow-specs/arrow_large_pipeline_spec.rb.
 unless R::Support.eval("requireNamespace('arrow', quietly=TRUE) && requireNamespace('dplyr', quietly=TRUE)") == true
-  puts '(Skip: install R packages arrow and dplyr, and use bin/galaaz-jruby when running outside gKnit.)'
+  puts '(Skip: need arrow + dplyr in R; use bin/galaaz-jruby outside gKnit.)'
 else
   thread_count = 4
   rows_per_thread = 500
@@ -3782,7 +4055,7 @@ else
     grouped,
     n: E.n(),
     total: E.sum(:value),
-    wsum: E.sum(:value * :weight)
+    wsum: E.sum(R[:value] * R[:weight])
   )
   out = R.dplyr___collect(summarised)
 
@@ -3847,10 +4120,10 @@ The workflow in Ruby mirrors a standard DESeq2 vignette:
 
 1. **`R.library('DESeq2')`** and **`R.library('airway')`**, then **`R.data('airway')`** so the
    object exists in R’s global environment.
-2. **`airway = ~:airway`** pulls the experiment into a Galaaz wrapper so you can pass it to R
+2. **`airway = ~R[:airway]`** pulls the experiment into a Galaaz wrapper so you can pass it to R
    functions as a Ruby value.
-3. **`R.DESeqDataSet(..., design: (:all.til :cell + :dex))`** builds the **`DESeqDataSet`**. The
-   **`(:all.til :cell + :dex)`** form is Galaaz’s way of passing the one-sided formula
+3. **`R.DESeqDataSet(..., design: (R[:all].til R[:cell] + R[:dex]))`** builds the **`DESeqDataSet`**. The
+   **`(R[:all].til R[:cell] + R[:dex])`** form is Galaaz’s way of passing the one-sided formula
    **`~ cell + dex`** (adjust for the design you need).
 4. Prefilter rows with almost no counts: **`keep = R.rowSums(R.counts(dds)) >= 10`** and
    **`dds = dds[keep, :all]`**.
@@ -3868,8 +4141,8 @@ manual is knitted, because **DESeq2** is heavy and may be absent on the build ma
 
 
 ``` ruby
-# Source of truth: examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
-# Run from repository root: bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+# Canonical script: examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+# Run: bin/galaaz-jruby examples/.../deseq2_airway_galaaz.rb (repo root).
 
 require 'galaaz'
 
@@ -3877,10 +4150,10 @@ R.library('DESeq2')
 R.library('airway')
 R.data('airway')
 
-airway = ~:airway
+airway = ~R[:airway]
 
 # Build DESeq2 dataset with one-sided formula: ~ cell + dex.
-dds = R.DESeqDataSet(airway, design: (:all.til :cell + :dex))
+dds = R.DESeqDataSet(airway, design: (R[:all].til R[:cell] + R[:dex]))
 
 # Prefilter genes with almost no counts.
 keep = R.rowSums(R.counts(dds)) >= 10
@@ -3917,7 +4190,7 @@ else
   R.library('DESeq2')
   R.library('airway')
   R.data('airway')
-  airway = ~:airway
+  airway = ~R[:airway]
   puts 'airway object (head of assay / dims via R):'
   puts "ncol(samples): #{R.ncol(airway)}"
   puts R.head(R.assay(airway), 3)
@@ -3965,32 +4238,24 @@ the data frame with the necessary data:
 
 
 ``` ruby
-# copy the R variable :mtcars to the Ruby mtcars variable
-mtcars = ~:mtcars
+# :mtcars -> Ruby handle
+mtcars = ~R[:mtcars]
 
-# create a new column 'car_name' to store the car names so that it can be
-# used for plotting. The 'rownames' of the data frame cannot be used as
-# data for plotting
-mtcars.car_name = R.rownames(:mtcars)
+# Row labels are not a plot column; copy them to car_name.
+mtcars.car_name = R.rownames(R[:mtcars])
 
-# compute normalized mpg and add it to a new column called mpg_z
-# Note that the mean value for mpg can be obtained by calling the 'mean'
-# function on the vector 'mtcars.mpg'.  The same with the standard
-# deviation 'sd'.  The vector is then rounded to two digits with 'round 2'
+# Z-score mpg (mean/sd on mtcars.mpg); round to 2 decimals.
 mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean)/mtcars.mpg.sd).round 2
 
-# create a new column 'mpg_type'. Function 'ifelse' is a vectorized function
-# that looks at every element of the mpg_z vector and if the value is below
-# 0, returns 'below', otherwise returns 'above'
+# ifelse is vectorized: below / above average mpg_z.
 mtcars.mpg_type = (mtcars.mpg_z < 0).ifelse("below", "above")
 
-# order the mtcars data set by the mpg_z vector from smaller to larger values
+# Sort rows by mpg_z.
 mtcars = mtcars[mtcars.mpg_z.order, :all]
 
-# convert the car_name column to a factor to retain sorted order in plot
+# Factor car_name so plot order follows sort.
 mtcars.car_name = mtcars.car_name.factor levels: mtcars.car_name
 
-# let's look at the final data frame
 puts mtcars.head
 ```
 
@@ -4072,14 +4337,14 @@ filter(df, my_var == 1)
 It generates the following error: "object 'x' not found.
 
 However, in Galaaz, arguments are referentially transparent as can be seen by the 
-code below.  Note initially that 'my_var = :x' will not give the error "object 'x' not found" 
+code below.  Note initially that 'my_var = R[:x]' will not give the error "object 'x' not found" 
 since ':x' is treated as an expression and assigned to my\_var. Then when doing (my\_var.eq 1), 
-my\_var is a variable that resolves to ':x' and it becomes equivalent to (:x.eq 1) which is
+my\_var is a variable that resolves to ':x' and it becomes equivalent to (R[:x].eq 1) which is
 what we want.
 
 
 ``` ruby
-my_var = :x
+my_var = R[:x]
 puts df.filter(my_var.eq 1)
 ```
 
@@ -4099,9 +4364,9 @@ df[x == df$y, ]
 df[x == y, ]
 ```
 In galaaz this ambiguity does not exist, filter(df, x.eq y) is not a valid expression as 
-expressions are build with symbols.  In doing filter(df, :x.eq y) we are looking for elements
+expressions are build with symbols.  In doing filter(df, R[:x].eq y) we are looking for elements
 of the 'x' column that are equal to a previously defined y variable.  Finally in 
-filter(df, :x.eq :y) we are looking for elements in which the 'x' column value is equal to
+filter(df, R[:x].eq R[:y]) we are looking for elements in which the 'x' column value is equal to
 the 'y' column value. This can be seen in the following two chunks of code:
 
 
@@ -4110,7 +4375,7 @@ y = 1
 x = 2
 
 # looking for values where the 'x' column is equal to the 'y' column
-puts df.filter(:x.eq :y)
+puts df.filter(R[:x].eq R[:y])
 ```
 
 ```
@@ -4122,7 +4387,7 @@ puts df.filter(:x.eq :y)
 ``` ruby
 # looking for values where the 'x' column is equal to the 'y' variable
 # in this case, the number 1
-puts df.filter(:x.eq y)
+puts df.filter(R[:x].eq y)
 ```
 
 ```
@@ -4159,7 +4424,8 @@ In Galaaz the method mutate_y below will work fine and will never fail silently.
 
 ``` ruby
 def mutate_y(df)
-  df.mutate(:y.assign :a + :x)
+  # Mutate column names are Ruby kwargs (y: …). Use .assign only for R `<-` expressions.
+  df.mutate(y: R[:a] + R[:x])
 end
 ```
 Here we create a data frame that has only one column named 'x':
@@ -4178,7 +4444,7 @@ puts df1
 ```
 
 Note that method mutate_y will fail independently from the fact that variable 'a' is defined and
-in the scope of the method.  Variable 'a' has no relationship with the symbol ':a' used in the
+in the scope of the method.  Variable 'a' has no relationship with the symbol `R[:a]` used in the
 definition of 'mutate\_y' above:
 
 
@@ -4188,8 +4454,9 @@ mutate_y(df1)
 ```
 
 ```
-## Error in strsplit(path, "/") : non-character argument
-## Calls: mutate ... .rlang_purrr_map_mold -> vapply -> FUN -> path_trim_prefix -> strsplit
+## Error: ℹ In argument: `y = a + x`.
+## Caused by error:
+## ! object 'a' not found
 ```
 ## Different expressions
 
@@ -4269,12 +4536,12 @@ and functions such as 'quo', 'quos', 'enquo', 'enquos', '!!' (bang bang), '!!!' 
 Again, we'll leave to Hadley the explanation on how to use all those functions.
 
 Now, let's try to implement the same function in galaaz.  The next code block first prints the
-'df' data frame defined previously in R (to access an R variable from Galaaz, we use the tilda 
-operator '~' applied to the R variable name as symbol, i.e., ':df'.
+'df' data frame defined previously in R (to access an R variable from Galaaz, we use the tilde
+operator `~` applied to the R variable name as a symbol, e.g. `:df`).
 
 
 ``` ruby
-puts ~:df
+puts ~R[:df]
 ```
 
 ```
@@ -4287,16 +4554,16 @@ puts ~:df
 ```
 
 We then create the 'my_summarize' method and call it passing the R data frame and 
-the group by variable ':g1':
+the group by variable 'R[:g1]':
 
 
 ``` ruby
 def my_summarize(df, group_var)
   df.group_by(group_var).
-    summarize(a: :a.mean)
+    summarize(a: R[:a].mean)
 end
 
-puts my_summarize(:df, :g1)
+puts my_summarize(~R[:df], R[:g1])
 ```
 
 ```
@@ -4311,7 +4578,7 @@ It works!!! Well, let's make sure this was not just some coincidence
 
 
 ``` ruby
-puts my_summarize(:df, :g2)
+puts my_summarize(~R[:df], R[:g2])
 ```
 
 ```
@@ -4361,10 +4628,10 @@ def my_summarise2(df, expr)
   )
 end
 
-puts my_summarise2((~:df), :a)
+puts my_summarise2((~R[:df]), :a)
 puts "
 "
-puts my_summarise2((~:df), :a * :b)
+puts my_summarise2((~R[:df]), R[:a] * R[:b])
 ```
 
 ```
@@ -4421,10 +4688,10 @@ def my_mutate(df, expr)
             sum_name => E.sum(expr))
 end
 
-puts my_mutate((~:df), :a)
+puts my_mutate((~R[:df]), :a)
 puts "
 "
-puts my_mutate((~:df), :b)
+puts my_mutate((~R[:df]), :b)
 ```
 
 ```
@@ -4465,7 +4732,7 @@ def my_summarise3(df, *group_vars)
     summarise(a: E.mean(:a))
 end
 
-puts my_summarise3((~:df), :g1, :g2)
+puts my_summarise3((~R[:df]), R[:g1], R[:g2])
 ```
 
 ```
@@ -4494,7 +4761,7 @@ In Ruby, there is no lazy evaluation of parameters and 'a' is always a variable 
 Variables assume their value as soon as they are used, so 'x = a' is immediately evaluate and 
 variable 'x' will receive the value of variable 'a' as soon as the Ruby statement is executed. 
 Ruby also provides the notion of a symbol; ':a' is a symbol and does not evaluate to anything.
-Galaaz uses Ruby symbols to build expressions that are not bound to anything: ':a.eq :b' is
+Galaaz uses Ruby symbols to build expressions that are not bound to anything: 'R[:a].eq R[:b]' is
 clearly an expression and has no relationship whatsoever with the statment 'a = b'. By using
 symbols, variables and expressions all the possible ambiguities that are found in R are 
 eliminated in Galaaz.
@@ -4504,7 +4771,7 @@ of input they are expecting, they might be expecting regular variables or they m
 expecting expressions and the R function will know how to deal with an input of the form 
 'a = b', now for the Ruby developer it might not be immediately clear if it should call the 
 function passing the value 'true' if variable 'a' is equal to variable 'b' or if it should
-call the function passing the expression ':a.eq :b'.
+call the function passing the expression 'R[:a].eq R[:b]'.
 
 
 ## Advanced dplyr features
@@ -4528,7 +4795,7 @@ features of characters in the Starwars movies:
 
 
 ``` ruby
-puts (~:starwars).head
+puts (~R[:starwars]).head
 ```
 
 ```
@@ -4606,11 +4873,11 @@ def grouped_mean(data, grouping_variables, value_variables)
   data.
     group_by_at(grouping_variables).
     mutate(count: E.n).
-    summarise_at(E.c(value_variables, "count"), ~:mean, na__rm: true).
+    summarise_at(E.c(value_variables, "count"), ~R[:mean], na__rm: true).
     rename_at(value_variables, E.funs(E.paste0("mean_", value_variables)))
 end
 
-puts grouped_mean((~:starwars), "eye_color", E.c("mass", "birth_year"))
+puts grouped_mean((~R[:starwars]), "eye_color", E.c("mass", "birth_year"))
 ```
 
 ```
