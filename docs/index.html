@@ -100,6 +100,17 @@ make -C "${gem_dir}/ext/new_bridge" all</pre>
       <a href="https://rubygems.org/gems/galaaz">RubyGems</a>
       (<a href="https://github.com/rbotafogo/galaaz/blob/galaaz2_0/CHANGELOG.md">changelog</a>).
     </p>
+    <h2>Try (Docker)</h2>
+    <p>
+      A public try image has JRuby, GNU&nbsp;R, and Galaaz already installed and
+      starts <code>gstudio</code> (IRB). Docker only; nothing to gem-install:
+    </p>
+    <pre>docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio</pre>
+    <p>
+      Then <code>vec = R.c(1, 2, 3); puts vec</code>. From a checkout you can
+      also build it locally with <code>./docker/try-gstudio/run.sh</code>.
+      This is a demo shell, not the cold-install proof.
+    </p>
     <p>
       Maintainers can prove a RubyGems install in a throwaway Ubuntu container
       (no git repo inside):

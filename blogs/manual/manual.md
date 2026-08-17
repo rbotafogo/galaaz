@@ -336,7 +336,7 @@ A **table of all `bin/` scripts** (bootstrap, JRuby wrapper, gstudio, gknit, tes
 2. Build the bridge native code: **`make -C ext/new_bridge all`** (or **`rake compile_gatekeeper`**).
 3. Run scripts with **`bin/galaaz-jruby`** (sources **`bin/galaaz_jruby_env.inc.sh`** and adds **`-I lib`**).
 
-Maintainers can prove a built `.gem` on a throwaway Ubuntu machine (no repo inside the container) with **`./docker/cold-install/run.sh`**.
+A **gstudio** try image (JRuby + R + Galaaz already installed) is **`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio`** (or **`./docker/try-gstudio/run.sh`** from a checkout). Maintainers can prove a RubyGems install on a throwaway Ubuntu machine (no repo inside the container) with **`./docker/cold-install/run.sh published-specs`**.
 
 ## Windows + WSL2 (optional: Docker / R in a container)
 
