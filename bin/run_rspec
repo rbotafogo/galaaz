@@ -18,5 +18,6 @@ fi
 exec jruby -I "$ROOT/lib" \
   $GALAAZ_REQUIRED_JRUBY_J_ARGS \
   ${GALAAZ_JRUBY_OPTS:-} \
+  -S bundle exec rspec \
   -r "$ROOT/specs/spec_helper.rb" \
-  -S bundle exec rspec "$@"
+  "$@"
