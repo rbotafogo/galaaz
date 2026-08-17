@@ -342,7 +342,9 @@ module R
     end
 
     # Unbox via >>: same as unboxed_get so (self >> nil) and (self >> 0) work.
+    # << is kept as a compatibility alias for older Galaaz docs/examples.
     alias_method :>>, :unboxed_get
+    alias_method :<<, :unboxed_get
 
     # Unboxing semantics (>> nil / to_ruby / unboxed_get(nil)): recurse until result contains only Ruby
     # values (Integer, Float, String, true/false, Array, nil). List → Array (single list → [x]).

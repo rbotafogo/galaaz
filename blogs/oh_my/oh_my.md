@@ -23,7 +23,7 @@ fontsize: 11pt
 
 # Introduction
 
-This paper introduces and compares Galaaz with R's S4.  It is a shameless rip off of 
+This paper introduces and compares Galaaz with R's S4.  It is **modeled closely** on
 ["A '(not so)' Short Introduction to S4"](https://cran.r-project.org/doc/contrib/Genolini-S4tutorialV0-5en.pdf) by Christophe Genolini and follows the same structure and examples presented there.
 
 Galaaz is a Ruby Gem (library) that allows very tight integration between Ruby and R.  
@@ -70,7 +70,7 @@ type information is also not a "compile" time type, since R is not compiled.  Th
 checked at runtime.  The same checking can be done in Ruby and we will do it later in this 
 document.
 
-In the example bellow, we create 
+In the example below, we create 
 class Trajectories with two instance variables, 'times' and 'matrix'.  We will not go over 
 the details of instance variables in Ruby, but here we created those variables with the 
 keyword 'attr_reader' and a colom before the variables name:
@@ -86,7 +86,7 @@ end
 
 
 In order to create a new instance of object Trajectories we call method new on the class and
-we can store the result in a varible (not an instance variable) as bellow:
+we can store the result in a variable (not an instance variable) as below:
 
 
 ``` ruby
@@ -102,7 +102,7 @@ puts @traj
 ```
 
 ```
-## #<RC::Trajectories:0x395d137e>
+## #<RC::Trajectories:0x1e6bdce4>
 ```
 
 To see the contents of an object, one needs to access its components using the '.' operator:
@@ -117,7 +117,7 @@ puts @traj.times
 Since there is no content stored in 'times' nor 'matrix', nil is returned.  In order to add
 a value in the variables, we need to add a constructor to the class Trajectories.  In R, a 
 constructor is build by default, in Ruby, this has to be created by adding a method called
-'initialize'.  In the example bellow, we will create the initializer that accepts two values,
+'initialize'.  In the example below, we will create the initializer that accepts two values,
 a 'times' value and a 'matrix' value and they are used to initialize the value of the 
 instance variables:
 
@@ -153,7 +153,7 @@ i.e., R functions are all defined in Galaaz in the R namespace.
 Since Galaaz is Ruby and not R, some syntax adjustments are sometimes necessary.  For instance,
 in R, a range is represented as '(1:4)', in Ruby, the same range is represented as '(1..4)'. 
 When passing arguments to an R function in R one uses the '=' sign after the slot name; in R,
-one uses the ':' operator after parameter's name as we can see bellow:
+one uses the ':' operator after parameter's name as we can see below:
 
 
 ``` ruby
@@ -282,7 +282,7 @@ recommend its use, there are many cases in which default values are useful and m
 We have already seen default values in this document, with the default being 'nil'.  This was
 necessary in order to be able to create our constructor and passing it the proper values.
 
-In the example bellow, a class TrajectoriesBis is created with default value 1 for times and a 
+In the example below, a class TrajectoriesBis is created with default value 1 for times and a 
 matrix with no elements in matrix.
 
 
@@ -394,7 +394,7 @@ Trajectories to add methods to it.  In SS4, a method 'plot' is added to Trajecto
 point, Renjin and Galaaz do not yet have plotting capabilities, so we will have to skip this 
 method and go directly to the implementation of the 'print' method.
 
-Bellow is the R code for method print:
+Below is the R code for method print:
 
 ```
 > setMethod ("print","Trajectories",
@@ -511,7 +511,7 @@ features of Galaaz, some we have already seen, others will be described now:
   an R vector that holds a number, then @num.gz is a number that can be used normally with Ruby
   methods;
 
-* R functions and Ruby methods can be used freely in Galaaz.  We show bellow two different ways
+* R functions and Ruby methods can be used freely in Galaaz.  We show below two different ways
   of getting the minimum of a number, either by calling R.min or by getting the minimum of an 
   array, with the min method;
 
@@ -539,8 +539,8 @@ class Trajectories
     puts("*** Class Trajectories, method Show *** ")
     Kernel.print("times = ")
     puts @times
-    nrow_show = [10, @matrix.nrow << 0].min
-    ncol_show = R.min(10, @matrix.ncol) << 0
+    nrow_show = [10, @matrix.nrow >> 0].min
+    ncol_show = R.min(10, @matrix.ncol) >> 0
     puts("* Traj (limited to a matrix 10x10) = ")
     puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
     puts("******* End Show (trajectories) ******* ")
@@ -555,26 +555,52 @@ end
 ```
 
 ```
-## parse error
-```
-
-```
-## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:268:in 'eval_r'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:231:in 'eval_r_with_result'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:359:in 'exec_function'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:618:in 'process_missing_dispatch'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:468:in 'process_missing'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/robject.rb:404:in 'method_missing'
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:180:in 'show'
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:170:in 'exec_ruby'
-## org/jruby/RubyKernel.java:1268:in 'eval'
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in 'exec_ruby'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in 'block in initialize'
-## org/jruby/RubyBasicObject.java:2695:in 'instance_eval'
-## org/jruby/RubyBasicObject.java:2723:in 'instance_eval'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in 'block in initialize'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in 'block in register_callback_proc_stub'
-## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in 'block in handle_call'
+## *** Class Trajectories, method Show *** 
+## times = 1
+## 2
+## 3
+## 4
+## 5
+## 6
+## 7
+## 8
+## 9
+## 10
+## 12
+## 14
+## 16
+## 18
+## 20
+## 22
+## 24
+## 26
+## 28
+## 30
+## 32
+## * Traj (limited to a matrix 10x10) = 
+##       [,1]    [,2]    [,3]    [,4]    [,5]    [,6]    [,7]    [,8]    [,9]   
+##  [1,] "15.59" "16.36" "16.04" "16.52" "16.66" "16.92" "16.93" "17.19" "17.04"
+##  [2,] "16.09" "16.41" "16.26" "16.59" "16.50" "17.12" "16.73" "17.29" "17.40"
+##  [3,] "16.34" "16.29" "16.12" "16.55" "16.56" "16.73" "16.73" "17.12" "17.16"
+##  [4,] "16.05" "16.31" "16.24" "16.33" "16.75" "16.75" "16.94" "17.11" "17.34"
+##  [5,] "15.89" "15.99" "16.32" "16.18" "16.90" "16.38" "16.77" "17.03" "17.54"
+##  [6,] "15.58" "16.26" "16.05" "16.36" "16.93" "16.81" "17.29" "17.10" "17.23"
+##  [7,] "16.35" "15.93" "16.64" "16.11" "16.88" "16.86" "17.04" "16.98" "17.42"
+##  [8,] "16.07" "16.42" "16.46" "16.37" "16.29" "16.69" "17.15" "16.91" "16.66"
+##  [9,] "15.80" "16.20" "16.26" "16.66" "16.68" "17.19" "16.76" "17.32" "17.15"
+## [10,] "15.72" "16.15" "16.19" "16.55" "16.47" "17.19" "17.06" "17.06" "16.84"
+##       [,10]  
+##  [1,] "17.36"
+##  [2,] "17.28"
+##  [3,] "17.20"
+##  [4,] "17.34"
+##  [5,] "17.76"
+##  [6,] "17.33"
+##  [7,] "17.73"
+##  [8,] "17.56"
+##  [9,] "17.41"
+## [10,] "17.31"
+## ******* End Show (trajectories) *******
 ```
 
 Our show method has the same problem as SS4, i.e., if an empty trajectories object is created and

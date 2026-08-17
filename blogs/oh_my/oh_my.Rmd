@@ -468,8 +468,8 @@ class Trajectories
     puts("*** Class Trajectories, method Show *** ")
     Kernel.print("times = ")
     puts @times
-    nrow_show = [10, @matrix.nrow << 0].min
-    ncol_show = R.min(10, @matrix.ncol) << 0
+    nrow_show = [10, @matrix.nrow >> 0].min
+    ncol_show = R.min(10, @matrix.ncol) >> 0
     puts("* Traj (limited to a matrix 10x10) = ")
     puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
     puts("******* End Show (trajectories) ******* ")

@@ -94,6 +94,7 @@ module R
     end
 
     alias_method :>>, :unboxed_get
+    alias_method :<<, :unboxed_get
 
     # Return Ruby array so RSpec/eq and array conversion don't forward to_ary to R.
     # Must always return an Array (length-1 vector unboxes to scalar via >> nil, so wrap in [v]).

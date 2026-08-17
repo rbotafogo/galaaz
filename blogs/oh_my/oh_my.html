@@ -362,8 +362,8 @@ lambdas, oh my!</h1>
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>This paper introduces and compares Galaaz with R’s S4. It is a
-shameless rip off of <a href="https://cran.r-project.org/doc/contrib/Genolini-S4tutorialV0-5en.pdf">“A
+<p>This paper introduces and compares Galaaz with R’s S4. It is
+<strong>modeled closely</strong> on <a href="https://cran.r-project.org/doc/contrib/Genolini-S4tutorialV0-5en.pdf">“A
 ‘(not so)’ Short Introduction to S4”</a> by Christophe Genolini and
 follows the same structure and examples presented there.</p>
 <p>Galaaz is a Ruby Gem (library) that allows very tight integration
@@ -408,7 +408,7 @@ type information. It should be clear though, that S4 type information is
 also not a “compile” time type, since R is not compiled. The type is
 checked at runtime. The same checking can be done in Ruby and we will do
 it later in this document.</p>
-<p>In the example bellow, we create class Trajectories with two instance
+<p>In the example below, we create class Trajectories with two instance
 variables, ‘times’ and ‘matrix’. We will not go over the details of
 instance variables in Ruby, but here we created those variables with the
 keyword ‘attr_reader’ and a colom before the variables name:</p>
@@ -417,14 +417,14 @@ keyword ‘attr_reader’ and a colom before the variables name:</p>
   attr_reader :matrix
 end</code></pre>
 <p>In order to create a new instance of object Trajectories we call
-method new on the class and we can store the result in a varible (not an
-instance variable) as bellow:</p>
+method new on the class and we can store the result in a variable (not
+an instance variable) as below:</p>
 <pre class="ruby"><code>@traj = Trajectories.new</code></pre>
 <p>We now have in variable ‘<span class="citation">@traj</span>’ a
 Trajectories object. In Ruby, printing variable ‘traj’ will only print
 the class name of the object and not it contents as in R.</p>
 <pre class="ruby"><code>puts @traj</code></pre>
-<pre><code>## #&lt;RC::Trajectories:0x395d137e&gt;</code></pre>
+<pre><code>## #&lt;RC::Trajectories:0x1e6bdce4&gt;</code></pre>
 <p>To see the contents of an object, one needs to access its components
 using the ‘.’ operator:</p>
 <pre class="ruby"><code>puts @traj.times</code></pre>
@@ -435,7 +435,7 @@ using the ‘.’ operator:</p>
 returned. In order to add a value in the variables, we need to add a
 constructor to the class Trajectories. In R, a constructor is build by
 default, in Ruby, this has to be created by adding a method called
-‘initialize’. In the example bellow, we will create the initializer that
+‘initialize’. In the example below, we will create the initializer that
 accepts two values, a ‘times’ value and a ‘matrix’ value and they are
 used to initialize the value of the instance variables:</p>
 <pre class="ruby"><code>class Trajectories
@@ -468,7 +468,7 @@ necessary. For instance, in R, a range is represented as ‘(1:4)’, in
 Ruby, the same range is represented as ‘(1..4)’. When passing arguments
 to an R function in R one uses the ‘=’ sign after the slot name; in R,
 one uses the ‘:’ operator after parameter’s name as we can see
-bellow:</p>
+below:</p>
 <pre class="ruby"><code># Create a Trajectories passing a times vector, but no matrix parameter
 @traj = Trajectories.new(times: R.c(1, 2, 3, 4))
 
@@ -564,8 +564,8 @@ default values are useful and make code simpler. We have already seen
 default values in this document, with the default being ‘nil’. This was
 necessary in order to be able to create our constructor and passing it
 the proper values.</p>
-<p>In the example bellow, a class TrajectoriesBis is created with
-default value 1 for times and a matrix with no elements in matrix.</p>
+<p>In the example below, a class TrajectoriesBis is created with default
+value 1 for times and a matrix with no elements in matrix.</p>
 <pre class="ruby"><code>class TrajectoriesBis
 
   attr_reader :times
@@ -650,7 +650,7 @@ will now extend our class Trajectories to add methods to it. In SS4, a
 method ‘plot’ is added to Trajectories. At this point, Renjin and Galaaz
 do not yet have plotting capabilities, so we will have to skip this
 method and go directly to the implementation of the ‘print’ method.</p>
-<p>Bellow is the R code for method print:</p>
+<p>Below is the R code for method print:</p>
 <pre><code>&gt; setMethod (&quot;print&quot;,&quot;Trajectories&quot;,
 + function(x,...){
 + cat(&quot;*** Class Trajectories, method Print *** \\n&quot;)
@@ -751,9 +751,9 @@ number can be done with method ‘.gz’. So if <span class="citation">@num</spa
 <span class="citation">@num.gz</span> is a number that can be used
 normally with Ruby methods;</p></li>
 <li><p>R functions and Ruby methods can be used freely in Galaaz. We
-show bellow two different ways of getting the minimum of a number,
-either by calling R.min or by getting the minimum of an array, with the
-min method;</p></li>
+show below two different ways of getting the minimum of a number, either
+by calling R.min or by getting the minimum of an array, with the min
+method;</p></li>
 <li><p>Galaaz allows for method ‘chaining’. Method chaining, also known
 as named parameter idiom, is a common syntax for invoking multiple
 method calls in object-oriented programming languages. Each method
@@ -779,8 +779,8 @@ the matrix.</p></li>
     puts(&quot;*** Class Trajectories, method Show *** &quot;)
     Kernel.print(&quot;times = &quot;)
     puts @times
-    nrow_show = [10, @matrix.nrow &lt;&lt; 0].min
-    ncol_show = R.min(10, @matrix.ncol) &lt;&lt; 0
+    nrow_show = [10, @matrix.nrow &gt;&gt; 0].min
+    ncol_show = R.min(10, @matrix.ncol) &gt;&gt; 0
     puts(&quot;* Traj (limited to a matrix 10x10) = &quot;)
     puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
     puts(&quot;******* End Show (trajectories) ******* &quot;)
@@ -788,23 +788,52 @@ the matrix.</p></li>
   
 end</code></pre>
 <pre class="ruby"><code>@trajStAnne.show</code></pre>
-<pre><code>## parse error</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:268:in &#39;eval_r&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:231:in &#39;eval_r_with_result&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:359:in &#39;exec_function&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:618:in &#39;process_missing_dispatch&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/rsupport.rb:468:in &#39;process_missing&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/robject.rb:404:in &#39;method_missing&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:180:in &#39;show&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:170:in &#39;exec_ruby&#39;
-## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in &#39;exec_ruby&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in &#39;block in initialize&#39;
-## org/jruby/RubyBasicObject.java:2695:in &#39;instance_eval&#39;
-## org/jruby/RubyBasicObject.java:2723:in &#39;instance_eval&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in &#39;block in initialize&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in &#39;block in register_callback_proc_stub&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in &#39;block in handle_call&#39;</code></pre>
+<pre><code>## *** Class Trajectories, method Show *** 
+## times = 1
+## 2
+## 3
+## 4
+## 5
+## 6
+## 7
+## 8
+## 9
+## 10
+## 12
+## 14
+## 16
+## 18
+## 20
+## 22
+## 24
+## 26
+## 28
+## 30
+## 32
+## * Traj (limited to a matrix 10x10) = 
+##       [,1]    [,2]    [,3]    [,4]    [,5]    [,6]    [,7]    [,8]    [,9]   
+##  [1,] &quot;15.59&quot; &quot;16.36&quot; &quot;16.04&quot; &quot;16.52&quot; &quot;16.66&quot; &quot;16.92&quot; &quot;16.93&quot; &quot;17.19&quot; &quot;17.04&quot;
+##  [2,] &quot;16.09&quot; &quot;16.41&quot; &quot;16.26&quot; &quot;16.59&quot; &quot;16.50&quot; &quot;17.12&quot; &quot;16.73&quot; &quot;17.29&quot; &quot;17.40&quot;
+##  [3,] &quot;16.34&quot; &quot;16.29&quot; &quot;16.12&quot; &quot;16.55&quot; &quot;16.56&quot; &quot;16.73&quot; &quot;16.73&quot; &quot;17.12&quot; &quot;17.16&quot;
+##  [4,] &quot;16.05&quot; &quot;16.31&quot; &quot;16.24&quot; &quot;16.33&quot; &quot;16.75&quot; &quot;16.75&quot; &quot;16.94&quot; &quot;17.11&quot; &quot;17.34&quot;
+##  [5,] &quot;15.89&quot; &quot;15.99&quot; &quot;16.32&quot; &quot;16.18&quot; &quot;16.90&quot; &quot;16.38&quot; &quot;16.77&quot; &quot;17.03&quot; &quot;17.54&quot;
+##  [6,] &quot;15.58&quot; &quot;16.26&quot; &quot;16.05&quot; &quot;16.36&quot; &quot;16.93&quot; &quot;16.81&quot; &quot;17.29&quot; &quot;17.10&quot; &quot;17.23&quot;
+##  [7,] &quot;16.35&quot; &quot;15.93&quot; &quot;16.64&quot; &quot;16.11&quot; &quot;16.88&quot; &quot;16.86&quot; &quot;17.04&quot; &quot;16.98&quot; &quot;17.42&quot;
+##  [8,] &quot;16.07&quot; &quot;16.42&quot; &quot;16.46&quot; &quot;16.37&quot; &quot;16.29&quot; &quot;16.69&quot; &quot;17.15&quot; &quot;16.91&quot; &quot;16.66&quot;
+##  [9,] &quot;15.80&quot; &quot;16.20&quot; &quot;16.26&quot; &quot;16.66&quot; &quot;16.68&quot; &quot;17.19&quot; &quot;16.76&quot; &quot;17.32&quot; &quot;17.15&quot;
+## [10,] &quot;15.72&quot; &quot;16.15&quot; &quot;16.19&quot; &quot;16.55&quot; &quot;16.47&quot; &quot;17.19&quot; &quot;17.06&quot; &quot;17.06&quot; &quot;16.84&quot;
+##       [,10]  
+##  [1,] &quot;17.36&quot;
+##  [2,] &quot;17.28&quot;
+##  [3,] &quot;17.20&quot;
+##  [4,] &quot;17.34&quot;
+##  [5,] &quot;17.76&quot;
+##  [6,] &quot;17.33&quot;
+##  [7,] &quot;17.73&quot;
+##  [8,] &quot;17.56&quot;
+##  [9,] &quot;17.41&quot;
+## [10,] &quot;17.31&quot;
+## ******* End Show (trajectories) *******</code></pre>
 <p>Our show method has the same problem as SS4, i.e., if an empty
 trajectories object is created and we try to ‘show’ it, it will generate
 an error. Let’s see it:</p>
