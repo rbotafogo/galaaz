@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-# Inside the Ubuntu image: install the mounted .gem, build the gatekeeper, run smoke.rb.
+# Inside the Ubuntu image: install galaaz, build the gatekeeper, run smoke.rb.
+# Source is a mounted /dist/*.gem, or RubyGems when GALAAZ_COLD_INSTALL_SOURCE=rubygems.
 set -euo pipefail
-
-gem_file="$(ls -1 /dist/galaaz-*.gem 2>/dev/null | head -n 1 || true)"
-if [[ -z "${gem_file}" ]]; then
-  echo "cold-install: mount the built gem at /dist/galaaz-*.gem" >&2
-  exit 1
-fi
 
 export GEM_HOME="${GEM_HOME:-/opt/smoke-gems}"
 export GEM_PATH="${GEM_HOME}"
@@ -17,13 +12,26 @@ mkdir -p "${GALAAZ_RCPP_CACHE_DIR}" "${GEM_HOME}"
 
 echo "[cold-install] ruby=$(jruby -v)"
 echo "[cold-install] R=$(R --version | head -n 1)"
-echo "[cold-install] gem install ${gem_file} (msgpack from rubygems.org)"
 gem sources --add https://rubygems.org/ >/dev/null 2>&1 || true
-# Not --local: the .gem is a file, but runtime deps (msgpack) still come from Rubygems.
-gem install --source https://rubygems.org "${gem_file}"
+
+SOURCE="${GALAAZ_COLD_INSTALL_SOURCE:-local}"
+if [[ "${SOURCE}" == "rubygems" ]]; then
+  echo "[cold-install] gem install galaaz from rubygems.org"
+  gem install --source https://rubygems.org galaaz
+else
+  gem_file="$(ls -1 /dist/galaaz-*.gem 2>/dev/null | head -n 1 || true)"
+  if [[ -z "${gem_file}" ]]; then
+    echo "cold-install: mount the built gem at /dist/galaaz-*.gem" >&2
+    exit 1
+  fi
+  echo "[cold-install] gem install ${gem_file} (msgpack from rubygems.org)"
+  # Not --local: the .gem is a file, but runtime deps (msgpack) still come from Rubygems.
+  gem install --source https://rubygems.org "${gem_file}"
+fi
 
 gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
-echo "[cold-install] gem dir=${gem_dir}"
+ver="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').version")"
+echo "[cold-install] galaaz ${ver} gem dir=${gem_dir}"
 echo "[cold-install] make -C ext/new_bridge all"
 make -C "${gem_dir}/ext/new_bridge" all
 
