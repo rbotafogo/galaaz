@@ -2,6 +2,11 @@
 
 These are R Markdown (`.Rmd`) documents that use **gknit** to run Ruby/Galaaz chunks and render HTML (or other formats).
 
+**Published renders** (HTML/PDF) are on GitHub Pages:
+https://rbotafogo.github.io/galaaz/
+
+The gem ships blog/manual **sources** (and examples/specs); it does not pack `.html` / `.pdf` or prebuilt `.so` / `.o` files.
+
 ## Generate a single blog
 
 From the **project root**:

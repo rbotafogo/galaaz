@@ -1,0 +1,70 @@
+# Deploy blogs, manuals, and example renderings to GitHub Pages.
+# Enable Pages in the repo settings: Source = GitHub Actions.
+name: Deploy documentation (GitHub Pages)
+
+on:
+  push:
+    branches: [galaaz2_0, master]
+    paths:
+      - 'blogs/**'
+      - 'examples/**'
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp docs/index.html _site/index.html
+          # Full blog tree (HTML/PDF + knit figure dirs + sources for browsing)
+          cp -a blogs _site/blogs
+          # Example tree so rendered PDFs/HTML are reachable under /examples/...
+          cp -a examples _site/examples
+          # No prebuilt native objects on Pages
+          find _site -type f \( -name '*.so' -o -name '*.o' \) -delete
+          # Helpful stub if examples index is opened in a browser
+          cat > _site/examples/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en"><head><meta charset="utf-8"><title>Galaaz examples</title></head>
+          <body>
+          <h1>Galaaz examples</h1>
+          <p>Browse directories for rendered PDF/HTML outputs, or see
+          <a href="https://github.com/rbotafogo/galaaz/tree/galaaz2_0/examples">sources on GitHub</a>.</p>
+          </body></html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

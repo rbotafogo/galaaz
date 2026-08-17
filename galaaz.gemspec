@@ -23,15 +23,13 @@ as usual. Large tables can optionally flow through Apache Arrow on the R side wh
 the helpers described in the project documentation.
 
 You need both JRuby and a working GNU R installation in PATH for the bridge to run.
+Build the native gatekeeper after install with: make -C ext/new_bridge all
 EOF
 
   gem.authors  = ['Rodrigo Botafogo']
   gem.email    = 'rodrigo.a.botafogo@gmail.com'
-  gem.homepage = 'http://github.com/rbotafogo/galaaz/wiki'
+  gem.homepage = 'https://github.com/rbotafogo/galaaz'
   gem.license = 'BSD-2-Clause'
-
-  # This gem targets TruffleRuby only
-  # gem.platform='java'
 
   # gem.add_runtime_dependency 'pry', '~> 0.10'
 
@@ -42,14 +40,19 @@ EOF
   gem.add_development_dependency('rdoc', ">=6.1.2.1")
   # gem.add_development_dependency('rake', '~> 12.0')
 
-  # Ship the manual and LaTeX style with the gem (blogs/manual, supporting Rmd/sty).
-  # Collect all files that do not end with '~'
+  # Ship sources, examples, specs, and blog/manual source files with the gem.
+  # Rendered docs (PDF/HTML) and prebuilt native objects are published on GitHub Pages
+  # and built locally (make -C ext/new_bridge), not packed into the gem.
+  exclude_exts = %w[.pdf .html .htm .so .o]
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
             'lib/**/*[!~]', 'specs/**/*[!~]', 'ext/**/*[!~]', 'examples/**/*[!~]',
             'r_requires/**/*[!~]', 'bin/**/*[!~]',
             'blogs/**/*[!~]', 'sty/**/*[!~]']
-  gem.files = fls
-  
+  gem.files = fls.reject { |f| exclude_exts.include?(File.extname(f).downcase) }
+
+  gem.metadata["homepage_uri"] = gem.homepage
+  gem.metadata["source_code_uri"] = 'https://github.com/rbotafogo/galaaz'
+  gem.metadata["documentation_uri"] = 'https://rbotafogo.github.io/galaaz/'
   gem.metadata["yard.run"] = "yri" # use "yard" to build full HTML docs
-  
+
 end

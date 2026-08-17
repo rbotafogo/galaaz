@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Galaaz documentation</title>
+  <style>
+    :root {
+      --bg: #f7f4ef;
+      --ink: #1c1a16;
+      --muted: #5c574e;
+      --accent: #0b5f4b;
+      --line: #d9d2c5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 500px at 10% -10%, #efe7d8 0%, transparent 55%),
+        radial-gradient(900px 400px at 100% 0%, #ddeee7 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 44rem;
+      margin: 0 auto;
+      padding: 3.5rem 1.25rem 4rem;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.4rem;
+    }
+    .lede {
+      color: var(--muted);
+      font-size: 1.1rem;
+      margin: 0 0 2rem;
+    }
+    h2 {
+      font-size: 1.15rem;
+      margin: 2rem 0 0.75rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid var(--line);
+    }
+    ul { padding-left: 1.1rem; margin: 0.4rem 0 0; }
+    li { margin: 0.35rem 0; }
+    a { color: var(--accent); }
+    a:hover { text-decoration-thickness: 2px; }
+    .note {
+      margin-top: 2.5rem;
+      padding: 0.9rem 1rem;
+      border-left: 3px solid var(--accent);
+      background: rgba(11, 95, 75, 0.06);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    code {
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Galaaz</h1>
+    <p class="lede">
+      Documentation, blogs, and example outputs for Galaaz 2.0
+      (JRuby + GNU&nbsp;R). Source and runnable examples ship in the gem;
+      rendered HTML/PDF live here.
+    </p>
+
+    <h2>Manual</h2>
+    <ul>
+      <li><a href="blogs/manual/manual.html">Galaaz manual (HTML)</a></li>
+      <li><a href="blogs/manual/manual.pdf">Galaaz manual (PDF)</a></li>
+      <li><a href="blogs/manual/manual.md">Manual source (Markdown)</a></li>
+    </ul>
+
+    <h2>Blogs</h2>
+    <ul>
+      <li><a href="blogs/oh_my/oh_my.html">Oh my… Galaaz</a> · <a href="blogs/oh_my/oh_my.pdf">PDF</a></li>
+      <li><a href="blogs/gknit/gknit.html">gKnit</a> · <a href="blogs/gknit/gknit.pdf">PDF</a></li>
+      <li><a href="blogs/galaaz_ggplot/galaaz_ggplot.html">ggplot with Galaaz</a> · <a href="blogs/galaaz_ggplot/galaaz_ggplot.pdf">PDF</a></li>
+      <li><a href="blogs/nse_dplyr/nse_dplyr.html">NSE and dplyr</a> · <a href="blogs/nse_dplyr/nse_dplyr.pdf">PDF</a></li>
+      <li><a href="blogs/ruby_plot/ruby_plot.html">Ruby plot</a> · <a href="blogs/ruby_plot/ruby_plot.pdf">PDF</a></li>
+    </ul>
+
+    <h2>Repository</h2>
+    <ul>
+      <li><a href="https://github.com/rbotafogo/galaaz">Source on GitHub</a></li>
+      <li><a href="https://github.com/rbotafogo/galaaz/tree/galaaz2_0/examples">Examples (source)</a></li>
+      <li><a href="https://github.com/rbotafogo/galaaz/tree/galaaz2_0/specs">Specs</a></li>
+      <li><a href="examples/">Example rendered PDFs on this site</a></li>
+    </ul>
+
+    <p class="note">
+      After <code>gem install galaaz</code>, build the native bridge from the gem root:
+      <code>make -C "$(dirname "$(dirname "$(gem which galaaz)")")/ext/new_bridge" all</code>
+      (from a clone: <code>make -C ext/new_bridge all</code>).
+      Rendered manuals and blogs are on this site; sources ship inside the gem.
+    </p>
+  </main>
+</body>
+</html>
