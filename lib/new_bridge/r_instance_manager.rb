@@ -117,8 +117,7 @@ module NewBridge
             @out.puts("[RInstanceManager] cached bridge host failed, trying fallback candidates...")
           end
           @out.puts(logs) unless logs.nil? || logs.empty?
-          # Best-effort cleanup of failed attempt container.
-          Open3.capture3('docker', 'rm', '-f', name)
+          docker_rm_force(name)
           c = nil
         end
       end
@@ -318,11 +317,14 @@ module NewBridge
       return unless force
 
       name = meta[:container_name]
+      docker_rm_force(name)
+    end
+
+    def docker_rm_force(name)
       return if name.nil? || name.empty?
 
-      _out, _err, _st = Open3.capture3('docker', 'rm', '-f', name)
+      Open3.capture3('docker', 'rm', '-f', name)
     rescue StandardError
-      # best-effort cleanup
       nil
     end
 

@@ -45,7 +45,8 @@ EOF
   # and built locally (make -C ext/new_bridge), not packed into the gem.
   exclude_exts = %w[.pdf .html .htm .so .o]
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*',
-            'lib/**/*[!~]', 'specs/**/*[!~]', 'ext/**/*[!~]', 'examples/**/*[!~]',
+            'lib/**/*[!~]', 'specs/**/*[!~]', 'new_bridge_specs/**/*[!~]',
+            'ext/**/*[!~]', 'examples/**/*[!~]',
             'r_requires/**/*[!~]', 'bin/**/*[!~]',
             'blogs/**/*[!~]', 'sty/**/*[!~]']
   gem.files = fls.reject { |f| exclude_exts.include?(File.extname(f).downcase) }
