@@ -102,7 +102,7 @@ puts @traj
 ```
 
 ```
-## #<RC::Trajectories:0x1e6bdce4>
+## #<RC::Trajectories:0x20b4745b>
 ```
 
 To see the contents of an object, one needs to access its components using the '.' operator:
@@ -579,27 +579,27 @@ end
 ## 32
 ## * Traj (limited to a matrix 10x10) = 
 ##       [,1]    [,2]    [,3]    [,4]    [,5]    [,6]    [,7]    [,8]    [,9]   
-##  [1,] "15.59" "16.36" "16.04" "16.52" "16.66" "16.92" "16.93" "17.19" "17.04"
-##  [2,] "16.09" "16.41" "16.26" "16.59" "16.50" "17.12" "16.73" "17.29" "17.40"
-##  [3,] "16.34" "16.29" "16.12" "16.55" "16.56" "16.73" "16.73" "17.12" "17.16"
-##  [4,] "16.05" "16.31" "16.24" "16.33" "16.75" "16.75" "16.94" "17.11" "17.34"
-##  [5,] "15.89" "15.99" "16.32" "16.18" "16.90" "16.38" "16.77" "17.03" "17.54"
-##  [6,] "15.58" "16.26" "16.05" "16.36" "16.93" "16.81" "17.29" "17.10" "17.23"
-##  [7,] "16.35" "15.93" "16.64" "16.11" "16.88" "16.86" "17.04" "16.98" "17.42"
-##  [8,] "16.07" "16.42" "16.46" "16.37" "16.29" "16.69" "17.15" "16.91" "16.66"
-##  [9,] "15.80" "16.20" "16.26" "16.66" "16.68" "17.19" "16.76" "17.32" "17.15"
-## [10,] "15.72" "16.15" "16.19" "16.55" "16.47" "17.19" "17.06" "17.06" "16.84"
+##  [1,] "16.35" "16.33" "16.43" "16.42" "16.58" "16.85" "16.99" "17.36" "17.15"
+##  [2,] "15.97" "16.28" "16.10" "16.53" "17.05" "16.98" "16.89" "16.87" "17.12"
+##  [3,] "16.16" "16.23" "16.02" "16.13" "16.36" "16.82" "16.85" "17.09" "17.22"
+##  [4,] "16.06" "15.89" "16.08" "16.35" "16.90" "16.97" "17.04" "17.40" "17.31"
+##  [5,] "16.14" "16.50" "16.51" "16.58" "16.45" "16.79" "17.07" "17.19" "17.42"
+##  [6,] "16.09" "16.05" "16.51" "16.92" "16.72" "16.93" "16.84" "16.68" "17.05"
+##  [7,] "16.02" "16.10" "15.89" "16.49" "16.47" "16.69" "16.61" "17.37" "17.28"
+##  [8,] "15.92" "15.93" "16.26" "16.29" "17.03" "16.58" "17.11" "17.42" "17.00"
+##  [9,] "15.99" "16.24" "16.52" "16.29" "16.39" "16.85" "17.35" "16.87" "17.38"
+## [10,] "16.00" "16.10" "16.30" "16.34" "16.52" "16.70" "17.02" "16.75" "17.04"
 ##       [,10]  
-##  [1,] "17.36"
-##  [2,] "17.28"
-##  [3,] "17.20"
-##  [4,] "17.34"
-##  [5,] "17.76"
-##  [6,] "17.33"
-##  [7,] "17.73"
-##  [8,] "17.56"
-##  [9,] "17.41"
-## [10,] "17.31"
+##  [1,] "17.19"
+##  [2,] "17.53"
+##  [3,] "17.05"
+##  [4,] "17.07"
+##  [5,] "17.73"
+##  [6,] "17.43"
+##  [7,] "17.49"
+##  [8,] "17.41"
+##  [9,] "17.15"
+## [10,] "17.77"
 ## ******* End Show (trajectories) *******
 ```
 
@@ -618,5 +618,46 @@ we try to 'show' it, it will generate an error.  Let's see it:
 
 ```
 ## undefined method 'nrow' for nil
+```
+
+In this example, `@matrix` is `nil`, so calling `@matrix.nrow` raises
+`undefined method 'nrow' for nil`.  To fix this, we can either prevent an empty
+trajectories class from being created, or make sure that method `show` will not
+choke on the empty object.  We will take the second alternative, to follow SS4,
+and will check if either `@times` or `@matrix` is empty.  If either one of them
+is `nil`, then we will print a message saying so.
+
+Although the first alternative, i.e., not allow for empty objects is a possibility in Ruby,
+it seems that this is not the case for S4.
+
+
+``` ruby
+class Trajectories
+
+  def show
+    if (@times.nil? || @matrix.nil?)
+      puts("*** Class Trajectories is empty!! *** ")
+      return
+    end
+    puts("*** Class Trajectories, method Show *** ")
+    Kernel.print("times = ")
+    puts @times
+    nrow_show = [10, @matrix.nrow >> 0].min
+    ncol_show = R.min(10, @matrix.ncol) >> 0
+    puts("* Traj (limited to a matrix 10x10) = ")
+    puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
+    puts("******* End Show (trajectories) ******* ")
+  end
+
+end
+```
+
+
+``` ruby
+@empty_traj.show
+```
+
+```
+## *** Class Trajectories is empty!! ***
 ```
 

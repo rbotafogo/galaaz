@@ -424,7 +424,7 @@ an instance variable) as below:</p>
 Trajectories object. In Ruby, printing variable ‘traj’ will only print
 the class name of the object and not it contents as in R.</p>
 <pre class="ruby"><code>puts @traj</code></pre>
-<pre><code>## #&lt;RC::Trajectories:0x1e6bdce4&gt;</code></pre>
+<pre><code>## #&lt;RC::Trajectories:0x20b4745b&gt;</code></pre>
 <p>To see the contents of an object, one needs to access its components
 using the ‘.’ operator:</p>
 <pre class="ruby"><code>puts @traj.times</code></pre>
@@ -812,27 +812,27 @@ end</code></pre>
 ## 32
 ## * Traj (limited to a matrix 10x10) = 
 ##       [,1]    [,2]    [,3]    [,4]    [,5]    [,6]    [,7]    [,8]    [,9]   
-##  [1,] &quot;15.59&quot; &quot;16.36&quot; &quot;16.04&quot; &quot;16.52&quot; &quot;16.66&quot; &quot;16.92&quot; &quot;16.93&quot; &quot;17.19&quot; &quot;17.04&quot;
-##  [2,] &quot;16.09&quot; &quot;16.41&quot; &quot;16.26&quot; &quot;16.59&quot; &quot;16.50&quot; &quot;17.12&quot; &quot;16.73&quot; &quot;17.29&quot; &quot;17.40&quot;
-##  [3,] &quot;16.34&quot; &quot;16.29&quot; &quot;16.12&quot; &quot;16.55&quot; &quot;16.56&quot; &quot;16.73&quot; &quot;16.73&quot; &quot;17.12&quot; &quot;17.16&quot;
-##  [4,] &quot;16.05&quot; &quot;16.31&quot; &quot;16.24&quot; &quot;16.33&quot; &quot;16.75&quot; &quot;16.75&quot; &quot;16.94&quot; &quot;17.11&quot; &quot;17.34&quot;
-##  [5,] &quot;15.89&quot; &quot;15.99&quot; &quot;16.32&quot; &quot;16.18&quot; &quot;16.90&quot; &quot;16.38&quot; &quot;16.77&quot; &quot;17.03&quot; &quot;17.54&quot;
-##  [6,] &quot;15.58&quot; &quot;16.26&quot; &quot;16.05&quot; &quot;16.36&quot; &quot;16.93&quot; &quot;16.81&quot; &quot;17.29&quot; &quot;17.10&quot; &quot;17.23&quot;
-##  [7,] &quot;16.35&quot; &quot;15.93&quot; &quot;16.64&quot; &quot;16.11&quot; &quot;16.88&quot; &quot;16.86&quot; &quot;17.04&quot; &quot;16.98&quot; &quot;17.42&quot;
-##  [8,] &quot;16.07&quot; &quot;16.42&quot; &quot;16.46&quot; &quot;16.37&quot; &quot;16.29&quot; &quot;16.69&quot; &quot;17.15&quot; &quot;16.91&quot; &quot;16.66&quot;
-##  [9,] &quot;15.80&quot; &quot;16.20&quot; &quot;16.26&quot; &quot;16.66&quot; &quot;16.68&quot; &quot;17.19&quot; &quot;16.76&quot; &quot;17.32&quot; &quot;17.15&quot;
-## [10,] &quot;15.72&quot; &quot;16.15&quot; &quot;16.19&quot; &quot;16.55&quot; &quot;16.47&quot; &quot;17.19&quot; &quot;17.06&quot; &quot;17.06&quot; &quot;16.84&quot;
+##  [1,] &quot;16.35&quot; &quot;16.33&quot; &quot;16.43&quot; &quot;16.42&quot; &quot;16.58&quot; &quot;16.85&quot; &quot;16.99&quot; &quot;17.36&quot; &quot;17.15&quot;
+##  [2,] &quot;15.97&quot; &quot;16.28&quot; &quot;16.10&quot; &quot;16.53&quot; &quot;17.05&quot; &quot;16.98&quot; &quot;16.89&quot; &quot;16.87&quot; &quot;17.12&quot;
+##  [3,] &quot;16.16&quot; &quot;16.23&quot; &quot;16.02&quot; &quot;16.13&quot; &quot;16.36&quot; &quot;16.82&quot; &quot;16.85&quot; &quot;17.09&quot; &quot;17.22&quot;
+##  [4,] &quot;16.06&quot; &quot;15.89&quot; &quot;16.08&quot; &quot;16.35&quot; &quot;16.90&quot; &quot;16.97&quot; &quot;17.04&quot; &quot;17.40&quot; &quot;17.31&quot;
+##  [5,] &quot;16.14&quot; &quot;16.50&quot; &quot;16.51&quot; &quot;16.58&quot; &quot;16.45&quot; &quot;16.79&quot; &quot;17.07&quot; &quot;17.19&quot; &quot;17.42&quot;
+##  [6,] &quot;16.09&quot; &quot;16.05&quot; &quot;16.51&quot; &quot;16.92&quot; &quot;16.72&quot; &quot;16.93&quot; &quot;16.84&quot; &quot;16.68&quot; &quot;17.05&quot;
+##  [7,] &quot;16.02&quot; &quot;16.10&quot; &quot;15.89&quot; &quot;16.49&quot; &quot;16.47&quot; &quot;16.69&quot; &quot;16.61&quot; &quot;17.37&quot; &quot;17.28&quot;
+##  [8,] &quot;15.92&quot; &quot;15.93&quot; &quot;16.26&quot; &quot;16.29&quot; &quot;17.03&quot; &quot;16.58&quot; &quot;17.11&quot; &quot;17.42&quot; &quot;17.00&quot;
+##  [9,] &quot;15.99&quot; &quot;16.24&quot; &quot;16.52&quot; &quot;16.29&quot; &quot;16.39&quot; &quot;16.85&quot; &quot;17.35&quot; &quot;16.87&quot; &quot;17.38&quot;
+## [10,] &quot;16.00&quot; &quot;16.10&quot; &quot;16.30&quot; &quot;16.34&quot; &quot;16.52&quot; &quot;16.70&quot; &quot;17.02&quot; &quot;16.75&quot; &quot;17.04&quot;
 ##       [,10]  
-##  [1,] &quot;17.36&quot;
-##  [2,] &quot;17.28&quot;
-##  [3,] &quot;17.20&quot;
-##  [4,] &quot;17.34&quot;
-##  [5,] &quot;17.76&quot;
-##  [6,] &quot;17.33&quot;
-##  [7,] &quot;17.73&quot;
-##  [8,] &quot;17.56&quot;
-##  [9,] &quot;17.41&quot;
-## [10,] &quot;17.31&quot;
+##  [1,] &quot;17.19&quot;
+##  [2,] &quot;17.53&quot;
+##  [3,] &quot;17.05&quot;
+##  [4,] &quot;17.07&quot;
+##  [5,] &quot;17.73&quot;
+##  [6,] &quot;17.43&quot;
+##  [7,] &quot;17.49&quot;
+##  [8,] &quot;17.41&quot;
+##  [9,] &quot;17.15&quot;
+## [10,] &quot;17.77&quot;
 ## ******* End Show (trajectories) *******</code></pre>
 <p>Our show method has the same problem as SS4, i.e., if an empty
 trajectories object is created and we try to ‘show’ it, it will generate
@@ -840,6 +840,37 @@ an error. Let’s see it:</p>
 <pre class="ruby"><code>@empty_traj = Trajectories.new</code></pre>
 <pre class="ruby"><code>@empty_traj.show</code></pre>
 <pre><code>## undefined method &#39;nrow&#39; for nil</code></pre>
+<p>In this example, <code>@matrix</code> is <code>nil</code>, so calling
+<code>@matrix.nrow</code> raises
+<code>undefined method &#39;nrow&#39; for nil</code>. To fix this, we can either
+prevent an empty trajectories class from being created, or make sure
+that method <code>show</code> will not choke on the empty object. We
+will take the second alternative, to follow SS4, and will check if
+either <code>@times</code> or <code>@matrix</code> is empty. If either
+one of them is <code>nil</code>, then we will print a message saying
+so.</p>
+<p>Although the first alternative, i.e., not allow for empty objects is
+a possibility in Ruby, it seems that this is not the case for S4.</p>
+<pre class="ruby"><code>class Trajectories
+
+  def show
+    if (@times.nil? || @matrix.nil?)
+      puts(&quot;*** Class Trajectories is empty!! *** &quot;)
+      return
+    end
+    puts(&quot;*** Class Trajectories, method Show *** &quot;)
+    Kernel.print(&quot;times = &quot;)
+    puts @times
+    nrow_show = [10, @matrix.nrow &gt;&gt; 0].min
+    ncol_show = R.min(10, @matrix.ncol) &gt;&gt; 0
+    puts(&quot;* Traj (limited to a matrix 10x10) = &quot;)
+    puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
+    puts(&quot;******* End Show (trajectories) ******* &quot;)
+  end
+
+end</code></pre>
+<pre class="ruby"><code>@empty_traj.show</code></pre>
+<pre><code>## *** Class Trajectories is empty!! ***</code></pre>
 </div>
 
 

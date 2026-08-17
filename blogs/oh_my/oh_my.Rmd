@@ -493,3 +493,38 @@ we try to 'show' it, it will generate an error.  Let's see it:
 @empty_traj.show
 ```
 
+In this example, `@matrix` is `nil`, so calling `@matrix.nrow` raises
+`undefined method 'nrow' for nil`.  To fix this, we can either prevent an empty
+trajectories class from being created, or make sure that method `show` will not
+choke on the empty object.  We will take the second alternative, to follow SS4,
+and will check if either `@times` or `@matrix` is empty.  If either one of them
+is `nil`, then we will print a message saying so.
+
+Although the first alternative, i.e., not allow for empty objects is a possibility in Ruby,
+it seems that this is not the case for S4.
+
+```{ruby}
+class Trajectories
+
+  def show
+    if (@times.nil? || @matrix.nil?)
+      puts("*** Class Trajectories is empty!! *** ")
+      return
+    end
+    puts("*** Class Trajectories, method Show *** ")
+    Kernel.print("times = ")
+    puts @times
+    nrow_show = [10, @matrix.nrow >> 0].min
+    ncol_show = R.min(10, @matrix.ncol) >> 0
+    puts("* Traj (limited to a matrix 10x10) = ")
+    puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
+    puts("******* End Show (trajectories) ******* ")
+  end
+
+end
+```
+
+```{ruby}
+@empty_traj.show
+```
+
