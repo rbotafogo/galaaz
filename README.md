@@ -1,8 +1,8 @@
 ---
 title: "Galaaz Manual"
-subtitle: "Coupling Ruby (JRuby) and GNU R for data science"
+subtitle: "R-on-Rails: GNU R meets Ruby for the web"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, JRuby, R, "GNU R", ggplot2, knitr, dplyr, Bioconductor, Arrow]
+tags: [Galaaz, "R-on-Rails", Ruby, Rails, JRuby, R, "GNU R", ggplot2, knitr, dplyr, Bioconductor, Arrow]
 date: "2026"
 bibliography: "../../examples/Bibliography/stats.bib"
 output:
@@ -28,64 +28,64 @@ fontsize: 11pt
 
 # Introduction
 
-Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language, with a large 
-community, a very large set of libraries and great for web development. However, it lacks 
-libraries for data science, statistics, scientific plotting and machine learning. On the 
-other hand, R is considered one of the most powerful languages for solving all of the above 
-problems. **Python** is a strong competitor: NumPy, pandas, SciPy, and scikit-learn are
-widely used building blocks, and **PyPI** hosts many thousands of other packages for
-numerical work, machine learning, and beyond.
+**Galaaz is R-on-Rails:** keep **GNU R** for statistics, graphics, and the CRAN /
+Bioconductor ecosystem, and use **Ruby** (with **Rails** when you need a web app) for
+everything R was never meant to own—HTTP, auth, databases, background jobs, HTML, APIs.
 
-With Galaaz we do not intend to re-implement any of the scientific libraries in R, we allow
-for very tight coupling between the two languages to the point that the Ruby developer does
-not need to know that there is an R engine running.
+The primary audience is the **R scientist** who already has models, dplyr/ggplot pipelines,
+and domain knowledge, and wants a **one-person path to production on the web**. Learning
+enough Ruby and Rails to ship an app is usually easier than hiring (or becoming) a dedicated
+web-and-stats dual specialist. Ruby developers gain full access to R libraries as a
+secondary benefit; the design priority is **R workflow first, web second**.
 
-According to Wikipedia "Ruby is a dynamic, interpreted, reflective, object-oriented, 
-general-purpose programming language. It was designed and developed in the mid-1990s by Yukihiro 
-"Matz" Matsumoto in Japan."  It reached high popularity with the development of Ruby on Rails
-(RoR) by David Heinemeier Hansson. RoR is a web application framework first released
-around 2005. It makes extensive use of Ruby's metaprogramming features.  With RoR,
-Ruby became very popular.  According to [Ruby’s place in the TIOBE index](https://www.tiobe.com/tiobe-index/ruby/)
-it peaked in popularity around 2008, then declined until 2015 when it started picking up again.
-Ruby remains a significant language in web development and general-purpose scripting.
+Galaaz does **not** re-implement scientific libraries in Ruby. Ruby and R run in **separate
+processes**; the **Galaaz bridge** sends requests to standard **GNU R** and returns typed
+results. You keep calling familiar ideas from Ruby (`R.c(...)`, `R.library('ggplot2')`,
+`~R[:mtcars]`, dplyr-style chains) while Rails (or plain Ruby) owns the application shell.
 
-Python, a language similar to Ruby, ranks 4th in the index.  Java, C and C++ take the
-first three positions.  Ruby is often criticized for its focus on web applications.
-But Ruby can do [much more](https://github.com/markets/awesome-ruby) than just web applications.
-Yet, for scientific computing, Ruby lags behind Python and R.  Python offers Django and
-similar frameworks for the web, plus NumPy, pandas, and a deep catalog of science and ML libraries.
-R is a free software environment for statistical computing and graphics with thousands
-of libraries for data analysis. 
+**Python** remains a strong competitor for end-to-end data science stacks (NumPy, pandas,
+SciPy, scikit-learn, Django/Flask). Galaaz’s bet is different: if your science already lives
+in **R**, do not rewrite it in Python to get a website—**put R on Rails**.
 
-Until recently, there was no real perspective for Ruby to bridge this gap.
-Implementing a complete scientific computing infrastructure would take too long.
+Ruby is a dynamic, object-oriented language that became widely known through **Ruby on Rails**
+(RoR). It remains a practical choice for web applications and general-purpose scripting.
+Until Galaaz, Ruby lacked a tight, ecosystem-complete bridge to GNU R. Library wrapping
+(one gem per package) does not scale; Galaaz wraps **the R language**, so thousands of R
+packages are available without a new handcrafted wrapper for each one.
 
-**Galaaz 2.0** couples **JRuby** (Ruby on the JVM) with **GNU R**—the same R you use for
-CRAN and Bioconductor. Ruby and R run in **separate processes**; the **Galaaz bridge**
-sends requests to R and returns results to Ruby. From your point of view you still write
-Ruby: `R.c(...)`, `R.library('ggplot2')`, `~R[:mtcars]`, and dplyr-style chains on R objects.
-You do not need to learn R syntax to get a lot done, though reading R documentation for
-individual packages remains useful.
-
-Earlier experiments with Galaaz used Oracle’s **GraalVM** with TruffleRuby and FastR so that
-Ruby and R could share one runtime. That path is no longer the focus: **standard GNU R**
-gives full compatibility with the R package ecosystem (including compiled extensions and
-Bioconductor) while JRuby gives a mature Ruby with **real multithreading** for application
-and I/O code.
+**Galaaz 2.0** supports **JRuby** and **CRuby** equally for the same NewBridge protocol.
+Pick the Ruby that fits your app: JRuby when you want real multithreading for web and I/O;
+CRuby when you prefer MRI. R remains the same **GNU R** you use interactively—including
+compiled extensions and Bioconductor. Earlier GraalVM / TruffleRuby / FastR experiments
+are no longer the focus.
 
 The bridge handles **communication and typing** between the two worlds; large tables can
 also flow through **Apache Arrow** on the R side when you use the optional helpers described
 later in this manual.
 
-Library wrapping is a common way to bring features from one language into another.
-To improve performance, Python often wraps more efficient C libraries. For the
-Python developer, the existence of such C libraries is hidden.  The problem with
-library wrapping is that for any new library, there is the need to handcraft a new
-wrapper.
+## R-on-Rails: the one-person app for R scientists
 
-Galaaz, instead of wrapping a single C or R library, wraps the whole R language
-in Ruby.  Doing so, all thousands of R libraries are available immediately
-to Ruby developers without any new wrapping effort.
+If you already think in R, the usual web options are painful: Shiny for some apps, or a full
+rewrite in another stack. **R-on-Rails** means:
+
+1. **Keep your science in R** — packages, formulas, plots, Bioconductor, the same engine as RStudio.
+2. **Learn enough Ruby/Rails** — routes, controllers, views, jobs, auth—not a second statistics career.
+3. **Call R from the app** — Galaaz loads R behind the scenes; long jobs can complete asynchronously
+   while Rails stays responsive (see later sections on the bridge and `R::Async`).
+4. **Ship alone when you need to** — one developer can own both the analysis and the product UI,
+   without waiting for a separate “stats engineer” and “Rails engineer.”
+
+Typical shape:
+
+- Interactive exploration and reports: **gstudio**, **gknit** (R Markdown with Ruby chunks).
+- Product: a **Rails** (or Sinatra) app that calls `R.*` for the heavy statistical steps.
+- Scale for many users: more **R worker processes/containers** behind the app (R is single-threaded
+   per process); the Ruby web tier scales separately (JRuby threads or a multi-process CRuby
+   setup). Galaaz’s instance manager is the starting point for that pattern—not a rewrite of
+   every algorithm à la enterprise ScaleR.
+
+Rubyists are welcome: the same bridge exposes CRAN to application code. The **intended** on-ramp,
+though, is **R scientist → small Rails app**, not “hire a stats team to teach Rails developers R.”
 
 ## What does Galaaz mean
 
@@ -108,10 +108,11 @@ The Galaaz repository ships many helpers under **`bin/`**. When working from a *
 them as **`bin/<name>`** from the project root (or `./bin/<name>`). If you install the **gem**,
 only a subset is guaranteed on your `PATH` (see the gemspec: **`galaaz`**, **`gstudio`**, **`gknit`**, **`grun`**, **`gknit-draft`**); for development and CI, prefer the **`bin/`** copies so JVM flags and paths stay correct.
 
-Below, **current (Galaaz 2.0 + JRuby + GNU R)** means the tool is wired to **`jruby`** and
-**`bin/galaaz_jruby_env.inc.sh`** (or equivalent logic in Ruby via `lib/galaaz_jruby.rb`). **Legacy**
-means the script still targets **GraalVM** polyglot Ruby / FastR-era invocation and is **not**
-expected to work on a typical JRuby-only setup.
+Below, **current (Galaaz 2.0 + JRuby or CRuby + GNU R)** means the tool uses **`bin/galaaz-ruby`**
+/ **`GALAAZ_RUBY`** (default: `ruby` on `PATH`) and applies JVM flags only when the interpreter is
+JRuby (`bin/galaaz_jruby_env.inc.sh` / `lib/galaaz_jruby.rb`). **`bin/galaaz-jruby`** forces JRuby.
+**Legacy** means the script still targets **GraalVM** polyglot Ruby / FastR-era invocation and is
+**not** expected to work on a typical JRuby or CRuby NewBridge setup.
 
 **Table layout:** names in the first column are **`bin/`** filenames (run as `bin/<name>` from the repo root). Long options and examples sit **outside** the tables so PDF columns stay readable.
 
@@ -132,13 +133,23 @@ expected to work on a typical JRuby-only setup.
    <td style="text-align:left;"> Yes* </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> galaaz-jruby </td>
-   <td style="text-align:left;"> JRuby with repo lib/ on LOAD_PATH and required JVM flags (e.g. Arrow). </td>
+   <td style="text-align:left;"> galaaz-ruby </td>
+   <td style="text-align:left;"> Selected Ruby (default: ruby on PATH) with repo lib/ on LOAD_PATH; JVM flags only on JRuby. </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
   <tr>
+   <td style="text-align:left;"> galaaz-jruby </td>
+   <td style="text-align:left;"> Thin wrapper that forces JRuby (same flags as galaaz-ruby under JRuby). </td>
+   <td style="text-align:left;"> Yes </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> galaaz_ruby_env.inc.sh </td>
+   <td style="text-align:left;"> Sourced by bash wrappers; sets GALAAZ_RUBY_BIN and optional JVM args. </td>
+   <td style="text-align:left;"> Yes† </td>
+  </tr>
+  <tr>
    <td style="text-align:left;"> galaaz_jruby_env.inc.sh </td>
-   <td style="text-align:left;"> Sourced by bash wrappers; sets GALAAZ_REQUIRED_JRUBY_J_ARGS. </td>
+   <td style="text-align:left;"> Sourced when the interpreter is JRuby; sets GALAAZ_REQUIRED_JRUBY_J_ARGS. </td>
    <td style="text-align:left;"> Yes† </td>
   </tr>
   <tr>
@@ -153,11 +164,13 @@ expected to work on a typical JRuby-only setup.
 
 † Not run directly.
 
-**`galaaz-jruby` examples** (from repo root):
+**`galaaz-ruby` / `galaaz-jruby` examples** (from repo root):
 
 ```text
+bin/galaaz-ruby my_script.rb
+GALAAZ_RUBY=jruby bin/galaaz-ruby my_script.rb
 bin/galaaz-jruby my_script.rb
-bin/galaaz-jruby -S rspec
+bin/galaaz-ruby -S rspec
 ```
 
 ## Interactive use, examples, and Rake
@@ -173,17 +186,17 @@ bin/galaaz-jruby -S rspec
 <tbody>
   <tr>
    <td style="text-align:left;"> gstudio </td>
-   <td style="text-align:left;"> IRB or Pry with Galaaz preloaded (JRuby + JVM flags). </td>
+   <td style="text-align:left;"> IRB or Pry with Galaaz preloaded (ruby on PATH; JVM flags on JRuby). </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
   <tr>
    <td style="text-align:left;"> run_example </td>
-   <td style="text-align:left;"> Run one Ruby file using the same JRuby/JVM setup as tests. </td>
+   <td style="text-align:left;"> Run one Ruby file using the same Ruby/JVM setup as tests. </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
   <tr>
    <td style="text-align:left;"> galaaz </td>
-   <td style="text-align:left;"> Forward arguments to rake (needs rake; usually JRuby). </td>
+   <td style="text-align:left;"> Forward arguments to rake (needs rake; same GALAAZ_RUBY as other launchers). </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
 </tbody>
@@ -202,7 +215,7 @@ bin/galaaz-jruby -S rspec
 <tbody>
   <tr>
    <td style="text-align:left;"> gknit </td>
-   <td style="text-align:left;"> Knit .Rmd via JRuby and R Markdown render. </td>
+   <td style="text-align:left;"> Knit .Rmd via ruby on PATH (JRuby or CRuby) and R Markdown render. </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
   <tr>
@@ -212,8 +225,8 @@ bin/galaaz-jruby -S rspec
   </tr>
   <tr>
    <td style="text-align:left;"> gknit-draft.rb </td>
-   <td style="text-align:left;"> Ruby entry: GKnit.draft (use with JRuby + LOAD_PATH). </td>
-   <td style="text-align:left;"> JRuby </td>
+   <td style="text-align:left;"> Ruby entry: GKnit.draft (use with galaaz-ruby + LOAD_PATH). </td>
+   <td style="text-align:left;"> Yes </td>
   </tr>
   <tr>
    <td style="text-align:left;"> gknit_Rscript </td>
@@ -290,22 +303,23 @@ Prefer **`galaaz-jruby`** for **`gknit-draft`** workflows until that wrapper mat
 </tbody>
 </table>
 
-For day-to-day **2.0** use, rely on **`bin/galaaz-jruby`**, **`bin/gstudio`**, **`bin/gknit`**, **`bin/run_example`**, **`bin/run_rspec`** / **`bin/run_all_rspec`**, and **`bin/galaaz-bootstrap`** on WSL when using Dockerized R. Treat **`grun`**, **`gknit_Rscript`**, and the polyglot **`ruby`** invocation in **`gknit-draft`** as **legacy** until they are ported to the same JRuby path as **`gknit`**.
+For day-to-day **2.0** use, rely on **`bin/galaaz-ruby`** (or **`bin/galaaz-jruby`** when you want to force JRuby), **`bin/gstudio`**, **`bin/gknit`**, **`bin/run_example`**, **`bin/run_rspec`** / **`bin/run_all_rspec`**, and **`bin/galaaz-bootstrap`** on WSL when using Dockerized R. Treat **`grun`**, **`gknit_Rscript`**, and the polyglot **`ruby`** invocation in **`gknit-draft`** as **legacy** until they are ported to the same launcher path as **`gknit`**.
 
 # System Compatibility
 
 Typical development and CI targets:
 
 * **Linux** — recent Ubuntu LTS or comparable distributions (x86_64).
-* **macOS** — recent releases with JRuby and GNU R available.
+* **macOS** — recent releases with JRuby or CRuby and GNU R available.
 * **Windows** — use **WSL2** (same Linux stack as above); native Windows is not the primary target.
 
 The native **gatekeeper** component under `ext/new_bridge` is built with `make` and a C++ toolchain; see the project `README` if compilation fails on your platform.
 
 # Dependencies
 
-* **JRuby (primary)** — tested with **10.1.1.0** and a matching **JDK** (tested with **Java 21**).
-* **CRuby / MRI** — NewBridge also runs on CRuby (tested with **3.3.12**). Use `GALAAZ_RUBY=ruby` with the `bin/` runners, or `gem install galaaz` under MRI.
+* **Ruby** — **JRuby** or **CRuby** (both supported for NewBridge). Tested with **JRuby 10.1.1.0**
+  (+ **JDK 21**) and **CRuby 3.3.12**. Use `bin/galaaz-ruby` (honors `GALAAZ_RUBY`) or plain
+  `gem install galaaz` under the Ruby you choose.
 * **GNU R** — `R` and `Rscript` on your `PATH` (tested with **4.3.3**), plus a C++ toolchain (`g++`, `make`) and the **Rcpp** package to compile the gatekeeper.
 * **galaaz gem** — runtime dependency `msgpack` is pulled in by `gem install`.
 * Optional: **Docker** — if you run R in a container (common on WSL2); see bootstrap below.
@@ -330,13 +344,17 @@ The supported install is **`gem install` + compile the gatekeeper**. You do not 
 
 For **gKnit**, **knitr**, **rmarkdown**, and LaTeX (PDF output), install the corresponding R packages, **Pandoc**, and a TeX distribution if you need PDF; the repository includes helpers such as **`bin/install-tinytex`** where appropriate.
 
-A **table of all `bin/` scripts** (bootstrap, JRuby wrapper, gstudio, gknit, test runners, and which ones are legacy) is in the section **Command-line tools (`bin/`)** earlier in this manual.
+A **table of all `bin/` scripts** (bootstrap, Ruby launcher, gstudio, gknit, test runners, and which ones are legacy) is in the section **Command-line tools (`bin/`)** earlier in this manual.
 
 ### From a repository checkout (contributors)
 
-1. Install **bundler** if needed, then run **`jruby -S bundle install`** (or `bundle install` under CRuby) in the repository root.
+1. Install **bundler** if needed, then run **`bundle install`** with your chosen Ruby
+   (`jruby -S bundle install` or CRuby `bundle install`) in the repository root.
 2. Build the bridge native code: **`make -C ext/new_bridge all`** (or **`rake compile_gatekeeper`**).
-3. Run scripts with **`bin/galaaz-jruby`** (JRuby) or **`GALAAZ_RUBY=ruby bin/galaaz-ruby`** (CRuby). Spec runners: **`bin/run_rspec`** / **`bin/run_all_rspec`** (default JRuby; set **`GALAAZ_RUBY=ruby`** for CRuby).
+3. Run scripts with **`bin/galaaz-ruby`** (uses `ruby` on `PATH`; set **`GALAAZ_RUBY=jruby`** or
+   **`GALAAZ_RUBY=ruby`** to force an engine). Spec runners: **`bin/run_rspec`** /
+   **`bin/run_all_rspec`** (same `GALAAZ_RUBY` rule). **`bin/galaaz-jruby`** remains a thin
+   wrapper that forces JRuby.
 
 A **gstudio** try image (JRuby + R + Galaaz already installed) is **`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio`** (or **`./docker/try-gstudio/run.sh`** from a checkout). Maintainers can prove a RubyGems install on a throwaway Ubuntu machine (no repo inside the container) with **`./docker/cold-install/run.sh published-specs`** (JRuby) or **`./docker/cold-install-cruby/run.sh published-specs`** (CRuby).
 
@@ -406,11 +424,13 @@ WSL integration is enabled for the distro where Galaaz is installed.
   
   > galaaz master_list:scatter_plot
 
-# JRuby, multithreading, and the R bridge
+# JRuby, CRuby, multithreading, and the R bridge
 
-Galaaz 2.0 runs Ruby on **JRuby**, so your application can use **real parallel threads** for
-I/O-bound work (HTTP clients, database connections, message consumers, and so on). R itself is
-still executed in a **single GNU R process** behind the Galaaz bridge.
+Galaaz 2.0 supports **JRuby** and **CRuby** equally for NewBridge. On **JRuby**, your
+application can use **real parallel threads** for I/O-bound work (HTTP clients, database
+connections, message consumers, and so on). On **CRuby**, prefer multi-process scaling for
+CPU-bound concurrency. R itself is still executed in a **single GNU R process** behind the
+Galaaz bridge (use multiple R workers when you need more R throughput).
 
 When several Ruby threads call into R at the same time, the bridge **serializes** those calls:
 each request is matched to a reply using an internal per-call **queue**, so you do not need to
@@ -490,19 +510,22 @@ the outcome to storage, and notify the client (poll, WebSocket, Turbo Stream, et
 Ruby pattern above is only to show **when** the result exists (inside the block, or after data
 written there is observed elsewhere). Runnable specs live in **`new_bridge_specs/eval_r_async_spec.rb`**.
 
-## Galaaz + Rails (JRuby) integration baseline
+## Galaaz + Rails (R-on-Rails) integration baseline
 
-This section documents the baseline we used to create a working Rails app with Galaaz in WSL.
-The goals were:
+This is the practical **R-on-Rails** starter: an R scientist’s analysis behind a small Rails
+app. The baseline we used in WSL aimed at:
 
-1. Rails boots under **JRuby**.
+1. Rails boots under **JRuby or CRuby** (same bridge; see Installation).
 2. Galaaz is loaded from a local checkout (before publishing to RubyGems).
-3. A request path can execute **`R.eval(...)`** and return a result.
+3. A request path can execute **`R.eval(...)`** (or `R.*`) and return a result.
 
-### 1) Create the app with JRuby-friendly options
+You keep statistical work in R; Rails owns HTTP, sessions, and HTML. See **R-on-Rails: the
+one-person app for R scientists** in the Introduction for the product framing.
 
-Rails defaults can pull gems that are not ideal on JRuby-first setups (for example sqlite native
-extension paths and deployment extras). A minimal app avoids early friction:
+### 1) Create the app with Ruby-friendly options
+
+Rails defaults can pull gems that are awkward on some setups (for example sqlite native
+extension paths on JRuby, or deployment extras you do not need). A minimal app avoids early friction:
 
 ```bash
 cd /home/rbotafogo/desenv_linux
@@ -790,7 +813,7 @@ puts vec.map { |x| x + 2 }
 
 This manual has been formatted using gKnit.  gKnit uses knitr and R Markdown to knit 
 a document in Ruby or R and output it in any of the available formats for R Markdown.
-gKnit runs with **JRuby**, **GNU R**, and Galaaz.  In gKnit, Ruby variables are persisted between 
+gKnit runs with **JRuby or CRuby**, **GNU R**, and Galaaz.  In gKnit, Ruby variables are persisted between 
 chunks, making it an ideal solution for literate programming. Also, since it is based 
 on Galaaz, Ruby chunks can have access to R variables and combining Ruby with R in one 
 document is natural.
@@ -4925,8 +4948,8 @@ arguments.
 
 * Fork it
 * Create your feature branch (`git checkout -b my-new-feature`)
-* Write tests — use **`bin/run_rspec`** or **`bin/run_all_rspec`** with **JRuby** so JVM flags and
-  the load path match **`docs/testing.md`**
+* Write tests — use **`bin/run_rspec`** or **`bin/run_all_rspec`** (JRuby or CRuby via
+  **`GALAAZ_RUBY`**) so JVM flags and the load path match **`docs/testing.md`**
 * Commit your changes (`git commit -am 'Add some feature'`)
 * Push to the branch (`git push origin my-new-feature`)
 * Open a pull request

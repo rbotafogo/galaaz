@@ -8,15 +8,17 @@ Gem::Specification.new do |gem|
   gem.version = $version
   gem.date    = Date.today.to_s
   gem.executables << 'galaaz' << 'gstudio' << 'gknit' << 'gbookdown' << 'grun' << 'gknit-draft'
-  gem.summary     = "Tightly coupling Ruby and R"
+  gem.summary     = "R-on-Rails: tightly couple Ruby and GNU R for data science on the web"
   gem.description = <<-EOF
-Galaaz brings the full R ecosystem to Ruby developers. Galaaz 2.0 talks to standard
-GNU R—the same R you use with CRAN and Bioconductor—in a separate process. A bridge
-handles requests, results, and typing so you can drive R from Ruby (for example calling
-R functions, loading packages, and working with R objects).
+Galaaz is R-on-Rails: R scientists keep GNU R (CRAN / Bioconductor) for statistics and
+graphics, and use Ruby—often Rails—to put that work on the web (HTTP, auth, jobs, HTML)
+without rewriting analyses in another stack. Ruby developers also get full access to R
+libraries through the same bridge.
 
-Primary runtime is JRuby (real multithreading for application code). CRuby/MRI is also
-supported for the same NewBridge protocol (tested with Ruby 3.3).
+Galaaz 2.0 talks to standard GNU R in a separate process. A bridge handles requests,
+results, and typing so you can drive R from Ruby (calling R functions, loading packages,
+and working with R objects). **JRuby** and **CRuby** are both supported for the same
+NewBridge protocol (tested with JRuby 10.1.1.0 + Java 21, and CRuby 3.3).
 
 Like RinRuby, rpy2, or reticulate, Galaaz is a cross-language bridge; unlike embedding a
 second interpreter in one VM, using GNU R means compiled R packages and Bioconductor work
@@ -31,7 +33,7 @@ EOF
   gem.email    = 'rodrigo.a.botafogo@gmail.com'
   gem.homepage = 'https://github.com/rbotafogo/galaaz'
   gem.license = 'BSD-2-Clause'
-  # JRuby 9.4 is Ruby 3.1; Galaaz 2.0 is developed on JRuby 10.1.1.0 and also tested on CRuby 3.3.
+  # JRuby 9.4 is Ruby 3.1; Galaaz 2.0 supports JRuby 10.1.1.0 and CRuby 3.3 equally.
   gem.required_ruby_version = '>= 3.1'
 
   # gem.add_runtime_dependency 'pry', '~> 0.10'

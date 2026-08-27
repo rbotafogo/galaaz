@@ -2,24 +2,35 @@
 # Source from bin/*.sh:  source "$ROOT/bin/galaaz_ruby_env.inc.sh"
 #
 # Sets:
-#   GALAAZ_RUBY_BIN   — interpreter to exec (default: jruby)
-#   GALAAZ_RUBY_J_ARGS — JVM -J flags when the interpreter is JRuby; empty on CRuby
+#   GALAAZ_RUBY_BIN   — interpreter to exec (default: ruby on PATH)
+#   GALAAZ_RUBY_J_ARGS — JVM -J flags when that interpreter is JRuby; empty on CRuby
 #
-# Override interpreter:  GALAAZ_RUBY=ruby  or  GALAAZ_RUBY=/path/to/ruby
-# Extra JRuby flags:     GALAAZ_JRUBY_OPTS="-J-Xmx4g" (ignored on CRuby)
+# JRuby and CRuby are both first-class. Override with GALAAZ_RUBY=jruby, GALAAZ_RUBY=ruby,
+# or a full path. Extra JRuby flags: GALAAZ_JRUBY_OPTS="-J-Xmx4g" (ignored on CRuby).
 
-GALAAZ_RUBY_BIN="${GALAAZ_RUBY:-jruby}"
+GALAAZ_RUBY_BIN="${GALAAZ_RUBY:-ruby}"
 
 _galaaz_ruby_base="$(basename -- "$GALAAZ_RUBY_BIN")"
+_galaaz_ruby_engine="$("$GALAAZ_RUBY_BIN" -e 'print RUBY_ENGINE' 2>/dev/null || true)"
 case "$_galaaz_ruby_base" in
   jruby|jruby.*)
-    # shellcheck source=galaaz_jruby_env.inc.sh
-    source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/galaaz_jruby_env.inc.sh"
-    GALAAZ_RUBY_J_ARGS="$GALAAZ_REQUIRED_JRUBY_J_ARGS ${GALAAZ_JRUBY_OPTS:-}"
+    _galaaz_is_jruby=1
     ;;
   *)
-    GALAAZ_REQUIRED_JRUBY_J_ARGS=''
-    GALAAZ_RUBY_J_ARGS=''
+    if [[ "$_galaaz_ruby_engine" == "jruby" ]]; then
+      _galaaz_is_jruby=1
+    else
+      _galaaz_is_jruby=0
+    fi
     ;;
 esac
-unset _galaaz_ruby_base
+
+if [[ "$_galaaz_is_jruby" -eq 1 ]]; then
+  # shellcheck source=galaaz_jruby_env.inc.sh
+  source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/galaaz_jruby_env.inc.sh"
+  GALAAZ_RUBY_J_ARGS="$GALAAZ_REQUIRED_JRUBY_J_ARGS ${GALAAZ_JRUBY_OPTS:-}"
+else
+  GALAAZ_REQUIRED_JRUBY_J_ARGS=''
+  GALAAZ_RUBY_J_ARGS=''
+fi
+unset _galaaz_ruby_base _galaaz_ruby_engine _galaaz_is_jruby

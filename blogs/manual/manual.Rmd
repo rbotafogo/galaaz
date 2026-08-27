@@ -1,8 +1,8 @@
 ---
 title: "Galaaz Manual"
-subtitle: "Coupling Ruby (JRuby) and GNU R for data science"
+subtitle: "R-on-Rails: GNU R meets Ruby for the web"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, JRuby, R, "GNU R", ggplot2, knitr, dplyr, Bioconductor, Arrow]
+tags: [Galaaz, "R-on-Rails", Ruby, Rails, JRuby, R, "GNU R", ggplot2, knitr, dplyr, Bioconductor, Arrow]
 date: "2026"
 bibliography: "../../examples/Bibliography/stats.bib"
 output:
@@ -114,10 +114,11 @@ The Galaaz repository ships many helpers under **`bin/`**. When working from a *
 them as **`bin/<name>`** from the project root (or `./bin/<name>`). If you install the **gem**,
 only a subset is guaranteed on your `PATH` (see the gemspec: **`galaaz`**, **`gstudio`**, **`gknit`**, **`grun`**, **`gknit-draft`**); for development and CI, prefer the **`bin/`** copies so JVM flags and paths stay correct.
 
-Below, **current (Galaaz 2.0 + JRuby + GNU R)** means the tool is wired to **`jruby`** and
-**`bin/galaaz_jruby_env.inc.sh`** (or equivalent logic in Ruby via `lib/galaaz_jruby.rb`). **Legacy**
-means the script still targets **GraalVM** polyglot Ruby / FastR-era invocation and is **not**
-expected to work on a typical JRuby-only setup.
+Below, **current (Galaaz 2.0 + JRuby or CRuby + GNU R)** means the tool uses **`bin/galaaz-ruby`**
+/ **`GALAAZ_RUBY`** (default: `ruby` on `PATH`) and applies JVM flags only when the interpreter is
+JRuby (`bin/galaaz_jruby_env.inc.sh` / `lib/galaaz_jruby.rb`). **`bin/galaaz-jruby`** forces JRuby.
+**Legacy** means the script still targets **GraalVM** polyglot Ruby / FastR-era invocation and is
+**not** expected to work on a typical JRuby or CRuby NewBridge setup.
 
 **Table layout:** names in the first column are **`bin/`** filenames (run as `bin/<name>` from the repo root). Long options and examples sit **outside** the tables so PDF columns stay readable.
 
@@ -233,7 +234,7 @@ df_ot <- data.frame(
 bin_tbl(df_ot)
 ```
 
-For day-to-day **2.0** use, rely on **`bin/galaaz-jruby`**, **`bin/gstudio`**, **`bin/gknit`**, **`bin/run_example`**, **`bin/run_rspec`** / **`bin/run_all_rspec`**, and **`bin/galaaz-bootstrap`** on WSL when using Dockerized R. Treat **`grun`**, **`gknit_Rscript`**, and the polyglot **`ruby`** invocation in **`gknit-draft`** as **legacy** until they are ported to the same JRuby path as **`gknit`**.
+For day-to-day **2.0** use, rely on **`bin/galaaz-ruby`** (or **`bin/galaaz-jruby`** when you want to force JRuby), **`bin/gstudio`**, **`bin/gknit`**, **`bin/run_example`**, **`bin/run_rspec`** / **`bin/run_all_rspec`**, and **`bin/galaaz-bootstrap`** on WSL when using Dockerized R. Treat **`grun`**, **`gknit_Rscript`**, and the polyglot **`ruby`** invocation in **`gknit-draft`** as **legacy** until they are ported to the same launcher path as **`gknit`**.
 
 # System Compatibility
 
@@ -342,11 +343,13 @@ WSL integration is enabled for the distro where Galaaz is installed.
   
   > galaaz master_list:scatter_plot
 
-# JRuby, multithreading, and the R bridge
+# JRuby, CRuby, multithreading, and the R bridge
 
-Galaaz 2.0 runs Ruby on **JRuby**, so your application can use **real parallel threads** for
-I/O-bound work (HTTP clients, database connections, message consumers, and so on). R itself is
-still executed in a **single GNU R process** behind the Galaaz bridge.
+Galaaz 2.0 supports **JRuby** and **CRuby** equally for NewBridge. On **JRuby**, your
+application can use **real parallel threads** for I/O-bound work (HTTP clients, database
+connections, message consumers, and so on). On **CRuby**, prefer multi-process scaling for
+CPU-bound concurrency. R itself is still executed in a **single GNU R process** behind the
+Galaaz bridge (use multiple R workers when you need more R throughput).
 
 When several Ruby threads call into R at the same time, the bridge **serializes** those calls:
 each request is matched to a reply using an internal per-call **queue**, so you do not need to
@@ -417,19 +420,19 @@ the outcome to storage, and notify the client (poll, WebSocket, Turbo Stream, et
 Ruby pattern above is only to show **when** the result exists (inside the block, or after data
 written there is observed elsewhere). Runnable specs live in **`new_bridge_specs/eval_r_async_spec.rb`**.
 
-## Galaaz + Rails (JRuby) integration baseline
+## Galaaz + Rails (R-on-Rails) integration baseline
 
-This section documents the baseline we used to create a working Rails app with Galaaz in WSL.
-The goals were:
+This is the practical **R-on-Rails** starter: an R scientist’s analysis behind a small Rails
+app. The baseline we used in WSL aimed at:
 
-1. Rails boots under **JRuby**.
+1. Rails boots under **JRuby or CRuby** (same bridge; see Installation).
 2. Galaaz is loaded from a local checkout (before publishing to RubyGems).
 3. A request path can execute **`R.eval(...)`** and return a result.
 
-### 1) Create the app with JRuby-friendly options
+### 1) Create the app with Ruby-friendly options
 
-Rails defaults can pull gems that are not ideal on JRuby-first setups (for example sqlite native
-extension paths and deployment extras). A minimal app avoids early friction:
+Rails defaults can pull gems that are awkward on some setups (for example sqlite native
+extension paths on JRuby, or deployment extras you do not need). A minimal app avoids early friction:
 
 ```bash
 cd /home/rbotafogo/desenv_linux

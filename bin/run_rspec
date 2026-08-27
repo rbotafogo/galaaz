@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Run rspec with Galaaz (JRuby by default). JVM options applied only on JRuby.
-# Optional: GALAAZ_RUBY=ruby for CRuby; GALAAZ_JRUBY_OPTS for extra JVM/jruby flags.
+# Run rspec with Galaaz (default: ruby on PATH; JRuby or CRuby).
+# JVM options applied only on JRuby. Optional: GALAAZ_RUBY=jruby|ruby; GALAAZ_JRUBY_OPTS.
 #
 # Usage:
 #   bin/run_rspec              # run fast specs in specs/ only

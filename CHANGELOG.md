@@ -2,7 +2,7 @@
 
 ## 2.0.0
 
-Galaaz 2.0 drives **GNU R** from **JRuby** (primary) or **CRuby** over a process bridge. It is not the older GraalVM / TruffleRuby / FastR stack, and it does not embed Renjin. Developed on **JRuby 10.1.1.0** (Ruby 4.0) with **Java 21**; NewBridge is also tested on **CRuby 3.3.12**.
+Galaaz 2.0 drives **GNU R** from **JRuby** or **CRuby** over a process bridge. It is not the older GraalVM / TruffleRuby / FastR stack, and it does not embed Renjin. Both Rubies are supported for NewBridge (tested on **JRuby 10.1.1.0** with **Java 21**, and **CRuby 3.3.12**).
 
 ### Added
 

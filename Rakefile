@@ -26,7 +26,7 @@ require 'rake/testtask'
 require 'shellwords'
 
 require_relative 'version'
-require_relative 'lib/galaaz_jruby'
+require_relative 'lib/galaaz_ruby'
 
 #----------------------------------------------------------------------------------------
 #
@@ -34,18 +34,10 @@ require_relative 'lib/galaaz_jruby'
 
 class MakeTask < Rake::TaskLib
 
-  # Ruby prefix for running Galaaz. Default interpreter is jruby (unchanged).
-  # Override with GALAAZ_RUBY=ruby (or a path). JVM flags only when the bin is JRuby.
-  # See bin/galaaz_ruby_env.inc.sh and lib/galaaz_jruby.rb.
+  # Ruby prefix for running Galaaz. Uses `ruby` on PATH unless GALAAZ_RUBY is set.
+  # JVM flags only when the selected interpreter is JRuby (see lib/galaaz_ruby.rb).
   def self.galaaz_ruby_invocation
-    bin = ENV['GALAAZ_RUBY'].to_s.strip
-    bin = 'jruby' if bin.empty?
-    base = File.basename(bin)
-    if base == 'jruby' || base.start_with?('jruby.')
-      "#{bin} #{GalaazJRuby.shell_j_arg_string} -I lib"
-    else
-      "#{bin} -I lib"
-    end
+    GalaazRuby.shell_invocation('lib')
   end
 
   # Alias kept for existing call sites; same as galaaz_ruby_invocation.
@@ -70,7 +62,7 @@ class MakeTask < Rake::TaskLib
   end
 
   #----------------------------------------------------------------------------------------
-  # Run example or spec with Galaaz Ruby (JRuby by default; GALAAZ_RUBY overrides)
+  # Run example or spec with Galaaz Ruby (ruby on PATH; GALAAZ_RUBY overrides)
   #----------------------------------------------------------------------------------------
 
   def make_task

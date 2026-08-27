@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run a Galaaz example (JRuby by default). Override with GALAAZ_RUBY=ruby.
+# Run a Galaaz example (default: ruby on PATH). Override with GALAAZ_RUBY=jruby|ruby.
 # Uses bundle exec so msgpack (and other Gemfile deps) resolve under vendor/bundle.
 # Optional: GALAAZ_JRUBY_OPTS (JRuby only).
 #
