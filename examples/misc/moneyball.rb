@@ -2,6 +2,7 @@
 
 require 'galaaz'
 
+using Galaaz::SymbolDSL
 local_dir = File.expand_path File.dirname(__FILE__)
 
 # This dataset comes from Baseball-Reference.com.

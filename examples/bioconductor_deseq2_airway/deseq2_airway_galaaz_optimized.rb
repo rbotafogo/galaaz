@@ -1,5 +1,6 @@
 require 'galaaz'
 
+using Galaaz::SymbolDSL
 R.library('DESeq2')
 R.library('airway')
 R.data('airway')

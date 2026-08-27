@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'galaaz'
+using Galaaz::SymbolDSL
 require 'ggplot'
 
 df = R.data__frame(supp: R.rep(R.c("VC", "OJ"), each: 3),

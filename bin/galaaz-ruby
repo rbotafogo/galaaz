@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Run Galaaz with the selected Ruby (JRuby by default, or GALAAZ_RUBY).
+# JVM flags are applied only when the interpreter is JRuby.
+#
+# Usage: bin/galaaz-ruby path/to/script.rb [args...]
+#        GALAAZ_RUBY=ruby bin/galaaz-ruby path/to/script.rb
+#        bin/galaaz-ruby -S rspec specs/foo_spec.rb
+set -e
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=galaaz_ruby_env.inc.sh
+source "$ROOT/bin/galaaz_ruby_env.inc.sh"
+# shellcheck disable=SC2086
+exec "$GALAAZ_RUBY_BIN" -I "$ROOT/lib" \
+  $GALAAZ_RUBY_J_ARGS \
+  "$@"

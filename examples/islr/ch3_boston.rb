@@ -21,6 +21,7 @@
 ##########################################################################################
 
 require 'galaaz'
+using Galaaz::SymbolDSL
 require 'ggplot'
 
 R.install_and_loads('ISLR', 'MASS')

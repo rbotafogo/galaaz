@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'galaaz'
+using Galaaz::SymbolDSL
 require 'ggplot'
 
 module LightBlueTheme
@@ -154,7 +155,7 @@ R.grid__newpage
  R.geom_point('')).print
 =end
 
-a = gets.chomp
+a = gets.chomp if $stdin.tty?
 
 
 =begin

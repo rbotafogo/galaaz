@@ -23,6 +23,7 @@
 
 require 'galaaz'
 
+using Galaaz::SymbolDSL
 describe R do
 
   context "When doing experiment... " do

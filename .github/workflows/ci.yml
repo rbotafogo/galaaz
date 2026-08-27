@@ -1,10 +1,10 @@
 # Compile the gatekeeper and run the fast suite on every push/PR.
-# Second job: gem-only cold install in Ubuntu (no git repo inside the container).
+# Jobs cover JRuby and CRuby, plus gem-only cold install images (no git repo inside).
 name: CI
 
 on:
   push:
-    branches: [galaaz2_0, master]
+    branches: [galaaz2_0, master, cruby_bridge]
   pull_request:
     branches: [galaaz2_0, master]
   workflow_dispatch:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   fast-specs:
-    name: Compile + fast specs
+    name: Compile + fast specs (JRuby)
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -73,8 +73,58 @@ jobs:
           GALAAZ_BRIDGE_TIMEOUT_SEC: '300'
         run: bash bin/run_all_rspec --format progress
 
+  fast-specs-cruby:
+    name: Compile + fast specs (CRuby)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: System packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            g++ \
+            make \
+            pkg-config \
+            libuv1-dev \
+            libcurl4-openssl-dev \
+            libssl-dev
+
+      - name: Set up CRuby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.12'
+          bundler-cache: true
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.3.3'
+          use-public-rspm: true
+
+      - name: Set up Pandoc
+        uses: r-lib/actions/setup-pandoc@v2
+
+      - name: Install R packages
+        run: |
+          install.packages(c(
+            'Rcpp', 'dplyr', 'knitr', 'rmarkdown', 'ggplot2', 'gridExtra', 'arrow'
+          ))
+          stopifnot(requireNamespace('Rcpp', quietly = TRUE))
+          stopifnot(requireNamespace('arrow', quietly = TRUE))
+        shell: Rscript {0}
+
+      - name: Compile gatekeeper and run fast specs
+        env:
+          GALAAZ_BRIDGE_TIMEOUT_SEC: '300'
+          GALAAZ_RUBY: ruby
+        run: bash bin/run_all_rspec --format progress
+
   cold-install:
-    name: Cold install (Ubuntu)
+    name: Cold install (Ubuntu / JRuby)
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -109,3 +159,40 @@ jobs:
             -e GALAAZ_COLD_INSTALL_RUN=specs \
             -v "${DIST}:/dist:ro" \
             galaaz-cold-install:ubuntu
+
+  cold-install-cruby:
+    name: Cold install (Ubuntu / CRuby)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build cold-install-cruby image
+        uses: docker/build-push-action@v6
+        with:
+          context: docker/cold-install-cruby
+          load: true
+          tags: galaaz-cold-install-cruby:ubuntu
+          cache-from: type=gha
+          cache-to: type=gha,mode=max,ignore-error=true
+          build-args: |
+            RUBY_VERSION=3.3.12
+
+      - name: Build gem
+        run: |
+          rm -f galaaz-*.gem
+          gem build galaaz.gemspec
+
+      - name: Gem install + fast specs in a clean CRuby container
+        run: |
+          DIST="$(mktemp -d)"
+          cp galaaz-*.gem "${DIST}/"
+          docker run --rm \
+            -e GALAAZ_RCPP_CACHE_DIR=/tmp/galaaz_rcpp_cache_smoke \
+            -e GALAAZ_COLD_INSTALL_RUN=specs \
+            -v "${DIST}:/dist:ro" \
+            galaaz-cold-install-cruby:ubuntu

@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'galaaz'
+using Galaaz::SymbolDSL
 require 'ggplot'
 
 # load package and data

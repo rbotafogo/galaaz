@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'galaaz'
+using Galaaz::SymbolDSL
 require 'ggplot'
 
 module CorpTheme
@@ -156,4 +157,4 @@ sp.add_smoothing_line(method: "glm")
 sp.plot
 
 
-a = gets.chomp
+a = gets.chomp if $stdin.tty?

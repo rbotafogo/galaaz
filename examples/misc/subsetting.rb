@@ -2,6 +2,7 @@
 
 require 'galaaz'
 
+using Galaaz::SymbolDSL
 # This examples were extracted from "Advanced R", by Hadley Wickham, available on the
 # web at: http://adv-r.had.co.nz/Subsetting.html#applications
 

@@ -10,18 +10,20 @@ Gem::Specification.new do |gem|
   gem.executables << 'galaaz' << 'gstudio' << 'gknit' << 'gbookdown' << 'grun' << 'gknit-draft'
   gem.summary     = "Tightly coupling Ruby and R"
   gem.description = <<-EOF
-Galaaz brings the full R ecosystem to Ruby developers. Galaaz 2.0 runs Ruby on JRuby and
-talks to standard GNU R—the same R you use with CRAN and Bioconductor—in a separate
-process. A bridge handles requests, results, and typing so you can drive R from Ruby
-(for example calling R functions, loading packages, and working with R objects) without
-giving up multithreaded JRuby for application code.
+Galaaz brings the full R ecosystem to Ruby developers. Galaaz 2.0 talks to standard
+GNU R—the same R you use with CRAN and Bioconductor—in a separate process. A bridge
+handles requests, results, and typing so you can drive R from Ruby (for example calling
+R functions, loading packages, and working with R objects).
+
+Primary runtime is JRuby (real multithreading for application code). CRuby/MRI is also
+supported for the same NewBridge protocol (tested with Ruby 3.3).
 
 Like RinRuby, rpy2, or reticulate, Galaaz is a cross-language bridge; unlike embedding a
 second interpreter in one VM, using GNU R means compiled R packages and Bioconductor work
 as usual. Large tables can optionally flow through Apache Arrow on the R side when you use
 the helpers described in the project documentation.
 
-You need both JRuby and a working GNU R installation in PATH for the bridge to run.
+You need JRuby or CRuby and a working GNU R installation in PATH for the bridge to run.
 Build the native gatekeeper after install with: make -C ext/new_bridge all
 EOF
 
@@ -29,7 +31,7 @@ EOF
   gem.email    = 'rodrigo.a.botafogo@gmail.com'
   gem.homepage = 'https://github.com/rbotafogo/galaaz'
   gem.license = 'BSD-2-Clause'
-  # JRuby 9.4 is Ruby 3.1; Galaaz 2.0 is developed and tested on JRuby 10.1.1.0 (Ruby 4.0).
+  # JRuby 9.4 is Ruby 3.1; Galaaz 2.0 is developed on JRuby 10.1.1.0 and also tested on CRuby 3.3.
   gem.required_ruby_version = '>= 3.1'
 
   # gem.add_runtime_dependency 'pry', '~> 0.10'

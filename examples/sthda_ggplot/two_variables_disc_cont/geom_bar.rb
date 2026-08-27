@@ -22,6 +22,7 @@
 ##########################################################################################
 
 require 'galaaz'
+using Galaaz::SymbolDSL
 require 'ggplot'
 
 df = R.data__frame(dose: R.c("D0.5", "D1", "D2"),

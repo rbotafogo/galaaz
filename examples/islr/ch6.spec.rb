@@ -23,6 +23,7 @@
 
 require 'galaaz'
 
+using Galaaz::SymbolDSL
 R.install_and_loads('ISLR', 'MASS')
 
 context "ISLR" do

@@ -177,6 +177,21 @@ module R
       end
     end
 
+    # CRuby Enumerable#sum probes begin/end (range fast-path). R::Object#respond_to?
+    # always returns true, so that probe would hit method_missing and call R's begin.
+    # Implement sum in Ruby so MRI matches JRuby Enumerable behavior for blocks;
+    # without a block, forward to R's sum via method_missing.
+    def sum(*args, &block)
+      if block
+        ::Kernel.raise(::ArgumentError, "wrong number of arguments (given #{args.size}, expected 0..1)") if args.size > 1
+        acc = args.empty? ? 0 : args[0]
+        each { |el| acc = acc + block.call(el) }
+        acc
+      else
+        method_missing(:sum, *args)
+      end
+    end
+
     #--------------------------------------------------------------------------------------
     # Need to override each_with_index, as R indexing starts at 1
     #--------------------------------------------------------------------------------------

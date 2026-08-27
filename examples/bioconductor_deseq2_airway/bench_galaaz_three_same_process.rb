@@ -9,6 +9,7 @@
 
 require 'galaaz'
 
+using Galaaz::SymbolDSL
 root = File.expand_path('../..', __dir__)
 Dir.chdir(root)
 

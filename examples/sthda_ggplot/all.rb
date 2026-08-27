@@ -21,6 +21,7 @@
 
 require 'galaaz'
 
+using Galaaz::SymbolDSL
 # Package Hmisc does not yet install on graalvm because of
 # problems with package data.table
 # install.packages('Hmisc')

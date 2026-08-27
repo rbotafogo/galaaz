@@ -16,6 +16,7 @@
 
 require 'galaaz'
 
+using Galaaz::SymbolDSL
 SHARD_COUNT = 3
 ROWS_PER_SHARD = 200
 

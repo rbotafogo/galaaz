@@ -1,23 +1,24 @@
 #!/usr/bin/env bash
-# Run rspec with JVM options required for Apache Arrow (see lib/galaaz_jruby.rb).
-# Optional JVM/jruby extras: GALAAZ_JRUBY_OPTS (space-separated).
+# Run rspec with Galaaz (JRuby by default). JVM options applied only on JRuby.
+# Optional: GALAAZ_RUBY=ruby for CRuby; GALAAZ_JRUBY_OPTS for extra JVM/jruby flags.
 #
 # Usage:
 #   bin/run_rspec              # run fast specs in specs/ only
-#   bin/run_all_rspec          # top-level specs/ + new_bridge_specs/ + gatekeeper compile (see docs/testing.md)
+#   bin/run_all_rspec          # top-level specs/ + new_bridge_specs/ + gatekeeper compile
 #   bin/run_slow_rspec         # run slow specs in slow-specs/
 #   bin/run_rspec specs/protocol_result_spec.rb
+#   GALAAZ_RUBY=ruby bin/run_rspec specs/r_bridge_bootstrap_spec.rb
 #   GALAAZ_DEBUG=1 bin/run_rspec specs/r_vector_subsetting.spec.rb:61 ...
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# shellcheck source=galaaz_jruby_env.inc.sh
-source "$ROOT/bin/galaaz_jruby_env.inc.sh"
+# shellcheck source=galaaz_ruby_env.inc.sh
+source "$ROOT/bin/galaaz_ruby_env.inc.sh"
 if [ $# -eq 0 ]; then
   set -- $(find "$ROOT/specs" -maxdepth 1 -type f \( -name '*_spec.rb' -o -name '*.spec.rb' \) | sort)
 fi
-exec jruby -I "$ROOT/lib" \
-  $GALAAZ_REQUIRED_JRUBY_J_ARGS \
-  ${GALAAZ_JRUBY_OPTS:-} \
+# shellcheck disable=SC2086
+exec "$GALAAZ_RUBY_BIN" -I "$ROOT/lib" \
+  $GALAAZ_RUBY_J_ARGS \
   -S bundle exec rspec \
   -r "$ROOT/specs/spec_helper.rb" \
   "$@"

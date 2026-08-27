@@ -1,4 +1,5 @@
 require 'galaaz'
+using Galaaz::SymbolDSL
 R.install_and_loads('dplyr', 'readr')
 
 dir = File.dirname(File.expand_path(__FILE__))

@@ -34,9 +34,23 @@ require_relative 'lib/galaaz_jruby'
 
 class MakeTask < Rake::TaskLib
 
-  # JRuby prefix: required JVM flags from GalaazJRuby + -I lib (see lib/galaaz_jruby.rb).
+  # Ruby prefix for running Galaaz. Default interpreter is jruby (unchanged).
+  # Override with GALAAZ_RUBY=ruby (or a path). JVM flags only when the bin is JRuby.
+  # See bin/galaaz_ruby_env.inc.sh and lib/galaaz_jruby.rb.
+  def self.galaaz_ruby_invocation
+    bin = ENV['GALAAZ_RUBY'].to_s.strip
+    bin = 'jruby' if bin.empty?
+    base = File.basename(bin)
+    if base == 'jruby' || base.start_with?('jruby.')
+      "#{bin} #{GalaazJRuby.shell_j_arg_string} -I lib"
+    else
+      "#{bin} -I lib"
+    end
+  end
+
+  # Alias kept for existing call sites; same as galaaz_ruby_invocation.
   def self.galaaz_jruby_invocation
-    "jruby #{GalaazJRuby.shell_j_arg_string} -I lib"
+    galaaz_ruby_invocation
   end
 
   #----------------------------------------------------------------------------------------
@@ -56,14 +70,15 @@ class MakeTask < Rake::TaskLib
   end
 
   #----------------------------------------------------------------------------------------
-  # Run example or spec with JRuby (Galaaz 2.0 Shadow Bridge)
+  # Run example or spec with Galaaz Ruby (JRuby by default; GALAAZ_RUBY overrides)
   #----------------------------------------------------------------------------------------
 
   def make_task
+    inv = MakeTask.galaaz_ruby_invocation
     if @rspec
-      sh %{ #{MakeTask.galaaz_jruby_invocation} -S rspec #{@filepath}.rb -f documentation }
+      sh %{ #{inv} -S bundle exec rspec #{@filepath}.rb -f documentation }
     else
-      sh %{ #{MakeTask.galaaz_jruby_invocation} #{@filepath}.rb }
+      sh %{ #{inv} -S bundle exec ruby #{@filepath}.rb }
     end
   end
 
@@ -81,8 +96,8 @@ end
 
 # Run each .rb file in a directory (for groups that don't have an all.rb)
 def run_each_file(file_list)
-  inv = MakeTask.galaaz_jruby_invocation
-  file_list.each { |f| sh "#{inv} #{f}" }
+  inv = MakeTask.galaaz_ruby_invocation
+  file_list.each { |f| sh "#{inv} -S bundle exec ruby #{f}" }
 end
 
 geoms = FileList['examples/sthda_ggplot/**/*.rb']
@@ -240,10 +255,10 @@ task :compile_gatekeeper do
   Dir.chdir('ext/new_bridge') { sh 'make all' }
 end
 
-desc 'Run specs/ and new_bridge_specs/ under JRuby with SimpleCov (same idea as bin/run_all_rspec)'
+desc 'Run specs/ and new_bridge_specs/ with SimpleCov (same idea as bin/run_all_rspec; GALAAZ_RUBY overrides)'
 task :specs_all_with_new_bridge => [:compile_gatekeeper] do
   root = File.expand_path(__dir__)
-  inv = MakeTask.galaaz_jruby_invocation
+  inv = MakeTask.galaaz_ruby_invocation
   top = Dir[File.join(root, 'specs', '*_spec.rb')] + Dir[File.join(root, 'specs', '*.spec.rb')]
   files = top.sort.map { |p| Shellwords.escape(p) }.join(' ')
   nb = Shellwords.escape(File.join(root, 'new_bridge_specs'))

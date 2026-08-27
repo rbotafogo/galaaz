@@ -215,11 +215,10 @@ end
 EOF
 
 libx = File.expand_path('../lib', File.dirname(__FILE__))
-require File.join(libx, 'galaaz_jruby')
-jvm_args = GalaazJRuby.shell_j_arg_string
+require File.join(libx, 'galaaz_ruby')
 ENV['GALAAZ_CALLBACK_TIMEOUT_MS'] = options[:callback_timeout_ms].to_s if !options[:callback_timeout_ms].nil?
 ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] = options[:bridge_timeout_sec].to_s if !options[:bridge_timeout_sec].nil?
-exec "jruby #{jvm_args} -I#{libx} -e #{Shellwords.escape(code)}"
+exec "#{GalaazRuby.shell_invocation(libx)} -e #{Shellwords.escape(code)}"
 
 =begin
 # how to call rmarkdown::render with a parameter list

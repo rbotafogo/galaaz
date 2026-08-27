@@ -41,13 +41,13 @@ end.parse!
 
 bin_dir = File.expand_path('..', __FILE__)
 libx = File.expand_path('../../lib', __FILE__)
-require File.join(libx, 'galaaz_jruby')
-jvm_args = GalaazJRuby.shell_j_arg_string
+require File.join(libx, 'galaaz_ruby')
+inv = GalaazRuby.shell_invocation(Shellwords.escape(libx))
 
 if options[:pry]
   puts "Loading PRY and Galaaz... Please wait!"
-  exec "jruby #{jvm_args} -I#{Shellwords.escape(libx)} -S pry -r #{Shellwords.escape(File.join(bin_dir, 'gstudio_pry.rb'))}"
+  exec "#{inv} -S pry -r #{Shellwords.escape(File.join(bin_dir, 'gstudio_pry.rb'))}"
 else
   puts "Loading IRB and Galaaz... Please wait!"
-  exec "jruby #{jvm_args} -I#{Shellwords.escape(libx)} -S irb -r #{Shellwords.escape(File.join(bin_dir, 'gstudio_irb.rb'))}"
+  exec "#{inv} -S irb -r #{Shellwords.escape(File.join(bin_dir, 'gstudio_irb.rb'))}"
 end

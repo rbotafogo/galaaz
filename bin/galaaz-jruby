@@ -1,14 +1,11 @@
 #!/usr/bin/env bash
 # Run jruby with Galaaz-required JVM flags and lib/ on the load path.
+# Thin JRuby wrapper around bin/galaaz-ruby (forces jruby).
 # Optional: GALAAZ_JRUBY_OPTS (space-separated extra -J... or jruby args).
 #
 # Usage: bin/galaaz-jruby path/to/script.rb [args...]
 #        bin/galaaz-jruby -S rspec specs/foo_spec.rb
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# shellcheck source=galaaz_jruby_env.inc.sh
-source "$ROOT/bin/galaaz_jruby_env.inc.sh"
-exec jruby -I "$ROOT/lib" \
-  $GALAAZ_REQUIRED_JRUBY_J_ARGS \
-  ${GALAAZ_JRUBY_OPTS:-} \
-  "$@"
+export GALAAZ_RUBY=jruby
+exec "$ROOT/bin/galaaz-ruby" "$@"

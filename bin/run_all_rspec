@@ -8,6 +8,7 @@
 #   bin/run_all_rspec
 #   bin/run_all_rspec --format documentation
 #   bin/run_all_rspec new_bridge_specs/phase0_protocol_spec.rb
+#   GALAAZ_RUBY=ruby bin/run_all_rspec
 #
 # If the first argument is an option (starts with -), default dirs are prepended
 # so `bin/run_all_rspec --format doc` still runs specs/ + new_bridge_specs/.
@@ -15,8 +16,8 @@
 # For specs/ only (faster day-to-day): bin/run_rspec
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# shellcheck source=galaaz_jruby_env.inc.sh
-source "$ROOT/bin/galaaz_jruby_env.inc.sh"
+# shellcheck source=galaaz_ruby_env.inc.sh
+source "$ROOT/bin/galaaz_ruby_env.inc.sh"
 
 echo "[run_all_rspec] compiling gatekeeper: ext/new_bridge"
 make -C "$ROOT/ext/new_bridge" -s all
@@ -35,9 +36,9 @@ if [ $# -eq 0 ]; then
 elif [[ "${1:-}" == -* ]]; then
   set -- "${DEFAULT_SPECS[@]}" "$@"
 fi
-exec jruby -I "$ROOT/lib" \
-  $GALAAZ_REQUIRED_JRUBY_J_ARGS \
-  ${GALAAZ_JRUBY_OPTS:-} \
+# shellcheck disable=SC2086
+exec "$GALAAZ_RUBY_BIN" -I "$ROOT/lib" \
+  $GALAAZ_RUBY_J_ARGS \
   -S bundle exec rspec \
   -r "$ROOT/specs/spec_helper.rb" \
   "$@"

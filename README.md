@@ -304,7 +304,8 @@ The native **gatekeeper** component under `ext/new_bridge` is built with `make` 
 
 # Dependencies
 
-* **JRuby** — Galaaz 2.0 requires JRuby (tested with **10.1.1.0**) and a matching **JDK** (tested with **Java 21**). MRI Ruby is not supported.
+* **JRuby (primary)** — tested with **10.1.1.0** and a matching **JDK** (tested with **Java 21**).
+* **CRuby / MRI** — NewBridge also runs on CRuby (tested with **3.3.12**). Use `GALAAZ_RUBY=ruby` with the `bin/` runners, or `gem install galaaz` under MRI.
 * **GNU R** — `R` and `Rscript` on your `PATH` (tested with **4.3.3**), plus a C++ toolchain (`g++`, `make`) and the **Rcpp** package to compile the gatekeeper.
 * **galaaz gem** — runtime dependency `msgpack` is pulled in by `gem install`.
 * Optional: **Docker** — if you run R in a container (common on WSL2); see bootstrap below.
@@ -314,17 +315,18 @@ The native **gatekeeper** component under `ext/new_bridge` is built with `make` 
 
 The supported install is **`gem install` + compile the gatekeeper**. You do not need a git clone.
 
-1. Install **JRuby**, a compatible **JDK**, and **GNU R** (with `Rscript` and a C++ compiler).
+1. Install **JRuby** (and a compatible **JDK**) **or CRuby 3.3+**, plus **GNU R** (with `Rscript` and a C++ compiler).
 2. In R, install **Rcpp**: `install.packages("Rcpp")`.
-3. Install the gem: `jruby -S gem install galaaz`
+3. Install the gem: `jruby -S gem install galaaz` (or `gem install galaaz` under CRuby).
 4. Compile the native gatekeeper from the installed gem:
 
    ```
-   gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+   gem_dir="$(ruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+   # under JRuby: gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
    make -C "${gem_dir}/ext/new_bridge" all
    ```
 
-5. Ensure **`R`** starts GNU R and can install packages (network access to CRAN when you first call `R.install_and_loads`). For **Apache Arrow** on Java 9+, pass `-J--add-opens=java.base/java.nio=ALL-UNNAMED` to JRuby (from a checkout, `bin/galaaz-jruby` does this).
+5. Ensure **`R`** starts GNU R and can install packages (network access to CRAN when you first call `R.install_and_loads`). For **Apache Arrow** on Java 9+, pass `-J--add-opens=java.base/java.nio=ALL-UNNAMED` to JRuby (from a checkout, `bin/galaaz-jruby` does this; on CRuby this flag is not needed).
 
 For **gKnit**, **knitr**, **rmarkdown**, and LaTeX (PDF output), install the corresponding R packages, **Pandoc**, and a TeX distribution if you need PDF; the repository includes helpers such as **`bin/install-tinytex`** where appropriate.
 
@@ -332,11 +334,11 @@ A **table of all `bin/` scripts** (bootstrap, JRuby wrapper, gstudio, gknit, tes
 
 ### From a repository checkout (contributors)
 
-1. Install **bundler** if needed, then run **`jruby -S bundle install`** in the repository root.
+1. Install **bundler** if needed, then run **`jruby -S bundle install`** (or `bundle install` under CRuby) in the repository root.
 2. Build the bridge native code: **`make -C ext/new_bridge all`** (or **`rake compile_gatekeeper`**).
-3. Run scripts with **`bin/galaaz-jruby`** (sources **`bin/galaaz_jruby_env.inc.sh`** and adds **`-I lib`**).
+3. Run scripts with **`bin/galaaz-jruby`** (JRuby) or **`GALAAZ_RUBY=ruby bin/galaaz-ruby`** (CRuby). Spec runners: **`bin/run_rspec`** / **`bin/run_all_rspec`** (default JRuby; set **`GALAAZ_RUBY=ruby`** for CRuby).
 
-A **gstudio** try image (JRuby + R + Galaaz already installed) is **`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio`** (or **`./docker/try-gstudio/run.sh`** from a checkout). Maintainers can prove a RubyGems install on a throwaway Ubuntu machine (no repo inside the container) with **`./docker/cold-install/run.sh published-specs`**.
+A **gstudio** try image (JRuby + R + Galaaz already installed) is **`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio`** (or **`./docker/try-gstudio/run.sh`** from a checkout). Maintainers can prove a RubyGems install on a throwaway Ubuntu machine (no repo inside the container) with **`./docker/cold-install/run.sh published-specs`** (JRuby) or **`./docker/cold-install-cruby/run.sh published-specs`** (CRuby).
 
 ## Windows + WSL2 (optional: Docker / R in a container)
 

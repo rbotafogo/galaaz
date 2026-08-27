@@ -13,10 +13,10 @@ describe 'gknit include engine' do
     ].select { |dir| File.directory?(dir) }
     path = ENV.fetch('PATH', '')
     path = ([*extra, path].join(File::PATH_SEPARATOR)) unless extra.empty?
-    {
+    ENV.to_h.merge(
       'JAVA_OPTS' => '--add-opens=java.base/java.nio=ALL-UNNAMED',
       'PATH' => path
-    }
+    )
   end
 
   it 'loads include file code so constants are available in following ruby chunks' do

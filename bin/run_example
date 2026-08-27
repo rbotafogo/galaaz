@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# Run a Galaaz example with required JRuby JVM flags (lib/galaaz_jruby.rb).
-# Optional: GALAAZ_JRUBY_OPTS.
+# Run a Galaaz example (JRuby by default). Override with GALAAZ_RUBY=ruby.
+# Uses bundle exec so msgpack (and other Gemfile deps) resolve under vendor/bundle.
+# Optional: GALAAZ_JRUBY_OPTS (JRuby only).
 #
 # Usage: bin/run_example examples/sthda_ggplot/all.rb
 #        bin/run_example examples/sthda_ggplot/one_variable_continuous/geom_density.rb
+#        GALAAZ_RUBY=ruby bin/run_example examples/misc/subsetting.rb
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# shellcheck source=galaaz_jruby_env.inc.sh
-source "$ROOT/bin/galaaz_jruby_env.inc.sh"
-exec jruby -I "$ROOT/lib" \
-  $GALAAZ_REQUIRED_JRUBY_J_ARGS \
-  ${GALAAZ_JRUBY_OPTS:-} \
+# shellcheck source=galaaz_ruby_env.inc.sh
+source "$ROOT/bin/galaaz_ruby_env.inc.sh"
+# shellcheck disable=SC2086
+exec "$GALAAZ_RUBY_BIN" -I "$ROOT/lib" \
+  $GALAAZ_RUBY_J_ARGS \
+  -S bundle exec ruby -I "$ROOT/lib" \
   "$@"

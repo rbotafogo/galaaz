@@ -3,17 +3,18 @@
 # Usage:
 #   bin/run_old_rspec
 #   bin/run_old_rspec old_specs/r_environment.spec.rb
+#   GALAAZ_RUBY=ruby bin/run_old_rspec
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# shellcheck source=galaaz_jruby_env.inc.sh
-source "$ROOT/bin/galaaz_jruby_env.inc.sh"
+# shellcheck source=galaaz_ruby_env.inc.sh
+source "$ROOT/bin/galaaz_ruby_env.inc.sh"
 if [ $# -eq 0 ]; then
   shopt -s nullglob
   SPECS=( "$ROOT"/old_specs/*.spec.rb "$ROOT"/old_specs/*_spec.rb )
   IFS=$'\n' SPECS=( $(printf '%s\n' "${SPECS[@]}" | sort) )
   set -- "${SPECS[@]}"
 fi
-exec jruby -I "$ROOT/lib" \
-  $GALAAZ_REQUIRED_JRUBY_J_ARGS \
-  ${GALAAZ_JRUBY_OPTS:-} \
+# shellcheck disable=SC2086
+exec "$GALAAZ_RUBY_BIN" -I "$ROOT/lib" \
+  $GALAAZ_RUBY_J_ARGS \
   -S bundle exec rspec "$@"

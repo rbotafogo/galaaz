@@ -13,10 +13,10 @@ describe 'gknit internal error report' do
     ].select { |dir| File.directory?(dir) }
     path = ENV.fetch('PATH', '')
     path = ([*extra, path].join(File::PATH_SEPARATOR)) unless extra.empty?
-    {
+    ENV.to_h.merge(
       'JAVA_OPTS' => '--add-opens=java.base/java.nio=ALL-UNNAMED',
       'PATH' => path
-    }
+    )
   end
 
   it 'prints chunk-scoped report only when internal errors are detected' do

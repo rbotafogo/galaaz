@@ -22,7 +22,7 @@ module NewBridge
       raise InvalidEnvelope, "unknown keys: #{extra.join(', ')}" unless extra.empty?
 
       MessagePack.pack(h)
-    rescue MessagePack::MalformedFormatError, MessagePack::UnpackError => e
+    rescue MessagePack::MalformedFormatError, MessagePack::UnpackError, EOFError => e
       raise Error, "MsgPack pack failed: #{e.message}"
     end
 
@@ -39,7 +39,7 @@ module NewBridge
       raise InvalidEnvelope, "missing keys: #{missing.join(', ')}" unless missing.empty?
 
       h
-    rescue MessagePack::MalformedFormatError, MessagePack::UnpackError => e
+    rescue MessagePack::MalformedFormatError, MessagePack::UnpackError, EOFError => e
       raise Error, "invalid MsgPack envelope: #{e.message}"
     end
 
