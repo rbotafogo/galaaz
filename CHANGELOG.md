@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.1.0
+
+Galaaz **2.1** keeps the **galaaz2_0** integration line as the main development branch and marks
+**CRuby + JRuby** NewBridge support as a released milestone (R-on-Rails positioning).
+
+### Added
+
+- First-class **CRuby** NewBridge path alongside JRuby (engine-aware launchers, cold-install /
+  CI coverage for both).
+- Docs: treat JRuby and CRuby as equal supported runtimes for the bridge.
+- [Documentation/ROADMAP_ARROW_RUBY_R.md](Documentation/ROADMAP_ARROW_RUBY_R.md) — roadmap for
+  Ruby↔R Arrow IPC / mmap handoff (stage B) then shared-memory bus (stage C).
+
+### Notes
+
+- Git branch **`galaaz2_0`** remains the integration branch name; the gem version is **2.1.0**.
+- Apache Arrow **zero-copy shared RAM** is still future work (see the roadmap); today’s helpers
+  build R-side tables after a handoff, then use proxy / Remote Control calls.
+
 ## 2.0.0
 
 Galaaz 2.0 drives **GNU R** from **JRuby** or **CRuby** over a process bridge. It is not the older GraalVM / TruffleRuby / FastR stack, and it does not embed Renjin. Both Rubies are supported for NewBridge (tested on **JRuby 10.1.1.0** with **Java 21**, and **CRuby 3.3.12**).
