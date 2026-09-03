@@ -4,7 +4,7 @@ name: CI
 
 on:
   push:
-    branches: [galaaz2_0, master, cruby_bridge]
+    branches: [galaaz2_0, master]
   pull_request:
     branches: [galaaz2_0, master]
   workflow_dispatch:
