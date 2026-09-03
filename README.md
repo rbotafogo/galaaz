@@ -4025,24 +4025,35 @@ ans = flights[:all, E.list(R[:arr_delay], R[:dep_delay])]
 # Apache Arrow
 
 [Apache Arrow](https://arrow.apache.org/) is a **columnar** in-memory format used heavily in R
-and Python for analytics. In Galaaz, **Ruby does not hold an Arrow C++ table itself**; instead you
-build ordinary Ruby structures (arrays of row hashes), and **`R::Arrow.from_ruby_batches`** creates
-a real **Arrow `Table` inside GNU R**. From there you use R’s **`arrow`** and **`dplyr`** packages
-as usual: **`group_by`** on the Arrow table, **`summarise`** for aggregates, then **`collect()`** to
-materialize a tibble when you need in-memory R rows.
+and Python for analytics. Galaaz supports two ingest styles:
 
-That pattern matches production use: **JRuby threads** (or sequential code) assemble many rows in
-Ruby; you pay **one** bridge-heavy handoff to R; **dplyr** runs vectorised work on the Arrow table
-in R.
+1. **Stage A (copy over the bridge):** build Ruby row hashes and call
+   **`R::Arrow.from_ruby_batches`**, which builds an Arrow `Table` **inside GNU R**.
+2. **Stage B1 (IPC file handoff):** write an Arrow IPC file from Ruby with
+   **`Galaaz::ArrowIpc.write`**, then **`R::Arrow.open_ipc(path)`**. Only the **path** crosses
+   NewBridge. This is **mmap/IPC file handoff**, not zero-copy shared heap between Ruby and R.
 
-**Prerequisites:** install R packages **`arrow`** and **`dplyr`**. Run scripts with
-**`bin/galaaz-jruby`** (or the same JVM flags as in **`docs/testing.md`**) so the Arrow JNI stack is
-available.
+After either ingest, use R’s **`arrow`** / **`dplyr`** on the returned proxy (`group_by`,
+`summarise`, `collect`), and unbox only when you need KPIs in Ruby.
+
+**Writers for B1 (optional dependencies):**
+
+* **CRuby:** Apache **red-arrow** — `gem install red-arrow` (system Arrow/GLib packages required).
+  Do not confuse with the unrelated legacy Rubygems package named `arrow`.
+* **JRuby:** Apache Arrow **Java** JARs — set **`GALAAZ_ARROW_JARS`**, use `~/arrow_jars`, or
+  `jar-dependencies`. Keep **`bin/galaaz-jruby`** / `-J--add-opens=java.base/java.nio=ALL-UNNAMED`.
+
+See **`Documentation/ROADMAP_ARROW_RUBY_R.md`**, **`specs/arrow_ipc_handoff_spec.rb`**, and
+**`new_bridge_specs/arrow_ipc_async_spec.rb`**.
+
+**Prerequisites:** install R packages **`arrow`** and **`dplyr`**. Run JRuby scripts with
+**`bin/galaaz-jruby`** (or the same JVM flags as in **`docs/testing.md`**).
 
 ## Other `R::Arrow` helpers
 
 The Ruby module **`R::Arrow`** (see `lib/R_interface/r_arrow.rb`) also includes:
 
+* **`R::Arrow.open_ipc(path)`** — open an Arrow IPC file as an R-side Table proxy (Stage B1).
 * **`R::Arrow.table_from(df)`** — wrap an R `data.frame` / tibble as an Arrow table.
 * **`R::Arrow.read_feather` / `write_feather`**, **`read_parquet`**, **`dataset(path)`** — file and
   dataset IO on paths visible to R.

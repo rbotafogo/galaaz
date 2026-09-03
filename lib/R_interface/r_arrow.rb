@@ -63,6 +63,24 @@ module R
       R.arrow___as_arrow_table(r_df)
     end
 
+    # Open an Arrow IPC file (written by Galaaz::ArrowIpc or compatible) as an
+    # R-side Arrow Table. Materializes the table in R so the Ruby process may
+    # unlink the path immediately after this call returns (Stage B1 lifetime).
+    #
+    # This is IPC/mmap file handoff — not zero-copy shared heap with Ruby.
+    #
+    # @param path [String] filesystem path visible to the R process
+    # @return [R::Object] Arrow Table proxy
+    def self.open_ipc(path)
+      path = File.expand_path(path.to_s)
+      ok = R::Support.eval("requireNamespace('arrow', quietly=TRUE)")
+      unless ok == true
+        raise LoadError, "R package 'arrow' is required for R::Arrow.open_ipc"
+      end
+
+      R.arrow___read_ipc_file(path, as_data_frame: false)
+    end
+
     # Open a Parquet/Feather directory or file as an Arrow Dataset
     # using arrow::open_dataset().
     #
