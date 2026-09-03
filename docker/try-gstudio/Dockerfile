@@ -3,7 +3,7 @@
 FROM ubuntu:24.04
 
 LABEL org.opencontainers.image.source="https://github.com/rbotafogo/galaaz" \
-      org.opencontainers.image.description="Galaaz 2.0 gstudio try image (JRuby + GNU R)" \
+      org.opencontainers.image.description="Galaaz 2.1 gstudio try image (JRuby + GNU R)" \
       org.opencontainers.image.licenses="BSD-2-Clause"
 
 ENV DEBIAN_FRONTEND=noninteractive \

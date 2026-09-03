@@ -45,7 +45,7 @@ jobs:
           tags: ghcr.io/rbotafogo/galaaz-try:gstudio
           labels: |
             org.opencontainers.image.source=https://github.com/rbotafogo/galaaz
-            org.opencontainers.image.description=Galaaz 2.0 gstudio try image (JRuby + GNU R)
+            org.opencontainers.image.description=Galaaz 2.1 gstudio try image (JRuby + GNU R)
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
           build-args: |
