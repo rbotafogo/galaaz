@@ -68,9 +68,9 @@ Rails never went away—it matured. Several factors make Rails compelling again:
 
 1. **Rails (Ruby)**: Handles web requests, authentication, authorization, database operations, background jobs, email, APIs, caching, sessions, and orchestration
 2. **R**: Handles statistical modeling, machine learning, visualization, and data analysis
-3. **Galaaz**: The seamless bridge that makes this integration feel like a single system—using Apache Arrow for zero-copy data transfer at scale
+3. **Galaaz**: The seamless bridge that makes this integration feel like a single system—proxies for analytics in R, Apache Arrow for bulky tables (Stage A copy, Stage B IPC/mmap file; shared-heap zero-copy is Stage C and not shipped)
 
-**The Value Proposition**: Keep everything you love about R—the packages, the syntax, the statistical rigor—while gaining everything Rails provides for production applications. Move data between languages at memory speed, not serialization speed.
+**The Value Proposition**: Keep everything you love about R—the packages, the syntax, the statistical rigor—while gaining everything Rails provides for production applications. For large tables, prefer Arrow **IPC files** (path across the bridge, bytes on disk or `/dev/shm`) over CSV/JSON serialization. Do **not** claim Ruby and R share one physical Arrow heap until Stage C ships.
 
 ---
 
@@ -86,25 +86,24 @@ Earlier versions of Galaaz explored GraalVM's polyglot capabilities with FastR (
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────┐         ┌──────────────┐         ┌──────────┐ │
-│  │   JRuby      │ ←─────→ │ Galaaz Bridge│ ←─────→ │ GNU R    │ │
-│  │  (JVM)       │  (Java) │  (JNI/R API) │  (C/R)  │  Process │ │
-│  └──────────────┘         └──────────────┘         └──────────┘ │
-│        │                                                    │   │
+│  │ JRuby/CRuby  │ ←─────→ │ Galaaz Bridge│ ←─────→ │ GNU R    │ │
+│  │              │  path + │  (NewBridge) │  C/R    │  Process │ │
+│  └──────────────┘  cmds   └──────────────┘         └──────────┘ │
 │        │                                                    │   │
 │        ▼                                                    ▼   │
 │  ┌──────────────┐                                  ┌──────────┐│
 │  │ Rails App    │                                  │ Arrow    ││
-│  │ Multi-thread │                                  │ Shared   ││
-│  │ ActiveRecord │                                  │ Memory   ││
+│  │ (threads /   │     bulky tables: IPC file       │ Table in ││
+│  │  processes)  │ ──── mmap / /dev/shm (Stage B) ──│ R (proxy)││
 │  └──────────────┘                                  └──────────┘│
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 **How it works:**
-1. **JRuby** runs on the JVM with true multi-threading, running Rails and application code
-2. **Galaaz Bridge** communicates with a GNU R process via R's C API (or alternative mechanisms)
-3. **Apache Arrow** (optional) provides efficient, shared-memory data transfer for large datasets
+1. **JRuby or CRuby** runs Rails and application code (JRuby for true JVM threads; CRuby for MRI). Both talk the same NewBridge protocol.
+2. **Galaaz Bridge** communicates with a GNU R process (NewBridge / gatekeeper)—commands and small values, not bulk bytes when you use Stage B.
+3. **Apache Arrow** (optional): **Stage A** copies Ruby batches into an R-side Arrow Table (`R::Arrow.from_ruby_batches`). **Stage B** writes an Arrow IPC file; only the **path** crosses the bridge (`Galaaz::ArrowIpc` + `R::Arrow.open_ipc` / `write_ipc`). **Stage C** (shared-heap zero-copy) is not shipped—see `Documentation/ROADMAP_ARROW_RUBY_R.md`.
 4. **GNU R** is the actual R interpreter—full compatibility with all R packages (ggplot2, dplyr, Bioconductor, etc.)
 
 **Why this is better than FastR/GraalVM:**
@@ -448,13 +447,22 @@ end
 
 ---
 
-### Section 6: Apache Arrow - Zero-Copy Data at Scale
+### Section 6: Apache Arrow — bulky tables without CSV/JSON
 
-**Key Message**: Traditional bridges serialize data (JSON, CSV) to pass between languages. Galaaz uses Apache Arrow for zero-copy, memory-mapped data transfer—enabling huge datasets to move from Ruby to R instantly.
+**Key Message**: Traditional bridges often serialize through text (CSV, JSON). Galaaz uses Apache Arrow in **two shipped modes**. Neither is a shared Ruby+R heap. Maintainer detail: `Documentation/ROADMAP_ARROW_RUBY_R.md`. User manual: `# Apache Arrow` in `README.md` / `blogs/manual/manual.md`.
+
+| Stage | API | What actually happens |
+|-------|-----|------------------------|
+| **A** (shipped) | `R::Arrow.from_ruby_batches` / `table_from` | Columns are **copied** into GNU R; Ruby holds a **proxy**. dplyr then runs in R. |
+| **B1** (shipped) | `Galaaz::ArrowIpc.write` → `R::Arrow.open_ipc(path)` | Ruby writes an Arrow **IPC file** (prefer `/dev/shm`); NewBridge carries only the **path**. R memory-maps / reads the file into an Arrow Table. |
+| **B2** (shipped) | `R::Arrow.write_ipc` → `Galaaz::ArrowIpc.read` / `read_batches` | R writes IPC (uncompressed so JRuby Arrow Java can read); Ruby reads columns or row hashes for DB/API. |
+| **C** (future) | not shipped | Named shared segment; do **not** claim 0 ms shared RAM until this exists and is measured. |
+
+**Writers/readers (Stage B):** CRuby uses **red-arrow** (`gem install red-arrow` matching `pkg-config --modversion arrow-glib`, plus Apache Arrow APT / `libarrow-glib-dev`). JRuby uses **Apache Arrow Java** JARs (`GALAAZ_ARROW_JARS` or `~/arrow_jars`) and `JAVA_OPTS` `--add-opens=java.base/java.nio=ALL-UNNAMED` on the **child** JVM (`bin/galaaz-jruby` / `mise.toml`). Do not install the unrelated Rubygems gem named `arrow`.
 
 **The Problem: Data Transfer Overhead**
 
-In traditional polyglot systems (rpy2, reticulate), passing data between languages requires serialization:
+In traditional polyglot systems (rpy2, reticulate), passing data between languages often means a text round-trip:
 
 ```python
 # Python → R via JSON/CSV serialization (SLOW)
@@ -470,36 +478,31 @@ ro.globalenv['r_df'] = pandas2ri.py2rpy(df)
 This approach:
 - Copies all data through a text format
 - Loses type information (factors become strings, dates become strings)
-- Consumes 2-3x memory during transfer
-- Becomes a bottleneck at ~100K+ rows
+- Consumes extra memory during transfer
+- Becomes a bottleneck at large row counts
 
-**The Galaaz Solution: Apache Arrow**
+**Stage A: copy into R, then Remote Control**
 
-Apache Arrow is a columnar, in-memory format designed for zero-copy data sharing across languages. With Galaaz:
+Assemble row hashes in Ruby (threads OK on JRuby), then one ingest. Analytics stay on the R proxy; unbox KPIs only.
 
 ```ruby
 require 'galaaz'
 
-# 1. Build data in Ruby—using parallel threads for multi-source ingestion
 batches = []
 mutex = Mutex.new
 threads = []
 
-# Simulate parallel data ingestion from multiple sources
 [0, 1, 2, 3].each do |tid|
   threads << Thread.new do
-    # Each thread queries its own database/shard/API
-    local_data = fetch_from_source(tid) # Returns array of hashes
+    local_data = fetch_from_source(tid) # array of hashes
     mutex.synchronize { batches << local_data }
   end
 end
 threads.each(&:join)
 
-# 2. Convert to Arrow Table—zero-copy transfer to R
-# This is the key: data moves to R without serialization!
+# Copy into an Arrow Table *inside GNU R* (not shared heap with Ruby)
 table = R::Arrow.from_ruby_batches(batches)
 
-# 3. Use R's dplyr directly on the Arrow table
 R.install_and_loads('dplyr', 'arrow')
 
 grouped = R.dplyr___group_by(table, :region)
@@ -510,57 +513,59 @@ summarised = R.dplyr___summarise(
   total: E.sum(:value)
 )
 results = R.dplyr___collect(summarised)
-
 puts results
-#> # A tibble: 4 × 4
-#>   region count avg_value total
-#>   <chr>  <int>     <dbl> <dbl>
-#> 1 North  25000      5.5  137500
-#> 2 South  25000      5.5  137500
-#> 3 East   25000      5.5  137500
-#> 4 West   25000      5.5  137500
 ```
 
-**Why This Matters:**
+**Stage B: IPC file; path on the bridge**
 
-- **No serialization cost**: Data stays in Arrow's columnar format throughout
-- **Type preservation**: Factors, dates, timestamps remain intact
-- **Memory efficiency**: No intermediate copies; Ruby and R share the same memory
-- **Scale**: Tested with millions of rows (see slow-specs/arrow_large_pipeline_spec.rb with 200K+ rows)
-- **Lazy evaluation**: Arrow datasets can be filtered/aggregated before materializing
-
-**Real-World Example: Multi-DB Aggregation**:
+Use this when the table is large enough that copying every cell over NewBridge/MsgPack is the wrong tax. Scratch files prefer `/dev/shm`.
 
 ```ruby
-# Aggregate data from multiple PostgreSQL shards in Ruby,
-# then analyze in R with zero-copy transfer
+require 'galaaz'
+
+# B1: Ruby → file → R
+path = Galaaz::ArrowIpc.write_batches(batches)  # or .write(col => array, ...)
+tbl  = R::Arrow.open_ipc(path)
+Galaaz::ArrowIpc.release(path)  # unlink after R has opened (default B1 lifetime)
+
+grouped = R.dplyr___group_by(tbl, :region)
+summarised = R.dplyr___summarise(grouped, total: E.sum(:value))
+
+# B2: R → file → Ruby (e.g. rows for ActiveRecord / JSON)
+out_path = R::Arrow.write_ipc(summarised)
+rows     = Galaaz::ArrowIpc.read_batches(out_path)
+Galaaz::ArrowIpc.release(out_path)
+
+render json: { analytics: rows }
+```
+
+**Why this matters (honest):**
+
+- **Columnar Arrow**, not CSV, for the bulky payload
+- **Type-preserving** numeric/string columns on the B1/B2 contract (int32/int64, float64, utf8; nulls kept)
+- **Stage A** still copies; **Stage B** still materializes a file R (or Ruby) then reads—R may mmap the IPC file
+- **Not** “Ruby and R map the same live buffer” until Stage C
+- **Scale**: Stage A pipeline in `slow-specs/arrow_large_pipeline_spec.rb` (200K+ rows); Stage B specs in `specs/arrow_ipc_handoff_spec.rb`, `specs/arrow_ipc_export_spec.rb`, and the matching `new_bridge_specs/arrow_ipc_*_async_spec.rb`
+- **Parquet/Feather/dataset** stay R-side file APIs (`R::Arrow.write_parquet`, `dataset`)
+
+**Real-world sketch: shards in Ruby, analytics in R**
+
+```ruby
+# Parallel ingest in Ruby, then one Arrow handoff (A or B), then dplyr in R.
 
 require 'galaaz'
 require 'active_record'
 
-# Connect to multiple database shards
-SHARDS = ['shard_1', 'shard_2', 'shard_3', 'shard_4'].map do |shard_name|
-  ActiveRecord::Base.establish_connection(
-    adapter: 'postgresql',
-    host: "#{shard_name}.db.internal",
-    database: 'analytics'
-  )
-end
-
-# Parallel data collection from all shards
 batches = []
 mutex = Mutex.new
 
 SHARDS.each do |shard|
   Thread.new do
-    # Query this shard
     records = shard.connection.select_all(<<-SQL).cast_values
       SELECT user_id, region, event_type, value, created_at
       FROM events
       WHERE created_at > NOW() - INTERVAL '7 days'
     SQL
-
-    # Convert to array of hashes for Arrow
     batch = records.map do |row|
       {
         user_id: row[0],
@@ -570,60 +575,37 @@ SHARDS.each do |shard|
         created_at: row[4]
       }
     end
-
     mutex.synchronize { batches << batch }
   end
 end
 
-# Zero-copy transfer to R as Arrow Table
-table = R::Arrow.from_ruby_batches(batches)
+R.install_and_loads('dplyr', 'arrow')
 
-# Now use R's full power on the complete dataset
-R.install_and_loads('dplyr', 'arrow', 'lubridate')
+# Prefer B1 when the merged table is large:
+path  = Galaaz::ArrowIpc.write_batches(batches)
+table = R::Arrow.open_ipc(path)
+Galaaz::ArrowIpc.release(path)
 
-# R's dplyr works directly on Arrow tables (lazy evaluation)
-analysis = table \
-  .dplyr___filter(E.created_at > (E.now() - E.days(7))) \
-  .dplyr___group_by(:region, :event_type) \
-  .dplyr___summarise(
+analysis = R.dplyr___collect(
+  R.dplyr___summarise(
+    R.dplyr___group_by(table, :region, :event_type),
     count: E.n(),
-    total_value: E.sum(:value),
-    avg_value: E.mean(:value),
-    unique_users: E.n_distinct(:user_id)
+    total_value: E.sum(:value)
   )
+)
 
-# Materialize results when ready
-results = R.dplyr___collect(analysis)
-
-# Convert back to Ruby objects for API response
-results_hash = results.to_ruby
-render json: { analytics: results_hash }
+out_path = R::Arrow.write_ipc(analysis)
+rows = Galaaz::ArrowIpc.read_batches(out_path)
+Galaaz::ArrowIpc.release(out_path)
+render json: { analytics: rows }
 ```
 
-**Parquet and Feather: Persistence Without Conversion**:
+**Parquet and Feather (R-visible paths):**
 
 ```ruby
-# Save Ruby data as Parquet (columnar, compressed)
-# Then read directly into R without parsing
-
-# 1. Build large dataset in Ruby
-data = (1..1_000_000).map do |i|
-  {
-    id: i,
-    category: ["A", "B", "C", "D"][i % 4],
-    value: rand * 100,
-    timestamp: Time.now - (i % 86400)
-  }
-end
-
-# 2. Convert to R data.frame, then write as Parquet
 df = R.data__frame(data)
 R::Arrow.write_parquet(df, '/data/events.parquet')
-
-# 3. Later, read directly into R as a dataset (lazy, memory-mapped)
 dataset = R::Arrow.dataset('/data/events.parquet')
-
-# Query without loading entire file
 summary = R.dplyr___collect(
   dataset \
      .dplyr___filter(R[:value] > 50) \
@@ -632,28 +614,13 @@ summary = R.dplyr___collect(
 )
 ```
 
-**Large-Scale Test Results** (from `slow-specs/arrow_large_pipeline_spec.rb`):
-
-```ruby
-# Test: 8 threads × 25,000 rows = 200,000 rows
-# With weighted aggregations in R
-thread_count = 8
-rows_per_thread = 25_000
-group_count = 10
-
-# Ruby parallel batch construction... 8 threads
-# Arrow table creation from batches → instant
-# R dplyr group_by + summarise → native speed
-# Results verified accurate against Ruby reference implementation
-```
-
-**Key Insight**: With Arrow, the boundary between Ruby and R disappears for data. You can build data pipelines in Ruby (with its superior concurrency and database libraries) and analyze in R (with its statistical ecosystem)—with **zero overhead** at the language boundary.
+**Key Insight**: Build pipelines in Ruby (concurrency, ActiveRecord); run statistics in R. Pay **one** bulky handoff (copy or IPC file), then **move commands** on proxies. That is the production story today—not a shared Arrow heap.
 
 ---
 
 ### Section 7: Parallelism and Process Orchestration
 
-**Key Message**: R is single-threaded. Galaaz solves this by orchestrating multiple R processes from Ruby's multi-threaded environment—now with Arrow for efficient data distribution.
+**Key Message**: R is single-threaded. Galaaz solves this by orchestrating multiple R processes from Ruby—Arrow for bulky ingest/export, proxies for analytics per worker.
 
 **The Architecture**:
 ```
@@ -892,7 +859,7 @@ Galaaz 2.0 represents the maturation of the Ruby-R bridge:
 - **JRuby + GNU R architecture**: Moved from experimental GraalVM/FastR to battle-tested JRuby and standard GNU R for full package compatibility and production stability
 - **New bridge architecture**: More robust, faster, better error handling
 - **Process management**: Built-in support for R process pools
-- **Apache Arrow integration**: Zero-copy data transfer for large datasets—build data pipelines in Ruby's multi-threaded environment, analyze in R with zero serialization overhead
+- **Apache Arrow**: Stage A copy (`from_ruby_batches`) and Stage B IPC/mmap (`Galaaz::ArrowIpc`, `open_ipc` / `write_ipc`). Shared-heap zero-copy is Stage C. Build pipelines in Ruby, analyze in R, unbox KPIs.
 - **gKnit improvements**: Better R Markdown integration
 - **Rails integration**: First-class support for Rails patterns
 
@@ -907,7 +874,7 @@ For the full blog post, include references to:
 - **NSE/dplyr**: `blogs/nse_dplyr/nse_dplyr.md`
 - **Object-Oriented**: `blogs/oh_my/oh_my.md`
 - **Plotting Tutorial**: `blogs/ruby_plot/ruby_plot.md`
-- **Apache Arrow**: `specs/arrow_semantics_spec.rb`, `specs/arrow_from_ruby_batches_spec.rb`, `slow-specs/arrow_large_pipeline_spec.rb`
+- **Apache Arrow**: `Documentation/ROADMAP_ARROW_RUBY_R.md`; `specs/arrow_ipc_handoff_spec.rb`, `specs/arrow_ipc_export_spec.rb`, `new_bridge_specs/arrow_ipc_async_spec.rb`, `new_bridge_specs/arrow_ipc_export_async_spec.rb`; Stage A: `specs/arrow_from_ruby_batches_spec.rb`, `slow-specs/arrow_large_pipeline_spec.rb`
 - **Specs**: `specs/r_nse.spec.rb`, `specs/r_vector_functions.spec.rb`
 
 ---

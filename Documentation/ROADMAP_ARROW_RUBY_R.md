@@ -2,6 +2,8 @@
 
 Status: **B1 + B2 implemented** (Stage C still future)  
 Audience: Galaaz maintainers  
+User-facing: [README.md](../README.md) / [blogs/manual/manual.md](../blogs/manual/manual.md) (`# Apache Arrow`);
+pitch outline: [blogs/R-on-Rails-Planning-Document.md](../blogs/R-on-Rails-Planning-Document.md) Section 6.  
 Related: [Specification.txt](Specification.txt) (older “RAM-disk / Shadow Vector” sketch — **superseded for transport** by this roadmap + `Galaaz::ArrowIpc`),  
 ledger demo honesty notes in `r_on_rails_ledger/docs/architecture.md`
 

@@ -59,9 +59,11 @@ CRuby when you prefer MRI. R remains the same **GNU R** you use interactively—
 compiled extensions and Bioconductor. Earlier GraalVM / TruffleRuby / FastR experiments
 are no longer the focus.
 
-The bridge handles **communication and typing** between the two worlds; large tables can
-also flow through **Apache Arrow** on the R side when you use the optional helpers described
-later in this manual.
+The bridge handles **communication and typing** between the two worlds. Large tables can use
+**Apache Arrow** in two shipped modes (described later): **Stage A** copies Ruby batches into an
+R-side Arrow table (`R::Arrow.from_ruby_batches`); **Stage B** writes an Arrow IPC file and only
+the **path** crosses NewBridge (`Galaaz::ArrowIpc` + `R::Arrow.open_ipc` / `write_ipc`). Shared-heap
+zero-copy is **Stage C** and is not shipped.
 
 ## R-on-Rails: the one-person app for R scientists
 
@@ -340,7 +342,7 @@ The supported install is **`gem install` + compile the gatekeeper**. You do not 
    make -C "${gem_dir}/ext/new_bridge" all
    ```
 
-5. Ensure **`R`** starts GNU R and can install packages (network access to CRAN when you first call `R.install_and_loads`). For **Apache Arrow** on Java 9+, pass `-J--add-opens=java.base/java.nio=ALL-UNNAMED` to JRuby (from a checkout, `bin/galaaz-jruby` does this; on CRuby this flag is not needed).
+5. Ensure **`R`** starts GNU R and can install packages (network access to CRAN when you first call `R.install_and_loads`). For **Apache Arrow** on **JRuby** (Java 9+), the child JVM needs `--add-opens=java.base/java.nio=ALL-UNNAMED` via **`JAVA_OPTS`** (from a checkout, `bin/galaaz-jruby` and `mise.toml` set this; a leading `jruby -J... -S bundle exec` does **not** pass `-J` to rspec). On **CRuby**, install Apache Arrow GLib (`libarrow-glib-dev` from the [Apache Arrow APT](https://arrow.apache.org/install/) repo) and `gem install red-arrow` matching `pkg-config --modversion arrow-glib`. Do not install the unrelated Rubygems package named `arrow`.
 
 For **gKnit**, **knitr**, **rmarkdown**, and LaTeX (PDF output), install the corresponding R packages, **Pandoc**, and a TeX distribution if you need PDF; the repository includes helpers such as **`bin/install-tinytex`** where appropriate.
 
@@ -442,13 +444,15 @@ A practical pattern is:
 
 1. Use threads (or a connection pool) to read from **multiple databases or shards** in parallel.
 2. Merge the rows in Ruby under a `Mutex` if you collect into one structure.
-3. Hand the merged table to R **once** (for example with `R::Arrow.from_ruby_batches` and dplyr,
-   or by building a data frame) so heavy statistics run in R with fewer bridge round-trips.
+3. Hand the merged table to R **once**: **`R::Arrow.from_ruby_batches`** (Stage A: copy into R) or
+   **`Galaaz::ArrowIpc.write` / `write_batches`** then **`R::Arrow.open_ipc`** (Stage B: IPC file;
+   only the path crosses the bridge). Then run dplyr in R.
 
 A runnable sketch lives in
 `examples/multithread_shards_to_r/shards_to_r.rb` (simulated shard queries; swap in your DB
 driver). For concurrency tests on the bridge itself, see `specs/bridge_concurrent_spec.rb` and
-`specs/arrow_from_ruby_batches_spec.rb`.
+`specs/arrow_from_ruby_batches_spec.rb`. Stage B IPC tests: `specs/arrow_ipc_handoff_spec.rb`,
+`specs/arrow_ipc_export_spec.rb`.
 
 ## Long-running R calls and a completion block
 
@@ -4025,35 +4029,77 @@ ans = flights[:all, E.list(R[:arr_delay], R[:dep_delay])]
 # Apache Arrow
 
 [Apache Arrow](https://arrow.apache.org/) is a **columnar** in-memory format used heavily in R
-and Python for analytics. In Galaaz, **Ruby does not hold an Arrow C++ table itself**; instead you
-build ordinary Ruby structures (arrays of row hashes), and **`R::Arrow.from_ruby_batches`** creates
-a real **Arrow `Table` inside GNU R**. From there you use R’s **`arrow`** and **`dplyr`** packages
-as usual: **`group_by`** on the Arrow table, **`summarise`** for aggregates, then **`collect()`** to
-materialize a tibble when you need in-memory R rows.
+and Python for analytics. GNU R still runs in a **separate process**. Ruby does **not** hold a
+shared Arrow C++ table with R. Stages:
 
-That pattern matches production use: **JRuby threads** (or sequential code) assemble many rows in
-Ruby; you pay **one** bridge-heavy handoff to R; **dplyr** runs vectorised work on the Arrow table
-in R.
+1. **Stage A (copy over the bridge):** Ruby row hashes → **`R::Arrow.from_ruby_batches`** builds
+   an Arrow `Table` **inside GNU R**. You get a **proxy**.
+2. **Stage B1 (Ruby → R IPC file):** **`Galaaz::ArrowIpc.write`** / **`write_batches`** writes an
+   Arrow IPC file (prefer **`/dev/shm`**); **`R::Arrow.open_ipc(path)`** opens it in R. Only the
+   **path** crosses NewBridge. This is **mmap/IPC file handoff**, not a shared heap.
+3. **Stage B2 (R → Ruby IPC file):** **`R::Arrow.write_ipc(obj)`** writes uncompressed IPC; Ruby
+   reads with **`Galaaz::ArrowIpc.read`** (column hash) or **`read_batches`** (row hashes). Call
+   **`Galaaz::ArrowIpc.release(path)`** when finished.
+4. **Stage C (not shipped):** named shared-memory bus. Do not claim 0 ms shared RAM until then.
+   See **`Documentation/ROADMAP_ARROW_RUBY_R.md`**.
 
-**Prerequisites:** install R packages **`arrow`** and **`dplyr`**. Run scripts with
-**`bin/galaaz-jruby`** (or the same JVM flags as in **`docs/testing.md`**) so the Arrow JNI stack is
-available.
+After ingest, use R’s **`arrow`** / **`dplyr`** on the proxy (`group_by`, `summarise`, `collect`)
+and unbox only KPIs you need in Ruby.
 
-## Other `R::Arrow` helpers
+**Optional Ruby backends for Stage B**
 
-The Ruby module **`R::Arrow`** (see `lib/R_interface/r_arrow.rb`) also includes:
+* **CRuby:** Apache **red-arrow** — `gem install red-arrow` pinned to the same major as
+  `pkg-config --modversion arrow-glib`, plus system **Arrow GLib** (`libarrow-glib-dev` from the
+  [Apache Arrow APT](https://arrow.apache.org/install/) repo). Do **not** install the unrelated
+  legacy Rubygems package named `arrow`. `bundle exec` still sees a user-installed `red-arrow`
+  via Galaaz’s load-path helper.
+* **JRuby:** Apache Arrow **Java** JARs — **`GALAAZ_ARROW_JARS`**, `~/arrow_jars`, or
+  `jar-dependencies`. Export **`JAVA_OPTS=--add-opens=java.base/java.nio=ALL-UNNAMED`** on the
+  **child** JVM (`bin/galaaz-jruby`, `mise.toml`). `jruby -J... -S bundle exec rspec` does **not**
+  pass `-J` to rspec.
 
+**R packages:** **`arrow`** and **`dplyr`**. B2 writes IPC with **`compression: 'uncompressed'`**
+so JRuby Arrow Java can read without extra compression JARs.
+
+**Tests:** `specs/arrow_from_ruby_batches_spec.rb` (A);
+`specs/arrow_ipc_handoff_spec.rb`, `specs/arrow_ipc_export_spec.rb` (B, sync);
+`new_bridge_specs/arrow_ipc_async_spec.rb`, `new_bridge_specs/arrow_ipc_export_async_spec.rb` (B, async).
+
+## `R::Arrow` and `Galaaz::ArrowIpc`
+
+* **`R::Arrow.from_ruby_batches`** — Stage A ingest.
+* **`R::Arrow.open_ipc(path)`** — Stage B1: IPC file → R Table proxy.
+* **`R::Arrow.write_ipc(obj, path = nil)`** — Stage B2: R Table/tibble → IPC path (scratch if omitted).
+* **`Galaaz::ArrowIpc.write` / `write_batches` / `read` / `read_batches` / `allocate_path` / `release` / `available?`**
 * **`R::Arrow.table_from(df)`** — wrap an R `data.frame` / tibble as an Arrow table.
 * **`R::Arrow.read_feather` / `write_feather`**, **`read_parquet`**, **`dataset(path)`** — file and
   dataset IO on paths visible to R.
 
+## Example: Stage B round-trip (IPC file)
+
+Requires `Galaaz::ArrowIpc.available?` (red-arrow or Arrow JARs) and R **`arrow`**. Not knitted
+below so a machine without the optional backend still builds this manual.
+
+```ruby
+path = Galaaz::ArrowIpc.write(id: [1, 2, 3], grp: %w[a a b], value: [1.0, 2.0, 3.5])
+tbl  = R::Arrow.open_ipc(path)
+Galaaz::ArrowIpc.release(path)
+
+summed   = R.dplyr___summarise(R.dplyr___group_by(tbl, :grp), total: E.sum(:value))
+out_path = R::Arrow.write_ipc(summed)
+rows     = Galaaz::ArrowIpc.read_batches(out_path)
+Galaaz::ArrowIpc.release(out_path)
+# rows => [{:grp=>"a", :total=>3.0}, {:grp=>"b", :total=>3.5}]  (illustrative)
+```
+
 ## Example: many Ruby rows → Arrow in R → grouped statistics
 
 The repository test **`slow-specs/arrow_large_pipeline_spec.rb`** builds **200k rows** in parallel
-(eight threads × 25,000 rows), pushes them through **`R::Arrow.from_ruby_batches`**, then checks that
-**dplyr** group summaries match a Ruby reference calculation. The same logic appears below at a
-**smaller scale** so this manual can knit quickly; increase `thread_count` and `rows_per_thread`
-when experimenting locally.
+(eight threads × 25,000 rows), pushes them through **`R::Arrow.from_ruby_batches`** (Stage A), then
+checks that **dplyr** group summaries match a Ruby reference calculation. The same logic appears
+below at a **smaller scale** so this manual can knit quickly; increase `thread_count` and
+`rows_per_thread` when experimenting locally. For the same ingest **without** copying every cell
+over NewBridge, use Stage B (`write_batches` + `open_ipc`) instead of `from_ruby_batches`.
 
 
 ``` ruby
@@ -4119,10 +4165,10 @@ end
 ```
 
 **What to notice:** (1) Ruby only sees **`Hash`** rows and Ruby **`Thread`** objects; (2) a single
-**`from_ruby_batches`** call creates the Arrow table in R; (3) **`dplyr___group_by`** /
+**`from_ruby_batches`** call **copies** those columns into an Arrow table in R; (3) **`dplyr___group_by`** /
 **`dplyr___summarise`** / **`dplyr___collect`** mirror **`dplyr::group_by`** /
 **`dplyr::summarise`** / **`dplyr::collect`** on an Arrow-backed table. For a lighter test, see
-**`specs/arrow_from_ruby_batches_spec.rb`**; for the full-size benchmark, run
+**`specs/arrow_from_ruby_batches_spec.rb`**; for the full-size Stage A benchmark, run
 **`bin/run_slow_rspec slow-specs/arrow_large_pipeline_spec.rb`**.
 
 # Bioconductor and DESeq2
@@ -4260,8 +4306,9 @@ Practical tips:
   glue.
 * **Reuse one process**: running many short scripts cold-starts Ruby, the JVM, and R each time;
   a long-lived process or repeated calls in one run amortize setup (see benchmarks below).
-* **Batch data**: merge shards in Ruby, then call **`R::Arrow.from_ruby_batches`** (or build one
-  data frame) instead of millions of tiny R calls.
+* **Batch data**: merge shards in Ruby, then **`R::Arrow.from_ruby_batches`** (Stage A) or
+  **`Galaaz::ArrowIpc`** + **`R::Arrow.open_ipc`** (Stage B) instead of millions of tiny R calls.
+  When Ruby needs a bulky result table back, **`R::Arrow.write_ipc`** + **`Galaaz::ArrowIpc.read_batches`**.
 
 For measured discussion (including DESeq2-style workloads and warm comparisons), see
 **`docs/performance.md`** and **`docs/deseq2_airway_benchmark.md`** in the Galaaz repository.
