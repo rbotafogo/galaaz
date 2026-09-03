@@ -23,7 +23,12 @@
 
 $LOAD_PATH << File.dirname(File.expand_path('..', __FILE__)) + "/r_requires"
 
-require_relative 'R_interface/r'
+if RUBY_ENGINE == 'jruby'
+  require_relative 'galaaz_jruby'
+  GalaazJRuby.apply_java_opts_env!
+end
+
 require_relative 'galaaz/arrow_ipc'
+require_relative 'R_interface/r'
 require_relative 'util/exec_ruby'
 require_relative 'util/inline_file'

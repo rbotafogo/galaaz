@@ -1,6 +1,6 @@
 # Roadmap: Ruby ↔ R communication via Apache Arrow
 
-Status: **B1 implemented** (Stage C still future)  
+Status: **B1 + B2 implemented** (Stage C still future)  
 Audience: Galaaz maintainers  
 Related: [Specification.txt](Specification.txt) (older “RAM-disk / Shadow Vector” sketch — **superseded for transport** by this roadmap + `Galaaz::ArrowIpc`),  
 ledger demo honesty notes in `r_on_rails_ledger/docs/architecture.md`
@@ -56,28 +56,39 @@ tbl  = R::Arrow.open_ipc(path)   # Arrow Table proxy; materializes in R
 Galaaz::ArrowIpc.release(path)   # unlink after open (default lifetime)
 ```
 
+### B2 status (shipped)
+
+R writes an IPC file; Ruby reads columns/rows. Same file/mmap contract as B1 (not shared-heap zero-copy).
+
+```ruby
+tbl      = R::Arrow.open_ipc(in_path)
+summed   = R.dplyr___summarise(R.dplyr___group_by(tbl, :grp), total: E.sum(:value))
+out_path = R::Arrow.write_ipc(summed)          # R → file; path only on the bridge
+rows     = Galaaz::ArrowIpc.read_batches(out_path)  # Ruby Hash rows for DB write
+Galaaz::ArrowIpc.release(out_path)
+```
+
 | Topic | Choice |
 |-------|--------|
-| Direction | Ruby → R ingest only |
-| Format | Arrow IPC **file** (`arrow::read_ipc_file(..., as_data_frame=FALSE)`) |
+| Direction | **B1** Ruby → R ingest; **B2** R → Ruby export |
+| Format | Arrow IPC **file** (`arrow::read_ipc_file` / `write_ipc_file`) |
 | Scratch | Prefer `/dev/shm`; else `Dir.tmpdir/galaaz_arrow_ipc` |
-| Lifetime | Copy-into-R then unlink (safe after `open_ipc` returns) |
+| Lifetime | Copy-into-R then unlink (B1); Ruby reads then `release` (B2) |
 | `from_ruby_batches` | Unchanged; separate Stage A API |
-| Writers | **Dual:** CRuby → **red-arrow** (`gem install red-arrow`); JRuby → **Apache Arrow Java** |
+| Writers/readers | **Dual:** CRuby → **red-arrow**; JRuby → **Apache Arrow Java** |
 
 **Writers (honesty):** both backends produce a file. JRuby’s Java stack can write concurrent distinct files without the MRI GVL; that is **not** zero-copy into R’s heap.
 
 **Install notes**
 
 - R: `install.packages("arrow")` (and `dplyr` for typical analytics).
-- CRuby: `gem install red-arrow` (needs system Arrow/GLib/gobject-introspection packages). Do **not** install the unrelated legacy Rubygems package named `arrow`.
+- CRuby: Apache Arrow APT + `libarrow-glib-dev`, then `gem install red-arrow` pinned to the same major as `pkg-config --modversion arrow-glib` (here: 25.x). Do **not** install the unrelated legacy Rubygems package named `arrow`.
 - JRuby: set `GALAAZ_ARROW_JARS` to a directory of Arrow Java JARs (e.g. 18.1.0), or place them in `~/arrow_jars`, or resolve via `jar-dependencies`. Keep `-J--add-opens=java.base/java.nio=ALL-UNNAMED`.
 
-**Tests:** `specs/arrow_ipc_handoff_spec.rb`, `new_bridge_specs/arrow_ipc_async_spec.rb` (skip when writer or R `arrow` missing).
+**Tests:** `specs/arrow_ipc_handoff_spec.rb`, `specs/arrow_ipc_export_spec.rb`, `new_bridge_specs/arrow_ipc_async_spec.rb`, `new_bridge_specs/arrow_ipc_export_async_spec.rb` (skip when writer/reader or R `arrow` missing).
 
-### Out of scope for B1 (still)
+### Out of scope for B1/B2 (still)
 
-- Bidirectional R → Ruby bulk export (B2).
 - Docker bind-mount path translation (B3).
 - Mutating the same buffer from both languages concurrently.
 - Stage C shm bus.
@@ -124,7 +135,7 @@ for the Remote Control DSL story.
 ```text
 A (done) ──► B1 Ruby→R IPC/mmap on same host (done)
               │
-              ├──► B2 R→Ruby export (optional)
+              ├──► B2 R→Ruby export (done)
               ├──► B3 Docker path mapping (optional, ledger)
               │
               └──► C1 single-writer shm (same schema as B)
@@ -145,9 +156,9 @@ A (done) ──► B1 Ruby→R IPC/mmap on same host (done)
 | Is B enough for most Rails demos? | **Often yes** — ingest once, then proxies. |
 | When is C justified? | Repeated multi-GB handoffs, tight loops of re-ingest, or proven B bottleneck. |
 | Same machine first? | **Yes.** Containers only after B1 works on host paths / `/dev/shm`. |
-| Ruby writer? | **red-arrow** (CRuby) + **Arrow Java** (JRuby). |
-| IPC file vs stream? | **File** format for B1. |
-| Lifetime? | **Copy-into-R then unlink** after `open_ipc`. |
+| Ruby writer/reader? | **red-arrow** (CRuby) + **Arrow Java** (JRuby), both directions. |
+| IPC file vs stream? | **File** format for B1 and B2. |
+| Lifetime? | **B1:** copy-into-R then unlink after `open_ipc`. **B2:** Ruby `read` then `release`. |
 | `from_ruby_batches` → B? | **No** for now — separate APIs. |
 | `Specification.txt`? | **Superseded** for transport; keep as historical sketch. |
 
@@ -157,7 +168,7 @@ A (done) ──► B1 Ruby→R IPC/mmap on same host (done)
 
 **Say**
 
-- Ingest via Arrow IPC / mmap file; analytics via proxies in R.
+- Ingest via Arrow IPC / mmap file; export the same way when Ruby needs a bulky result table; analytics via proxies in R.
 - Same-machine first; path (or shm name) crosses the bridge.
 
 **Do not say until C ships and is measured**
@@ -172,4 +183,4 @@ A (done) ──► B1 Ruby→R IPC/mmap on same host (done)
 | Date | Note |
 |------|------|
 | 2026-09-03 | Roadmap created: A/B/C stages; recommend B→C; B helps C but is not C. |
-| 2026-09-03 | B1 shipped: `Galaaz::ArrowIpc` dual writers + `R::Arrow.open_ipc`; sync/async specs. |
+| 2026-09-03 | B2 shipped: `R::Arrow.write_ipc` + `Galaaz::ArrowIpc.read` / `read_batches`; sync/async specs. |

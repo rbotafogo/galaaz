@@ -81,6 +81,25 @@ module R
       R.arrow___read_ipc_file(path, as_data_frame: false)
     end
 
+    # Write an R Arrow Table / data.frame to an Arrow IPC file Ruby can read
+    # with Galaaz::ArrowIpc.read (Stage B2). Only the path should cross NewBridge.
+    #
+    # @param r_obj [R::Object] Table, RecordBatch, or data.frame/tibble in R
+    # @param path [String, nil] destination; default a new scratch path
+    # @return [String] absolute path (fsync'd from Ruby after R returns)
+    def self.write_ipc(r_obj, path = nil)
+      ok = R::Support.eval("requireNamespace('arrow', quietly=TRUE)")
+      unless ok == true
+        raise LoadError, "R package 'arrow' is required for R::Arrow.write_ipc"
+      end
+
+      path = path.nil? || path.to_s.empty? ? Galaaz::ArrowIpc.allocate_path : File.expand_path(path.to_s)
+      # uncompressed so JRuby Arrow Java can read without arrow-compression JARs
+      R.arrow___write_ipc_file(r_obj, path, compression: 'uncompressed')
+      File.open(path, 'rb') { |f| f.fsync }
+      path
+    end
+
     # Open a Parquet/Feather directory or file as an Arrow Dataset
     # using arrow::open_dataset().
     #

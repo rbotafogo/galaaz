@@ -1,0 +1,5 @@
+# mise reads .tool-versions as well. This env is applied in the project directory
+# (mise activate / mise exec) so JRuby gets Arrow's Java 9+ nio opens flag even
+# when the command is not bin/galaaz-jruby. Harmless on CRuby.
+[env]
+JAVA_OPTS = "--add-opens=java.base/java.nio=ALL-UNNAMED"

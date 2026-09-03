@@ -5,11 +5,10 @@ require 'securerandom'
 require 'tmpdir'
 
 ##########################################################################################
-# Stage B1: Ruby → R Arrow IPC file handoff.
+# Stage B: Ruby ↔ R Arrow IPC file handoff (B1 ingest, B2 export).
 #
-# Writers (engine-specific) materialize an Arrow IPC file under scratch (/dev/shm or tmp).
-# NewBridge carries only the path; R::Arrow.open_ipc maps/reads into an R-side Table proxy.
-# This is IPC/mmap file handoff — not zero-copy shared heap between Ruby and R.
+# NewBridge carries only the path. This is IPC/mmap file handoff — not zero-copy
+# shared heap between Ruby and R.
 ##########################################################################################
 
 module Galaaz
@@ -18,7 +17,7 @@ module Galaaz
   module ArrowIpc
     module_function
 
-    # @return [Boolean] true when the current Ruby engine's writer backend can load
+    # @return [Boolean] true when the current Ruby engine's Arrow backend can load
     def available?
       backend.available?
     rescue StandardError
@@ -60,6 +59,41 @@ module Galaaz
         keys.each { |k| columns[k] << key_map[k] }
       end
       write(columns)
+    end
+
+    # Read an Arrow IPC file into a column hash (String keys → Arrays).
+    # B2 types: float64, int32/int64, utf8 (nulls preserved).
+    #
+    # @param path [String]
+    # @return [Hash{String => Array}]
+    def read(path)
+      path = File.expand_path(path.to_s)
+      raise ArgumentError, "Arrow IPC file not found: #{path}" unless File.file?(path)
+
+      backend.read_columns(path)
+    end
+
+    # Read an Arrow IPC file as an Array of row Hashes (symbol keys).
+    #
+    # @param path [String]
+    # @return [Array<Hash>]
+    def read_batches(path)
+      columns = read(path)
+      raise ArgumentError, 'IPC file has no columns' if columns.empty?
+
+      n = columns.values.map(&:length).uniq
+      raise ArgumentError, "ragged columns after read: #{n.inspect}" if n.size != 1
+
+      n.first.times.map do |i|
+        columns.each_with_object({}) { |(name, values), row| row[name.to_sym] = values[i] }
+      end
+    end
+
+    # Unique scratch path for a new IPC file (used by R::Arrow.write_ipc when path omitted).
+    #
+    # @return [String]
+    def allocate_path
+      File.join(scratch_dir, "galaaz_ipc_#{Process.pid}_#{SecureRandom.hex(8)}.arrow")
     end
 
     # Unlink an IPC scratch file if present.
@@ -121,7 +155,7 @@ module Galaaz
     private_class_method :normalize_columns
 
     def next_path
-      File.join(scratch_dir, "galaaz_ipc_#{Process.pid}_#{SecureRandom.hex(8)}.arrow")
+      allocate_path
     end
     private_class_method :next_path
 

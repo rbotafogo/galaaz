@@ -70,6 +70,37 @@ module Galaaz
         end
       end
 
+      def read_columns(path)
+        load_jars!
+        alloc = org.apache.arrow.memory.RootAllocator.new(java.lang.Long::MAX_VALUE)
+        fis = java.io.FileInputStream.new(path)
+        columns = nil
+        begin
+          reader = org.apache.arrow.vector.ipc.ArrowFileReader.new(fis.getChannel, alloc)
+          begin
+            loop do
+              break unless reader.loadNextBatch
+
+              root = reader.getVectorSchemaRoot
+              columns ||= root.getSchema.getFields.map { |f| f.getName }.each_with_object({}) { |n, h| h[n] = [] }
+              n = root.getRowCount
+              root.getFieldVectors.each do |vec|
+                name = vec.getName
+                n.times { |i| columns[name] << java_value(vec, i) }
+              end
+            end
+          ensure
+            reader.close
+          end
+        ensure
+          fis.close
+          alloc.close
+        end
+        raise ArgumentError, "no record batches in #{path}" if columns.nil?
+
+        columns
+      end
+
       def load_jars!
         return if defined?(@jars_loaded) && @jars_loaded
 
@@ -188,6 +219,32 @@ module Galaaz
         end
       end
       private_class_method :infer_kind
+
+      def java_value(vector, i)
+        return nil if vector.isNull(i)
+
+        minor = vector.getMinorType.toString
+        case minor
+        when 'FLOAT8', 'FLOAT4'
+          vector.get(i).to_f
+        when 'INT', 'SMALLINT', 'TINYINT', 'UINT1', 'UINT2', 'UINT4'
+          vector.get(i).to_i
+        when 'BIGINT', 'UINT8'
+          vector.get(i).to_i
+        when 'VARCHAR', 'VARBINARY'
+          bytes = vector.get(i)
+          bytes.nil? ? nil : String.from_java_bytes(bytes)
+        else
+          obj = vector.respond_to?(:getObject) ? vector.getObject(i) : vector.get(i)
+          return obj if obj.nil?
+          return obj.to_s if obj.is_a?(String) || obj.java_kind_of?(java.lang.CharSequence)
+          return obj.to_f if obj.is_a?(Float) || obj.java_kind_of?(java.lang.Double) || obj.java_kind_of?(java.lang.Float)
+          return obj.to_i if obj.is_a?(Integer) || obj.java_kind_of?(java.lang.Number)
+
+          obj.to_s
+        end
+      end
+      private_class_method :java_value
     end
   end
 end

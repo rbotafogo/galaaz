@@ -7,6 +7,7 @@
 #
 # JRuby and CRuby are both first-class. Override with GALAAZ_RUBY=jruby, GALAAZ_RUBY=ruby,
 # or a full path. Extra JRuby flags: GALAAZ_JRUBY_OPTS="-J-Xmx4g" (ignored on CRuby).
+# CRuby red-arrow uses system Arrow GLib (Apache Arrow APT / libarrow-glib-dev).
 
 GALAAZ_RUBY_BIN="${GALAAZ_RUBY:-ruby}"
 
@@ -29,6 +30,7 @@ if [[ "$_galaaz_is_jruby" -eq 1 ]]; then
   # shellcheck source=galaaz_jruby_env.inc.sh
   source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/galaaz_jruby_env.inc.sh"
   GALAAZ_RUBY_J_ARGS="$GALAAZ_REQUIRED_JRUBY_J_ARGS ${GALAAZ_JRUBY_OPTS:-}"
+  # JAVA_OPTS is exported by galaaz_jruby_env.inc.sh for bundle-exec child JVMs
 else
   GALAAZ_REQUIRED_JRUBY_J_ARGS=''
   GALAAZ_RUBY_J_ARGS=''

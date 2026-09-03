@@ -4054,6 +4054,7 @@ See **`Documentation/ROADMAP_ARROW_RUBY_R.md`**, **`specs/arrow_ipc_handoff_spec
 The Ruby module **`R::Arrow`** (see `lib/R_interface/r_arrow.rb`) also includes:
 
 * **`R::Arrow.open_ipc(path)`** — open an Arrow IPC file as an R-side Table proxy (Stage B1).
+* **`R::Arrow.write_ipc(obj)`** — write an R Table/tibble to IPC for **`Galaaz::ArrowIpc.read`** (Stage B2).
 * **`R::Arrow.table_from(df)`** — wrap an R `data.frame` / tibble as an Arrow table.
 * **`R::Arrow.read_feather` / `write_feather`**, **`read_parquet`**, **`dataset(path)`** — file and
   dataset IO on paths visible to R.
