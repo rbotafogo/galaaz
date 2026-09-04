@@ -34,6 +34,11 @@ logs/
 .bundle/
 *.gem
 
+# Native gatekeeper build products (compile after install: make -C ext/new_bridge all)
+*.o
+*.so
+*.so.*
+
 # Vendored JRuby gems installed by Bundler
 vendor/bundle/
 
