@@ -358,7 +358,13 @@ A **table of all `bin/` scripts** (bootstrap, Ruby launcher, gstudio, gknit, tes
    **`bin/run_all_rspec`** (same `GALAAZ_RUBY` rule). **`bin/galaaz-jruby`** remains a thin
    wrapper that forces JRuby.
 
-A **gstudio** try image (JRuby + R + Galaaz already installed) is **`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio`** (or **`./docker/try-gstudio/run.sh`** from a checkout). Maintainers can prove a RubyGems install on a throwaway Ubuntu machine (no repo inside the container) with **`./docker/cold-install/run.sh published-specs`** (JRuby) or **`./docker/cold-install-cruby/run.sh published-specs`** (CRuby).
+A **gstudio** try image with Galaaz already installed is available for both engines:
+**JRuby** — `docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio` (or
+`./docker/try-gstudio/run.sh` from a checkout); **CRuby** —
+`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:cruby` (or `./docker/try-cruby/run.sh`).
+Maintainers can prove a RubyGems install on a throwaway Ubuntu machine (no repo inside
+the container) with `./docker/cold-install/run.sh published-specs` (JRuby) or
+`./docker/cold-install-cruby/run.sh published-specs` (CRuby).
 
 ## Windows + WSL2 (optional: Docker / R in a container)
 

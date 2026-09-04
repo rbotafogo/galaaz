@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Galaaz 2.0 — JRuby and GNU R</title>
+  <title>Galaaz 2.0 — JRuby or CRuby and GNU R</title>
   <style>
     :root {
       --bg: #f7f4ef;
@@ -45,6 +45,11 @@
       padding-bottom: 0.35rem;
       border-bottom: 1px solid var(--line);
     }
+    h3 {
+      font-size: 1rem;
+      margin: 1.25rem 0 0.5rem;
+      font-weight: 600;
+    }
     ul { padding-left: 1.1rem; margin: 0.4rem 0 0; }
     li { margin: 0.35rem 0; }
     a { color: var(--accent); }
@@ -76,18 +81,25 @@
   <main>
     <h1>Galaaz</h1>
     <p class="lede">
-      Galaaz 2.0 drives <strong>GNU&nbsp;R</strong> from <strong>JRuby</strong>
-      over a process bridge. You write Ruby (<code>R.c(...)</code>, dplyr-style
-      chains, ggplot2) and talk to the same R you use for CRAN and Bioconductor.
-      It is not the older GraalVM / TruffleRuby / FastR stack.
+      Galaaz 2.0 drives <strong>GNU&nbsp;R</strong> from <strong>JRuby</strong> or
+      <strong>CRuby</strong> over the same NewBridge protocol. You write Ruby
+      (<code>R.c(...)</code>, dplyr-style chains, ggplot2) and talk to the same R
+      you use for CRAN and Bioconductor. It is not the older GraalVM / TruffleRuby
+      / FastR stack.
     </p>
 
     <h2>Install</h2>
     <p>
-      You need JRuby (tested with 10.1.1.0), Java 21, GNU&nbsp;R with
+      You need <strong>JRuby</strong> (tested with 10.1.1.0 + JDK&nbsp;21) <em>or</em>
+      <strong>CRuby</strong> (tested with 3.3.12), plus GNU&nbsp;R with
       <code>Rscript</code>, a C++ toolchain, and Rcpp
-      (<code>install.packages("Rcpp")</code>). MRI Ruby is not supported.
+      (<code>install.packages("Rcpp")</code>).
     </p>
+    <h3>CRuby</h3>
+    <pre>gem install galaaz
+gem_dir="$(ruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+make -C "${gem_dir}/ext/new_bridge" all</pre>
+    <h3>JRuby</h3>
     <pre>jruby -S gem install galaaz
 gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
 make -C "${gem_dir}/ext/new_bridge" all</pre>
@@ -99,23 +111,31 @@ make -C "${gem_dir}/ext/new_bridge" all</pre>
       The gem is on
       <a href="https://rubygems.org/gems/galaaz">RubyGems</a>
       (<a href="https://github.com/rbotafogo/galaaz/blob/galaaz2_0/CHANGELOG.md">changelog</a>).
+      From <strong>2.1.4</strong>, long CRAN installs and long R work can run via
+      <code>R::Job</code> so the bridge stays free.
     </p>
+
     <h2>Try (Docker)</h2>
     <p>
-      A public try image has JRuby, GNU&nbsp;R, and Galaaz already installed and
-      starts <code>gstudio</code> (IRB). Docker only; nothing to gem-install:
+      Public try images have Ruby, GNU&nbsp;R, and Galaaz already installed and start
+      <code>gstudio</code> (IRB). Docker only; nothing to gem-install:
     </p>
+    <h3>JRuby</h3>
     <pre>docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio</pre>
+    <h3>CRuby</h3>
+    <pre>docker run --rm -it ghcr.io/rbotafogo/galaaz-try:cruby</pre>
     <p>
       Then <code>vec = R.c(1, 2, 3); puts vec</code>. From a checkout you can
-      also build it locally with <code>./docker/try-gstudio/run.sh</code>.
-      This is a demo shell, not the cold-install proof.
+      also build locally with <code>./docker/try-gstudio/run.sh</code> or
+      <code>./docker/try-cruby/run.sh</code>. These are demo shells, not the
+      cold-install proof.
     </p>
     <p>
       Maintainers can prove a RubyGems install in a throwaway Ubuntu container
       (no git repo inside):
     </p>
-    <pre>./docker/cold-install/run.sh published-specs</pre>
+    <pre>./docker/cold-install/run.sh published-specs          # JRuby
+./docker/cold-install-cruby/run.sh published-specs    # CRuby</pre>
 
     <h2>Manual</h2>
     <ul>

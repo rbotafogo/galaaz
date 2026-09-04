@@ -7,6 +7,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 IMAGE="${GALAAZ_TRY_IMAGE:-galaaz-try:gstudio}"
 JRUBY_VERSION="${JRUBY_VERSION:-10.1.1.0}"
+GALAAZ_VERSION="${GALAAZ_VERSION:-2.1.4}"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "try-gstudio: docker not on PATH" >&2
@@ -16,6 +17,7 @@ fi
 echo "[try-gstudio] docker build ${IMAGE}"
 docker build \
   --build-arg "JRUBY_VERSION=${JRUBY_VERSION}" \
+  --build-arg "GALAAZ_VERSION=${GALAAZ_VERSION}" \
   -t "${IMAGE}" \
   "${ROOT}/docker/try-gstudio"
 

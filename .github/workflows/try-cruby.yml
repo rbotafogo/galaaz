@@ -1,13 +1,13 @@
-# Publish the gstudio try image to GitHub Container Registry (public, free).
-# Strangers: docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio
-name: Publish gstudio try image
+# Publish the CRuby try image to GitHub Container Registry (public, free).
+# Strangers: docker run --rm -it ghcr.io/rbotafogo/galaaz-try:cruby
+name: Publish CRuby try image
 
 on:
   push:
     branches: [galaaz2_0]
     paths:
-      - 'docker/try-gstudio/**'
-      - '.github/workflows/try-gstudio.yml'
+      - 'docker/try-cruby/**'
+      - '.github/workflows/try-cruby.yml'
   workflow_dispatch:
 
 permissions:
@@ -15,7 +15,7 @@ permissions:
   packages: write
 
 concurrency:
-  group: try-gstudio-${{ github.ref }}
+  group: try-cruby-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -40,14 +40,14 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: docker/try-gstudio
+          context: docker/try-cruby
           push: true
-          tags: ghcr.io/rbotafogo/galaaz-try:gstudio
+          tags: ghcr.io/rbotafogo/galaaz-try:cruby
           labels: |
             org.opencontainers.image.source=https://github.com/rbotafogo/galaaz
-            org.opencontainers.image.description=Galaaz 2.1.4 gstudio try image (JRuby + GNU R)
+            org.opencontainers.image.description=Galaaz 2.1.4 try image (CRuby + GNU R)
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
           build-args: |
-            JRUBY_VERSION=10.1.1.0
+            RUBY_VERSION=3.3.12
             GALAAZ_VERSION=2.1.4
