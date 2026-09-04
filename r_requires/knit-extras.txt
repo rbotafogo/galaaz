@@ -1,0 +1,4 @@
+# Best-effort CRAN extras for `galaaz add knit` (warn if missing).
+ggplot2
+kableExtra
+RColorBrewer

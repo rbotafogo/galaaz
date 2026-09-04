@@ -610,7 +610,8 @@ using even a very complex package as 'caret' is trivial with Galaaz.
 
 A word of advice: the 'caret' package has lots of dependencies and installing
 it in a Linux system is a time consuming operation.  Method 'R.install_and_loads'
-will install the package if it is not already installed and can take a while.
+will install the package if it is not already installed (via **`R::Job`**: a child
+`Rscript`, so the bridge stays free) and can take a while.
 
 ````
 ```{include model}`r ''`

@@ -109,6 +109,8 @@ module NewBridge
       @r_stderr_mx = Mutex.new
       @r_stderr_limit = 64 * 1024
       @r_exit_status = nil
+      @r_wait_thr = nil
+      @r_thr = nil
     end
 
     # Whether to use Unix domain sockets for this client when +use_unix+ is nil.
@@ -190,6 +192,7 @@ module NewBridge
       @r_thr = Thread.new do
         launch = @r_cmd.is_a?(Array) ? @r_cmd.dup : [@r_cmd]
         _stdin, stdout_err, wait_thr = Open3.popen2e(env, *launch, '--slave', '--no-save', '-e', r_script)
+        @r_wait_thr = wait_thr
         # When the R process exits or during shutdown, the underlying pipe can
         # close while this background thread is still blocked reading.
         # Treat that as a normal shutdown and avoid JRuby "stream closed in
@@ -216,12 +219,40 @@ module NewBridge
         tail = details.length > 2000 ? details[-2000, 2000] : details
         msg += " stderr_tail=#{tail}"
       end
+      kill_runtime_process!
       raise RProcessError, msg
+    end
+
+    # Hard-stop the R child (e.g. after an eval timeout while install.packages is still compiling).
+    # Without this, R keeps building packages and can OOM the host shell/VM.
+    def kill_runtime_process!
+      thr = @r_wait_thr
+      pid = begin
+        thr&.pid
+      rescue StandardError
+        nil
+      end
+      if pid
+        begin
+          Process.kill('TERM', pid)
+        rescue Errno::ESRCH, Errno::EPERM
+          nil
+        end
+        sleep 0.2
+        begin
+          Process.kill('KILL', pid)
+        rescue Errno::ESRCH, Errno::EPERM
+          nil
+        end
+      end
+    ensure
+      @r_wait_thr = nil
     end
 
     # Stop the client and attempt to join threads cleanly.
     # Best-effort: socket/server are closed, reader thread is joined, runtime thread is joined.
     def stop
+      kill_runtime_process!
       @sock&.close rescue nil
       @server&.close rescue nil
       if @unix_path && File.socket?(@unix_path)
@@ -230,6 +261,20 @@ module NewBridge
       @unix_path = nil
       @reader&.join(3)
       @r_thr&.join(15)
+    end
+
+    # Kill R + reopen listener/runtime. Clears pending queues.
+    def restart!(accept_timeout: 120)
+      stop
+      @pending_mx.synchronize { @pending.clear }
+      @callbacks_mx.synchronize { @callbacks.clear }
+      @r_stderr_mx.synchronize { @r_stderr = +'' }
+      @r_exit_status = nil
+      @reader = nil
+      @r_thr = nil
+      @sock = nil
+      @server = nil
+      start(accept_timeout: accept_timeout)
     end
 
     # Evaluate one REQ on the connected R runtime and wait for the matching RET.

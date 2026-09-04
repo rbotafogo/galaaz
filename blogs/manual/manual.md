@@ -73,7 +73,7 @@ rewrite in another stack. **R-on-Rails** means:
 1. **Keep your science in R** — packages, formulas, plots, Bioconductor, the same engine as RStudio.
 2. **Learn enough Ruby/Rails** — routes, controllers, views, jobs, auth—not a second statistics career.
 3. **Call R from the app** — Galaaz loads R behind the scenes; long jobs can complete asynchronously
-   while Rails stays responsive (see later sections on the bridge and `R::Async`).
+   while Rails stays responsive (see later sections on the bridge, `R::Async`, and `R::Job`).
 4. **Ship alone when you need to** — one developer can own both the analysis and the product UI,
    without waiting for a separate “stats engineer” and “Rails engineer.”
 
@@ -456,8 +456,13 @@ driver). For concurrency tests on the bridge itself, see `specs/bridge_concurren
 
 ## Long-running R calls and a completion block
 
-For R work that can take a long time, the bridge can avoid a Ruby-side **wait timeout** by
-scheduling the call and resuming in a **block** when the `RET` arrives.
+For R work that can take a long time **on the bridge**, the bridge can avoid a Ruby-side
+**wait timeout** by scheduling the call and resuming in a **block** when the `RET` arrives.
+
+**Important distinction:** this keeps the **same** GNU R process busy. Other sync
+`eval_r` / gknit chunks still wait on that R. For CRAN installs and other work that must
+**not** monopolize the bridge (or that can OOM a small VM if abandoned mid-compile), use
+**`R::Job`** in the next section instead.
 
 - **`R.eval_r_async(code, timeout: nil) { |result| ... }`** — string eval; on success, `result.value`
   is the same formatted string as **`R.eval_r`** (use `timeout: nil` for no Ruby-side limit).
@@ -513,6 +518,67 @@ In a **web application**, the HTTP response usually ends before R finishes, so y
 the outcome to storage, and notify the client (poll, WebSocket, Turbo Stream, etc.). The plain
 Ruby pattern above is only to show **when** the result exists (inside the block, or after data
 written there is observed elsewhere). Runnable specs live in **`new_bridge_specs/eval_r_async_spec.rb`**.
+
+## Background R jobs (`R::Job`)
+
+`R::Async` / `R.eval_r_async` free the **Ruby** thread while the **same** bridge R process
+runs your code. That is enough for Rails-style “don’t block the request thread,” but not
+enough for heavy `install.packages` or multi-minute model fits: the gatekeeper R is still
+busy, other chunks time out, and abandoning the wait can leave compile work burning RAM.
+
+**`R::Job`** runs that work in a **child `Rscript` process**. The bridge stays free. Logs and
+metadata live under `~/.local/share/galaaz/jobs/` (override with `GALAAZ_JOBS_DIR`).
+
+### Package installs
+
+`R.install_and_loads` / `R.install_rlibs` use `R::Job.install` and **await until the child
+finishes** (default: no wall-clock limit). Optional limit: `GALAAZ_INSTALL_TIMEOUT_SEC` or
+`install_timeout_sec:`. On timeout the child process group is killed so leftover
+`make`/`gcc` cannot OOM the shell. Stale `00LOCK-*` dirs are cleared before the next install.
+Only one install runs at a time (`install.lock`).
+
+``` ruby
+# May take a long time the first time (e.g. caret); the bridge is not used for compile.
+R.install_and_loads 'caret'
+```
+
+### Long arbitrary R (`eval` / `script`)
+
+Prefer the **block** form (like `File.open`): await the child, yield the job, return the
+block’s value. Without a block, the methods still await by default and return the `Job`.
+
+``` ruby
+coef = R::Job.eval(<<~R) { |job| job.load_rds }
+  fit <- lm(mpg ~ wt, data = mtcars)
+  saveRDS(unname(coef(fit)), result_path)
+R
+puts coef
+```
+
+```
+## [1] 37.285126 -5.344472
+```
+
+``` ruby
+# Without a block: awaits (wait: true is the default) and returns the Job
+job = R::Job.eval(code)
+job = R::Job.eval(code, wait: false)  # start only; call job.wait later
+
+# Script file; trailing args → commandArgs(trailingOnly=TRUE) in the child
+res = R::Job.script('train.R', '5') { |job| job.load_rds }
+```
+
+In the child: `setwd(job.dir)`, `.libPaths` includes the Galaaz user library,
+`GALAAZ_JOB_DIR` is set, and **`result_path`** defaults to
+`file.path(GALAAZ_JOB_DIR, "result.rds")`. Persist with `saveRDS(..., result_path)`, then
+load on the bridge with **`job.load_rds`** (short sync `readRDS` → a normal Galaaz R object).
+
+### Choosing async vs Job
+
+| Need | Use |
+|------|-----|
+| Don’t freeze a Ruby thread; short/medium R on the bridge is OK | `R::Async` / `R.eval_r_async` |
+| Install CRAN packages, or long R that must not block the bridge | `R::Job` / `R.install_and_loads` |
 
 ## Galaaz + Rails (R-on-Rails) integration baseline
 
@@ -1873,7 +1939,8 @@ using even a very complex package as 'caret' is trivial with Galaaz.
 
 A word of advice: the 'caret' package has lots of dependencies and installing
 it in a Linux system is a time consuming operation.  Method 'R.install_and_loads'
-will install the package if it is not already installed and can take a while.
+will install the package if it is not already installed (via **`R::Job`**: a child
+`Rscript`, so the bridge stays free) and can take a while.
 
 ````
 ```{include model}

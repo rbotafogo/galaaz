@@ -65,8 +65,11 @@ that are created during rendering.") do |opt|
   opts.on("--callback_timeout_ms TIMEOUT_MS", Integer, "Callback timeout in milliseconds for R<->Ruby calls inside chunk execution. Use for long installs/computation (e.g., 7200000 for 2h).") do |opt|
     options[:callback_timeout_ms] = opt
   end
-  opts.on("--bridge_timeout_sec TIMEOUT_SEC", Integer, "Bridge request timeout in seconds for Ruby->R eval calls (default 60). Increase for long install.packages/compilation work.") do |opt|
+  opts.on("--bridge_timeout_sec TIMEOUT_SEC", Integer, "Bridge request timeout in seconds for Ruby->R eval calls (default 60). For CRAN installs via R::Job, use GALAAZ_INSTALL_TIMEOUT_SEC instead.") do |opt|
     options[:bridge_timeout_sec] = opt
+  end
+  opts.on("--install_timeout_sec TIMEOUT_SEC", Integer, "Await limit in seconds for R::Job package installs (sets GALAAZ_INSTALL_TIMEOUT_SEC). Default: wait until the child finishes.") do |opt|
+    options[:install_timeout_sec] = opt
   end
 end
 
@@ -153,6 +156,7 @@ input_dir = File.dirname(input_file)
 code = <<EOF
 ENV['GALAAZ_CALLBACK_TIMEOUT_MS'] = #{options[:callback_timeout_ms].to_s.inspect} if #{!options[:callback_timeout_ms].nil?}
 ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] = #{options[:bridge_timeout_sec].to_s.inspect} if #{!options[:bridge_timeout_sec].nil?}
+ENV['GALAAZ_INSTALL_TIMEOUT_SEC'] = #{options[:install_timeout_sec].to_s.inspect} if #{!options[:install_timeout_sec].nil?}
 require %q(galaaz)
 require %q(gknit)
 
@@ -199,6 +203,11 @@ Dir.chdir(#{input_dir.inspect}) do
       STDERR.puts "Likely bridge timeout during long-running Ruby->R evaluation."
       STDERR.puts "Current bridge timeout: \#{bridge_sec} sec; callback timeout: \#{callback_ms} ms."
       STDERR.puts "Use gknit --bridge_timeout_sec <sec> and/or --callback_timeout_ms <ms> for longer operations."
+    elsif e.message.to_s.match?(/install job timed out/i)
+      install_sec = ENV['GALAAZ_INSTALL_TIMEOUT_SEC'] || '(none - wait until done)'
+      STDERR.puts "Likely R::Job install await timeout."
+      STDERR.puts "Current GALAAZ_INSTALL_TIMEOUT_SEC: \#{install_sec}."
+      STDERR.puts "Use gknit --install_timeout_sec <sec> (or unset it to wait forever), or install the package outside gknit."
     end
     if missing_pkg
       STDERR.puts "Likely missing LaTeX package: \#{missing_pkg} (install with tlmgr)."
@@ -218,6 +227,7 @@ libx = File.expand_path('../lib', File.dirname(__FILE__))
 require File.join(libx, 'galaaz_ruby')
 ENV['GALAAZ_CALLBACK_TIMEOUT_MS'] = options[:callback_timeout_ms].to_s if !options[:callback_timeout_ms].nil?
 ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] = options[:bridge_timeout_sec].to_s if !options[:bridge_timeout_sec].nil?
+ENV['GALAAZ_INSTALL_TIMEOUT_SEC'] = options[:install_timeout_sec].to_s if !options[:install_timeout_sec].nil?
 exec "#{GalaazRuby.shell_invocation(libx)} -e #{Shellwords.escape(code)}"
 
 =begin

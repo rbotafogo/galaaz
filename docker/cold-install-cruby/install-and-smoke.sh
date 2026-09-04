@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Inside the Ubuntu CRuby image: install galaaz, build the gatekeeper, run smoke.rb.
+# Inside the Ubuntu CRuby image: install galaaz, galaaz setup + blogs init, run smoke.rb.
 set -euo pipefail
 
 export GEM_HOME="${GEM_HOME:-/opt/smoke-gems}"
@@ -30,8 +30,15 @@ fi
 gem_dir="$(ruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
 ver="$(ruby -e "puts Gem::Specification.find_by_name('galaaz').version")"
 echo "[cold-install-cruby] galaaz ${ver} gem dir=${gem_dir}"
-echo "[cold-install-cruby] make -C ext/new_bridge all"
-make -C "${gem_dir}/ext/new_bridge" all
+
+echo "[cold-install-cruby] galaaz setup"
+galaaz setup
+
+echo "[cold-install-cruby] galaaz blogs init /tmp/galaaz-blogs"
+rm -rf /tmp/galaaz-blogs
+galaaz blogs init /tmp/galaaz-blogs
+test -f /tmp/galaaz-blogs/oh_my/oh_my.Rmd
+echo "[cold-install-cruby] blogs OK"
 
 echo "[cold-install-cruby] running /work/smoke.rb from empty /work"
 cd /work

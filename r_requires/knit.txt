@@ -1,0 +1,4 @@
+# Hard CRAN set for `galaaz add knit` (must succeed).
+dplyr
+knitr
+rmarkdown

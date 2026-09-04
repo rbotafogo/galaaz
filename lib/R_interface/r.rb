@@ -30,6 +30,7 @@ dir = File.dirname(File.expand_path('.', __FILE__))
 
 # Bridge and Support first
 require_relative 'rsupport'
+require_relative 'r_job'
 
 # Operator modules next (so R::Object can include them)
 require_relative 'rbinary_operators'
@@ -134,66 +135,72 @@ module R
 
   def self.install_rlibs(*libs, install_timeout_sec: nil, callback_timeout_ms: nil, bridge_timeout_sec: nil)
     with_callback_timeout_ms(callback_timeout_ms) do
+      # Await wall-clock for the child Rscript job (nil = wait forever).
+      # Prefer install_timeout_sec / GALAAZ_INSTALL_TIMEOUT_SEC; bridge_timeout_sec
+      # is legacy and only used if the others are unset.
+      await_timeout = install_timeout_sec
+      if await_timeout.nil?
+        raw = ENV['GALAAZ_INSTALL_TIMEOUT_SEC']
+        unless raw.nil? || raw.to_s.strip.empty?
+          await_timeout = begin
+            Integer(raw)
+          rescue StandardError, ArgumentError
+            nil
+          end
+        end
+      end
+      await_timeout = bridge_timeout_sec if await_timeout.nil? && !bridge_timeout_sec.nil?
 
-      # Use a fixed local library directory and ensure R can see it
-      lib_dir = File.expand_path("~/R/x86_64-pc-linux-gnu-library/galaaz")
-      FileUtils.mkdir_p(lib_dir) unless Dir.exist?(lib_dir)
-      R.bridge.eval_r(".libPaths(c('#{lib_dir.gsub("'", "\\\\'")}', .libPaths()))", timeout: bridge_timeout_sec)
+      lib_dir = R::Job.default_lib_dir
+      FileUtils.mkdir_p(lib_dir)
+      R.bridge.eval_r(".libPaths(c('#{lib_dir.gsub("'", "\\\\'")}', .libPaths()))", timeout: 60)
 
       packages = R.c(*libs)
-
-    # installed.packages() returns a matrix; package names are in the row names.
-    # Using [:all, "Package"] on this matrix ends up calling [[ with a missing
-    # row subscript in R, which raises "missing subscript". Instead, rely on
-    # the row names vector for the list of installed packages.
-    installed_mat   = R.installed__packages(nil)
-    installed_names = R.rownames(installed_mat)
-
-    new_packages = packages[!(packages._ :in, installed_names)]
-    new_packages_str = new_packages.to_s
-
-      if(new_packages.length > 0 && new_packages_str != "character(0)")
-      $stderr.puts "[RUBY] The following packages are missing and will be installed: #{new_packages_str}"
-      $stderr.puts "[RUBY] Installing to: #{lib_dir}"
-      
-      # Get packages as Ruby array using :native mode
-      pkg_list = []
-      new_packages.each(:native) { |pkg| pkg_list << pkg }
-      $stderr.puts "[RUBY] Package list: #{pkg_list.inspect}"
-      
-      # Install each package
-      pkg_list.each do |pkg|
-        $stderr.puts "[RUBY] Installing #{pkg}..."
-        if install_timeout_sec
-          timeout_i = Integer(install_timeout_sec)
-          R.bridge.eval_r("options(timeout=#{timeout_i})", timeout: bridge_timeout_sec)
-        end
-        r_cmd = "install.packages('#{pkg.gsub("'", "\\\\'")}', repos='https://cloud.r-project.org', lib='#{lib_dir.gsub("'", "\\\\'")}', dependencies=NA)"
-        $stderr.puts "[RUBY] R command: #{r_cmd}"
-        result = R.bridge.eval_r(r_cmd, timeout: bridge_timeout_sec)
-        $stderr.puts "[RUBY] Install output: #{result.inspect}"
-        if result.to_s.include?("ANTICONF") || result.to_s.include?("Configuration failed")
-          $stderr.puts "[RUBY] WARNING: Package #{pkg} failed to install due to missing system libraries."
-          $stderr.puts "[RUBY] For kableExtra, you may need: libfontconfig1-dev libxml2-dev libfreetype6-dev"
-        end
-      ensure
-        begin
-          R.bridge.eval_r("options(timeout=60)", timeout: bridge_timeout_sec)
-        rescue StandardError
-          nil
-        end
-      end
-      
-      # Re-check installed packages after install attempt
-      installed_mat = R.installed__packages(nil)
+      installed_mat   = R.installed__packages(nil)
       installed_names = R.rownames(installed_mat)
-      still_missing = packages[!(packages._ :in, installed_names)]
-      if still_missing.length > 0
-        raise "Failed to install packages: #{still_missing.to_s}. Check stderr output above for [RUBY] debug messages."
-      end
-      end
+      new_packages = packages[!(packages._ :in, installed_names)]
+      new_packages_str = new_packages.to_s
 
+      if new_packages.length > 0 && new_packages_str != 'character(0)'
+        pkg_list = []
+        new_packages.each(:native) { |pkg| pkg_list << pkg }
+        $stderr.puts "[RUBY] The following packages are missing and will be installed via R::Job: #{pkg_list.inspect}"
+        $stderr.puts "[RUBY] Installing to: #{lib_dir}"
+        $stderr.puts "[RUBY] Bridge R stays free; awaiting child Rscript" +
+                     (await_timeout ? " (timeout=#{await_timeout}s)" : ' (no await timeout)')
+
+        pkg_list.each do |pkg|
+          $stderr.puts "[RUBY] R::Job.install #{pkg}..."
+          begin
+            job = R::Job.install(pkg, lib_dir: lib_dir, wait: true, timeout: await_timeout)
+            job.raise_if_failed!
+            $stderr.puts "[RUBY] R::Job #{job.id} OK for #{pkg}"
+          rescue R::Job::Timeout => e
+            # Child Rscript process group already killed inside Job#wait.
+            raise "R package '#{pkg}' install job timed out. #{e.message}\n" \
+                  "Install outside gknit if needed, then re-run:\n" \
+                  "  Rscript -e \"install.packages('#{pkg}', lib='#{lib_dir}', repos='#{R::Job::DEFAULT_REPOS}')\""
+          rescue R::Job::Failed => e
+            raise "Failed to install R package '#{pkg}' via R::Job.\n#{e.message}"
+          end
+        end
+
+        # Refresh bridge view of libraries after child install.
+        R.bridge.eval_r(".libPaths(c('#{lib_dir.gsub("'", "\\\\'")}', .libPaths()))", timeout: 60)
+        installed_mat = R.installed__packages(nil)
+        installed_names = R.rownames(installed_mat)
+        still_missing = packages[!(packages._ :in, installed_names)]
+        still_missing_str = still_missing.to_s
+        if still_missing.length > 0 && still_missing_str != 'character(0)'
+          raise "Failed to install packages: #{still_missing}. Check ~/.local/share/galaaz/jobs/*/job.log"
+        end
+      end
     end
+  end
+
+  # Start a CRAN install Job without awaiting (advanced). Prefer +install_and_loads+.
+  def self.install_async(*libs, lib_dir: R::Job.default_lib_dir)
+    R::Job.install(*libs, lib_dir: lib_dir, wait: false)
   end
 
   #----------------------------------------------------------------------------------------

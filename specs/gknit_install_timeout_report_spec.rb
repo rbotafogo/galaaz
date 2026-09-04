@@ -15,12 +15,13 @@ describe 'gknit install timeout reporting' do
     path = ([*extra, path].join(File::PATH_SEPARATOR)) unless extra.empty?
     ENV.to_h.merge(
       'JAVA_OPTS' => '--add-opens=java.base/java.nio=ALL-UNNAMED',
-      'PATH' => path
+      'PATH' => path,
+      # Job await limit (bridge --bridge_timeout_sec no longer drives CRAN installs).
+      'GALAAZ_INSTALL_TIMEOUT_SEC' => '1'
     )
   end
 
   it 'continues processing and prints timeout in final report' do
-    skip('Temporarily skipped: installation timeout behavior will be reviewed in a dedicated pass')
     root = File.expand_path('..', __dir__)
     workdir = Dir.mktmpdir('gknit_install_timeout_', root)
 
@@ -34,11 +35,28 @@ describe 'gknit install timeout reporting' do
         ---
 
         ```{ruby setup_stub}
-        R.bridge.eval_r("install.packages <- function(...) { Sys.sleep(2); invisible(NULL) }")
+        # Deterministic slow "install": child Rscript sleeps instead of CRAN work.
+        # Use ::R — bare R in chunks is RC::R (gknit scope), not the Galaaz module.
+        module ::R
+          class Job
+            def self.install(*packages, lib_dir: default_lib_dir, repos: DEFAULT_REPOS, wait: true, timeout: nil, &block)
+              pkgs = packages.flatten.map(&:to_s).reject(&:empty?)
+              raise ArgumentError, 'R::Job.install requires at least one package name' if pkgs.empty?
+
+              FileUtils.mkdir_p(lib_dir)
+              FileUtils.mkdir_p(jobs_root)
+              with_install_lock do
+                job = new(kind: 'install', packages: pkgs, lib_dir: lib_dir)
+                job.send(:spawn_eval!, 'Sys.sleep(30)')
+                finish_job(job, wait: wait, timeout: timeout, &block)
+              end
+            end
+          end
+        end
         ```
 
         ```{ruby timeout_install}
-        R.install_and_loads('definitely_fake_pkg_for_timeout_spec')
+        ::R.install_and_loads('definitely_fake_pkg_for_timeout_spec')
         ```
 
         ```{ruby after_timeout}
@@ -49,18 +67,20 @@ describe 'gknit install timeout reporting' do
       rel_rmd = File.basename(workdir) + '/' + File.basename(rmd_path)
       out, err, st = Open3.capture3(
         self.class.gknit_env,
-        'bin/gknit', '--output_format', 'github_document', '--bridge_timeout_sec', '1', rel_rmd,
+        'bin/gknit', '--output_format', 'github_document',
+        '--install_timeout_sec', '1',
+        rel_rmd,
         chdir: root
       )
 
       md_path = File.join(workdir, 'install_timeout.md')
-      expect(st.success?).to be(true)
+      expect(st.success?).to be(true), "gknit failed (status=#{st.exitstatus}):\n#{err}\n#{out}"
       expect(File.exist?(md_path)).to be(true)
       md = File.read(md_path)
       expect(md).to include('AFTER_TIMEOUT_CHUNK_OK')
       expect(err).to include('gknit internal errors detected:')
       expect(err).to include('chunk=timeout_install')
-      expect(err).to include('no RET for')
+      expect(err).to match(/install job timed out/i)
       expect(out).not_to be_nil
     ensure
       FileUtils.rm_rf(workdir) if workdir && File.directory?(workdir)

@@ -24,7 +24,21 @@ module R
                     File.expand_path('../../ext/new_bridge/galaaz_gatekeeper_phase1.cpp', __dir__)
       @client = NewBridge::SessionClient.new(source_path: source_path)
       @client.start(accept_timeout: 120)
+      bootstrap_session!
+      @ready = true
+    end
 
+    # After a hung/timed-out R eval (e.g. install.packages), kill R and start a fresh runtime
+    # so the compile does not keep running and OOM the host shell.
+    def restart_runtime!(accept_timeout: 120)
+      @ready = false
+      @client.restart!(accept_timeout: accept_timeout)
+      bootstrap_session!
+      @ready = true
+      self
+    end
+
+    def bootstrap_session!
       # Compatibility with the legacy ShadowBridge setup:
       # - `R.awt` / X11 for plotting (examples/sthda_ggplot).
       # - `missing_arg()` for Ruby :all in `[` / tbl subset (R::Support.parse_arg).
@@ -117,7 +131,6 @@ module R
         parent_id: callback_parent_id,
         timeout: init_timeout
       )
-      @ready = true
     end
 
     def ready?

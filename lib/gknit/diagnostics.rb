@@ -9,7 +9,9 @@ module GknitDiagnostics
     /invalid connection/i,
     /galaaz_callback_call timeout/i,
     /NewBridge::SessionClient::/i,
-    /Unsupported graphics device/i
+    /Unsupported graphics device/i,
+    /install job timed out/i,
+    /R::Job .+ still running after/i
   ].freeze
 
   def self.reset!

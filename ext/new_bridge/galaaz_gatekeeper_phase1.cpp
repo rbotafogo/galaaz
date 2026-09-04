@@ -45,6 +45,7 @@
 // -----------------------------------------------------------------------------
 
 #include <Rcpp.h>
+#include <Rversion.h>
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstdint>
@@ -61,6 +62,15 @@
 #include <unistd.h>
 #include <vector>
 
+// R 4.5+: Rf_findVar is no longer a public API entry (hidden in R 4.6).
+// R_getVarEx(sym, rho, inherits, ifnotfound) is the supported replacement.
+static inline SEXP galaaz_find_var(SEXP sym, SEXP env) {
+#if defined(R_VERSION) && R_VERSION >= R_Version(4, 5, 0)
+  return R_getVarEx(sym, env, TRUE, R_UnboundValue);
+#else
+  return Rf_findVar(sym, env);
+#endif
+}
 // Active bridge socket used by main loop and callback path.
 static int g_bridge_fd = -1;
 // Instance id of the currently serviced REQ; reused by callback CALL messages.
@@ -848,7 +858,7 @@ EvalResult eval_unbox_walk_cmd(const std::string& cmd, const Rcpp::Environment& 
   }
 
   SEXP sym = Rf_install(handle.c_str());
-  SEXP root = Rf_findVar(sym, env);
+  SEXP root = galaaz_find_var(sym, env);
   if (root == R_UnboundValue) return {false, payload_error("unbox_walk unknown handle")};
 
   std::vector<std::pair<SEXP, int>> stack;
@@ -1001,7 +1011,7 @@ EvalResult eval_unbox_materialize_cmd(const std::string& cmd, const Rcpp::Enviro
   }
 
   SEXP sym = Rf_install(handle.c_str());
-  SEXP root = Rf_findVar(sym, env);
+  SEXP root = galaaz_find_var(sym, env);
   if (root == R_UnboundValue) return {false, payload_error("unbox_materialize unknown handle")};
 
   std::vector<uint8_t> value_bytes;
@@ -1176,7 +1186,7 @@ static EvalResult eval_pull_vector_cmd(const std::string& cmd, const Rcpp::Envir
   }
 
   SEXP sym = Rf_install(handle.c_str());
-  SEXP vec = Rf_findVar(sym, env);
+  SEXP vec = galaaz_find_var(sym, env);
   if (vec == R_UnboundValue) {
     return {false, payload_error("pull_vector unknown handle")};
   }

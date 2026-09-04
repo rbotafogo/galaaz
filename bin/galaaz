@@ -1,5 +1,13 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
-Dir.chdir(File.dirname(File.expand_path('..', __FILE__)))
+# Galaaz CLI: setup / blogs / doctor / add.
+# Unknown commands still forward to rake (legacy example runners).
 
-system ("rake #{ARGV[0]}")
+root = File.expand_path('..', __dir__)
+lib = File.join(root, 'lib')
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+
+require 'galaaz/cli'
+
+exit Galaaz::CLI.run(ARGV)

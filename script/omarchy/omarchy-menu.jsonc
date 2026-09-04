@@ -1,0 +1,92 @@
+{
+  // Galaaz overlay for ~/.config/omarchy/extensions/omarchy-menu.jsonc
+  // Copy/merge into that path on TryOmarchy. Whole-line // comments only.
+  //
+  // Use ~/.local/bin/galaaz (installer wrapper). Do not quote the whole
+  // "galaaz add …" as one word — omarchy-launch-tui then does nothing useful.
+
+  "install.development.galaaz": {
+    "icon": "󰫏",
+    "label": "Galaaz",
+    "description": "R on Rails"
+  },
+  "install.development.galaaz.core": {
+    "icon": "󰫏",
+    "label": "Galaaz (core)",
+    "description": "gem + setup + blogs (not just gem install)",
+    "action": "omarchy-launch-tui omarchy-install-galaaz",
+    "disabled": "test -f ~/.config/galaaz/profiles/core"
+  },
+  "install.development.galaaz.guide": {
+    "icon": "󰋗",
+    "label": "Guide (what's next)",
+    "description": "Example knits, docs links, add-ons",
+    "action": "omarchy-launch-tui omarchy-galaaz-guide",
+    "when": "test -f ~/.config/galaaz/profiles/core"
+  },
+  "install.development.galaaz.docs": {
+    "icon": "󰂺",
+    "label": "Documentation (website)",
+    "description": "rbotafogo.github.io/galaaz",
+    "action": "omarchy-galaaz-guide docs",
+    "when": "test -f ~/.config/galaaz/profiles/core"
+  },
+  "install.development.galaaz.github": {
+    "icon": "󰊤",
+    "label": "GitHub repository",
+    "description": "github.com/rbotafogo/galaaz",
+    "action": "omarchy-galaaz-guide github",
+    "when": "test -f ~/.config/galaaz/profiles/core"
+  },
+  "install.development.galaaz.knit": {
+    "icon": "󰫏",
+    "label": "Knit (HTML blogs)",
+    "description": "pandoc + knitr/rmarkdown",
+    "action": "omarchy-launch-tui omarchy-galaaz-add knit",
+    "disabled": "test -f ~/.config/galaaz/profiles/knit"
+  },
+  "install.development.galaaz.knit-demo": {
+    "icon": "󰐊",
+    "label": "Knit demo (oh_my)",
+    "description": "gknit ~/galaaz-blogs/oh_my/oh_my.Rmd",
+    "action": "omarchy-launch-tui omarchy-galaaz-guide knit-demo",
+    "when": "test -f ~/.config/galaaz/profiles/knit"
+  },
+  "install.development.galaaz.arrow": {
+    "icon": "󰫏",
+    "label": "Arrow",
+    "action": "omarchy-launch-tui omarchy-galaaz-add arrow",
+    "disabled": "test -f ~/.config/galaaz/profiles/arrow"
+  },
+  "install.development.galaaz.tex": {
+    "icon": "󰫏",
+    "label": "TeX (PDF blogs)",
+    "action": "omarchy-launch-tui omarchy-galaaz-add tex",
+    "disabled": "test -f ~/.config/galaaz/profiles/tex"
+  },
+  "install.development.galaaz.bio": {
+    "icon": "󰫏",
+    "label": "Bioconductor (DESeq2)",
+    "action": "omarchy-launch-tui omarchy-galaaz-add bio",
+    "disabled": "test -f ~/.config/galaaz/profiles/bio"
+  },
+  "install.development.galaaz.examples": {
+    "icon": "󰫏",
+    "label": "Examples",
+    "action": "omarchy-launch-tui omarchy-galaaz-add examples",
+    "disabled": "test -f ~/.config/galaaz/profiles/examples"
+  },
+  "install.development.galaaz.ledger": {
+    "icon": "󰫏",
+    "label": "Ledger (R-on-Rails demo)",
+    "description": "Clone app, seed, bin/dev",
+    "action": "omarchy-launch-tui omarchy-galaaz-add ledger",
+    "disabled": "test -f ~/.config/galaaz/profiles/ledger"
+  },
+  "remove.development.galaaz": {
+    "icon": "󰫏",
+    "label": "Galaaz",
+    "description": "Core gem (add-on R packages stay)",
+    "action": "omarchy-launch-tui omarchy-remove-galaaz"
+  }
+}

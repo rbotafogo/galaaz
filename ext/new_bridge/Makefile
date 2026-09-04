@@ -1,21 +1,21 @@
 # Makefile for Galaaz Gatekeeper shared library
 # Usage: make clean all
 
-# R configuration
+# Prefer `R` / `Rscript` on PATH (Omarchy/Arch: RHOME may be /usr/lib64/R).
 R_HOME := $(shell R RHOME)
-R_CPPFLAGS := $(shell $(R_HOME)/bin/R CMD config --cppflags)
-R_LIBS := $(shell $(R_HOME)/bin/R CMD config --ldflags)
+R_CPPFLAGS := $(shell R CMD config --cppflags)
+# Full linker flags from R (do NOT hardcode -L$(R_HOME)/lib — wrong on some Arch layouts).
+R_LDFLAGS := $(shell R CMD config --ldflags)
 
-# Rcpp configuration
-RCPP_INCLUDE := $(shell $(R_HOME)/bin/Rscript -e "cat(system.file('include', package='Rcpp'))")
+# Rcpp configuration (needs R_LIBS_USER for user-library installs)
+RCPP_INCLUDE := $(shell Rscript -e "cat(system.file('include', package='Rcpp'))")
 RCPP_CPPFLAGS := -I$(RCPP_INCLUDE)
 
 # Compiler settings
-CXX := $(shell $(R_HOME)/bin/R CMD config CXX)
-CXXFLAGS := $(shell $(R_HOME)/bin/R CMD config CXXFLAGS)
+CXX := $(shell R CMD config CXX)
+CXXFLAGS := $(shell R CMD config CXXFLAGS)
 CPPFLAGS := $(R_CPPFLAGS) $(RCPP_CPPFLAGS) -I.
-# Core R library only (avoid system libs that may not be present)
-LDFLAGS := -L$(R_HOME)/lib -lR -Wl,-rpath,$(R_HOME)/lib
+LDFLAGS := $(R_LDFLAGS) -Wl,-rpath,$(R_HOME)/lib
 
 # Target library
 TARGET := galaaz_gatekeeper.so
@@ -34,7 +34,7 @@ $(TARGET): $(OBJ)
 
 check: $(TARGET)
 	@echo "Checking library..."
-	@$(R_HOME)/bin/Rscript -e "dyn.load('$(TARGET)'); cat('Library loads successfully\n')"
+	@Rscript -e "dyn.load('$(TARGET)'); cat('Library loads successfully\n')"
 
 clean:
 	rm -f $(OBJ) $(TARGET)

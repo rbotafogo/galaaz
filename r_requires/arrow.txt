@@ -1,0 +1,3 @@
+# CRAN packages for `galaaz add arrow`.
+dplyr
+arrow
