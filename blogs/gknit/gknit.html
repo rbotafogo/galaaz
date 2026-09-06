@@ -478,7 +478,7 @@ and output it in any of the available formats of <strong>R
 markdown</strong>. gKnit allows ruby developers to do literate
 programming and reproducible research by allowing them to have in a
 single document, text and code.</p>
-<p>gKnit runs with <strong>JRuby</strong>, <strong>GNU R</strong>, and
+<p>gKnit runs with <strong>JRuby or CRuby</strong>, <strong>GNU R</strong>, and
 <strong>Galaaz</strong> (the integration layer between Ruby and R—see
 below). Knitr and <strong>R Markdown</strong> orchestrate the document;
 Galaaz’s engine keeps <strong>Ruby state across chunks</strong> and
@@ -2267,8 +2267,8 @@ puts model.test.head</code></pre>
 <h3>Documenting Gems</h3>
 <p>gKnit also allows developers to document and load files that are not
 in the same directory of the ‘.Rmd’ file.</p>
-<p>Here is an example of loading the ‘find.rb’ file from
-<strong>JRuby</strong> (via <code>$LOAD_PATH</code>). In this example,
+<p>Here is an example of loading the ‘find.rb’ file from Ruby
+(via <code>$LOAD_PATH</code>). In this example,
 relative is set to FALSE, so Ruby will look for the file in its
 $LOAD_PATH, and the user does not need to know its directory.</p>
 <pre><code>```{include find, relative = FALSE}
@@ -2377,7 +2377,7 @@ showing how to proceed.</p>
 a PDF document. Here is the Yaml header to generate this blog in PDF
 format instead of HTML:</p>
 <pre><code>---
-title: &quot;gKnit - Ruby and R Knitting with Galaaz (JRuby + GNU R)&quot;
+title: &quot;gKnit - Ruby and R Knitting with Galaaz (JRuby or CRuby + GNU R)&quot;
 author: &quot;Rodrigo Botafogo&quot;
 tags: [Galaaz, Ruby, R, JRuby, &quot;GNU R&quot;, knitr, gknit]
 date: &quot;29 October 2018&quot;
@@ -2403,7 +2403,7 @@ or be imported from files in the system. Ideally, in reproducible
 research, all the files needed to rebuild a report should be easily
 packed together (in the same zipped directory) and distributed to peers
 for reexecution.</p>
-<p><strong>Galaaz 2.0</strong> pairs <strong>JRuby</strong> with
+<p><strong>Galaaz 2.0</strong> pairs <strong>JRuby or CRuby</strong> with
 <strong>GNU R</strong>: you keep the full CRAN/Bioconductor world in R
 while writing orchestration, reuse, and application code in Ruby. The
 effort to wrap Ruby over R (Galaaz) and to wrap Knitr as gKnit was tiny
@@ -2413,7 +2413,7 @@ duplicate.</p>
 <p>An <strong>earlier</strong> prototype used Oracle’s
 <strong>GraalVM</strong> and Truffle interop; the
 <strong>current</strong> stack is deliberately <strong>standard GNU
-R</strong> plus the Galaaz <strong>bridge</strong>, documented in the
+R</strong> plus the Galaaz <strong>bridge</strong> on JRuby or CRuby, documented in the
 project manual.</p>
 <p>More interesting than wrapping the R libraries with Ruby, is that
 Ruby adds value to R, by allowing developers to use powerful and modern
@@ -2427,7 +2427,8 @@ readability.</p>
 <div id="prerequisites-galaaz-2.0" class="section level2">
 <h2>Prerequisites (Galaaz 2.0)</h2>
 <ul>
-<li><strong>JRuby</strong> and a compatible <strong>JDK</strong></li>
+<li><strong>JRuby</strong> and a compatible <strong>JDK</strong>,
+<em>or</em> <strong>CRuby 3.3+</strong></li>
 <li><strong>GNU R</strong> on your <code>PATH</code></li>
 </ul>
 <p>The following R packages will be automatically installed when
@@ -2455,7 +2456,8 @@ On macOS, Xcode command-line tools are commonly required.</p>
 Galaaz repo or your install layout); use
 <strong><code>--output_format all</code></strong> for HTML and PDF
 together.</li>
-<li>Run Ruby with <strong><code>bin/galaaz-jruby</code></strong> when
+<li>Run Ruby with <strong><code>bin/galaaz-ruby</code></strong> (either
+engine) or <strong><code>bin/galaaz-jruby</code></strong> when
 you need the same JVM flags as the project (see the manual).</li>
 </ul>
 </div>

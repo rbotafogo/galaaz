@@ -3,7 +3,7 @@ title: "Extending R with classes, modules, procs, lambdas, oh my!"
 author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, JRuby, "GNU R", Galaaz]
+tags: [Tech, Data Science, Ruby, R, JRuby, CRuby, "GNU R", Galaaz]
 date: "November 19th, 2018 (narrative updated for Galaaz 2.0, 2026)"
 output:
   html_document:
@@ -32,10 +32,10 @@ or similar solutions in Python,
 such as [PypeR](https://pypi.python.org/pypi/PypeR/1.1.0), [rpy2](http://rpy2.bitbucket.org/)
 and other similar solutions.
 
-**Galaaz 2.0** runs on **[JRuby](https://www.jruby.org/)** and drives **GNU R** through a **bridge**,
-so Ruby code can create and manipulate R objects and call R functions while staying idiomatic Ruby.
-An earlier prototype used Oracle’s **GraalVM** with **TruffleRuby** and **FastR**; that stack is
-historical and is **not** what current Galaaz targets.
+**Galaaz 2.0** supports **[JRuby](https://www.jruby.org/)** or **CRuby** equally and drives
+**GNU R** through a **bridge**, so Ruby code can create and manipulate R objects and call R
+functions while staying idiomatic Ruby. An earlier prototype used Oracle’s **GraalVM** with
+**TruffleRuby** and **FastR**; that stack is historical and is **not** what current Galaaz targets.
 
 
 # Bases of Object Programming
@@ -2148,7 +2148,7 @@ For those interested in Ruby and science, we recommend:
 
 * http://sciruby.com/
 
-**Galaaz 2.0** runs on **JRuby** and talks to **GNU R** through the bridge described in this
+**Galaaz 2.0** runs on **JRuby or CRuby** and talks to **GNU R** through the bridge described in this
 series — the same integration model used throughout the examples above.
 
 # Callbacks and R calling into Ruby
@@ -2170,7 +2170,7 @@ path in Galaaz 2.0.
 
 # Conclusions II
 
-**JRuby + GNU R + Galaaz** gives a practical polyglot stack: idiomatic Ruby for structure and
+**JRuby or CRuby + GNU R + Galaaz** gives a practical polyglot stack: idiomatic Ruby for structure and
 libraries, GNU R for statistics and the CRAN/Bioconductor ecosystem, and Galaaz as the bridge
 between them.  As always, choose the right tools for the job at hand — and when the job sits
 between an R-only workflow and a broader polyglot application, Galaaz is designed to connect those

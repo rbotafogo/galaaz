@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libffi-dev \
       r-base \
       r-base-dev \
+      libtirpc-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # R packages before compiling Ruby so a Ruby bump does not rebuild ggplot2.

@@ -3,7 +3,7 @@ title: "How to make Beautiful Ruby Plots with Galaaz"
 author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, JRuby, "GNU R", Galaaz]
+tags: [Tech, Data Science, Ruby, R, JRuby, CRuby, "GNU R", Galaaz]
 date: "November 19th, 2018 (narrative updated for Galaaz 2.0, 2026)"
 output:
   html_document:
@@ -46,16 +46,16 @@ of libraries for data analysis.
 Until recently, there was no real perspective for Ruby to bridge this gap.
 Implementing a complete scientific computing infrastructure would take too long.
 
-**Galaaz 2.0** couples **[JRuby](https://www.jruby.org/)** (Ruby on the JVM) with **GNU R**—the
-same R distribution used for data science everywhere. A **bridge** evaluates R from Ruby and
-exchanges data between the two processes so that, from Ruby, you call R functions and work
+**Galaaz 2.0** supports **[JRuby](https://www.jruby.org/)** or **CRuby** equally and drives
+**GNU R**—the same R distribution used for data science everywhere. A **bridge** evaluates R from
+Ruby and exchanges data between the two processes so that, from Ruby, you call R functions and work
 with R objects using familiar Ruby syntax. In other words, a Ruby programmer can use the
 capabilities of R without memorizing all of R’s syntax for day-to-day tasks.
 
 An **earlier line of work** used Oracle’s **GraalVM** with **TruffleRuby** and **FastR** so that
 Ruby and R could share one JVM runtime. That stack is **no longer** what Galaaz targets;
-today’s Galaaz is developed and tested with **JRuby + GNU R** (see the project manual for setup
-and command-line tools).
+today’s Galaaz is developed and tested with **JRuby or CRuby + GNU R** (see the project manual for
+setup and command-line tools).
 
 Library wrapping is a common way to bring features from one language into another.
 To improve performance, Python often wraps more efficient C libraries. For the
@@ -84,7 +84,7 @@ ggplot themes that will work the same as the Ruby module.  Yet, writing a new th
 requires specific knowledge on theme writing.  Ruby modules are standard to the
 language and don't need special knowledge.
 
-[Here](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021) is an older article (GraalVM-era Galaaz) with a scatter plot in Ruby; the **ideas** still apply under Galaaz 2.0 with JRuby and GNU R.
+[Here](https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021) is an older article (GraalVM-era Galaaz) with a scatter plot in Ruby; the **ideas** still apply under Galaaz 2.0 with JRuby or CRuby and GNU R.
 
 # gKnit
 
@@ -549,12 +549,12 @@ Trying to bring to Ruby the power of R starting from scratch is an enormous ende
 and would probably never be accomplished.  Today's data scientists would certainly
 stick with either Python or R.  Now, both the Ruby and R communities can benefit
 from this marriage: **Galaaz 2.0** uses **standard GNU R** for statistics and graphics
-and **JRuby** for application code, threading, and the JVM ecosystem.  We presented
-the process to couple Ruby and R; the coupling is implemented by the Galaaz bridge and
-**gKnit** for literate documents, not by a single GraalVM polyglot runtime.
+and **JRuby or CRuby** for application code (prefer **JRuby** when you want real threads and the
+JVM ecosystem).  We presented the process to couple Ruby and R; the coupling is implemented by the
+Galaaz bridge and **gKnit** for literate documents, not by a single GraalVM polyglot runtime.
 
 For performance, expect **ordinary GNU R** behaviour for model fitting and plotting, while
-**JRuby** gives **real parallel threads** on the Ruby side and access to Java libraries when
+**JRuby** can give **real parallel threads** on the Ruby side and access to Java libraries when
 you need them.
 
 This article has shown how to improve a plot step-by-step.  Starting from a very simple
@@ -571,8 +571,7 @@ be of great help for any Rubyist trying to write articles, blogs or documentatio
 
 ## Prerequisites (Galaaz 2.0)
 
-* **JRuby** — Ruby on the JVM ([jruby.org](https://www.jruby.org/))
-* A **JDK** compatible with your JRuby version
+* **JRuby** and a compatible **JDK**, *or* **CRuby 3.3+**
 * **GNU R** — `R` on your `PATH`, with compilers/tools available if packages must be built from source
 
 The following R packages will be automatically installed when necessary, but could be installed prior
@@ -594,4 +593,4 @@ are commonly required.
 
 * From the Galaaz repository (or your installed layout), render documents with **`bin/gknit`** (see the project manual for flags such as `--output_format all`).
 * In Ruby code: `require 'galaaz'`
-* For running scripts with the correct JRuby and JVM options, use **`bin/galaaz-jruby`** as described in the manual.
+* Run Ruby with **`bin/galaaz-ruby`** (either engine) or **`bin/galaaz-jruby`** when you need JRuby JVM flags (see the manual).

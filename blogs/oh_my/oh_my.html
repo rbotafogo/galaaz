@@ -371,7 +371,7 @@ between Ruby and R.<br />
 Its integration is tighter and more transparent than what one can get
 between RinRuby or similar solutions in Python, such as <a href="https://pypi.python.org/pypi/PypeR/1.1.0">PypeR</a>, <a href="http://rpy2.bitbucket.org/">rpy2</a> and other similar
 solutions.</p>
-<p><strong>Galaaz 2.0</strong> runs on <strong><a href="https://www.jruby.org/">JRuby</a></strong> and drives <strong>GNU
+<p><strong>Galaaz 2.0</strong> supports <strong><a href="https://www.jruby.org/">JRuby</a></strong> or <strong>CRuby</strong> equally and drives <strong>GNU
 R</strong> through a <strong>bridge</strong>, so Ruby code can create
 and manipulate R objects and call R functions while staying idiomatic
 Ruby. An earlier prototype used Oracle’s <strong>GraalVM</strong> with
@@ -1979,7 +1979,7 @@ into Ruby’s libraries, we suggest they look at:</p>
 <ul>
 <li><a href="http://sciruby.com/" class="uri">http://sciruby.com/</a></li>
 </ul>
-<p><strong>Galaaz 2.0</strong> runs on <strong>JRuby</strong> and talks
+<p><strong>Galaaz 2.0</strong> runs on <strong>JRuby or CRuby</strong> and talks
 to <strong>GNU R</strong> through the bridge described in this series —
 the same integration model used throughout the examples above.</p>
 </div>
@@ -2003,7 +2003,7 @@ path in Galaaz 2.0.</p>
 </div>
 <div id="conclusions-ii" class="section level1">
 <h1>Conclusions II</h1>
-<p><strong>JRuby + GNU R + Galaaz</strong> gives a practical polyglot
+<p><strong>JRuby or CRuby + GNU R + Galaaz</strong> gives a practical polyglot
 stack: idiomatic Ruby for structure and libraries, GNU R for statistics
 and the CRAN/Bioconductor ecosystem, and Galaaz as the bridge between
 them. As always, choose the right tools for the job at hand — and when

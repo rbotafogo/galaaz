@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       openjdk-21-jdk-headless \
       r-base \
       r-base-dev \
+      libtirpc-dev \
       pandoc \
       pkg-config \
       libuv1-dev \

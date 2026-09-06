@@ -381,7 +381,7 @@ analysis.</p>
 <p>Until recently, there was no real perspective for Ruby to bridge this
 gap. Implementing a complete scientific computing infrastructure would
 take too long.</p>
-<p><strong>Galaaz 2.0</strong> couples <strong><a href="https://www.jruby.org/">JRuby</a></strong> (Ruby on the JVM) with
+<p><strong>Galaaz 2.0</strong> supports <strong><a href="https://www.jruby.org/">JRuby</a></strong> or <strong>CRuby</strong> equally and drives
 <strong>GNU R</strong>—the same R distribution used for data science
 everywhere. A <strong>bridge</strong> evaluates R from Ruby and
 exchanges data between the two processes so that, from Ruby, you call R
@@ -392,7 +392,7 @@ memorizing all of R’s syntax for day-to-day tasks.</p>
 <strong>GraalVM</strong> with <strong>TruffleRuby</strong> and
 <strong>FastR</strong> so that Ruby and R could share one JVM runtime.
 That stack is <strong>no longer</strong> what Galaaz targets; today’s
-Galaaz is developed and tested with <strong>JRuby + GNU R</strong> (see
+Galaaz is developed and tested with <strong>JRuby or CRuby + GNU R</strong> (see
 the project manual for setup and command-line tools).</p>
 <p>Library wrapping is a usual way of bringing features from one
 language into another. To improve performance, Python often wraps more
@@ -421,7 +421,7 @@ on theme writing. Ruby modules are standard to the language and don’t
 need special knowledge.</p>
 <p><a href="https://towardsdatascience.com/ruby-plotting-with-galaaz-an-example-of-tightly-coupling-ruby-and-r-in-graalvm-520b69e21021">Here</a>
 is an older article (GraalVM-era Galaaz) with a scatter plot in Ruby;
-the <strong>ideas</strong> still apply under Galaaz 2.0 with JRuby and
+the <strong>ideas</strong> still apply under Galaaz 2.0 with JRuby or CRuby and
 GNU R.</p>
 <div id="gknit" class="section level1">
 <h1>gKnit</h1>
@@ -864,13 +864,14 @@ enormous endeavour and would probably never be accomplished. Today’s
 data scientists would certainly stick with either Python or R. Now, both
 the Ruby and R communities can benefit from this marriage:
 <strong>Galaaz 2.0</strong> uses <strong>standard GNU R</strong> for
-statistics and graphics and <strong>JRuby</strong> for application code,
-threading, and the JVM ecosystem. We presented the process to couple
+statistics and graphics and <strong>JRuby or CRuby</strong> for
+application code (prefer <strong>JRuby</strong> when you want real
+threads and the JVM ecosystem). We presented the process to couple
 Ruby and R; the coupling is implemented by the Galaaz bridge and
 <strong>gKnit</strong> for literate documents, not by a single GraalVM
 polyglot runtime.</p>
 <p>For performance, expect <strong>ordinary GNU R</strong> behaviour for
-model fitting and plotting, while <strong>JRuby</strong> gives
+model fitting and plotting, while <strong>JRuby</strong> can give
 <strong>real parallel threads</strong> on the Ruby side and access to
 Java libraries when you need them.</p>
 <p>This article has shown how to improve a plot step-by-step. Starting
@@ -890,8 +891,8 @@ Ruby.</p>
 <div id="prerequisites-galaaz-2.0" class="section level2">
 <h2>Prerequisites (Galaaz 2.0)</h2>
 <ul>
-<li><strong>JRuby</strong> — Ruby on the JVM (<a href="https://www.jruby.org/">jruby.org</a>)</li>
-<li>A <strong>JDK</strong> compatible with your JRuby version</li>
+<li><strong>JRuby</strong> and a compatible <strong>JDK</strong>,
+<em>or</em> <strong>CRuby 3.3+</strong></li>
 <li><strong>GNU R</strong> — <code>R</code> on your <code>PATH</code>,
 with compilers/tools available if packages must be built from
 source</li>
@@ -923,9 +924,9 @@ checkout).</li>
 documents with <strong><code>bin/gknit</code></strong> (see the project
 manual for flags such as <code>--output_format all</code>).</li>
 <li>In Ruby code: <code>require &#39;galaaz&#39;</code></li>
-<li>For running scripts with the correct JRuby and JVM options, use
-<strong><code>bin/galaaz-jruby</code></strong> as described in the
-manual.</li>
+<li>Run Ruby with <strong><code>bin/galaaz-ruby</code></strong> (either
+engine) or <strong><code>bin/galaaz-jruby</code></strong> when you need
+JRuby JVM flags (see the manual).</li>
 </ul>
 </div>
 </div>

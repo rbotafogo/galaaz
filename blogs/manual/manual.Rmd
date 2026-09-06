@@ -2,7 +2,7 @@
 title: "Galaaz Manual"
 subtitle: "R-on-Rails: GNU R meets Ruby for the web"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, "R-on-Rails", Ruby, Rails, JRuby, R, "GNU R", ggplot2, knitr, dplyr, Bioconductor, Arrow]
+tags: [Galaaz, "R-on-Rails", Ruby, Rails, JRuby, CRuby, R, "GNU R", ggplot2, knitr, dplyr, Bioconductor, Arrow]
 date: "2026"
 bibliography: "../../examples/Bibliography/stats.bib"
 output:
@@ -66,18 +66,20 @@ of libraries for data analysis.
 Until recently, there was no real perspective for Ruby to bridge this gap.
 Implementing a complete scientific computing infrastructure would take too long.
 
-**Galaaz 2.0** couples **JRuby** (Ruby on the JVM) with **GNU R**—the same R you use for
-CRAN and Bioconductor. Ruby and R run in **separate processes**; the **Galaaz bridge**
-sends requests to R and returns results to Ruby. From your point of view you still write
-Ruby: `R.c(...)`, `R.library('ggplot2')`, `~R[:mtcars]`, and dplyr-style chains on R objects.
-You do not need to learn R syntax to get a lot done, though reading R documentation for
-individual packages remains useful.
+**Galaaz 2.0** supports **JRuby** and **CRuby** equally for the same NewBridge protocol.
+Pick the Ruby that fits your app: JRuby when you want real multithreading for web and I/O;
+CRuby when you prefer MRI. R remains the same **GNU R** you use interactively—including
+compiled extensions and Bioconductor. Ruby and R run in **separate processes**; the
+**Galaaz bridge** sends requests to R and returns results to Ruby. From your point of view
+you still write Ruby: `R.c(...)`, `R.library('ggplot2')`, `~R[:mtcars]`, and dplyr-style
+chains on R objects. You do not need to learn R syntax to get a lot done, though reading R
+documentation for individual packages remains useful.
 
 Earlier experiments with Galaaz used Oracle’s **GraalVM** with TruffleRuby and FastR so that
 Ruby and R could share one runtime. That path is no longer the focus: **standard GNU R**
 gives full compatibility with the R package ecosystem (including compiled extensions and
-Bioconductor) while JRuby gives a mature Ruby with **real multithreading** for application
-and I/O code.
+Bioconductor) while either Ruby engine talks to R over NewBridge (JRuby for mature
+multithreading on the application side; CRuby when you prefer MRI).
 
 The bridge handles **communication and typing** between the two worlds; large tables can
 also flow through **Apache Arrow** on the R side when you use the optional helpers described
@@ -241,14 +243,16 @@ For day-to-day **2.0** use, rely on **`bin/galaaz-ruby`** (or **`bin/galaaz-jrub
 Typical development and CI targets:
 
 * **Linux** — recent Ubuntu LTS or comparable distributions (x86_64).
-* **macOS** — recent releases with JRuby and GNU R available.
+* **macOS** — recent releases with JRuby or CRuby and GNU R available.
 * **Windows** — use **WSL2** (same Linux stack as above); native Windows is not the primary target.
 
 The native **gatekeeper** component under `ext/new_bridge` is built with `make` and a C++ toolchain; see the project `README` if compilation fails on your platform.
 
 # Dependencies
 
-* **JRuby** — Galaaz 2.0 requires JRuby (tested with **10.1.1.0**) and a matching **JDK** (tested with **Java 21**). MRI Ruby is not supported.
+* **Ruby** — **JRuby** or **CRuby** (both supported for NewBridge). Tested with **JRuby 10.1.1.0**
+  (+ **JDK 21**) and **CRuby 3.3.12**. Use `bin/galaaz-ruby` (honors `GALAAZ_RUBY`) or plain
+  `gem install galaaz` under the Ruby you choose.
 * **GNU R** — `R` and `Rscript` on your `PATH` (tested with **4.3.3**), plus a C++ toolchain (`g++`, `make`) and the **Rcpp** package to compile the gatekeeper.
 * **galaaz gem** — runtime dependency `msgpack` is pulled in by `gem install`.
 * Optional: **Docker** — if you run R in a container (common on WSL2); see bootstrap below.
@@ -258,27 +262,32 @@ The native **gatekeeper** component under `ext/new_bridge` is built with `make` 
 
 The supported install is **`gem install` + compile the gatekeeper**. You do not need a git clone.
 
-1. Install **JRuby**, a compatible **JDK**, and **GNU R** (with `Rscript` and a C++ compiler).
+1. Install **JRuby** (and a compatible **JDK**) **or CRuby 3.3+**, plus **GNU R** (with `Rscript` and a C++ compiler).
 2. In R, install **Rcpp**: `install.packages("Rcpp")`.
-3. Install the gem: `jruby -S gem install galaaz`
+3. Install the gem: `jruby -S gem install galaaz` (or `gem install galaaz` under CRuby).
 4. Compile the native gatekeeper from the installed gem:
 
    ```
-   gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+   gem_dir="$(ruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+   # under JRuby: gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
    make -C "${gem_dir}/ext/new_bridge" all
    ```
 
-5. Ensure **`R`** starts GNU R and can install packages (network access to CRAN when you first call `R.install_and_loads`). For **Apache Arrow** on Java 9+, pass `-J--add-opens=java.base/java.nio=ALL-UNNAMED` to JRuby (from a checkout, `bin/galaaz-jruby` does this).
+5. Ensure **`R`** starts GNU R and can install packages (network access to CRAN when you first call `R.install_and_loads`). For **Apache Arrow** on **JRuby** (Java 9+), the child JVM needs `--add-opens=java.base/java.nio=ALL-UNNAMED` via **`JAVA_OPTS`** (from a checkout, `bin/galaaz-jruby` and `mise.toml` set this; a leading `jruby -J... -S bundle exec` does **not** pass `-J` to rspec). On **CRuby**, install Apache Arrow GLib (`libarrow-glib-dev` from the [Apache Arrow APT](https://arrow.apache.org/install/) repo) and `gem install red-arrow` matching `pkg-config --modversion arrow-glib`. Do not install the unrelated Rubygems package named `arrow`.
 
 For **gKnit**, **knitr**, **rmarkdown**, and LaTeX (PDF output), install the corresponding R packages, **Pandoc**, and a TeX distribution if you need PDF; the repository includes helpers such as **`bin/install-tinytex`** where appropriate.
 
-A **table of all `bin/` scripts** (bootstrap, JRuby wrapper, gstudio, gknit, test runners, and which ones are legacy) is in the section **Command-line tools (`bin/`)** earlier in this manual.
+A **table of all `bin/` scripts** (bootstrap, Ruby launcher, gstudio, gknit, test runners, and which ones are legacy) is in the section **Command-line tools (`bin/`)** earlier in this manual.
 
 ### From a repository checkout (contributors)
 
-1. Install **bundler** if needed, then run **`jruby -S bundle install`** in the repository root.
+1. Install **bundler** if needed, then run **`bundle install`** with your chosen Ruby
+   (`jruby -S bundle install` or CRuby `bundle install`) in the repository root.
 2. Build the bridge native code: **`make -C ext/new_bridge all`** (or **`rake compile_gatekeeper`**).
-3. Run scripts with **`bin/galaaz-jruby`** (sources **`bin/galaaz_jruby_env.inc.sh`** and adds **`-I lib`**).
+3. Run scripts with **`bin/galaaz-ruby`** (uses `ruby` on `PATH`; set **`GALAAZ_RUBY=jruby`** or
+   **`GALAAZ_RUBY=ruby`** to force an engine). Spec runners: **`bin/run_rspec`** /
+   **`bin/run_all_rspec`** (same `GALAAZ_RUBY` rule). **`bin/galaaz-jruby`** remains a thin
+   wrapper that forces JRuby.
 
 A **gstudio** try image with Galaaz already installed is available for both engines:
 **JRuby** — `docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio` (or
@@ -321,8 +330,15 @@ WSL integration is enabled for the distro where Galaaz is installed.
 ```{ruby simple_example}
   vec = R.c(1, 2, 3, 4)
   puts vec
+
+  # R.foo(...) calls an R *function*. Datasets are objects — fetch with ~:
+  df = ~R[:mtcars]
+  puts R.summary(df)
 ```
-  
+
+(`R.mtcars` is wrong: it becomes `mtcars()` in R and fails. With
+`using Galaaz::SymbolDSL`, the short form `~:mtcars` also works.)
+
 * Run all specs
 
   > galaaz specs:all
@@ -701,9 +717,9 @@ puts vec.map { |x| x + 2 }
 
 This manual has been formatted using gKnit.  gKnit uses knitr and R Markdown to knit 
 a document in Ruby or R and output it in any of the available formats for R Markdown.
-gKnit runs with **JRuby**, **GNU R**, and Galaaz.  In gKnit, Ruby variables are persisted between 
-chunks, making it an ideal solution for literate programming. Also, since it is based 
-on Galaaz, Ruby chunks can have access to R variables and combining Ruby with R in one 
+gKnit runs with **JRuby or CRuby**, **GNU R**, and Galaaz.  In gKnit, Ruby variables are persisted between
+chunks, making it an ideal solution for literate programming. Also, since it is based
+on Galaaz, Ruby chunks can have access to R variables and combining Ruby with R in one
 document is natural.
 
 The idea of "literate programming" was first introduced by Donald Knuth in the 
@@ -2077,7 +2093,8 @@ a real **Arrow `Table` inside GNU R**. From there you use R’s **`arrow`** and 
 as usual: **`group_by`** on the Arrow table, **`summarise`** for aggregates, then **`collect()`** to
 materialize a tibble when you need in-memory R rows.
 
-That pattern matches production use: **JRuby threads** (or sequential code) assemble many rows in
+That pattern matches production use: **JRuby threads** or a **multi-process CRuby** app
+(or sequential code) assemble many rows in
 Ruby; you pay **one** bridge-heavy handoff to R; **dplyr** runs vectorised work on the Arrow table
 in R.
 
@@ -2181,10 +2198,11 @@ pulls in several dependencies; the first install can take several minutes.
 ## Example: DESeq2 on the airway dataset
 
 The script **`examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb`** is the canonical
-version in the repository. Run it from the **Galaaz repository root** with JRuby, for example:
+version in the repository. Run it from the **Galaaz repository root** with either engine, for example:
 
 ```text
-bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+bin/galaaz-ruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+# or: bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
 ```
 
 The workflow in Ruby mirrors a standard DESeq2 vignette:
@@ -2212,7 +2230,7 @@ manual is knitted, because **DESeq2** is heavy and may be absent on the build ma
 
 ```{ruby deseq2_airway_full_listing, eval=FALSE}
 # Canonical script: examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
-# Run: bin/galaaz-jruby examples/.../deseq2_airway_galaaz.rb (repo root).
+# Run: bin/galaaz-ruby examples/.../deseq2_airway_galaaz.rb (repo root).
 
 require 'galaaz'
 
@@ -2734,8 +2752,8 @@ arguments.
 
 * Fork it
 * Create your feature branch (`git checkout -b my-new-feature`)
-* Write tests — use **`bin/run_rspec`** or **`bin/run_all_rspec`** with **JRuby** so JVM flags and
-  the load path match **`docs/testing.md`**
+* Write tests — use **`bin/run_rspec`** or **`bin/run_all_rspec`** (JRuby or CRuby via
+  **`GALAAZ_RUBY`**) so the load path matches **`docs/testing.md`**
 * Commit your changes (`git commit -am 'Add some feature'`)
 * Push to the branch (`git push origin my-new-feature`)
 * Open a pull request

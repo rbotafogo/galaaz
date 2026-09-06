@@ -3,7 +3,7 @@ title: "How to do reproducible research in Ruby with gKnit"
 author:
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, JRuby, "GNU R", Galaaz, gKnit, knitr]
+tags: [Tech, Data Science, Ruby, R, JRuby, CRuby, "GNU R", Galaaz, gKnit, knitr]
 date: "29/04/2019 (narrative updated for Galaaz 2.0, 2026)"
 bibliography: stats.bib
 output:
@@ -133,7 +133,7 @@ written both in Ruby and/or R and output it in any of the available formats of _
 allows ruby developers to do literate programming and reproducible research by allowing them to
 have in a single document, text and code.
 
-gKnit runs with **JRuby**, **GNU R**, and **Galaaz** (the integration layer between Ruby and R—see below).
+gKnit runs with **JRuby or CRuby**, **GNU R**, and **Galaaz** (the integration layer between Ruby and R—see below).
 Knitr and **R Markdown** orchestrate the document; Galaaz’s engine keeps **Ruby state across chunks**
 and talks to R through the **bridge**. Ruby chunks can read and update R variables (`~R[:name]`, `R.*`)
 without GraalVM-style polyglot interop.
@@ -163,7 +163,7 @@ title: "How to do reproducible research in Ruby with gKnit"
 author: 
     - "Rodrigo Botafogo"
     - "Daniel Mossé - University of Pittsburgh"
-tags: [Tech, Data Science, Ruby, R, JRuby, "GNU R", Galaaz]
+tags: [Tech, Data Science, Ruby, R, JRuby, CRuby, "GNU R", Galaaz]
 date: "20/02/2019"
 output:
   html_document:
@@ -1246,7 +1246,7 @@ puts model.test.head
 gKnit also allows developers to document and load files that are not in the same directory
 of the '.Rmd' file.
 
-Here is an example of loading the 'find.rb' file from **JRuby** (via `$LOAD_PATH`). In this example, relative
+Here is an example of loading the 'find.rb' file from Ruby (via `$LOAD_PATH`). In this example, relative
 is set to FALSE, so Ruby will look for the file in its $LOAD\_PATH, and the user does not
 need to know its directory.
 
@@ -1361,9 +1361,9 @@ the Yaml header to generate this blog in PDF format instead of HTML:
 
 ```
 ---
-title: "gKnit - Ruby and R Knitting with Galaaz (JRuby + GNU R)"
+title: "gKnit - Ruby and R Knitting with Galaaz (JRuby or CRuby + GNU R)"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, Ruby, R, JRuby, "GNU R", knitr, gknit]
+tags: [Galaaz, Ruby, R, JRuby, CRuby, "GNU R", knitr, gknit]
 date: "29 October 2018"
 output:
   pdf\_document:
@@ -1386,13 +1386,13 @@ be imported from files in the system.  Ideally, in reproducible research, all th
 needed to rebuild a report should be easily packed together (in the same zipped directory)
 and distributed to peers for reexecution.
 
-**Galaaz 2.0** pairs **JRuby** with **GNU R**: you keep the full CRAN/Bioconductor world in R while
+**Galaaz 2.0** pairs **JRuby or CRuby** with **GNU R**: you keep the full CRAN/Bioconductor world in R while
 writing orchestration, reuse, and application code in Ruby. The effort to wrap Ruby over R (Galaaz)
 and to wrap Knitr as gKnit was tiny compared to reimplementing R’s ecosystem in Ruby—much like
 Python’s investment in NumPy and Pandas, which no Ruby project is likely to duplicate.
 
 An **earlier** prototype used Oracle’s **GraalVM** and Truffle interop; the **current** stack is
-deliberately **standard GNU R** plus the Galaaz **bridge**, documented in the project manual.
+deliberately **standard GNU R** plus the Galaaz **bridge** on JRuby or CRuby, documented in the project manual.
 
 More interesting than wrapping the R libraries with Ruby, is that Ruby adds
 value to R, by allowing developers to use powerful and modern constructs for code reuse that
@@ -1404,7 +1404,7 @@ readability.
 
 ## Prerequisites (Galaaz 2.0)
 
-* **JRuby** and a compatible **JDK**
+* **JRuby** and a compatible **JDK**, *or* **CRuby 3.3+**
 * **GNU R** on your `PATH`
 
 The following R packages will be automatically installed when necessary, but could be installed prior
@@ -1424,7 +1424,7 @@ the usual build tools are typically enough.  On macOS, Xcode command-line tools 
 ## Usage
 
 * **`bin/gknit`** \<filename\> (from the Galaaz repo or your install layout); use **`--output_format all`** for HTML and PDF together.
-* Run Ruby with **`bin/galaaz-jruby`** when you need the same JVM flags as the project (see the manual).
+* Run Ruby with **`bin/galaaz-ruby`** (either engine) or **`bin/galaaz-jruby`** when you need JRuby JVM flags (see the manual).
 
 
 # References

@@ -95,6 +95,6 @@ GALAAZ_DEBUG_R=1 bin/run_example examples/sthda_ggplot/all.rb
 
 ## Requirements
 
-- **JRuby** (same as specs/examples).
+- **JRuby** or **CRuby** (same as specs/examples; use `bin/galaaz-ruby` / `GALAAZ_RUBY`).
 - **R** with packages used by the document (e.g. `rmarkdown`, `knitr`, `ggplot2`).
 - Run from the project root so `lib` and `bin` resolve correctly.

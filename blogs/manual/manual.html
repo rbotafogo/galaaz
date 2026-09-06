@@ -597,7 +597,7 @@ display: none;
 
 
 <h1 class="title toc-ignore">Galaaz Manual</h1>
-<h3 class="subtitle">Coupling Ruby (JRuby) and GNU R for data
+<h3 class="subtitle">Coupling Ruby (JRuby or CRuby) and GNU R for data
 science</h3>
 <h4 class="author">Rodrigo Botafogo</h4>
 <h4 class="date">2026</h4>
@@ -801,8 +801,11 @@ thousands of libraries for data analysis.</p>
 <p>Until recently, there was no real perspective for Ruby to bridge this
 gap. Implementing a complete scientific computing infrastructure would
 take too long.</p>
-<p><strong>Galaaz 2.0</strong> couples <strong>JRuby</strong> (Ruby on
-the JVM) with <strong>GNU R</strong>—the same R you use for CRAN and
+<p><strong>Galaaz 2.0</strong> supports <strong>JRuby</strong> and
+<strong>CRuby</strong> equally for the same NewBridge protocol. Pick the
+Ruby that fits your app: JRuby when you want real multithreading for web
+and I/O; CRuby when you prefer MRI. R remains the same <strong>GNU
+R</strong> you use interactively—including compiled extensions and
 Bioconductor. Ruby and R run in <strong>separate processes</strong>; the
 <strong>Galaaz bridge</strong> sends requests to R and returns results
 to Ruby. From your point of view you still write Ruby:
@@ -815,8 +818,8 @@ documentation for individual packages remains useful.</p>
 could share one runtime. That path is no longer the focus:
 <strong>standard GNU R</strong> gives full compatibility with the R
 package ecosystem (including compiled extensions and Bioconductor) while
-JRuby gives a mature Ruby with <strong>real multithreading</strong> for
-application and I/O code.</p>
+either Ruby engine talks to R over NewBridge (JRuby for mature
+multithreading on the application side; CRuby when you prefer MRI).</p>
 <p>The bridge handles <strong>communication and typing</strong> between
 the two worlds; large tables can also flow through <strong>Apache
 Arrow</strong> on the R side when you use the optional helpers described
@@ -861,13 +864,16 @@ Arthurian legend. </code></pre>
 <strong><code>gknit-draft</code></strong>); for development and CI,
 prefer the <strong><code>bin/</code></strong> copies so JVM flags and
 paths stay correct.</p>
-<p>Below, <strong>current (Galaaz 2.0 + JRuby + GNU R)</strong> means
-the tool is wired to <strong><code>jruby</code></strong> and
-<strong><code>bin/galaaz_jruby_env.inc.sh</code></strong> (or equivalent
-logic in Ruby via <code>lib/galaaz_jruby.rb</code>).
+<p>Below, <strong>current (Galaaz 2.0 + JRuby or CRuby + GNU R)</strong>
+means the tool uses <strong><code>bin/galaaz-ruby</code></strong> /
+<strong><code>GALAAZ_RUBY</code></strong> (default: <code>ruby</code> on
+<code>PATH</code>) and applies JVM flags only when the interpreter is
+JRuby (<code>bin/galaaz_jruby_env.inc.sh</code> /
+<code>lib/galaaz_jruby.rb</code>).
+<strong><code>bin/galaaz-jruby</code></strong> forces JRuby.
 <strong>Legacy</strong> means the script still targets
 <strong>GraalVM</strong> polyglot Ruby / FastR-era invocation and is
-<strong>not</strong> expected to work on a typical JRuby-only setup.</p>
+<strong>not</strong> expected to work on a typical JRuby or CRuby NewBridge setup.</p>
 <p><strong>Table layout:</strong> names in the first column are
 <strong><code>bin/</code></strong> filenames (run as
 <code>bin/&lt;name&gt;</code> from the repo root). Long options and
@@ -1212,7 +1218,7 @@ Compatibility</h1>
 <ul>
 <li><strong>Linux</strong> — recent Ubuntu LTS or comparable
 distributions (x86_64).</li>
-<li><strong>macOS</strong> — recent releases with JRuby and GNU R
+<li><strong>macOS</strong> — recent releases with JRuby or CRuby and GNU R
 available.</li>
 <li><strong>Windows</strong> — use <strong>WSL2</strong> (same Linux
 stack as above); native Windows is not the primary target.</li>
@@ -1225,15 +1231,18 @@ your platform.</p>
 <div id="dependencies" class="section level1" number="4">
 <h1><span class="header-section-number">4</span> Dependencies</h1>
 <ul>
-<li><strong>JRuby</strong> — Ruby implementation on the JVM (Galaaz 2.0
-is developed and tested with JRuby).</li>
-<li>A <strong>Java runtime</strong> (JDK) compatible with your JRuby
-version.</li>
-<li><strong>GNU R</strong> — <code>R</code> on your <code>PATH</code>,
-with ability to install packages (CRAN / Bioconductor as needed).</li>
-<li><strong>Ruby gems</strong> — from the Galaaz repository,
-<code>bundle install</code> (see the <code>Gemfile</code> /
-gemspec).</li>
+<li><strong>Ruby</strong> — <strong>JRuby</strong> or
+<strong>CRuby</strong> (both supported for NewBridge). Tested with
+<strong>JRuby 10.1.1.0</strong> (+ <strong>JDK 21</strong>) and
+<strong>CRuby 3.3.12</strong>. Use <code>bin/galaaz-ruby</code> (honors
+<code>GALAAZ_RUBY</code>) or plain <code>gem install galaaz</code> under
+the Ruby you choose.</li>
+<li><strong>GNU R</strong> — <code>R</code> and <code>Rscript</code> on
+your <code>PATH</code> (tested with <strong>4.3.3</strong>), plus a C++
+toolchain (<code>g++</code>, <code>make</code>) and the
+<strong>Rcpp</strong> package to compile the gatekeeper.</li>
+<li><strong>galaaz gem</strong> — runtime dependency
+<code>msgpack</code> is pulled in by <code>gem install</code>.</li>
 <li>Optional: <strong>Docker</strong> — if you run R in a container
 (common on WSL2); see bootstrap below.</li>
 <li>Optional R packages for examples in this manual —
@@ -1244,36 +1253,61 @@ e.g. <code>ggplot2</code>, <code>dplyr</code>, <code>knitr</code>,
 </div>
 <div id="installation" class="section level1" number="5">
 <h1><span class="header-section-number">5</span> Installation</h1>
-<p>From a clone of the Galaaz repository:</p>
+<p>The supported install is <strong><code>gem install</code> + compile
+the gatekeeper</strong>. You do not need a git clone.</p>
 <ol style="list-style-type: decimal">
-<li>Install <strong>JRuby</strong> and <strong>GNU R</strong> using your
-preferred package manager or Ruby version manager.</li>
-<li>Install <strong>bundler</strong> if needed, then run
-<strong><code>bundle install</code></strong> in the repository
-root.</li>
-<li>Build the bridge native code:
-<strong><code>make -C ext/new_bridge all</code></strong> (or
-<strong><code>rake compile_gatekeeper</code></strong>).</li>
-<li>Run Ruby scripts with the project load path and JVM flags the
-project expects — the <strong><code>bin/galaaz-jruby</code></strong>
-wrapper sources
-<strong><code>bin/galaaz_jruby_env.inc.sh</code></strong> and adds
-<strong><code>-I lib</code></strong>. This matters especially for
-<strong>Apache Arrow</strong> integration (see
-<code>docs/testing.md</code>).</li>
+<li>Install <strong>JRuby</strong> (and a compatible <strong>JDK</strong>)
+<strong>or CRuby 3.3+</strong>, plus <strong>GNU R</strong> (with
+<code>Rscript</code> and a C++ compiler).</li>
+<li>In R, install <strong>Rcpp</strong>:
+<code>install.packages(&quot;Rcpp&quot;)</code>.</li>
+<li>Install the gem: <code>jruby -S gem install galaaz</code> (or
+<code>gem install galaaz</code> under CRuby).</li>
+<li>Compile the native gatekeeper from the installed gem:
+<pre class="text"><code>gem_dir=&quot;$(ruby -e &quot;puts Gem::Specification.find_by_name(&#39;galaaz&#39;).full_gem_path&quot;)&quot;
+# under JRuby: gem_dir=&quot;$(jruby -e &quot;puts Gem::Specification.find_by_name(&#39;galaaz&#39;).full_gem_path&quot;)&quot;
+make -C &quot;${gem_dir}/ext/new_bridge&quot; all</code></pre></li>
 <li>Ensure <strong><code>R</code></strong> starts GNU R and can install
-packages (network access to CRAN mirrors when you first call
-<code>R.install_and_loads</code>).</li>
+packages (network access to CRAN when you first call
+<code>R.install_and_loads</code>). For <strong>Apache Arrow</strong> on
+<strong>JRuby</strong> (Java 9+), the child JVM needs
+<code>--add-opens=java.base/java.nio=ALL-UNNAMED</code> via
+<strong><code>JAVA_OPTS</code></strong> (from a checkout,
+<code>bin/galaaz-jruby</code> and <code>mise.toml</code> set this). On
+<strong>CRuby</strong>, install Apache Arrow GLib and
+<code>gem install red-arrow</code> matching your Arrow GLib version.</li>
 </ol>
 <p>For <strong>gKnit</strong>, <strong>knitr</strong>,
 <strong>rmarkdown</strong>, and LaTeX (PDF output), install the
-corresponding R packages and a TeX distribution if you need PDF; the
-repository includes helpers such as
+corresponding R packages, <strong>Pandoc</strong>, and a TeX
+distribution if you need PDF; the repository includes helpers such as
 <strong><code>bin/install-tinytex</code></strong> where appropriate.</p>
 <p>A <strong>table of all <code>bin/</code> scripts</strong> (bootstrap,
-JRuby wrapper, gstudio, gknit, test runners, and which ones are legacy)
+Ruby launcher, gstudio, gknit, test runners, and which ones are legacy)
 is in the section <strong>Command-line tools
 (<code>bin/</code>)</strong> earlier in this manual.</p>
+<div id="from-a-repository-checkout-contributors" class="section level2" number="5.0">
+<h2><span class="header-section-number">5.0</span> From a repository
+checkout (contributors)</h2>
+<ol style="list-style-type: decimal">
+<li>Install <strong>bundler</strong> if needed, then run
+<strong><code>bundle install</code></strong> with your chosen Ruby
+(<code>jruby -S bundle install</code> or CRuby
+<code>bundle install</code>) in the repository root.</li>
+<li>Build the bridge native code:
+<strong><code>make -C ext/new_bridge all</code></strong> (or
+<strong><code>rake compile_gatekeeper</code></strong>).</li>
+<li>Run scripts with <strong><code>bin/galaaz-ruby</code></strong> (uses
+<code>ruby</code> on <code>PATH</code>; set
+<strong><code>GALAAZ_RUBY=jruby</code></strong> or
+<strong><code>GALAAZ_RUBY=ruby</code></strong> to force an engine). Spec
+runners: <strong><code>bin/run_rspec</code></strong> /
+<strong><code>bin/run_all_rspec</code></strong> (same
+<code>GALAAZ_RUBY</code> rule).
+<strong><code>bin/galaaz-jruby</code></strong> remains a thin wrapper
+that forces JRuby.</li>
+</ol>
+</div>
 <div id="windows-wsl2-optional-docker-r-in-a-container" class="section level2" number="5.1">
 <h2><span class="header-section-number">5.1</span> Windows + WSL2
 (optional: Docker / R in a container)</h2>
@@ -1343,8 +1377,9 @@ following line shows up after ‘galaaz -T’</p>
 <div id="jruby-multithreading-and-the-r-bridge" class="section level1" number="7">
 <h1><span class="header-section-number">7</span> JRuby, multithreading,
 and the R bridge</h1>
-<p>Galaaz 2.0 runs Ruby on <strong>JRuby</strong>, so your application
-can use <strong>real parallel threads</strong> for I/O-bound work (HTTP
+<p>Galaaz 2.0 supports <strong>JRuby</strong> and <strong>CRuby</strong>
+equally for NewBridge. On <strong>JRuby</strong>, your application can
+use <strong>real parallel threads</strong> for I/O-bound work (HTTP
 clients, database connections, message consumers, and so on). R itself
 is still executed in a <strong>single GNU R process</strong> behind the
 Galaaz bridge.</p>
@@ -1451,7 +1486,8 @@ written there is observed elsewhere). Runnable specs live in
 <p>This section documents the baseline we used to create a working Rails
 app with Galaaz in WSL. The goals were:</p>
 <ol style="list-style-type: decimal">
-<li>Rails boots under <strong>JRuby</strong>.</li>
+<li>Rails boots under <strong>JRuby or CRuby</strong> (same bridge; see
+Installation).</li>
 <li>Galaaz is loaded from a local checkout (before publishing to
 RubyGems).</li>
 <li>A request path can execute <strong><code>R.eval(...)</code></strong>
@@ -1675,7 +1711,7 @@ Document</h1>
 <p>This manual has been formatted using gKnit. gKnit uses knitr and R
 Markdown to knit a document in Ruby or R and output it in any of the
 available formats for R Markdown. gKnit runs with
-<strong>JRuby</strong>, <strong>GNU R</strong>, and Galaaz. In gKnit,
+<strong>JRuby or CRuby</strong>, <strong>GNU R</strong>, and Galaaz. In gKnit,
 Ruby variables are persisted between chunks, making it an ideal solution
 for literate programming. Also, since it is based on Galaaz, Ruby chunks
 can have access to R variables and combining Ruby with R in one document
@@ -1800,7 +1836,7 @@ title: &quot;How to do reproducible research in Ruby with gKnit&quot;
 author: 
     - &quot;Rodrigo Botafogo&quot;
     - &quot;Daniel Mossé - University of Pittsburgh&quot;
-tags: [Tech, Data Science, Ruby, R, JRuby, Galaaz]
+tags: [Tech, Data Science, Ruby, R, JRuby, CRuby, Galaaz]
 date: &quot;20/02/2019&quot;
 output:
   html_document:
@@ -3638,7 +3674,7 @@ format instead of HTML:</p>
 <pre><code>---
 title: &quot;gKnit - Ruby and R Knitting with Galaaz&quot;
 author: &quot;Rodrigo Botafogo&quot;
-tags: [Galaaz, Ruby, R, JRuby, knitr, gknit]
+tags: [Galaaz, Ruby, R, JRuby, CRuby, knitr, gknit]
 date: &quot;29 October 2018&quot;
 output:
   pdf\_document:
@@ -6087,8 +6123,8 @@ the airway dataset</h2>
 <p>The script
 <strong><code>examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb</code></strong>
 is the canonical version in the repository. Run it from the
-<strong>Galaaz repository root</strong> with JRuby, for example:</p>
-<pre class="text"><code>bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb</code></pre>
+<strong>Galaaz repository root</strong> with either engine, for example:</p>
+<pre class="text"><code>bin/galaaz-ruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb</code></pre>
 <p>The workflow in Ruby mirrors a standard DESeq2 vignette:</p>
 <ol style="list-style-type: decimal">
 <li><strong><code>R.library(&#39;DESeq2&#39;)</code></strong> and
@@ -6756,9 +6792,9 @@ documentation for function-specific arguments.</p>
 <li>Create your feature branch
 (<code>git checkout -b my-new-feature</code>)</li>
 <li>Write tests — use <strong><code>bin/run_rspec</code></strong> or
-<strong><code>bin/run_all_rspec</code></strong> with
-<strong>JRuby</strong> so JVM flags and the load path match
-<strong><code>docs/testing.md</code></strong></li>
+<strong><code>bin/run_all_rspec</code></strong> (JRuby or CRuby via
+<strong><code>GALAAZ_RUBY</code></strong>; see
+<strong><code>docs/testing.md</code></strong>)</li>
 <li>Commit your changes
 (<code>git commit -am &#39;Add some feature&#39;</code>)</li>
 <li>Push to the branch

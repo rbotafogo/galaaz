@@ -373,15 +373,16 @@ couple more.</p>
 libraries in R; we allow for very tight coupling between the two
 languages to the point that the Ruby developer does not need to think
 about R syntax for every call. <strong>Galaaz 2.0</strong> does this
-with <strong><a href="https://www.jruby.org/">JRuby</a></strong> and
-<strong>GNU R</strong>: a <strong>bridge</strong> evaluates R from Ruby
-and exchanges data between processes.</p>
+with <strong><a href="https://www.jruby.org/">JRuby</a></strong> or
+<strong>CRuby</strong> and <strong>GNU R</strong>: a
+<strong>bridge</strong> evaluates R from Ruby and exchanges data between
+processes.</p>
 <p>An <strong>earlier</strong> Galaaz prototype used Oracle’s
 <strong>GraalVM</strong> with <strong>TruffleRuby</strong> and
 <strong>FastR</strong> in one JVM. That stack is
 <strong>historical</strong>; today’s documentation and tooling assume
-<strong>JRuby + GNU R</strong> (see the project manual and
-<strong><code>bin/galaaz-jruby</code></strong> /
+<strong>NewBridge on JRuby or CRuby</strong> (see the project manual and
+<strong><code>bin/galaaz-ruby</code></strong> /
 <strong><code>bin/gknit</code></strong>).</p>
 <p>For background on the old stack:</p>
 <ul>
@@ -411,7 +412,8 @@ Arthurian legend. </code></pre>
 <div id="prerequisites-galaaz-2.0" class="section level2">
 <h2>Prerequisites (Galaaz 2.0)</h2>
 <ul>
-<li><strong>JRuby</strong> and a compatible <strong>JDK</strong></li>
+<li><strong>JRuby</strong> and a compatible <strong>JDK</strong>,
+<em>or</em> <strong>CRuby 3.3+</strong></li>
 <li><strong>GNU R</strong> on your <code>PATH</code></li>
 </ul>
 <p>The following R packages will be automatically installed when
@@ -699,9 +701,10 @@ Ruby’s constructs and libraries that nicely complement R packages.</p>
 <p>For the Ruby developer, Galaaz allows the immediate use of R
 functions with minimal ceremony. As shown in the second example above,
 class <code>ScatterPlot</code> hides most R call details from the Ruby
-developer. <strong>JRuby</strong> provides <strong>real parallel
-threads</strong> on the Ruby side and access to the JVM ecosystem when
-you need it.</p>
+developer. Prefer <strong>JRuby</strong> when you want
+<strong>real parallel threads</strong> on the Ruby side and access to
+the JVM ecosystem; <strong>CRuby</strong> works equally for the Galaaz
+bridge itself.</p>
 </div>
 
 

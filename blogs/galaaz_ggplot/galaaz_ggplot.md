@@ -12,13 +12,13 @@ With Galaaz we do not intend to re-implement any of the scientific
 libraries in R; we allow for very tight coupling between the two
 languages to the point that the Ruby developer does not need to think
 about R syntax for every call. **Galaaz 2.0** does this with
-**[JRuby](https://www.jruby.org/)** and **GNU R**: a **bridge**
+**[JRuby](https://www.jruby.org/)** or **CRuby** and **GNU R**: a **bridge**
 evaluates R from Ruby and exchanges data between processes.
 
 An **earlier** Galaaz prototype used Oracle’s **GraalVM** with
 **TruffleRuby** and **FastR** in one JVM. That stack is **historical**;
-today’s documentation and tooling assume **JRuby + GNU R** (see the
-project manual and **`bin/galaaz-jruby`** / **`bin/gknit`**).
+today’s documentation and tooling assume **NewBridge on JRuby or CRuby**
+(see the project manual and **`bin/galaaz-ruby`** / **`bin/gknit`**).
 
 For background on the old stack:
 
@@ -47,7 +47,7 @@ Galaaz is the Portuguese name for “Galahad”. From Wikipedia:
 
 ## Prerequisites (Galaaz 2.0)
 
-- **JRuby** and a compatible **JDK**
+- **JRuby** and a compatible **JDK**, *or* **CRuby 3.3+**
 - **GNU R** on your `PATH`
 
 The following R packages will be automatically installed when necessary,
@@ -360,5 +360,5 @@ nicely complement R packages.
 For the Ruby developer, Galaaz allows the immediate use of R functions
 with minimal ceremony. As shown in the second example above, class
 `ScatterPlot` hides most R call details from the Ruby developer.
-**JRuby** provides **real parallel threads** on the Ruby side and access
-to the JVM ecosystem when you need it.
+Prefer **JRuby** when you want **real parallel threads** on the Ruby side and access
+to the JVM ecosystem; **CRuby** works equally for the Galaaz bridge itself.

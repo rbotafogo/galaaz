@@ -2,7 +2,7 @@
 title: "Galaaz Manual"
 subtitle: "R-on-Rails: GNU R meets Ruby for the web"
 author: "Rodrigo Botafogo"
-tags: [Galaaz, "R-on-Rails", Ruby, Rails, JRuby, R, "GNU R", ggplot2, knitr, dplyr, Bioconductor, Arrow]
+tags: [Galaaz, "R-on-Rails", Ruby, Rails, JRuby, CRuby, R, "GNU R", ggplot2, knitr, dplyr, Bioconductor, Arrow]
 date: "2026"
 bibliography: "../../examples/Bibliography/stats.bib"
 output:
@@ -400,11 +400,18 @@ WSL integration is enabled for the distro where Galaaz is installed.
 ``` ruby
   vec = R.c(1, 2, 3, 4)
   puts vec
+
+  # R.foo(...) calls an R *function*. Datasets are objects — fetch with ~:
+  df = ~R[:mtcars]
+  puts R.summary(df)
 ```
 
 ```
 ## [1] 1 2 3 4
 ```
+
+(`R.mtcars` is wrong: it becomes `mtcars()` in R and fails. With
+`using Galaaz::SymbolDSL`, the short form `~:mtcars` also works.)
   
 * Run all specs
 
@@ -4267,10 +4274,11 @@ pulls in several dependencies; the first install can take several minutes.
 ## Example: DESeq2 on the airway dataset
 
 The script **`examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb`** is the canonical
-version in the repository. Run it from the **Galaaz repository root** with JRuby, for example:
+version in the repository. Run it from the **Galaaz repository root** with either engine, for example:
 
 ```text
-bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+bin/galaaz-ruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+# or: bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
 ```
 
 The workflow in Ruby mirrors a standard DESeq2 vignette:
@@ -4299,7 +4307,7 @@ manual is knitted, because **DESeq2** is heavy and may be absent on the build ma
 
 ``` ruby
 # Canonical script: examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
-# Run: bin/galaaz-jruby examples/.../deseq2_airway_galaaz.rb (repo root).
+# Run: bin/galaaz-ruby examples/.../deseq2_airway_galaaz.rb (repo root).
 
 require 'galaaz'
 

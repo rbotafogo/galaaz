@@ -151,7 +151,7 @@ R.grid__newpage
 # R.dev__off('')
 # R.awt
 
-(R.ggplot(R.mtcars, E.aes(x: :wt, y: :mpg)) +
+(R.ggplot(~:mtcars, E.aes(x: :wt, y: :mpg)) +
  R.geom_point('')).print
 =end
 

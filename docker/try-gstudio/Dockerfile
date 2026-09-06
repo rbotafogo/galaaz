@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       openjdk-21-jdk-headless \
       r-base \
       r-base-dev \
+      libtirpc-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # R packages before JRuby so a JRuby bump does not rebuild ggplot2.
