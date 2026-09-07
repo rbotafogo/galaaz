@@ -315,6 +315,12 @@ module Galaaz
     end
 
     def add_arrow
+      # R 'arrow' needs a matching libarrow. Compiling Arrow C++ + Boost from the
+      # CRAN source tarball is fragile (especially Arch/Omarchy). Distro libarrow
+      # (e.g. Arch extra/arrow) often mismatches the CRAN package major and then
+      # pkg-config configure fails. Apache's version-matched prebuilt libarrow is
+      # the reliable automated path — HTTPS from Apache, no interactive steps.
+      prepare_arrow_cran_env!
       pkgs = read_pkg_list('arrow.txt')
       install_cran!(pkgs)
       if RUBY_ENGINE == 'ruby'
@@ -328,6 +334,17 @@ module Galaaz
       mark_profile!('arrow')
       puts 'galaaz add arrow: OK'
       0
+    end
+
+    # Env for install.packages("arrow") — see https://arrow.apache.org/docs/r/articles/install.html
+    def prepare_arrow_cran_env!
+      ENV['LIBARROW_BINARY'] = 'true'
+      ENV['NOT_CRAN'] = 'true'
+      # Do not fall back to the Boost/C++ source build that breaks on Arch.
+      ENV['LIBARROW_BUILD'] = 'false'
+      # Avoid linking against a mismatched system libarrow (e.g. pacman 24.x vs CRAN 25.x).
+      ENV['ARROW_USE_PKG_CONFIG'] = 'false'
+      puts 'galaaz add arrow: LIBARROW_BINARY=true (Apache prebuilt libarrow; no source build)'
     end
 
     def add_tex
@@ -400,20 +417,22 @@ module Galaaz
         abort_unless(ok, 'git clone failed (is the ledger repo public/reachable?)')
       end
 
-      gemfile = File.join(dest, 'Gemfile')
-      text = File.read(gemfile)
-      rewritten = text.gsub(/gem\s+["']galaaz["']\s*,\s*path:\s*["'][^"']+["']/, 'gem "galaaz"')
-      if rewritten != text
-        File.write(gemfile, rewritten)
-        puts 'galaaz add ledger: Gemfile now uses RubyGems galaaz (no path:)'
-      end
+      ensure_ledger_galaaz_gemfile!(File.join(dest, 'Gemfile'))
+      neutralize_ledger_ruby_pin!(dest)
 
       Dir.chdir(dest) do
         need_cmd!('bundle')
-        abort_unless(system('bundle', 'install'), 'bundle install failed')
-        # Ensure gatekeeper for the bundled/installed gem path when possible.
-        system('galaaz', 'setup') || warn('galaaz add ledger: galaaz setup returned non-zero; check gatekeeper')
+        # Lockfile often still pins path: ../galaaz @ an old version — pull latest RubyGems.
+        puts 'galaaz add ledger: bundle update galaaz'
+        unless system('bundle', 'update', 'galaaz')
+          abort_unless(system('bundle', 'install'), 'bundle install failed')
+        end
+        # Setup the gem Bundler will load (not PATH galaaz, which may differ).
+        puts 'galaaz add ledger: bundle exec galaaz setup'
+        system('bundle', 'exec', 'galaaz', 'setup') ||
+          warn('galaaz add ledger: bundle exec galaaz setup returned non-zero; check gatekeeper')
         abort_unless(system('bin/rails', 'db:prepare'), 'rails db:prepare failed')
+        abort_unless(system('bin/rails', 'db:migrate'), 'rails db:migrate failed')
         abort_unless(system({ 'SEED_PROFILE' => 'fast' }, 'bin/rails', 'db:seed'), 'rails db:seed failed')
       end
 
@@ -422,6 +441,34 @@ module Galaaz
       puts "You can now run: cd #{dest} && bin/dev"
       puts 'Then open http://localhost:3000 — portfolio → Run stress test'
       0
+    end
+
+    # Ledger repo ships `gem "galaaz", path: "../galaaz"`. Standalone/Omarchy: RubyGems,
+    # unpinned, so `bundle update galaaz` always takes the newest published gem.
+    def ensure_ledger_galaaz_gemfile!(gemfile)
+      text = File.read(gemfile)
+      line = 'gem "galaaz"'
+      rewritten = text.gsub(/^\s*gem\s+["']galaaz["'].*$/, line)
+      if rewritten == text && text !~ /^\s*gem\s+["']galaaz["']/
+        rewritten = text + "\n#{line}\n"
+      end
+      if rewritten != text
+        File.write(gemfile, rewritten)
+        puts 'galaaz add ledger: Gemfile → gem "galaaz" (RubyGems latest; not path:)'
+      end
+    end
+
+    # Omarchy already has mise Ruby (e.g. 4.0.x). Ledger's .ruby-version / .tool-versions
+    # pin 3.3.12 and make mise warn "missing: ruby@3.3.12" — remove those pins so the
+    # guest keeps using the Ruby already on PATH.
+    def neutralize_ledger_ruby_pin!(dest)
+      %w[.ruby-version .tool-versions].each do |name|
+        path = File.join(dest, name)
+        next unless File.file?(path)
+
+        FileUtils.rm_f(path)
+        puts "galaaz add ledger: removed #{name} (use Omarchy/mise Ruby on PATH)"
+      end
     end
 
     # ---- helpers ----

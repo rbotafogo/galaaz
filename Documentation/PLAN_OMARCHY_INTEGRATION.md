@@ -1,6 +1,6 @@
 # Plan: Galaaz on Omarchy (TryOmarchy → menu overlay → upstream PR)
 
-Status: **Phases A–C landed** (CLI + cold-install wiring + `script/omarchy/`). Next: Phase D TryOmarchy on Windows.  
+Status: **Phases A–C landed** (CLI + cold-install wiring + `script/omarchy/`). Next: Phase D TryOmarchy (core **and Ledger** P-T8/P-T9), then Phase E wipe-and-repeat.  
 Audience: Galaaz maintainers  
 Related: [README.md](../README.md) (gem + gatekeeper install), [docker/cold-install-cruby](../docker/cold-install-cruby) (CRuby stranger-machine proof), [blogs/README.md](../blogs/README.md) (blog sources shipped in the gem), [script/omarchy/README.md](../script/omarchy/README.md)
 
@@ -179,7 +179,7 @@ This is the Omarchy analogue of Rails: `rails new` is core; you add Sidekiq, Pos
 | Profile | CLI | What it installs | User can then |
 |---------|-----|------------------|---------------|
 | `knit` | `galaaz add knit` | CRAN: `dplyr`, `knitr`, `rmarkdown`, plus blog extras we pin (`ggplot2`, `kableExtra`, …) in one `r_requires/knit.txt` | Knit blog HTML (`gknit` / `galaaz blogs knit`) |
-| `arrow` | `galaaz add arrow` | R `arrow` + `dplyr`; on CRuby also `gem install red-arrow` (match `pkg-config` Arrow GLib) for Stage B IPC; JRuby needs Arrow Java JARs + `JAVA_OPTS` nio opens. Arch: document `omarchy-pkg-add` if R `arrow` must be built | `Galaaz::ArrowIpc` / `R::Arrow.open_ipc` / `write_ipc`; `specs/arrow_*` |
+| `arrow` | `galaaz add arrow` | R `arrow` + `dplyr` via **LIBARROW_BINARY** (Apache version-matched prebuilt libarrow; `LIBARROW_BUILD=false`, `ARROW_USE_PKG_CONFIG=false` — do not compile Boost on Arch or link mismatched pacman arrow). CRuby: try `gem install red-arrow` (optional; needs Arrow GLib). JRuby: Arrow JARs + `JAVA_OPTS` nio opens | `Galaaz::ArrowIpc` / `R::Arrow.open_ipc` / `write_ipc`; `specs/arrow_*` |
 | `tex` | `galaaz add tex` | Pandoc (pacman) + TinyTeX via existing `bin/install-tinytex` (user `~/.TinyTeX`, no sudo) | `gknit --output_format pdf_document` |
 | `bio` | `galaaz add bio` | `BiocManager` + `DESeq2` + `airway` (the shipped example). **Slow.** Warn in the terminal before install | `examples/bioconductor_deseq2_airway` |
 | `examples` | `galaaz add examples` | Copy gem `examples/` to `~/galaaz-examples` (same pattern as blogs). Does **not** pull Bio/Arrow; doctor warns if an example’s R pkgs are missing | `run_example` from that tree |
@@ -228,7 +228,7 @@ Profile presence check for `disabled:` must be **fast**. Prefer `test -f ~/.conf
 
 ### Tests (add-ons)
 
-Run on WSL/checkout first, then TryOmarchy (after D-T9). Do not block Phase F (upstream core PR) on Bio/TeX.
+Run on WSL/checkout first, then TryOmarchy (after D-T9). **Ledger (P-T8 / P-T9) is required** for TryOmarchy dogfood and pitch readiness (S7). Do not block Phase F (upstream **core** PR) on Bio/TeX; Ledger stays overlay-only and is not part of the upstream diff.
 
 | Test | Procedure | Pass |
 |------|-----------|------|
@@ -239,7 +239,7 @@ Run on WSL/checkout first, then TryOmarchy (after D-T9). Do not block Phase F (u
 | P-T5 | `galaaz add tex` + `which pdflatex` or TinyTeX bin | found |
 | P-T6 | `galaaz add bio` (slow; once per machine) | `requireNamespace('DESeq2')` |
 | P-T7 | `galaaz add examples` | `~/galaaz-examples` has expected dirs |
-| P-T8 | `galaaz add ledger` | `~/r_on_rails_ledger` Gemfile has no `path: "../galaaz"`; `db:prepare` + fast seed OK |
+| P-T8 | Menu **Ledger** or `galaaz add ledger` / `omarchy-galaaz-add ledger` | `~/r_on_rails_ledger` Gemfile has no `path: "../galaaz"`; `db:prepare` + fast seed OK; profile `~/.config/galaaz/profiles/ledger` |
 | P-T9 | `cd ~/r_on_rails_ledger && bin/dev` | http://localhost:3000 loads; Local R stress test completes (Arrow path) |
 | P-T10 | Remove core Galaaz; `~/r_on_rails_ledger` still on disk; R `arrow` still installed | documented leftover |
 
@@ -451,13 +451,18 @@ If `omarchy-cmd-present` is not on PATH in guard evaluation, use `command -v gal
 | D-T8 | Remove row **hidden** after uninstall (`when:` failed) | no Remove Galaaz |
 | D-T9 | Re-install via menu | D-T3–D-T6 pass again (idempotent overlay) |
 
-### D.6 Add-on and knit tests on TryOmarchy
+### D.6 Add-on, Ledger, and knit tests on TryOmarchy
 
 Core D-T1–D-T9 still apply; **Galaaz** is now a submenu — D-T1/D-T2 mean **Galaaz → Galaaz (core)**. D-T6 means the **core** row is disabled.
 
-Then run P-T2–P-T4, P-T8–P-T9 inside the guest. Skip P-T5/P-T6 on the nested VM if they exceed E-T2 time budget; run those on WSL.
+**Required on TryOmarchy (not done yet as of 2026-09):**
 
-D-T10 (knit HTML) is **P-T3**.
+| Test | Procedure | Pass |
+|------|-----------|------|
+| D-T10 | **Galaaz → Ledger** (or `omarchy-galaaz-add ledger`) | P-T8: clone + RubyGems Gemfile + seed; ledger profile marked |
+| D-T11 | `cd ~/r_on_rails_ledger && bin/dev` | P-T9 / S7: app loads; Local R stress test (Arrow) completes |
+
+Optional on the same guest: P-T2–P-T4 (knit/arrow). Skip P-T5/P-T6 (TeX/Bio) on the nested VM if they exceed E-T2 time budget; run those on WSL. Knit HTML alone is P-T3.
 
 ---
 
@@ -471,16 +476,20 @@ This is the point of using an **application** VM.
 | E.2 | Quit TryOmarchy |
 | E.3 | Delete `%LOCALAPPDATA%\TryOmarchy` |
 | E.4 | Start `TryOmarchy.exe`; wait for image pull if needed |
-| E.5 | Repeat D.2–D.5 **from scratch** (Rails, copy scripts, jsonc, install Galaaz) |
+| E.5 | Repeat D.2–D.5 **from scratch** (Rails, copy scripts, jsonc, install Galaaz **core**) |
+| E.6 | Repeat **D-T10 / D-T11** (Ledger install + `bin/dev` + stress test) on the new guest |
 
 | Test | Pass |
 |------|------|
 | E-T1 | S1–S4 on a **new** guest with no leftover `~/galaaz-blogs` from the previous VM disk |
-| E-T2 | Time the install (wall clock). Record it. If > ~10–15 minutes excluding Rails, slim CRAN/compile before any PR |
+| E-T2 | Time the **core** install (wall clock). Record it. If > ~10–15 minutes excluding Rails, slim CRAN/compile before any PR |
+| E-T3 | S7 on the new guest: Ledger add-on + app + Local R stress test (same as D-T10/D-T11) |
 
 ---
 
-## Phase F — Upstream PR (only after E-T1)
+## Phase F — Upstream PR (only after E-T1; Ledger is not in the PR)
+
+Ledger dogfood (E-T3) should pass before you call Omarchy integration “pitch ready,” but the upstream Omarchy PR remains **core-only** (E-T1 is the merge gate for F).
 
 ### F.1 What to contribute
 
@@ -546,7 +555,7 @@ Do **not** create these until Phase A/C implementation starts; this plan only li
 | Guard `omarchy-cmd-present galaaz` false negative | Doctor must install a real `galaaz` bin on PATH |
 | Niche-framework rejection by DHH | Overlay forever; PR is optional |
 | `galaaz add ledger` still has `path: "../galaaz"` | Ledger `main` needs a RubyGems Gemfile (or installer uses a known tag) |
-| R `arrow` compile on Arch/TryOmarchy | Pin binary-friendly install; fall back to documented Arch deps; fail the add-on, not core |
+| R `arrow` compile on Arch/TryOmarchy | `galaaz add arrow` sets LIBARROW_BINARY + LIBARROW_BUILD=false (Apache prebuilt). Do not use pacman `arrow` for CRAN R arrow (version skew). Fail the add-on, not core |
 
 ---
 
@@ -574,3 +583,4 @@ Do **not** create these until Phase A/C implementation starts; this plan only li
 | 2026-09-03 | Add-on profiles (`galaaz add`) for Arrow, knit, TeX, Bio, examples, ledger. Upstream PR remains core-only. Ledger on Omarchy uses RubyGems Galaaz, not `path: "../galaaz"`. |
 | 2026-09-04 | Phase A CLI landed: `bin/galaaz` → `lib/galaaz/cli.rb` (`setup`, `blogs init`, `doctor`, `add`). Legacy rake still forwarded. Package lists: `r_requires/knit.txt` + `knit-extras.txt`, `arrow.txt`. |
 | 2026-09-04 | Phase B/C: cold-install uses `galaaz setup` + `blogs init`; `script/omarchy/` install/remove/menu overlay. Docker B-T1 blocked on this host; local gem B-T4 passed. |
+| 2026-09-07 | D-T10 / D-T11 / E-T3 | — | pending | Ledger (`r_on_rails_ledger`) required on TryOmarchy dogfood; not yet run |

@@ -45,4 +45,27 @@ After editing `install-galaaz.sh` on the host, re-copy it to `~/.local/bin/omarc
 
 If you already `gem install`ed but never ran setup, open the menu and click **Galaaz (core)** again (with the updated overlay — core stays enabled until `~/.config/galaaz/profiles/core` exists).
 
-See `Documentation/PLAN_OMARCHY_INTEGRATION.md` for full phases and tests.
+5. **Ledger (required dogfood / pitch):** Install → Development → **Galaaz → Ledger**
+   (or `omarchy-galaaz-add ledger` / `galaaz add ledger`). That pulls **arrow** if
+   needed using Apache’s **LIBARROW_BINARY** prebuilt libarrow (no manual steps;
+   Arch `pacman` arrow is not used for the R package — version skew breaks
+   configure), clones `~/r_on_rails_ledger`, rewrites any `path:` gem to RubyGems
+   galaaz, then `bundle install` + fast seed.
+
+   Refresh the gem (or reinstall core) so `galaaz add arrow` includes this
+   behaviour; also re-copy `galaaz-add.sh` → `~/.local/bin/omarchy-galaaz-add`.
+
+   Pass when:
+
+   ```bash
+   grep galaaz ~/r_on_rails_ledger/Gemfile   # no path: "../galaaz"
+   test -f ~/.config/galaaz/profiles/ledger
+   cd ~/r_on_rails_ledger && bin/dev
+   ```
+
+   Open http://localhost:3000 → portfolio → **Run stress test** (Local R / Arrow).
+
+6. Before the upstream Omarchy PR: wipe TryOmarchy (`%LOCALAPPDATA%\TryOmarchy`),
+   reinstall, and repeat steps 1–5 on a clean guest (plan Phase E, including Ledger).
+
+See `Documentation/PLAN_OMARCHY_INTEGRATION.md` for full phases and tests (D-T10 / D-T11 / E-T3).

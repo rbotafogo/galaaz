@@ -56,7 +56,18 @@ case "${PROFILE}" in
     echo "==> system: pandoc (TinyTeX is installed by galaaz add tex)"
     pkg_add pandoc
     ;;
-  arrow|bio|examples|ledger|demo) ;;
+  arrow|ledger|demo)
+    # R package arrow: do NOT rely on pacman "arrow" for linking — Arch libarrow
+    # often lags CRAN and breaks configure. galaaz add arrow sets LIBARROW_BINARY
+    # (Apache version-matched prebuilt). Export here too so a stale gem still works
+    # if the user only refreshed this wrapper.
+    export LIBARROW_BINARY=true
+    export NOT_CRAN=true
+    export LIBARROW_BUILD=false
+    export ARROW_USE_PKG_CONFIG=false
+    echo "==> arrow env: LIBARROW_BINARY=true LIBARROW_BUILD=false ARROW_USE_PKG_CONFIG=false"
+    ;;
+  bio|examples) ;;
   *)
     echo "Unknown profile: ${PROFILE}" >&2
     pause 1
@@ -73,6 +84,12 @@ if [[ "${PROFILE}" == "knit" && "${st}" -eq 0 ]]; then
   echo
   echo "Try: gknit ~/galaaz-blogs/oh_my/oh_my.Rmd"
   echo "Or menu: Knit demo (oh_my)"
+fi
+
+if [[ "${PROFILE}" == "ledger" && "${st}" -eq 0 ]]; then
+  echo
+  echo "Try: cd ~/r_on_rails_ledger && bin/dev"
+  echo "Then http://localhost:3000 — portfolio → Run stress test"
 fi
 
 pause "${st}"
