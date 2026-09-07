@@ -418,7 +418,6 @@ module Galaaz
       end
 
       ensure_ledger_galaaz_gemfile!(File.join(dest, 'Gemfile'))
-      neutralize_ledger_ruby_pin!(dest)
 
       Dir.chdir(dest) do
         need_cmd!('bundle')
@@ -443,8 +442,8 @@ module Galaaz
       0
     end
 
-    # Ledger repo ships `gem "galaaz", path: "../galaaz"`. Standalone/Omarchy: RubyGems,
-    # unpinned, so `bundle update galaaz` always takes the newest published gem.
+    # Ledger repo may ship `gem "galaaz", path: "..."`. Standalone installs use RubyGems
+    # (CRuby or JRuby), unpinned, so `bundle update galaaz` takes the newest published gem.
     def ensure_ledger_galaaz_gemfile!(gemfile)
       text = File.read(gemfile)
       line = 'gem "galaaz"'
@@ -455,19 +454,6 @@ module Galaaz
       if rewritten != text
         File.write(gemfile, rewritten)
         puts 'galaaz add ledger: Gemfile → gem "galaaz" (RubyGems latest; not path:)'
-      end
-    end
-
-    # Omarchy already has mise Ruby (e.g. 4.0.x). Ledger's .ruby-version / .tool-versions
-    # pin 3.3.12 and make mise warn "missing: ruby@3.3.12" — remove those pins so the
-    # guest keeps using the Ruby already on PATH.
-    def neutralize_ledger_ruby_pin!(dest)
-      %w[.ruby-version .tool-versions].each do |name|
-        path = File.join(dest, name)
-        next unless File.file?(path)
-
-        FileUtils.rm_f(path)
-        puts "galaaz add ledger: removed #{name} (use Omarchy/mise Ruby on PATH)"
       end
     end
 
