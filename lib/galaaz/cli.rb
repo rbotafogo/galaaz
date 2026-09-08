@@ -63,8 +63,9 @@ module Galaaz
         Commands:
           setup                 Build the NewBridge gatekeeper; ensure Rcpp
           blogs init [DIR]      Copy blog sources (default: ~/galaaz-blogs)
+                                and sty/galaaz.sty for PDF headers
                                 Options: --force
-          doctor                Report Ruby, R, gatekeeper, Rcpp, profiles
+          doctor                Report Ruby, R, gatekeeper, Rcpp, sty, profiles
           add PROFILE           Install an add-on (idempotent)
                                 Profiles: #{PROFILES.join(', ')}
 
@@ -133,6 +134,7 @@ module Galaaz
       end
 
       File.write(File.join(dest, BLOGS_MARKER), "galaaz blogs init\n")
+      install_galaaz_sty_for_blogs!(dest)
       puts "galaaz blogs init: #{dest}"
       puts "You can now knit with gknit (after: galaaz add knit)"
       0
@@ -158,9 +160,16 @@ module Galaaz
 
       blogs = detect_blogs_dir
       puts "  blogs:    #{blogs || '(not initialized)'}"
+      if blogs
+        sty = File.join(File.dirname(blogs), 'sty', 'galaaz.sty')
+        puts "  sty:      #{File.file?(sty) ? sty : "MISSING (expected #{sty} for PDF blogs)"}"
+      end
 
       profiles = listed_profiles
       puts "  profiles: #{profiles.empty? ? '(none)' : profiles.join(', ')}"
+
+      pdf = command_present?('pdflatex')
+      puts "  pdflatex: #{pdf ? `pdflatex --version 2>/dev/null`.lines.first.to_s.strip : 'MISSING (galaaz add tex)'}"
 
       setup_ok = r_ok && rs_ok && File.file?(so) && rcpp
       puts setup_ok ? 'galaaz doctor: setup OK' : 'galaaz doctor: setup INCOMPLETE'
@@ -356,6 +365,9 @@ module Galaaz
       puts 'galaaz add tex: running bin/install-tinytex'
       ok = system(script)
       abort_unless(ok, 'TinyTeX install failed')
+      ensure_pdflatex_on_path!
+      # Blog PDFs use in_header: ../../sty/galaaz.sty → sibling of galaaz-blogs.
+      install_galaaz_sty_for_blogs!(detect_blogs_dir || DEFAULT_BLOGS_DIR)
       mark_profile!('tex')
       puts 'galaaz add tex: OK'
       0
@@ -594,6 +606,44 @@ module Galaaz
         return d if File.file?(File.join(d, BLOGS_MARKER))
       end
       nil
+    end
+
+    # PDF YAML uses in_header: "../../sty/galaaz.sty" relative to blogs/<name>/.
+    # For ~/galaaz-blogs/oh_my that resolves to ~/sty/galaaz.sty.
+    def install_galaaz_sty_for_blogs!(blogs_dest)
+      src = File.join(root, 'sty', 'galaaz.sty')
+      abort_unless(File.file?(src), "missing #{src} in gem")
+      sty_dir = File.join(File.dirname(File.expand_path(blogs_dest)), 'sty')
+      FileUtils.mkdir_p(sty_dir)
+      dest = File.join(sty_dir, 'galaaz.sty')
+      FileUtils.cp(src, dest)
+      puts "galaaz sty: #{dest}"
+      dest
+    end
+
+    # TinyTeX installs to ~/.TinyTeX and often ~/bin; Omarchy PATH prefers ~/.local/bin.
+    def ensure_pdflatex_on_path!
+      return if command_present?('pdflatex')
+
+      candidates = Dir.glob(File.expand_path('~/.TinyTeX/bin/*/pdflatex'))
+      home_bin = File.expand_path('~/bin/pdflatex')
+      candidates << home_bin if File.executable?(home_bin)
+      pdf = candidates.find { |p| File.executable?(p) }
+      unless pdf
+        warn 'galaaz add tex: pdflatex not found after TinyTeX install; check ~/.TinyTeX'
+        return
+      end
+
+      local_bin = File.expand_path('~/.local/bin')
+      FileUtils.mkdir_p(local_bin)
+      %w[pdflatex xelatex lualatex tlmgr].each do |name|
+        src = File.join(File.dirname(pdf), name)
+        next unless File.executable?(src)
+
+        link = File.join(local_bin, name)
+        FileUtils.ln_sf(src, link)
+      end
+      puts "galaaz add tex: linked TeX tools into #{local_bin}"
     end
   end
 end

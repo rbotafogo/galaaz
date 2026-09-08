@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.6
+
+### Fixed
+
+- `galaaz blogs init` and `galaaz add tex` install `sty/galaaz.sty` next to the blogs
+  tree (e.g. `~/sty/galaaz.sty` for `~/galaaz-blogs`) so PDF `in_header: ../../sty/…`
+  works without a manual copy.
+- `galaaz add tex` links TinyTeX `pdflatex` (and related tools) into `~/.local/bin` when
+  they are not already on PATH (Omarchy / TryOmarchy).
+
+### Changed
+
+- `galaaz doctor` reports `sty` and `pdflatex` status.
+
 ## 2.1.5
 
 ### Fixed
