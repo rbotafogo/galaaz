@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.8
+
+### Fixed
+
+- `galaaz add ledger`: always `bundle install` under `mise x` (honours app `.ruby-version`),
+  ensure the lockfile's bundler is installed, then `bundle update galaaz` and
+  `bundle exec` for setup/rails — avoids Omarchy PATH Ruby 4.x mixing with ledger
+  Ruby 3.3 and "gems not found" / wrong bundler errors.
+
 ## 2.1.7
 
 ### Added

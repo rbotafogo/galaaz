@@ -587,18 +587,26 @@ module Galaaz
 
       Dir.chdir(dest) do
         need_cmd!('bundle')
-        # Lockfile often still pins path: ../galaaz @ an old version — pull latest RubyGems.
+        ensure_ledger_bundler!
+        # Fresh clone: install the full lockfile under the app's Ruby (mise .ruby-version).
+        # Do not run `bundle update` first — that can mix PATH Ruby with app Ruby and skip install.
+        puts 'galaaz add ledger: bundle install'
+        abort_unless(ledger_bundle('install'), 'bundle install failed')
         puts 'galaaz add ledger: bundle update galaaz'
-        unless system('bundle', 'update', 'galaaz')
-          abort_unless(system('bundle', 'install'), 'bundle install failed')
-        end
-        # Setup the gem Bundler will load (not PATH galaaz, which may differ).
+        ledger_bundle('update', 'galaaz') ||
+          warn('galaaz add ledger: bundle update galaaz returned non-zero (continuing with installed galaaz)')
         puts 'galaaz add ledger: bundle exec galaaz setup'
-        system('bundle', 'exec', 'galaaz', 'setup') ||
-          warn('galaaz add ledger: bundle exec galaaz setup returned non-zero; check gatekeeper')
-        abort_unless(system('bin/rails', 'db:prepare'), 'rails db:prepare failed')
-        abort_unless(system('bin/rails', 'db:migrate'), 'rails db:migrate failed')
-        abort_unless(system({ 'SEED_PROFILE' => 'fast' }, 'bin/rails', 'db:seed'), 'rails db:seed failed')
+        unless ledger_bundle('exec', 'galaaz', 'setup')
+          warn('galaaz add ledger: bundle exec galaaz setup failed; trying PATH galaaz setup')
+          system('galaaz', 'setup') ||
+            warn('galaaz add ledger: galaaz setup returned non-zero; check gatekeeper')
+        end
+        abort_unless(ledger_bundle('exec', 'rails', 'db:prepare'), 'rails db:prepare failed')
+        abort_unless(ledger_bundle('exec', 'rails', 'db:migrate'), 'rails db:migrate failed')
+        abort_unless(
+          ledger_bundle_env({ 'SEED_PROFILE' => 'fast' }, 'exec', 'rails', 'db:seed'),
+          'rails db:seed failed'
+        )
       end
 
       mark_profile!('ledger')
@@ -606,6 +614,39 @@ module Galaaz
       puts "You can now run: cd #{dest} && bin/dev"
       puts 'Then open http://localhost:3000 — portfolio → Run stress test'
       0
+    end
+
+    # Run bundle under mise so .ruby-version / .tool-versions match Omarchy PATH ruby.
+    def ledger_bundle(*args)
+      if command_present?('mise')
+        system('mise', 'x', '--', 'bundle', *args)
+      else
+        system('bundle', *args)
+      end
+    end
+
+    def ledger_bundle_env(env, *args)
+      if command_present?('mise')
+        system(env, 'mise', 'x', '--', 'bundle', *args)
+      else
+        system(env, 'bundle', *args)
+      end
+    end
+
+    def ensure_ledger_bundler!
+      locked = nil
+      if File.file?('Gemfile.lock')
+        locked = File.read('Gemfile.lock')[/BUNDLED WITH\s+(\d+\.\d+(?:\.\d+)?)/, 1]
+      end
+      puts "galaaz add ledger: ensure bundler#{locked ? " #{locked}" : ''}"
+      if command_present?('mise')
+        cmd = ['mise', 'x', '--', 'gem', 'install', 'bundler', '--no-document']
+        cmd.insert(-2, '-v', locked) if locked
+        system(*cmd) || warn('galaaz add ledger: gem install bundler returned non-zero')
+      elsif locked
+        system('gem', 'install', 'bundler', '-v', locked, '--no-document') ||
+          warn('galaaz add ledger: gem install bundler returned non-zero')
+      end
     end
 
     # Ledger repo may ship `gem "galaaz", path: "..."`. Standalone installs use RubyGems

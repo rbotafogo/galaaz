@@ -65,7 +65,7 @@ Other add-ons
 Check:  galaaz doctor
 Menu:   Super+Space → Install → Development → Galaaz
 
-Heavy CRAN installs / long R (gem 2.1.7+): R::Job keeps the bridge free.
+Heavy CRAN installs / long R (gem 2.1.8+): R::Job keeps the bridge free.
   See README → “Background R jobs (R::Job)” (${DOCS_README})
 
 EOF

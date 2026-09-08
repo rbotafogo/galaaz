@@ -1,6 +1,6 @@
 # Plan: Galaaz on Omarchy (TryOmarchy → menu overlay → upstream PR)
 
-Status: **Phases A–C landed** (CLI + cold-install wiring + `script/omarchy/`). Next: Phase D TryOmarchy (core **and Ledger** P-T8/P-T9), then Phase E wipe-and-repeat.  
+Status: **Phases A–C landed**; **`galaaz omarchy` (gem 2.1.7+)** installs the menu overlay from the gem (optional `--from-git`). Next: finish Phase D/E TryOmarchy dogfood (core **and Ledger**), then Phase F upstream **core-only** PR.  
 Audience: Galaaz maintainers  
 Related: [README.md](../README.md) (gem + gatekeeper install), [docker/cold-install-cruby](../docker/cold-install-cruby) (CRuby stranger-machine proof), [blogs/README.md](../blogs/README.md) (blog sources shipped in the gem), [script/omarchy/README.md](../script/omarchy/README.md)
 
@@ -15,7 +15,14 @@ A user on Omarchy can choose **Install → Development → Galaaz** (R-on-Rails)
 - `gem install galaaz` + native **gatekeeper** build
 - **Blog sources** on disk (the gem already packs `blogs/**`; HTML/PDF are built, not shipped)
 
-Then we can open a **small** PR against [basecamp/omarchy](https://github.com/basecamp/omarchy). Until that PR exists, the same installer is driven from a **user menu overlay** so we can iterate without forking Omarchy.
+Then we can open a **small** PR against [basecamp/omarchy](https://github.com/basecamp/omarchy). Until that PR exists — and **even after** it lands for add-ons — the menu is driven by a **user overlay** installed with:
+
+```bash
+gem install galaaz
+galaaz setup                 # or let omarchy-install-galaaz do gem + setup + blogs
+galaaz omarchy               # copy script/omarchy → ~/.local/bin + menu jsonc
+# optional: galaaz omarchy install --from-git   # newer overlay than the gem
+```
 
 **TryOmarchy** ([tryomarchy.com](https://tryomarchy.com/), unofficial) is the preferred dogfood machine: it is a disposable Windows app wrapping a full Omarchy VM. Delete the app data folder and reinstall to get a clean guest. That matches how we already use throwaway Docker for cold gem installs.
 
@@ -57,7 +64,7 @@ Today a stranger machine still does roughly:
 3. `make -C "$(ruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")/ext/new_bridge" all`
 4. Blogs are **sources inside the gem**; rendering needs **gknit** + R packages (`knitr`, …) and is a **second** step
 
-There is a CLI for this now (`bin/galaaz setup` / `blogs init` / `doctor` / `add`). Omarchy still needs Phase C scripts + TryOmarchy dogfood before any upstream PR.
+There is a CLI for this now (`bin/galaaz setup` / `blogs init` / `doctor` / `add` / **`omarchy`**). Omarchy dogfood uses that CLI plus TryOmarchy before any upstream PR.
 
 Existing automated proof (Ubuntu, not Arch/Omarchy):
 
@@ -74,7 +81,7 @@ Omarchy is **Arch**. Passing Ubuntu Docker is **necessary but not sufficient**. 
 
 | ID | Criterion |
 |----|-----------|
-| S1 | On a **clean TryOmarchy** guest, Install → Development → Galaaz completes without a git checkout |
+| S1 | On a **clean TryOmarchy** guest, after `galaaz omarchy`, Install → Development → Galaaz (core) completes without a Galaaz git checkout |
 | S2 | After install, `galaaz` (or documented equivalent) is on `PATH` and `R.c(1,2,3)` works |
 | S3 | Blog **sources** exist under a documented directory (default `~/galaaz-blogs`) |
 | S4 | Menu row is dimmed with ✓ (`disabled:`); Remove → Development → Galaaz uninstalls Galaaz without removing Omarchy’s Ruby/Rails |
@@ -92,11 +99,12 @@ Do not start a later phase until the previous **exit tests** pass. Record date, 
 A  Productize Galaaz install     →  B  Tests on Linux we already have
    (core + `galaaz add`)
                                  →  C  Arch-shaped installer in this repo
-                                 →  D  TryOmarchy + jsonc overlay
+                                 →  D  TryOmarchy + `galaaz omarchy` overlay
                                       (core row + add-on submenu)
                                  →  E  Reset loop (wipe VM, reinstall)
                                  →  F  Upstream PR = core only
-                                      Add-ons stay overlay / `galaaz add`
+                                      Add-ons stay overlay / `galaaz add` /
+                                      `galaaz omarchy` (even if F merges)
 ```
 
 ---
@@ -110,9 +118,10 @@ A  Productize Galaaz install     →  B  Tests on Linux we already have
 | Command | Behavior |
 |---------|----------|
 | `galaaz setup` | Locate gem dir; `make -C ext/new_bridge all`; fail loudly if `R`/`Rscript`/compiler missing |
-| `galaaz blogs init [DIR]` | Copy `blogs/` from the **installed gem** to `DIR` (default `~/galaaz-blogs`). Overwrite policy: refuse if DIR exists and is non-empty unless `--force` |
-| `galaaz doctor` | Print Ruby engine, R version, gatekeeper binary present, `Rcpp` installed, blogs dir, **which add-on profiles are present** |
+| `galaaz blogs init [DIR]` | Copy `blogs/` from the **installed gem** to `DIR` (default `~/galaaz-blogs`). Also install `sty/galaaz.sty` beside that tree for PDF. Overwrite policy: refuse if DIR exists and is non-empty unless `--force` |
+| `galaaz doctor` | Print Ruby engine, R version, gatekeeper binary present, `Rcpp` installed, blogs dir, sty, pdflatex, **which add-on profiles are present** |
 | `galaaz add PROFILE` | Idempotent extra stack (see [Add-on profiles](#add-on-profiles-arrow-bio-tex-examples-ledger)). Refuses if core Galaaz is missing |
+| `galaaz omarchy [install]` | Install Omarchy menu overlay from gem (`script/omarchy/` → `~/.local/bin` + extensions jsonc). Options: `--from-git [--ref REF]`. Also: `galaaz omarchy status` |
 
 Optional: `galaaz blogs knit <name>` wrapping `gknit` on a copied blog (needs profile `knit`).
 
@@ -309,9 +318,9 @@ On current WSL, we can only test the **Ruby/gem/R** half, not `omarchy-pkg-add`.
 
 ---
 
-## Phase D — TryOmarchy + jsonc overlay
+## Phase D — TryOmarchy + `galaaz omarchy` overlay
 
-**Why:** Real Omarchy menu, real pacman, disposable VM. Overlay first; do not patch `/usr/share/omarchy`.
+**Why:** Real Omarchy menu, real pacman, disposable VM. Overlay first; do not patch `/usr/share/omarchy`. Prefer **`galaaz omarchy`** over hand-copying scripts (avoids partial/wrong `~/.local/bin` copies).
 
 ### D.1 Host prerequisites (Windows 11)
 
@@ -334,28 +343,56 @@ If first-run artifacts live elsewhere, note the actual paths in the run log when
 | D.2.2 | Confirm `mise` on PATH | `mise --version` |
 | D.2.3 | Optional: `mise settings` shows `ruby.compile` false (Omarchy default) | binaries, not a 20-minute ruby-build |
 
-### D.3 Get installer files into the guest
+### D.3 Install overlay (canonical — no manual `cp`)
 
-TryOmarchy is a VM; the Galaaz git repo on WSL is **not** automatically mounted.
+TryOmarchy is a VM; the Galaaz git repo on WSL is **not** needed in the guest.
 
-Pick one:
+**Preferred path (gem 2.1.7+):**
 
-1. **Shared folder** if the app exposes one (Mac Try Omarchy does; Windows: check the app / `%LOCALAPPDATA%\TryOmarchy` docs). Copy `script/omarchy/*.sh` into the guest.
-2. **Paste** the scripts in the guest editor (small files).
-3. **From Windows:** copy scripts to e.g. `C:\Users\<you>\Downloads\galaaz-omarchy\`, then in the guest access `/mnt/c/...` **only if** the VM maps the host disk. If it does not, use 1 or 2.
+```bash
+# mise Ruby from D.2
+gem install galaaz          # or: gem install galaaz -v 2.1.7
+galaaz omarchy              # A: overlay files bundled in the gem
+galaaz omarchy status       # helpers + menu jsonc present
+```
 
-Install the scripts to **`~/.local/bin/`** and `chmod +x`:
+That writes atomically:
 
-- `~/.local/bin/omarchy-install-galaaz` (core)
-- `~/.local/bin/omarchy-remove-galaaz` (core gem only)
+| Destination | Source |
+|-------------|--------|
+| `~/.local/bin/omarchy-install-galaaz` | `script/omarchy/install-galaaz.sh` |
+| `~/.local/bin/omarchy-remove-galaaz` | `remove-galaaz.sh` |
+| `~/.local/bin/omarchy-galaaz-add` | `galaaz-add.sh` |
+| `~/.local/bin/omarchy-galaaz-guide` | `galaaz-guide.sh` |
+| `~/.local/bin/omarchy-galaaz-gknit` | `galaaz-gknit.sh` |
+| `~/.local/bin/omarchy-galaaz-debug` | `debug-galaaz.sh` |
+| `~/.config/omarchy/extensions/omarchy-menu.jsonc` | `omarchy-menu.jsonc` |
 
-Add-on rows should call **`galaaz add …`** directly (mise shim on PATH after core). If the menu’s detached shell has no mise, wrap: `omarchy-launch-tui "mise x ruby -- galaaz add arrow"`.
+**Refresh overlay without a new gem** (e.g. menu/jsonc fix already on GitHub):
 
-Ensure `~/.local/bin` is on PATH in the Omarchy session (login shell). If not, use full paths in the jsonc `action`.
+```bash
+galaaz omarchy install --from-git
+# or pin a branch/tag/commit:
+galaaz omarchy install --from-git --ref galaaz2_0
+# GALAAZ_OMARCHY_REF=… also works
+```
 
-### D.4 Menu overlay (canonical file)
+`--from-git` needs network and a pushed ref (raw.githubusercontent.com). Default ref is `galaaz2_0`.
 
-Create or merge **`~/.config/omarchy/extensions/omarchy-menu.jsonc`**.
+**Then install core** (menu or CLI):
+
+```bash
+omarchy-install-galaaz
+# or: Super+Space → Install → Development → Galaaz → Galaaz (core)
+```
+
+Ensure `~/.local/bin` is on PATH (Omarchy normally has it). `galaaz omarchy status` should show no `MISSING` rows before relying on the menu.
+
+**Legacy (avoid):** shared folder / paste / `cp` individual scripts — easy to install the wrong file as `omarchy-galaaz-add` (we hit that). Use only if `galaaz omarchy` is unavailable.
+
+### D.4 Menu overlay (what `galaaz omarchy` installs)
+
+Canonical file: **`~/.config/omarchy/extensions/omarchy-menu.jsonc`** (from the gem’s `script/omarchy/omarchy-menu.jsonc`). Do **not** hand-edit `/usr/share/omarchy`.
 
 Rules from Omarchy `docs/menu.md`:
 
@@ -364,7 +401,7 @@ Rules from Omarchy `docs/menu.md`:
 - Dotted ids place the row; new ids **append** under the parent
 - Overlay is watched; no shell restart required (`omarchy menu refresh` if a row does not appear)
 
-**Canonical content** (adjust `action` if launch helper names differ on the installed Omarchy version — Quattro uses `omarchy-launch-tui` / terminal presenters; if a command is missing, use `alacritty -e` or whatever `install.development.ruby` uses on that image):
+**Canonical content** (reference — prefer installing via `galaaz omarchy` rather than pasting). Adjust `action` if launch helper names differ on the installed Omarchy version — Quattro uses `omarchy-launch-tui` / terminal presenters; Docs/GitHub use `omarchy-launch-webapp`:
 
 ```jsonc
 {
@@ -441,28 +478,29 @@ If `omarchy-cmd-present` is not on PATH in guard evaluation, use `command -v gal
 
 | Test | Procedure | Pass |
 |------|-----------|------|
+| D-T0 | `gem install galaaz` + `galaaz omarchy` + `galaaz omarchy status` | no `MISSING`; menu jsonc present |
 | D-T1 | Super+Space → search **Galaaz** | Install row visible under Development |
-| D-T2 | Select Install → Development → Galaaz | Terminal runs installer; no git clone |
+| D-T2 | Select Install → Development → Galaaz → **Galaaz (core)** | Terminal runs `omarchy-install-galaaz`; no git clone of Galaaz |
 | D-T3 | `galaaz doctor` in a new terminal | setup OK |
 | D-T4 | Repeat `docker/cold-install-cruby/smoke.rb` logic in guest: `ruby -e "require 'galaaz'; abort unless R.c(1,2,3).to_s.include?('1')"` | exit 0 |
 | D-T5 | `ls ~/galaaz-blogs/*/ *.Rmd` | six blogs’ `.Rmd` files |
-| D-T6 | Re-open Install → Development → Galaaz | row **disabled**, ✓ |
+| D-T6 | Re-open Install → Development → Galaaz → core | row **disabled**, ✓ |
 | D-T7 | Remove → Development → Galaaz | `galaaz` gone; `ruby` and `rails` still work |
 | D-T8 | Remove row **hidden** after uninstall (`when:` failed) | no Remove Galaaz |
-| D-T9 | Re-install via menu | D-T3–D-T6 pass again (idempotent overlay) |
+| D-T9 | Re-install via menu (re-run `galaaz omarchy` if helpers were removed) | D-T3–D-T6 pass again |
 
 ### D.6 Add-on, Ledger, and knit tests on TryOmarchy
 
-Core D-T1–D-T9 still apply; **Galaaz** is now a submenu — D-T1/D-T2 mean **Galaaz → Galaaz (core)**. D-T6 means the **core** row is disabled.
+Core D-T0–D-T9 still apply; **Galaaz** is a submenu — D-T1/D-T2 mean **Galaaz → Galaaz (core)**. D-T6 means the **core** row is disabled. Add-on menu actions use **`omarchy-galaaz-add …`** (not a bare quoted `galaaz add`).
 
-**Required on TryOmarchy (not done yet as of 2026-09):**
+**Required on TryOmarchy:**
 
 | Test | Procedure | Pass |
 |------|-----------|------|
 | D-T10 | **Galaaz → Ledger** (or `omarchy-galaaz-add ledger`) | P-T8: clone + RubyGems Gemfile + seed; ledger profile marked |
 | D-T11 | `cd ~/r_on_rails_ledger && bin/dev` | P-T9 / S7: app loads; Local R stress test (Arrow) completes |
 
-Optional on the same guest: P-T2–P-T4 (knit/arrow). Skip P-T5/P-T6 (TeX/Bio) on the nested VM if they exceed E-T2 time budget; run those on WSL. Knit HTML alone is P-T3.
+Optional on the same guest: P-T2–P-T4 (knit/arrow). Skip P-T5/P-T6 (TeX/Bio) on the nested VM if they exceed E-T2 time budget; run those on WSL. Knit HTML alone is P-T3. PDF blogs need `galaaz add tex` (sty + TinyTeX; `~/sty/galaaz.sty` from blogs init / add tex).
 
 ---
 
@@ -476,7 +514,7 @@ This is the point of using an **application** VM.
 | E.2 | Quit TryOmarchy |
 | E.3 | Delete `%LOCALAPPDATA%\TryOmarchy` |
 | E.4 | Start `TryOmarchy.exe`; wait for image pull if needed |
-| E.5 | Repeat D.2–D.5 **from scratch** (Rails, copy scripts, jsonc, install Galaaz **core**) |
+| E.5 | Repeat D.2–D.5 **from scratch** (Rails → `gem install galaaz` → `galaaz omarchy` → Galaaz **core**) |
 | E.6 | Repeat **D-T10 / D-T11** (Ledger install + `bin/dev` + stress test) on the new guest |
 
 | Test | Pass |
@@ -503,7 +541,7 @@ Fork [basecamp/omarchy](https://github.com/basecamp/omarchy), branch from the br
 
 Keep the case **short**: pkg-add R toolchain, `gem install`, `galaaz setup`, `galaaz blogs init`, one “You can now run” line.
 
-**Do not** put `galaaz add arrow|bio|tex|ledger` in this PR. Those stay overlay + Galaaz CLI.
+**Do not** put `galaaz add arrow|bio|tex|ledger` in this PR. Those stay overlay + Galaaz CLI (`galaaz omarchy` + `galaaz add` / `omarchy-galaaz-add`).
 
 ### F.2 PR hygiene
 
@@ -525,23 +563,28 @@ We cannot run their CI from this repo. Before opening the PR:
 
 ### F.4 If they reject
 
-Keep **Phase D overlay** as the supported Omarchy path. Publish `script/omarchy/` + a short README section: “On Omarchy, copy these two files and the jsonc.” That is a complete product without being in the catalog.
+Keep **`galaaz omarchy`** as the supported Omarchy path (gem-bundled overlay; optional `--from-git`). Document in README / `script/omarchy/README.md`:
+
+```bash
+gem install galaaz && galaaz setup && galaaz omarchy
+```
+
+That is a complete product without being in the Omarchy catalog. Upstream PR remains optional.
 
 ---
 
-## File checklist (to create in later implementation PRs)
+## File checklist
 
-Do **not** create these until Phase A/C implementation starts; this plan only lists them.
-
-| Path | Role |
-|------|------|
-| Galaaz CLI: `setup` / `blogs init` / `doctor` / `add` | Phase A + add-on profiles |
-| `script/omarchy/install-galaaz.sh` | Phase C core |
-| `script/omarchy/remove-galaaz.sh` | Phase C core |
-| `script/omarchy/omarchy-menu.jsonc` | overlay including Galaaz submenu |
-| Ledger: Gemfile without `path:` on a documented branch/tag | required for `galaaz add ledger` |
-| `docker/cold-install-cruby/install-and-smoke.sh` | call `galaaz setup` |
-| README “Omarchy” subsection | after overlay works |
+| Path | Role | Status |
+|------|------|--------|
+| Galaaz CLI: `setup` / `blogs init` / `doctor` / `add` / **`omarchy`** | Phase A + overlay install | landed (gem **2.1.7+**) |
+| `script/omarchy/*` shipped in gem | Phase C + D overlay sources | landed |
+| `script/omarchy/install-galaaz.sh` | Phase C core menu action | landed |
+| `script/omarchy/remove-galaaz.sh` | Phase C remove | landed |
+| `script/omarchy/omarchy-menu.jsonc` | overlay submenu | landed |
+| Ledger: Gemfile RubyGems `galaaz` (optional `GALAAZ_GEM_PATH`) | `galaaz add ledger` | landed on ledger `main` |
+| `docker/cold-install-cruby/install-and-smoke.sh` | call `galaaz setup` | landed |
+| README / `script/omarchy/README.md` Omarchy section | dogfood docs | landed |
 
 ---
 
@@ -553,9 +596,11 @@ Do **not** create these until Phase A/C implementation starts; this plan only li
 | TryOmarchy image lags Omarchy Quattro menu helpers | Inspect how Rails install `action` is declared on that image; copy that launcher |
 | `galaaz` executable not on PATH under mise shims | Use `mise x ruby -- galaaz` in actions and `disabled:` that matches (`mise which galaaz` or shim path) |
 | Guard `omarchy-cmd-present galaaz` false negative | Doctor must install a real `galaaz` bin on PATH |
-| Niche-framework rejection by DHH | Overlay forever; PR is optional |
-| `galaaz add ledger` still has `path: "../galaaz"` | Ledger `main` needs a RubyGems Gemfile (or installer uses a known tag) |
+| Niche-framework rejection by DHH | Overlay forever via `galaaz omarchy`; PR is optional |
+| `galaaz add ledger` still has `path: "../galaaz"` | Ledger `main` uses RubyGems galaaz (optional `GALAAZ_GEM_PATH`) |
 | R `arrow` compile on Arch/TryOmarchy | `galaaz add arrow` sets LIBARROW_BINARY + LIBARROW_BUILD=false (Apache prebuilt). Do not use pacman `arrow` for CRAN R arrow (version skew). Fail the add-on, not core |
+| Hand-copy wrong script into `omarchy-galaaz-add` | Prefer `galaaz omarchy` (atomic install of all helpers) |
+| Arch `pandoc` / Haskell mega-deps on knit | `omarchy-galaaz-add` uses pandoc-bin or GitHub static binary |
 
 ---
 
@@ -583,4 +628,5 @@ Do **not** create these until Phase A/C implementation starts; this plan only li
 | 2026-09-03 | Add-on profiles (`galaaz add`) for Arrow, knit, TeX, Bio, examples, ledger. Upstream PR remains core-only. Ledger on Omarchy uses RubyGems Galaaz, not `path: "../galaaz"`. |
 | 2026-09-04 | Phase A CLI landed: `bin/galaaz` → `lib/galaaz/cli.rb` (`setup`, `blogs init`, `doctor`, `add`). Legacy rake still forwarded. Package lists: `r_requires/knit.txt` + `knit-extras.txt`, `arrow.txt`. |
 | 2026-09-04 | Phase B/C: cold-install uses `galaaz setup` + `blogs init`; `script/omarchy/` install/remove/menu overlay. Docker B-T1 blocked on this host; local gem B-T4 passed. |
-| 2026-09-07 | D-T10 / D-T11 / E-T3 | — | pending | Ledger (`r_on_rails_ledger`) required on TryOmarchy dogfood; not yet run |
+| 2026-09-07 | Ledger dogfood on TryOmarchy in progress (stress test / MC paths); Gemfile RubyGems path fixed |
+| 2026-09-08 | **`galaaz omarchy`** (gem 2.1.7): install overlay from gem; optional `--from-git`. Canonical TryOmarchy path — no manual script copy. Sty + TinyTeX PATH for PDF via `blogs init` / `add tex` (2.1.6+). |

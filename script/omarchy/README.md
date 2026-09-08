@@ -38,7 +38,7 @@ Docs: https://rbotafogo.github.io/galaaz/ · https://github.com/rbotafogo/galaaz
 
 Heavy CRAN installs (`R.install_and_loads`) and long R (`R::Job.eval` / `script`) run in a
 child `Rscript` so the bridge stays free — see **Background R jobs (`R::Job`)** in the
-README / manual (gem **2.1.7+**).
+README / manual (gem **2.1.8+**).
 
 ## Manual copy (legacy)
 
