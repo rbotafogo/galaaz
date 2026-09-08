@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.7
+
+### Added
+
+- **`galaaz omarchy`**: install the Omarchy menu overlay from files bundled in the gem
+  (`script/omarchy/` → `~/.local/bin` + `~/.config/omarchy/extensions/`).
+- **`galaaz omarchy install --from-git [--ref REF]`**: same install, but pull overlay
+  files from GitHub (default ref `galaaz2_0`, or `GALAAZ_OMARCHY_REF`) without waiting
+  for a new gem release.
+- **`galaaz omarchy status`**: report whether overlay helpers and menu jsonc are present.
+
 ## 2.1.6
 
 ### Fixed

@@ -4,6 +4,7 @@ require 'fileutils'
 require 'rbconfig'
 require 'open3'
 require 'time'
+require 'tmpdir'
 
 module Galaaz
   module CLI
@@ -15,6 +16,18 @@ module Galaaz
     DEFAULT_EXAMPLES_DIR = File.join(Dir.home, 'galaaz-examples')
     DEFAULT_LEDGER_DIR = File.join(Dir.home, 'r_on_rails_ledger')
     LEDGER_REPO = 'https://github.com/rbotafogo/r_on_rails_ledger.git'
+    OMARCHY_GITHUB_REPO = 'rbotafogo/galaaz'
+    OMARCHY_DEFAULT_GIT_REF = 'galaaz2_0'
+    # [source under script/omarchy/, dest basename under ~/.local/bin, executable?]
+    OMARCHY_BIN_FILES = [
+      ['install-galaaz.sh', 'omarchy-install-galaaz', true],
+      ['remove-galaaz.sh', 'omarchy-remove-galaaz', true],
+      ['galaaz-add.sh', 'omarchy-galaaz-add', true],
+      ['galaaz-guide.sh', 'omarchy-galaaz-guide', true],
+      ['galaaz-gknit.sh', 'omarchy-galaaz-gknit', true],
+      ['debug-galaaz.sh', 'omarchy-galaaz-debug', true]
+    ].freeze
+    OMARCHY_MENU_FILE = 'omarchy-menu.jsonc'
     BLOGS_MARKER = '.galaaz-blogs'
     EXAMPLES_MARKER = '.galaaz-examples'
     CRAN = 'https://cloud.r-project.org'
@@ -41,6 +54,8 @@ module Galaaz
         cmd_doctor
       when 'add'
         cmd_add(argv[1..])
+      when 'omarchy'
+        cmd_omarchy(argv[1..] || [])
       else
         # Legacy: `galaaz some:rake_task` forwarded to rake (see README / blogs).
         Dir.chdir(root) do
@@ -68,6 +83,9 @@ module Galaaz
           doctor                Report Ruby, R, gatekeeper, Rcpp, sty, profiles
           add PROFILE           Install an add-on (idempotent)
                                 Profiles: #{PROFILES.join(', ')}
+          omarchy [install]     Install Omarchy menu overlay (bundled in gem)
+                                Options: --from-git [--ref REF]
+          omarchy status        Show whether overlay helpers are installed
 
         Legacy: any other argument is passed to rake in the Galaaz root
         (e.g. galaaz master_list:scatter_plot).
@@ -91,8 +109,144 @@ module Galaaz
       mark_profile!('core')
       puts 'galaaz setup: OK'
       puts "You can now run: galaaz doctor"
-      puts 'Omarchy menu: Install → Development → Galaaz (add-ons appear after core)'
+      puts 'On Omarchy: galaaz omarchy   # install menu overlay (gem-bundled)'
       0
+    end
+
+    # ---- omarchy overlay ----
+
+    def cmd_omarchy(argv)
+      argv = argv.dup
+      case argv[0]
+      when nil, 'install'
+        argv.shift if argv[0] == 'install'
+        omarchy_install(argv)
+      when 'status'
+        omarchy_status
+      when '-h', '--help', 'help'
+        print_omarchy_help
+        0
+      else
+        if argv[0].to_s.start_with?('-')
+          omarchy_install(argv)
+        else
+          raise CliError, "unknown omarchy subcommand: #{argv[0].inspect} (try: install|status)"
+        end
+      end
+    end
+
+    def print_omarchy_help
+      puts <<~HELP
+        Usage: galaaz omarchy [install|status] [options]
+
+          install           Copy menu helpers from the gem (default)
+          install --from-git [--ref REF]
+                            Pull script/omarchy from GitHub instead of the gem
+                            Default REF: #{OMARCHY_DEFAULT_GIT_REF} (or GALAAZ_OMARCHY_REF)
+          status            Show installed overlay paths
+
+        Writes:
+          ~/.local/bin/omarchy-install-galaaz (and add/remove/guide/gknit/debug)
+          ~/.config/omarchy/extensions/omarchy-menu.jsonc
+
+        Then: Super+Space → Install → Development → Galaaz
+      HELP
+    end
+
+    def omarchy_install(argv)
+      argv = argv.dup
+      from_git = argv.delete('--from-git') || argv.delete('--github')
+      ref = nil
+      if (i = argv.index('--ref'))
+        argv.delete_at(i)
+        ref = argv.delete_at(i)
+        raise CliError, '--ref requires a branch/tag/commit' if ref.nil? || ref.empty?
+      end
+      raise CliError, "unknown omarchy install args: #{argv.join(' ')}" unless argv.empty?
+
+      src =
+        if from_git
+          ref = ENV['GALAAZ_OMARCHY_REF'] if ref.nil? || ref.empty?
+          ref = OMARCHY_DEFAULT_GIT_REF if ref.nil? || ref.empty?
+          fetch_omarchy_overlay_from_git!(ref)
+        else
+          omarchy_overlay_dir_bundled
+        end
+
+      begin
+        install_omarchy_overlay_from!(src)
+      ensure
+        FileUtils.rm_rf(src) if from_git && src && src.start_with?(Dir.tmpdir)
+      end
+      puts 'galaaz omarchy: OK'
+      puts 'Next: Super+Space → Install → Development → Galaaz → Galaaz (core)'
+      puts 'Or: omarchy-install-galaaz'
+      0
+    end
+
+    def omarchy_status
+      bin = File.expand_path('~/.local/bin')
+      menu = File.expand_path('~/.config/omarchy/extensions/omarchy-menu.jsonc')
+      puts 'galaaz omarchy status'
+      OMARCHY_BIN_FILES.each do |_src, dest, _exe|
+        path = File.join(bin, dest)
+        puts "  #{dest}: #{File.file?(path) ? path : 'MISSING'}"
+      end
+      puts "  menu: #{File.file?(menu) ? menu : 'MISSING'}"
+      bundled = File.join(root, 'script', 'omarchy')
+      puts "  gem overlay: #{File.directory?(bundled) ? bundled : 'MISSING (reinstall gem)'}"
+      0
+    end
+
+    def omarchy_overlay_dir_bundled
+      d = File.join(root, 'script', 'omarchy')
+      abort_unless(File.directory?(d), "Omarchy overlay missing from gem (#{d}). Reinstall galaaz.")
+      abort_unless(
+        File.file?(File.join(d, 'install-galaaz.sh')) && File.file?(File.join(d, OMARCHY_MENU_FILE)),
+        "incomplete Omarchy overlay in gem (#{d})"
+      )
+      d
+    end
+
+    def fetch_omarchy_overlay_from_git!(ref)
+      need_cmd!('curl')
+      tmp = Dir.mktmpdir('galaaz-omarchy-')
+      base = "https://raw.githubusercontent.com/#{OMARCHY_GITHUB_REPO}/#{ref}/script/omarchy"
+      puts "galaaz omarchy: fetching #{base}/…"
+      names = OMARCHY_BIN_FILES.map(&:first) + [OMARCHY_MENU_FILE]
+      names.uniq.each do |name|
+        url = "#{base}/#{name}"
+        dest = File.join(tmp, name)
+        ok = system('curl', '-fsSL', '-o', dest, url)
+        unless ok && File.file?(dest) && File.size(dest).positive?
+          FileUtils.rm_rf(tmp)
+          raise CliError, "failed to download #{url} (check --ref #{ref})"
+        end
+        puts "  got #{name}"
+      end
+      tmp
+    end
+
+    def install_omarchy_overlay_from!(src_dir)
+      bin = File.expand_path('~/.local/bin')
+      ext = File.expand_path('~/.config/omarchy/extensions')
+      FileUtils.mkdir_p(bin)
+      FileUtils.mkdir_p(ext)
+
+      OMARCHY_BIN_FILES.each do |src_name, dest_name, executable|
+        src = File.join(src_dir, src_name)
+        abort_unless(File.file?(src), "missing #{src}")
+        dest = File.join(bin, dest_name)
+        FileUtils.cp(src, dest)
+        FileUtils.chmod(0o755, dest) if executable
+        puts "galaaz omarchy: #{dest}"
+      end
+
+      menu_src = File.join(src_dir, OMARCHY_MENU_FILE)
+      abort_unless(File.file?(menu_src), "missing #{menu_src}")
+      menu_dest = File.join(ext, OMARCHY_MENU_FILE)
+      FileUtils.cp(menu_src, menu_dest)
+      puts "galaaz omarchy: #{menu_dest}"
     end
 
     # ---- blogs ----

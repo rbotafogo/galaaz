@@ -53,7 +53,8 @@ EOF
             'lib/**/*[!~]', 'specs/**/*[!~]', 'new_bridge_specs/**/*[!~]',
             'ext/**/*[!~]', 'examples/**/*[!~]',
             'r_requires/**/*[!~]', 'bin/**/*[!~]',
-            'blogs/**/*[!~]', 'sty/**/*[!~]']
+            'blogs/**/*[!~]', 'sty/**/*[!~]',
+            'script/omarchy/**/*[!~]']
   gem.files = fls.reject { |f| exclude_exts.include?(File.extname(f).downcase) }
 
   gem.metadata["homepage_uri"] = gem.homepage

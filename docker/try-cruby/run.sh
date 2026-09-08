@@ -7,7 +7,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 IMAGE="${GALAAZ_TRY_CRUBY_IMAGE:-galaaz-try:cruby}"
 RUBY_VERSION="${RUBY_VERSION:-3.3.12}"
-GALAAZ_VERSION="${GALAAZ_VERSION:-2.1.6}"
+GALAAZ_VERSION="${GALAAZ_VERSION:-2.1.7}"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "try-cruby: docker not on PATH" >&2
