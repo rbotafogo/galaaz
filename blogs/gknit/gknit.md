@@ -10,6 +10,7 @@ output:
   pdf_document:
     includes:
       in_header: ["../../sty/galaaz.sty"]
+    keep_tex: yes
     number_sections: yes
   html_document:
     self_contained: true
@@ -347,15 +348,17 @@ a linear regression line (method = "lm") for every manufacturer.
 library(ggplot2)
 data(mpg, package="ggplot2")
 
-mpg_select <- mpg[mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"), ]
+mpg_select <- mpg[
+  mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"),
+]
 
 # Scatterplot
 theme_set(theme_bw())  # pre-set the bw theme.
-g <- ggplot(mpg_select, aes(displ, cty)) + 
+g <- ggplot(mpg_select, aes(displ, cty)) +
   labs(subtitle="mpg: Displacement vs City Mileage",
        title="Bubble chart")
 
-g + geom_jitter(aes(col=manufacturer, size=hwy)) + 
+g + geom_jitter(aes(col=manufacturer, size=hwy)) +
   geom_smooth(aes(col=manufacturer), method="lm", se=F)
 ```
 
@@ -479,60 +482,61 @@ ten aspects are:
 # copy the R variable :mtcars to the Ruby mtcars variable
 mtcars = ~R[:mtcars]
 
-# create a new column 'car_name' to store the car names so that it can be
-# used for plotting. The 'rownames' of the data frame cannot be used as
-# data for plotting
+# New column 'car_name' for plotting (rownames alone are not
+# usable as plot data).
 mtcars.car_name = R.rownames(:mtcars)
 
-# compute normalized mpg and add it to a new column called mpg_z
-# Note that the mean value for mpg can be obtained by calling the 'mean'
-# function on the vector 'mtcars.mpg'.  The same with the standard
-# deviation 'sd'.  The vector is then rounded to two digits with 'round 2'
-mtcars.mpg_z = ((mtcars.mpg - mtcars.mpg.mean)/mtcars.mpg.sd).round 2
+# Normalized mpg in column mpg_z: (mpg - mean) / sd, rounded.
+mtcars.mpg_z =
+  ((mtcars.mpg - mtcars.mpg.mean) / mtcars.mpg.sd).round 2
 
-# create a new column 'mpg_type'. Function 'ifelse' is a vectorized function
-# that looks at every element of the mpg_z vector and if the value is below
-# 0, returns 'below', otherwise returns 'above'
-mtcars.mpg_type = (mtcars.mpg_z < 0).ifelse("below", "above")
+# mpg_type: 'below' if mpg_z < 0, else 'above' (vectorized ifelse).
+mtcars.mpg_type =
+  (mtcars.mpg_z < 0).ifelse("below", "above")
 
-# order the mtcar data set by the mpg_z vector from smaler to larger values
+# Order rows by mpg_z ascending.
 mtcars = mtcars[mtcars.mpg_z.order, :all]
 
-# convert the car_name column to a factor to retain sorted order in plot
-mtcars.car_name = mtcars.car_name.factor levels: mtcars.car_name
+# Factor car_name so plot keeps sorted order.
+mtcars.car_name =
+  mtcars.car_name.factor levels: mtcars.car_name
 
-# let's look at the first records of the final data frame
+# First records of the final data frame
 puts mtcars.head
 ```
 
 ```
-##                      mpg cyl disp  hp drat    wt  qsec vs am gear carb
-## Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
-## Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
-## Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
-## Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
-## Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
-## Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8
-##                                car_name mpg_z mpg_type
-## Cadillac Fleetwood   Cadillac Fleetwood -1.61    below
-## Lincoln Continental Lincoln Continental -1.61    below
-## Camaro Z28                   Camaro Z28 -1.13    below
-## Duster 360                   Duster 360 -0.96    below
-## Chrysler Imperial     Chrysler Imperial -0.89    below
-## Maserati Bora             Maserati Bora -0.84    below
+##                      mpg cyl disp  hp drat    wt  qsec vs am gear
+## Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3
+## Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3
+## Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3
+## Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3
+## Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3
+## Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5
+##                     carb            car_name mpg_z mpg_type
+## Cadillac Fleetwood     4  Cadillac Fleetwood -1.61    below
+## Lincoln Continental    4 Lincoln Continental -1.61    below
+## Camaro Z28             4          Camaro Z28 -1.13    below
+## Duster 360             4          Duster 360 -0.96    below
+## Chrysler Imperial      4   Chrysler Imperial -0.89    below
+## Maserati Bora          8       Maserati Bora -0.84    below
 ```
 
 
 ``` ruby
 require 'ggplot'
 
-puts mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
-     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
-     R.scale_fill_manual(name: 'Mileage',
-                         labels: R.c('Above Average', 'Below Average'),
-                         values: R.c('above': '#00ba38', 'below': '#f8766d')) +
+puts mtcars.ggplot(
+       E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
+     R.geom_bar(E.aes(fill: :mpg_type),
+                stat: 'identity', width: 0.5) +
+     R.scale_fill_manual(
+       name: 'Mileage',
+       labels: R.c('Above Average', 'Below Average'),
+       values: R.c('above': '#00ba38',
+                   'below': '#f8766d')) +
      R.labs(subtitle: "Normalised mileage from 'mtcars'",
-            title: "Diverging Bars") + 
+            title: "Diverging Bars") +
      R.coord_flip
 ```
 
@@ -548,7 +552,8 @@ with the 'rb' engine.  The following chunk specification will
 create and inline Ruby text:
 
 ````
-This is some text with inline Ruby accessing variable 'b' which has value:
+This is some text with inline Ruby accessing
+variable 'b' which has value:
 ```{rb puts b}
 ```
 and is followed by some other text!
@@ -1337,7 +1342,7 @@ module Find
   # Skips the current file or directory, restarting the loop with the next
   # entry. If the current file is a directory, that directory will not be
   # recursively entered. Meaningful only within the block associated with
-  # Find:R[:find].
+  # Find::find.
   #
   # See the +Find+ module documentation for an example.
   #
@@ -1361,7 +1366,7 @@ the Yaml header to generate this blog in PDF format instead of HTML:
 
 ```
 ---
-title: "gKnit - Ruby and R Knitting with Galaaz (JRuby or CRuby + GNU R)"
+title: "gKnit - Ruby and R Knitting with Galaaz"
 author: "Rodrigo Botafogo"
 tags: [Galaaz, Ruby, R, JRuby, CRuby, "GNU R", knitr, gknit]
 date: "29 October 2018"

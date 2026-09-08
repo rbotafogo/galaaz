@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `rake release:bump VERSION=x.y.z` (or `bin/release_bump x.y.z`) — rewrite
+  `version.rb` and refresh `Gemfile.lock` so CI frozen `bundle install` stays in
+  sync; `rake release:check` / CI job `Gemfile.lock matches version.rb` fail early
+  with that message instead of Bundler exit 16. `make_gem` / `publish_gem` depend
+  on `release:check`.
+- Blogs: `galaaz_2_0` and `r_on_rails_ledger` (sources + rendered outputs); listed
+  in `galaaz blogs init` / `BLOG_NAMES`.
+
+### Fixed
+
+- `galaaz add ledger`: run `rails tailwindcss:build` after seed so Propshaft finds
+  `tailwind.css` (builds dir is gitignored).
+- Sync `Gemfile.lock` path gem to 2.1.8 (CI frozen install).
+
 ## 2.1.8
 
 ### Fixed

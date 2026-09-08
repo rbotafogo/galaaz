@@ -18,8 +18,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Fail fast with a clear message when version.rb is bumped without Gemfile.lock
+  # (frozen bundle install then exits 16 inside ruby/setup-ruby).
+  lockfile-version:
+    name: Gemfile.lock matches version.rb
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Check PATH gem version in Gemfile.lock
+        run: ruby bin/check_gemfile_lock_version
+
   fast-specs:
     name: Compile + fast specs (JRuby)
+    needs: lockfile-version
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
@@ -75,6 +89,7 @@ jobs:
 
   fast-specs-cruby:
     name: Compile + fast specs (CRuby)
+    needs: lockfile-version
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:

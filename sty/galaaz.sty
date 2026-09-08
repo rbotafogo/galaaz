@@ -67,5 +67,27 @@
 % Command to import an R variable to latex
 \newcommand{\RtoLatex}[2]{\newcommand{#1}{#2}}
 
+% Soft-wrap Pandoc highlighted code/output boxes (Shaded + Highlighting).
+% This runs after Pandoc's default \DefineVerbatimEnvironment{Highlighting}
+% (header includes come later in the generated .tex). Prefer manual line
+% breaks in Rmd sources; breaklines is a safety net for leftovers/output.
+% Requires TinyTeX/TeX Live package: tlmgr install fvextra
+\IfFileExists{fvextra.sty}{%
+  \usepackage{fvextra}%
+  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{%
+    breaklines=true,
+    breakanywhere=true,
+    breakindent=1.5em,
+    fontsize=\small,
+    commandchars=\\\{\}%
+  }%
+}{%
+  % fancyvrb is already loaded by Pandoc; shrink code so more fits per line.
+  \DefineVerbatimEnvironment{Highlighting}{Verbatim}{%
+    fontsize=\small,
+    commandchars=\\\{\}%
+  }%
+}
+
 % 
 %\newcommand{\atraso}[1]{\color{red} \textbf {Tempo desde a Assinatura do Contrato: #1 dias}}

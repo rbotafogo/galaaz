@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Bump version.rb and refresh Gemfile.lock so CI frozen bundle install stays valid.
+# Usage: bin/release_bump x.y.z
+
+root = File.expand_path('..', __dir__)
+new_ver = ARGV[0].to_s.strip
+abort 'Usage: bin/release_bump x.y.z' unless new_ver.match?(/\A\d+\.\d+\.\d+(?:[.-][\w.]+)?\z/)
+
+path = File.join(root, 'version.rb')
+src = File.read(path)
+unless src.sub!(/\$version\s*=\s*["'][^"']+["']/, "$version=\"#{new_ver}\"")
+  abort "could not rewrite $version in #{path}"
+end
+File.write(path, src)
+puts "Wrote version.rb $version=#{new_ver}"
+
+Dir.chdir(root) do
+  ok = system('bundle', 'lock')
+  abort 'bundle lock failed' unless ok
+  ok = system(RbConfig.ruby, File.join(root, 'bin/check_gemfile_lock_version'))
+  abort 'version check failed after bump' unless ok
+end
+
+puts 'Next: update CHANGELOG.md, commit version.rb + Gemfile.lock, then rake make_gem && rake publish_gem'

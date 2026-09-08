@@ -21,6 +21,8 @@ Examples:
 bin/gknit blogs/oh_my/oh_my.Rmd
 bin/gknit blogs/gknit/gknit.Rmd
 bin/gknit blogs/galaaz_ggplot/galaaz_ggplot.Rmd
+bin/gknit blogs/galaaz_2_0/galaaz_2_0.Rmd
+bin/gknit blogs/r_on_rails_ledger/r_on_rails_ledger.Rmd
 bin/gknit blogs/manual/manual.Rmd
 bin/gknit blogs/nse_dplyr/nse_dplyr.Rmd
 bin/gknit blogs/ruby_plot/ruby_plot.Rmd
@@ -36,6 +38,8 @@ From the project root:
 rake blog:oh_my
 rake blog:gknit
 rake blog:galaaz_ggplot
+rake blog:galaaz_2_0
+rake blog:r_on_rails_ledger
 rake blog:manual
 rake blog:nse_dplyr
 rake blog:ruby_plot

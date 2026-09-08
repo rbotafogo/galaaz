@@ -28,66 +28,66 @@ fontsize: 11pt
 
 # Introduction
 
-**Galaaz is R-on-Rails:** keep **GNU R** for statistics, graphics, and the CRAN /
-Bioconductor ecosystem, and use **Ruby** (with **Rails** when you need a web app) for
-everything R was never meant to own—HTTP, auth, databases, background jobs, HTML, APIs.
+Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful language, with a large 
+community, a very large set of libraries and great for web development. However, it lacks 
+libraries for data science, statistics, scientific plotting and machine learning. On the 
+other hand, R is considered one of the most powerful languages for solving all of the above 
+problems. **Python** is a strong competitor: NumPy, pandas, SciPy, and scikit-learn are
+widely used building blocks, and **PyPI** hosts many thousands of other packages for
+numerical work, machine learning, and beyond.
 
-The primary audience is the **R scientist** who already has models, dplyr/ggplot pipelines,
-and domain knowledge, and wants a **one-person path to production on the web**. Learning
-enough Ruby and Rails to ship an app is usually easier than hiring (or becoming) a dedicated
-web-and-stats dual specialist. Ruby developers gain full access to R libraries as a
-secondary benefit; the design priority is **R workflow first, web second**.
+With Galaaz we do not intend to re-implement any of the scientific libraries in R, we allow
+for very tight coupling between the two languages to the point that the Ruby developer does
+not need to know that there is an R engine running.
 
-Galaaz does **not** re-implement scientific libraries in Ruby. Ruby and R run in **separate
-processes**; the **Galaaz bridge** sends requests to standard **GNU R** and returns typed
-results. You keep calling familiar ideas from Ruby (`R.c(...)`, `R.library('ggplot2')`,
-`~R[:mtcars]`, dplyr-style chains) while Rails (or plain Ruby) owns the application shell.
+According to Wikipedia "Ruby is a dynamic, interpreted, reflective, object-oriented, 
+general-purpose programming language. It was designed and developed in the mid-1990s by Yukihiro 
+"Matz" Matsumoto in Japan."  It reached high popularity with the development of Ruby on Rails
+(RoR) by David Heinemeier Hansson. RoR is a web application framework first released
+around 2005. It makes extensive use of Ruby's metaprogramming features.  With RoR,
+Ruby became very popular.  According to [Ruby’s place in the TIOBE index](https://www.tiobe.com/tiobe-index/ruby/)
+it peaked in popularity around 2008, then declined until 2015 when it started picking up again.
+Ruby remains a significant language in web development and general-purpose scripting.
 
-**Python** remains a strong competitor for end-to-end data science stacks (NumPy, pandas,
-SciPy, scikit-learn, Django/Flask). Galaaz’s bet is different: if your science already lives
-in **R**, do not rewrite it in Python to get a website—**put R on Rails**.
+Python, a language similar to Ruby, ranks 4th in the index.  Java, C and C++ take the
+first three positions.  Ruby is often criticized for its focus on web applications.
+But Ruby can do [much more](https://github.com/markets/awesome-ruby) than just web applications.
+Yet, for scientific computing, Ruby lags behind Python and R.  Python offers Django and
+similar frameworks for the web, plus NumPy, pandas, and a deep catalog of science and ML libraries.
+R is a free software environment for statistical computing and graphics with thousands
+of libraries for data analysis. 
 
-Ruby is a dynamic, object-oriented language that became widely known through **Ruby on Rails**
-(RoR). It remains a practical choice for web applications and general-purpose scripting.
-Until Galaaz, Ruby lacked a tight, ecosystem-complete bridge to GNU R. Library wrapping
-(one gem per package) does not scale; Galaaz wraps **the R language**, so thousands of R
-packages are available without a new handcrafted wrapper for each one.
+Until recently, there was no real perspective for Ruby to bridge this gap.
+Implementing a complete scientific computing infrastructure would take too long.
 
 **Galaaz 2.0** supports **JRuby** and **CRuby** equally for the same NewBridge protocol.
 Pick the Ruby that fits your app: JRuby when you want real multithreading for web and I/O;
 CRuby when you prefer MRI. R remains the same **GNU R** you use interactively—including
-compiled extensions and Bioconductor. Earlier GraalVM / TruffleRuby / FastR experiments
-are no longer the focus.
+compiled extensions and Bioconductor. Ruby and R run in **separate processes**; the
+**Galaaz bridge** sends requests to R and returns results to Ruby. From your point of view
+you still write Ruby: `R.c(...)`, `R.library('ggplot2')`, `~R[:mtcars]`, and dplyr-style
+chains on R objects. You do not need to learn R syntax to get a lot done, though reading R
+documentation for individual packages remains useful.
 
-The bridge handles **communication and typing** between the two worlds. Large tables can use
-**Apache Arrow** in two shipped modes (described later): **Stage A** copies Ruby batches into an
-R-side Arrow table (`R::Arrow.from_ruby_batches`); **Stage B** writes an Arrow IPC file and only
-the **path** crosses NewBridge (`Galaaz::ArrowIpc` + `R::Arrow.open_ipc` / `write_ipc`). Shared-heap
-zero-copy is **Stage C** and is not shipped.
+Earlier experiments with Galaaz used Oracle’s **GraalVM** with TruffleRuby and FastR so that
+Ruby and R could share one runtime. That path is no longer the focus: **standard GNU R**
+gives full compatibility with the R package ecosystem (including compiled extensions and
+Bioconductor) while either Ruby engine talks to R over NewBridge (JRuby for mature
+multithreading on the application side; CRuby when you prefer MRI).
 
-## R-on-Rails: the one-person app for R scientists
+The bridge handles **communication and typing** between the two worlds; large tables can
+also flow through **Apache Arrow** on the R side when you use the optional helpers described
+later in this manual.
 
-If you already think in R, the usual web options are painful: Shiny for some apps, or a full
-rewrite in another stack. **R-on-Rails** means:
+Library wrapping is a common way to bring features from one language into another.
+To improve performance, Python often wraps more efficient C libraries. For the
+Python developer, the existence of such C libraries is hidden.  The problem with
+library wrapping is that for any new library, there is the need to handcraft a new
+wrapper.
 
-1. **Keep your science in R** — packages, formulas, plots, Bioconductor, the same engine as RStudio.
-2. **Learn enough Ruby/Rails** — routes, controllers, views, jobs, auth—not a second statistics career.
-3. **Call R from the app** — Galaaz loads R behind the scenes; long jobs can complete asynchronously
-   while Rails stays responsive (see later sections on the bridge, `R::Async`, and `R::Job`).
-4. **Ship alone when you need to** — one developer can own both the analysis and the product UI,
-   without waiting for a separate “stats engineer” and “Rails engineer.”
-
-Typical shape:
-
-- Interactive exploration and reports: **gstudio**, **gknit** (R Markdown with Ruby chunks).
-- Product: a **Rails** (or Sinatra) app that calls `R.*` for the heavy statistical steps.
-- Scale for many users: more **R worker processes/containers** behind the app (R is single-threaded
-   per process); the Ruby web tier scales separately (JRuby threads or a multi-process CRuby
-   setup). Galaaz’s instance manager is the starting point for that pattern—not a rewrite of
-   every algorithm à la enterprise ScaleR.
-
-Rubyists are welcome: the same bridge exposes CRAN to application code. The **intended** on-ramp,
-though, is **R scientist → small Rails app**, not “hire a stats team to teach Rails developers R.”
+Galaaz, instead of wrapping a single C or R library, wraps the whole R language
+in Ruby.  Doing so, all thousands of R libraries are available immediately
+to Ruby developers without any new wrapping effort.
 
 ## What does Galaaz mean
 
@@ -131,27 +131,17 @@ JRuby (`bin/galaaz_jruby_env.inc.sh` / `lib/galaaz_jruby.rb`). **`bin/galaaz-jru
 <tbody>
   <tr>
    <td style="text-align:left;"> galaaz-bootstrap </td>
-   <td style="text-align:left;"> WSL2 helper: Docker checks; optional TinyTeX or poppler for gKnit PDF. </td>
+   <td style="text-align:left;"> WSL2 helper: Docker checks; optional TinyTeX/poppler. </td>
    <td style="text-align:left;"> Yes* </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> galaaz-ruby </td>
-   <td style="text-align:left;"> Selected Ruby (default: ruby on PATH) with repo lib/ on LOAD_PATH; JVM flags only on JRuby. </td>
-   <td style="text-align:left;"> Yes </td>
-  </tr>
-  <tr>
    <td style="text-align:left;"> galaaz-jruby </td>
-   <td style="text-align:left;"> Thin wrapper that forces JRuby (same flags as galaaz-ruby under JRuby). </td>
+   <td style="text-align:left;"> JRuby with repo lib/ on LOAD_PATH and JVM flags. </td>
    <td style="text-align:left;"> Yes </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> galaaz_ruby_env.inc.sh </td>
-   <td style="text-align:left;"> Sourced by bash wrappers; sets GALAAZ_RUBY_BIN and optional JVM args. </td>
-   <td style="text-align:left;"> Yes† </td>
   </tr>
   <tr>
    <td style="text-align:left;"> galaaz_jruby_env.inc.sh </td>
-   <td style="text-align:left;"> Sourced when the interpreter is JRuby; sets GALAAZ_REQUIRED_JRUBY_J_ARGS. </td>
+   <td style="text-align:left;"> Sourced by bash wrappers; sets JRUBY_J_ARGS. </td>
    <td style="text-align:left;"> Yes† </td>
   </tr>
   <tr>
@@ -166,13 +156,11 @@ JRuby (`bin/galaaz_jruby_env.inc.sh` / `lib/galaaz_jruby.rb`). **`bin/galaaz-jru
 
 † Not run directly.
 
-**`galaaz-ruby` / `galaaz-jruby` examples** (from repo root):
+**`galaaz-jruby` examples** (from repo root):
 
 ```text
-bin/galaaz-ruby my_script.rb
-GALAAZ_RUBY=jruby bin/galaaz-ruby my_script.rb
 bin/galaaz-jruby my_script.rb
-bin/galaaz-ruby -S rspec
+bin/galaaz-jruby -S rspec
 ```
 
 ## Interactive use, examples, and Rake
@@ -188,17 +176,17 @@ bin/galaaz-ruby -S rspec
 <tbody>
   <tr>
    <td style="text-align:left;"> gstudio </td>
-   <td style="text-align:left;"> IRB or Pry with Galaaz preloaded (ruby on PATH; JVM flags on JRuby). </td>
+   <td style="text-align:left;"> IRB or Pry with Galaaz preloaded (JRuby + JVM flags). </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
   <tr>
    <td style="text-align:left;"> run_example </td>
-   <td style="text-align:left;"> Run one Ruby file using the same Ruby/JVM setup as tests. </td>
+   <td style="text-align:left;"> Run one Ruby file using the same JRuby/JVM setup as tests. </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
   <tr>
    <td style="text-align:left;"> galaaz </td>
-   <td style="text-align:left;"> Forward arguments to rake (needs rake; same GALAAZ_RUBY as other launchers). </td>
+   <td style="text-align:left;"> Forward arguments to rake (needs rake; usually JRuby). </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
 </tbody>
@@ -217,18 +205,18 @@ bin/galaaz-ruby -S rspec
 <tbody>
   <tr>
    <td style="text-align:left;"> gknit </td>
-   <td style="text-align:left;"> Knit .Rmd via ruby on PATH (JRuby or CRuby) and R Markdown render. </td>
+   <td style="text-align:left;"> Knit .Rmd via JRuby and R Markdown render. </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
   <tr>
    <td style="text-align:left;"> gknit-draft </td>
-   <td style="text-align:left;"> Drafts from rticles-style templates; wrapper still uses legacy polyglot ruby. </td>
+   <td style="text-align:left;"> Drafts from rticles templates; legacy polyglot wrapper. </td>
    <td style="text-align:left;"> Legacy </td>
   </tr>
   <tr>
    <td style="text-align:left;"> gknit-draft.rb </td>
-   <td style="text-align:left;"> Ruby entry: GKnit.draft (use with galaaz-ruby + LOAD_PATH). </td>
-   <td style="text-align:left;"> Yes </td>
+   <td style="text-align:left;"> Ruby entry: GKnit.draft (use with JRuby + LOAD_PATH). </td>
+   <td style="text-align:left;"> JRuby </td>
   </tr>
   <tr>
    <td style="text-align:left;"> gknit_Rscript </td>
@@ -238,7 +226,9 @@ bin/galaaz-ruby -S rspec
 </tbody>
 </table>
 
-**`gknit` CLI** (see `gknit -h`): `--output_format`, `--output_file`, `--output_dir`, `--bridge_timeout_sec`, `--callback_timeout_ms`. If `--output_format` is omitted, the **first** YAML `output:` target wins.
+**`gknit` CLI** (see `gknit -h`): `--output_format`, `--output_file`,
+`--output_dir`, `--bridge_timeout_sec`, `--callback_timeout_ms`.
+If `--output_format` is omitted, the **first** YAML `output:` target wins.
 
 Prefer **`galaaz-jruby`** for **`gknit-draft`** workflows until that wrapper matches the **`gknit`** stack.
 
@@ -260,7 +250,7 @@ Prefer **`galaaz-jruby`** for **`gknit-draft`** workflows until that wrapper mat
   </tr>
   <tr>
    <td style="text-align:left;"> run_all_rspec </td>
-   <td style="text-align:left;"> Compile ext/new_bridge; run specs/ and new_bridge_specs/ together. </td>
+   <td style="text-align:left;"> Compile ext/new_bridge; run specs/ and new_bridge_specs/. </td>
    <td style="text-align:left;"> Yes </td>
   </tr>
   <tr>
@@ -294,7 +284,7 @@ Prefer **`galaaz-jruby`** for **`gknit-draft`** workflows until that wrapper mat
 <tbody>
   <tr>
    <td style="text-align:left;"> grun </td>
-   <td style="text-align:left;"> Graal-era launcher: polyglot ruby with --jvm. Use galaaz-jruby -S instead. </td>
+   <td style="text-align:left;"> Graal-era launcher: polyglot ruby --jvm; prefer galaaz-jruby. </td>
    <td style="text-align:left;"> No </td>
   </tr>
   <tr>
@@ -337,8 +327,9 @@ The supported install is **`gem install` + compile the gatekeeper**. You do not 
 4. Compile the native gatekeeper from the installed gem:
 
    ```
-   gem_dir="$(ruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
-   # under JRuby: gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+   gem_dir="$(ruby -e \
+     "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+   # under JRuby: use jruby -e instead of ruby -e
    make -C "${gem_dir}/ext/new_bridge" all
    ```
 
@@ -352,16 +343,18 @@ A **table of all `bin/` scripts** (bootstrap, Ruby launcher, gstudio, gknit, tes
 
 1. Install **bundler** if needed, then run **`bundle install`** with your chosen Ruby
    (`jruby -S bundle install` or CRuby `bundle install`) in the repository root.
-2. Build the bridge native code: **`make -C ext/new_bridge all`** (or **`rake compile_gatekeeper`**).
+2. Build the bridge native code: **`make -C ext/new_bridge all`**
+   (or **`rake compile_gatekeeper`**).
 3. Run scripts with **`bin/galaaz-ruby`** (uses `ruby` on `PATH`; set **`GALAAZ_RUBY=jruby`** or
    **`GALAAZ_RUBY=ruby`** to force an engine). Spec runners: **`bin/run_rspec`** /
    **`bin/run_all_rspec`** (same `GALAAZ_RUBY` rule). **`bin/galaaz-jruby`** remains a thin
    wrapper that forces JRuby.
 
 A **gstudio** try image with Galaaz already installed is available for both engines:
-**JRuby** — `docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio` (or
-`./docker/try-gstudio/run.sh` from a checkout); **CRuby** —
-`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:cruby` (or `./docker/try-cruby/run.sh`).
+**JRuby** — `docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio`
+(or `./docker/try-gstudio/run.sh` from a checkout); **CRuby** —
+`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:cruby`
+(or `./docker/try-cruby/run.sh`).
 Maintainers can prove a RubyGems install on a throwaway Ubuntu machine (no repo inside
 the container) with `./docker/cold-install/run.sh published-specs` (JRuby) or
 `./docker/cold-install-cruby/run.sh published-specs` (CRuby).
@@ -401,18 +394,40 @@ WSL integration is enabled for the distro where Galaaz is installed.
   vec = R.c(1, 2, 3, 4)
   puts vec
 
-  # R.foo(...) calls an R *function*. Datasets are objects — fetch with ~:
+  # R.foo(...) calls an R *function*. Datasets are objects — fetch with
+  # ~:
   df = ~R[:mtcars]
   puts R.summary(df)
 ```
 
 ```
 ## [1] 1 2 3 4
+##       mpg             cyl             disp             hp       
+##  Min.   :10.40   Min.   :4.000   Min.   : 71.1   Min.   : 52.0  
+##  1st Qu.:15.43   1st Qu.:4.000   1st Qu.:120.8   1st Qu.: 96.5  
+##  Median :19.20   Median :6.000   Median :196.3   Median :123.0  
+##  Mean   :20.09   Mean   :6.188   Mean   :230.7   Mean   :146.7  
+##  3rd Qu.:22.80   3rd Qu.:8.000   3rd Qu.:326.0   3rd Qu.:180.0  
+##  Max.   :33.90   Max.   :8.000   Max.   :472.0   Max.   :335.0  
+##       drat             wt             qsec             vs        
+##  Min.   :2.760   Min.   :1.513   Min.   :14.50   Min.   :0.0000  
+##  1st Qu.:3.080   1st Qu.:2.581   1st Qu.:16.89   1st Qu.:0.0000  
+##  Median :3.695   Median :3.325   Median :17.71   Median :0.0000  
+##  Mean   :3.597   Mean   :3.217   Mean   :17.85   Mean   :0.4375  
+##  3rd Qu.:3.920   3rd Qu.:3.610   3rd Qu.:18.90   3rd Qu.:1.0000  
+##  Max.   :4.930   Max.   :5.424   Max.   :22.90   Max.   :1.0000  
+##        am              gear            carb      
+##  Min.   :0.0000   Min.   :3.000   Min.   :1.000  
+##  1st Qu.:0.0000   1st Qu.:3.000   1st Qu.:2.000  
+##  Median :0.0000   Median :4.000   Median :2.000  
+##  Mean   :0.4062   Mean   :3.688   Mean   :2.812  
+##  3rd Qu.:1.0000   3rd Qu.:4.000   3rd Qu.:4.000  
+##  Max.   :1.0000   Max.   :5.000   Max.   :8.000
 ```
 
 (`R.mtcars` is wrong: it becomes `mtcars()` in R and fails. With
 `using Galaaz::SymbolDSL`, the short form `~:mtcars` also works.)
-  
+
 * Run all specs
 
   > galaaz specs:all
@@ -457,15 +472,13 @@ A practical pattern is:
 
 1. Use threads (or a connection pool) to read from **multiple databases or shards** in parallel.
 2. Merge the rows in Ruby under a `Mutex` if you collect into one structure.
-3. Hand the merged table to R **once**: **`R::Arrow.from_ruby_batches`** (Stage A: copy into R) or
-   **`Galaaz::ArrowIpc.write` / `write_batches`** then **`R::Arrow.open_ipc`** (Stage B: IPC file;
-   only the path crosses the bridge). Then run dplyr in R.
+3. Hand the merged table to R **once** (for example with `R::Arrow.from_ruby_batches` and dplyr,
+   or by building a data frame) so heavy statistics run in R with fewer bridge round-trips.
 
 A runnable sketch lives in
 `examples/multithread_shards_to_r/shards_to_r.rb` (simulated shard queries; swap in your DB
 driver). For concurrency tests on the bridge itself, see `specs/bridge_concurrent_spec.rb` and
-`specs/arrow_from_ruby_batches_spec.rb`. Stage B IPC tests: `specs/arrow_ipc_handoff_spec.rb`,
-`specs/arrow_ipc_export_spec.rb`.
+`specs/arrow_from_ruby_batches_spec.rb`.
 
 ## Long-running R calls and a completion block
 
@@ -484,8 +497,9 @@ For R work that can take a long time **on the bridge**, the bridge can avoid a R
   **`R.<rname>`**. Optional keyword **`timeout:`** applies a Ruby-side wait limit (completion receives
   **`NewBridge::SessionClient::TimeoutError`** if R is too slow).
 
-**Important:** **`R.foo(...) { |x| }`** is already used for dplyr-style scopes (`R::Support.new_scope`),
-so async R calls must use **`R::Async`** or **`R.eval_r_async`**, not a bare **`R.foo` with a block.**
+**Important:** **`R.foo(...) { |x| }`** is already used for dplyr-style
+scopes (`R::Support.new_scope`), so async R calls must use **`R::Async`**
+or **`R.eval_r_async`**, not a bare **`R.foo` with a block.**
 
 `NewBridge::EvalResult` exposes **`#ok?`**, **`#value`**, and **`#error`**. The completion block runs on a
 **background thread** (not the bridge reader thread).
@@ -502,9 +516,11 @@ completion = Queue.new
 
 R.eval_r_async('({ Sys.sleep(0.3); 42L })', timeout: nil) do |result|
   if result.ok?
-    puts "[completion] R finished; eval_r-style value: #{result.value.inspect}"
+    puts "[completion] R finished; value: " +
+         "#{result.value.inspect}"
   else
-    puts "[completion] R/bridge error: #{result.error.class}: #{result.error.message}"
+    puts "[completion] R/bridge error: " +
+         "#{result.error.class}: #{result.error.message}"
   end
   completion.push(:done)
 end
@@ -522,7 +538,7 @@ puts "[main] R completion has run; exiting."
 ## [main] other Ruby work step 1
 ## [main] other Ruby work step 2
 ## [main] other Ruby work step 3
-## [completion] R finished; eval_r-style value: "[1] 42"
+## [completion] R finished; value: "[1] 42"
 ## [main] R completion has run; exiting.
 ```
 
@@ -550,8 +566,10 @@ finishes** (default: no wall-clock limit). Optional limit: `GALAAZ_INSTALL_TIMEO
 `make`/`gcc` cannot OOM the shell. Stale `00LOCK-*` dirs are cleared before the next install.
 Only one install runs at a time (`install.lock`).
 
+
 ``` ruby
-# May take a long time the first time (e.g. caret); the bridge is not used for compile.
+# May take a long time the first time (e.g. caret); the bridge is not
+# used for compile.
 R.install_and_loads 'caret'
 ```
 
@@ -560,24 +578,33 @@ R.install_and_loads 'caret'
 Prefer the **block** form (like `File.open`): await the child, yield the job, return the
 block’s value. Without a block, the methods still await by default and return the `Job`.
 
+
 ``` ruby
-coef = R::Job.eval(<<~R) { |job| job.load_rds }
-  fit <- lm(mpg ~ wt, data = mtcars)
-  saveRDS(unname(coef(fit)), result_path)
-R
-puts coef
+begin
+  coef = R::Job.eval(<<~R) { |job| job.load_rds }
+    fit <- lm(mpg ~ wt, data = mtcars)
+    saveRDS(unname(coef(fit)), result_path)
+  R
+  puts coef
+rescue => e
+  puts e.class.to_s
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
 ## [1] 37.285126 -5.344472
 ```
 
+
 ``` ruby
-# Without a block: awaits (wait: true is the default) and returns the Job
+# Without a block: awaits (wait: true is the default) and returns the
+# Job
 job = R::Job.eval(code)
 job = R::Job.eval(code, wait: false)  # start only; call job.wait later
 
-# Script file; trailing args → commandArgs(trailingOnly=TRUE) in the child
+# Script file; trailing args → commandArgs(trailingOnly=TRUE) in the
+# child
 res = R::Job.script('train.R', '5') { |job| job.load_rds }
 ```
 
@@ -600,10 +627,7 @@ app. The baseline we used in WSL aimed at:
 
 1. Rails boots under **JRuby or CRuby** (same bridge; see Installation).
 2. Galaaz is loaded from a local checkout (before publishing to RubyGems).
-3. A request path can execute **`R.eval(...)`** (or `R.*`) and return a result.
-
-You keep statistical work in R; Rails owns HTTP, sessions, and HTML. See **R-on-Rails: the
-one-person app for R scientists** in the Introduction for the product framing.
+3. A request path can execute **`R.eval(...)`** and return a result.
 
 ### 1) Create the app with Ruby-friendly options
 
@@ -612,7 +636,8 @@ extension paths on JRuby, or deployment extras you do not need). A minimal app a
 
 ```bash
 cd /home/rbotafogo/desenv_linux
-jruby -S rails new hedi --skip-git --minimal --skip-kamal --skip-solid --skip-active-record
+jruby -S rails new hedi --skip-git --minimal \
+  --skip-kamal --skip-solid --skip-active-record
 ```
 
 Then install gems:
@@ -650,7 +675,8 @@ A direct smoke test from Rails runner:
 
 ```bash
 cd /home/rbotafogo/desenv_linux/hedi
-jruby -S bundle exec rails runner "puts R.eval('sum(c(1,2,3,4,5))').inspect"
+jruby -S bundle exec rails runner \
+  "puts R.eval('sum(c(1,2,3,4,5))').inspect"
 ```
 
 Expected output:
@@ -718,39 +744,72 @@ puts ~R[:mtcars]
 ```
 
 ```
-##                      mpg cyl  disp  hp drat    wt  qsec vs am gear carb
-## Mazda RX4           21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
-## Mazda RX4 Wag       21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
-## Datsun 710          22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
-## Hornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
-## Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
-## Valiant             18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
-## Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
-## Merc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
-## Merc 230            22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
-## Merc 280            19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
-## Merc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
-## Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
-## Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
-## Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
-## Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
-## Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
-## Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
-## Fiat 128            32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
-## Honda Civic         30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
-## Toyota Corolla      33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
-## Toyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
-## Dodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2
-## AMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
-## Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
-## Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
-## Fiat X1-9           27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
-## Porsche 914-2       26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
-## Lotus Europa        30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
-## Ford Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
-## Ferrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
-## Maserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8
-## Volvo 142E          21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
+##                      mpg cyl  disp  hp drat    wt  qsec vs am gear
+## Mazda RX4           21.0   6 160.0 110 3.90 2.620 16.46  0  1    4
+## Mazda RX4 Wag       21.0   6 160.0 110 3.90 2.875 17.02  0  1    4
+## Datsun 710          22.8   4 108.0  93 3.85 2.320 18.61  1  1    4
+## Hornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1  0    3
+## Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3
+## Valiant             18.1   6 225.0 105 2.76 3.460 20.22  1  0    3
+## Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3
+## Merc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1  0    4
+## Merc 230            22.8   4 140.8  95 3.92 3.150 22.90  1  0    4
+## Merc 280            19.2   6 167.6 123 3.92 3.440 18.30  1  0    4
+## Merc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1  0    4
+## Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3
+## Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3
+## Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3
+## Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3
+## Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3
+## Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3
+## Fiat 128            32.4   4  78.7  66 4.08 2.200 19.47  1  1    4
+## Honda Civic         30.4   4  75.7  52 4.93 1.615 18.52  1  1    4
+## Toyota Corolla      33.9   4  71.1  65 4.22 1.835 19.90  1  1    4
+## Toyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1  0    3
+## Dodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0  0    3
+## AMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0  0    3
+## Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3
+## Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3
+## Fiat X1-9           27.3   4  79.0  66 4.08 1.935 18.90  1  1    4
+## Porsche 914-2       26.0   4 120.3  91 4.43 2.140 16.70  0  1    5
+## Lotus Europa        30.4   4  95.1 113 3.77 1.513 16.90  1  1    5
+## Ford Pantera L      15.8   8 351.0 264 4.22 3.170 14.50  0  1    5
+## Ferrari Dino        19.7   6 145.0 175 3.62 2.770 15.50  0  1    5
+## Maserati Bora       15.0   8 301.0 335 3.54 3.570 14.60  0  1    5
+## Volvo 142E          21.4   4 121.0 109 4.11 2.780 18.60  1  1    4
+##                     carb
+## Mazda RX4              4
+## Mazda RX4 Wag          4
+## Datsun 710             1
+## Hornet 4 Drive         1
+## Hornet Sportabout      2
+## Valiant                1
+## Duster 360             4
+## Merc 240D              2
+## Merc 230               2
+## Merc 280               4
+## Merc 280C              4
+## Merc 450SE             3
+## Merc 450SL             3
+## Merc 450SLC            3
+## Cadillac Fleetwood     4
+## Lincoln Continental    4
+## Chrysler Imperial      4
+## Fiat 128               1
+## Honda Civic            2
+## Toyota Corolla         1
+## Toyota Corona          1
+## Dodge Challenger       2
+## AMC Javelin            2
+## Camaro Z28             4
+## Pontiac Firebird       2
+## Fiat X1-9              1
+## Porsche 914-2          2
+## Lotus Europa           2
+## Ford Pantera L         4
+## Ferrari Dino           6
+## Maserati Bora          8
+## Volvo 142E             2
 ```
 
 ## Scoped symbols and lexical scoping
@@ -896,9 +955,9 @@ puts vec.map { |x| x + 2 }
 
 This manual has been formatted using gKnit.  gKnit uses knitr and R Markdown to knit 
 a document in Ruby or R and output it in any of the available formats for R Markdown.
-gKnit runs with **JRuby or CRuby**, **GNU R**, and Galaaz.  In gKnit, Ruby variables are persisted between 
-chunks, making it an ideal solution for literate programming. Also, since it is based 
-on Galaaz, Ruby chunks can have access to R variables and combining Ruby with R in one 
+gKnit runs with **JRuby or CRuby**, **GNU R**, and Galaaz.  In gKnit, Ruby variables are persisted between
+chunks, making it an ideal solution for literate programming. Also, since it is based
+on Galaaz, Ruby chunks can have access to R variables and combining Ruby with R in one
 document is natural.
 
 The idea of "literate programming" was first introduced by Donald Knuth in the 
@@ -1251,7 +1310,9 @@ a linear regression line (method = "lm") for every manufacturer.
 library(ggplot2)
 data(mpg, package="ggplot2")
 
-mpg_select <- mpg[mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"), ]
+mpg_select <- mpg[
+  mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"),
+]
 
 # Scatterplot
 theme_set(theme_bw())  # pre-set the bw theme.
@@ -1334,7 +1395,8 @@ with the 'rb' engine.  The following chunk specification will
 create and inline Ruby text:
 
 ````
-This is some text with inline Ruby accessing variable 'b' which has value:
+This is some text with inline Ruby accessing
+variable 'b' which has value:
 ```{rb puts b}
 ```
 and is followed by some other text!
@@ -2199,14 +2261,16 @@ templates for the following journals with the respective template name:
 In order to create a document with one of those templates, use the following command:
 
 ```
-gknit-draft --filename <my_document> --template <template> --package <package>
-            --create_dir
+gknit-draft --filename <my_document> \
+  --template <template> --package <package> \
+  --create_dir
 ```
 So, in order to create a template for writing an R Journal, use:
 
 ```
-gknit-draft --filename my_r_article --template rjournal_article --package rticles
-            --create_dir
+gknit-draft --filename my_r_article \
+  --template rjournal_article --package rticles \
+  --create_dir
 ```
 
 # Accessing R variables
@@ -2739,7 +2803,10 @@ data frame is 'data.frame', in Galaaz we use 'data\_\_frame'.
 
 
 ``` ruby
-df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
+df = R.data__frame(
+  typeof: vec.typeof,
+  mode: vec.mode,
+  storage__mode: vec.storage__mode)
 puts df
 ```
 
@@ -2765,7 +2832,10 @@ puts vec
 
 
 ``` ruby
-df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
+df = R.data__frame(
+  typeof: vec.typeof,
+  mode: vec.mode,
+  storage__mode: vec.storage__mode)
 outputs df.kable.kable_styling
 ```
 
@@ -2793,23 +2863,17 @@ of the error.
 
 
 ``` ruby
-vec = R.c(1, hello, 5)
+begin
+  vec = R.c(1, hello, 5)
+rescue => e
+  puts e.class.to_s
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
+## NameError
 ## undefined local variable or method 'hello' for an instance of RC
-```
-
-```
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:170:in 'exec_ruby'
-## org/jruby/RubyKernel.java:1268:in 'eval'
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in 'exec_ruby'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in 'block in initialize'
-## org/jruby/RubyBasicObject.java:2695:in 'instance_eval'
-## org/jruby/RubyBasicObject.java:2723:in 'instance_eval'
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in 'block in initialize'
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in 'block in register_callback_proc_stub'
-## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in 'block in handle_call'
 ```
 
 Here is a vector with logical values
@@ -3253,9 +3317,9 @@ puts (~R[:mtcars])[['mpg']]
 ```
 
 ```
-##  [1] 21.0 21.0 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4
-## [16] 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26.0 30.4 15.8 19.7
-## [31] 15.0 21.4
+##  [1] 21.0 21.0 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3
+## [14] 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3
+## [27] 26.0 30.4 15.8 19.7 15.0 21.4
 ```
 
 A data frame column can also be accessed as if it were an instance variable of the data frame:
@@ -3266,9 +3330,9 @@ puts (~R[:mtcars]).mpg
 ```
 
 ```
-##  [1] 21.0 21.0 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3 15.2 10.4
-## [16] 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3 26.0 30.4 15.8 19.7
-## [31] 15.0 21.4
+##  [1] 21.0 21.0 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 17.8 16.4 17.3
+## [14] 15.2 10.4 10.4 14.7 32.4 30.4 33.9 21.5 15.5 15.2 13.3 19.2 27.3
+## [27] 26.0 30.4 15.8 19.7 15.0 21.4
 ```
 
 Slicing a data frame can be done by indexing it with a vector (we use 'head' to reduce the
@@ -3311,9 +3375,9 @@ puts automatic
 ```
 
 ```
-##  [1] FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
-## [13]  TRUE  TRUE  TRUE  TRUE  TRUE FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE
-## [25]  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+##  [1] FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+## [12]  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE FALSE FALSE FALSE  TRUE  TRUE
+## [23]  TRUE  TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
 ```
 
 Using this logical vector, the data frame is indexed, returning a new data frame in 
@@ -3326,26 +3390,46 @@ puts (~R[:mtcars])[automatic, :all]
 ```
 
 ```
-##                      mpg cyl  disp  hp drat    wt  qsec vs am gear carb
-## Hornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
-## Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
-## Valiant             18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
-## Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
-## Merc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
-## Merc 230            22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
-## Merc 280            19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
-## Merc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
-## Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
-## Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
-## Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
-## Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
-## Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
-## Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
-## Toyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
-## Dodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2
-## AMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
-## Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
-## Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+##                      mpg cyl  disp  hp drat    wt  qsec vs am gear
+## Hornet 4 Drive      21.4   6 258.0 110 3.08 3.215 19.44  1  0    3
+## Hornet Sportabout   18.7   8 360.0 175 3.15 3.440 17.02  0  0    3
+## Valiant             18.1   6 225.0 105 2.76 3.460 20.22  1  0    3
+## Duster 360          14.3   8 360.0 245 3.21 3.570 15.84  0  0    3
+## Merc 240D           24.4   4 146.7  62 3.69 3.190 20.00  1  0    4
+## Merc 230            22.8   4 140.8  95 3.92 3.150 22.90  1  0    4
+## Merc 280            19.2   6 167.6 123 3.92 3.440 18.30  1  0    4
+## Merc 280C           17.8   6 167.6 123 3.92 3.440 18.90  1  0    4
+## Merc 450SE          16.4   8 275.8 180 3.07 4.070 17.40  0  0    3
+## Merc 450SL          17.3   8 275.8 180 3.07 3.730 17.60  0  0    3
+## Merc 450SLC         15.2   8 275.8 180 3.07 3.780 18.00  0  0    3
+## Cadillac Fleetwood  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3
+## Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3
+## Chrysler Imperial   14.7   8 440.0 230 3.23 5.345 17.42  0  0    3
+## Toyota Corona       21.5   4 120.1  97 3.70 2.465 20.01  1  0    3
+## Dodge Challenger    15.5   8 318.0 150 2.76 3.520 16.87  0  0    3
+## AMC Javelin         15.2   8 304.0 150 3.15 3.435 17.30  0  0    3
+## Camaro Z28          13.3   8 350.0 245 3.73 3.840 15.41  0  0    3
+## Pontiac Firebird    19.2   8 400.0 175 3.08 3.845 17.05  0  0    3
+##                     carb
+## Hornet 4 Drive         1
+## Hornet Sportabout      2
+## Valiant                1
+## Duster 360             4
+## Merc 240D              2
+## Merc 230               2
+## Merc 280               4
+## Merc 280C              4
+## Merc 450SE             3
+## Merc 450SL             3
+## Merc 450SLC            3
+## Cadillac Fleetwood     4
+## Lincoln Continental    4
+## Chrysler Imperial      4
+## Toyota Corona          1
+## Dodge Challenger       2
+## AMC Javelin            2
+## Camaro Z28             4
+## Pontiac Firebird       2
 ```
 
 # Writing Expressions in Galaaz
@@ -3550,17 +3634,18 @@ puts flights.head
 
 ```
 ## # A tibble: 6 × 19
-##    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##   <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
-## 1  2013     1     1      517            515         2      830            819
-## 2  2013     1     1      533            529         4      850            830
-## 3  2013     1     1      542            540         2      923            850
-## 4  2013     1     1      544            545        -1     1004           1022
-## 5  2013     1     1      554            600        -6      812            837
-## 6  2013     1     1      554            558        -4      740            728
-## # ℹ 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
-## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
-## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+##    year month   day dep_time sched_dep_time dep_delay arr_time
+##   <int> <int> <int>    <int>          <int>     <dbl>    <int>
+## 1  2013     1     1      517            515         2      830
+## 2  2013     1     1      533            529         4      850
+## 3  2013     1     1      542            540         2      923
+## 4  2013     1     1      544            545        -1     1004
+## 5  2013     1     1      554            600        -6      812
+## 6  2013     1     1      554            558        -4      740
+## # ℹ 12 more variables: sched_arr_time <int>, arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>,
+## #   dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+## #   minute <dbl>, time_hour <dttm>
 ```
 
 ## Filtering rows with Filter
@@ -3575,17 +3660,18 @@ puts flights.filter((R[:month].eq 1), (R[:day].eq 1)).head
 
 ```
 ## # A tibble: 6 × 19
-##    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##   <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
-## 1  2013     1     1      517            515         2      830            819
-## 2  2013     1     1      533            529         4      850            830
-## 3  2013     1     1      542            540         2      923            850
-## 4  2013     1     1      544            545        -1     1004           1022
-## 5  2013     1     1      554            600        -6      812            837
-## 6  2013     1     1      554            558        -4      740            728
-## # ℹ 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
-## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
-## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+##    year month   day dep_time sched_dep_time dep_delay arr_time
+##   <int> <int> <int>    <int>          <int>     <dbl>    <int>
+## 1  2013     1     1      517            515         2      830
+## 2  2013     1     1      533            529         4      850
+## 3  2013     1     1      542            540         2      923
+## 4  2013     1     1      544            545        -1     1004
+## 5  2013     1     1      554            600        -6      812
+## 6  2013     1     1      554            558        -4      740
+## # ℹ 12 more variables: sched_arr_time <int>, arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>,
+## #   dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+## #   minute <dbl>, time_hour <dttm>
 ```
 
 ## Logical Operators
@@ -3599,17 +3685,18 @@ puts flights.filter((R[:month].eq 11) | (R[:month].eq 12)).head
 
 ```
 ## # A tibble: 6 × 19
-##    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##   <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
-## 1  2013    11     1        5           2359         6      352            345
-## 2  2013    11     1       35           2250       105      123           2356
-## 3  2013    11     1      455            500        -5      641            651
-## 4  2013    11     1      539            545        -6      856            827
-## 5  2013    11     1      542            545        -3      831            855
-## 6  2013    11     1      549            600       -11      912            923
-## # ℹ 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
-## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
-## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+##    year month   day dep_time sched_dep_time dep_delay arr_time
+##   <int> <int> <int>    <int>          <int>     <dbl>    <int>
+## 1  2013    11     1        5           2359         6      352
+## 2  2013    11     1       35           2250       105      123
+## 3  2013    11     1      455            500        -5      641
+## 4  2013    11     1      539            545        -6      856
+## 5  2013    11     1      542            545        -3      831
+## 6  2013    11     1      549            600       -11      912
+## # ℹ 12 more variables: sched_arr_time <int>, arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>,
+## #   dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+## #   minute <dbl>, time_hour <dttm>
 ```
 
 The same as above, but using the 'in' operator. In R, it is possible to define many operators
@@ -3624,17 +3711,18 @@ puts flights.filter(R[:month]._ :in, R.c(11, 12)).head
 
 ```
 ## # A tibble: 6 × 19
-##    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##   <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
-## 1  2013    11     1        5           2359         6      352            345
-## 2  2013    11     1       35           2250       105      123           2356
-## 3  2013    11     1      455            500        -5      641            651
-## 4  2013    11     1      539            545        -6      856            827
-## 5  2013    11     1      542            545        -3      831            855
-## 6  2013    11     1      549            600       -11      912            923
-## # ℹ 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
-## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
-## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+##    year month   day dep_time sched_dep_time dep_delay arr_time
+##   <int> <int> <int>    <int>          <int>     <dbl>    <int>
+## 1  2013    11     1        5           2359         6      352
+## 2  2013    11     1       35           2250       105      123
+## 3  2013    11     1      455            500        -5      641
+## 4  2013    11     1      539            545        -6      856
+## 5  2013    11     1      542            545        -3      831
+## 6  2013    11     1      549            600       -11      912
+## # ℹ 12 more variables: sched_arr_time <int>, arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>,
+## #   dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+## #   minute <dbl>, time_hour <dttm>
 ```
 
 ## Filtering with NA (Not Available)
@@ -3700,17 +3788,18 @@ puts flights.arrange(:year, :month, :day).head
 
 ```
 ## # A tibble: 6 × 19
-##    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##   <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
-## 1  2013     1     1      517            515         2      830            819
-## 2  2013     1     1      533            529         4      850            830
-## 3  2013     1     1      542            540         2      923            850
-## 4  2013     1     1      544            545        -1     1004           1022
-## 5  2013     1     1      554            600        -6      812            837
-## 6  2013     1     1      554            558        -4      740            728
-## # ℹ 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
-## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
-## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+##    year month   day dep_time sched_dep_time dep_delay arr_time
+##   <int> <int> <int>    <int>          <int>     <dbl>    <int>
+## 1  2013     1     1      517            515         2      830
+## 2  2013     1     1      533            529         4      850
+## 3  2013     1     1      542            540         2      923
+## 4  2013     1     1      544            545        -1     1004
+## 5  2013     1     1      554            600        -6      812
+## 6  2013     1     1      554            558        -4      740
+## # ℹ 12 more variables: sched_arr_time <int>, arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>,
+## #   dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+## #   minute <dbl>, time_hour <dttm>
 ```
 
 To arrange in descending order, use function 'desc'
@@ -3722,17 +3811,18 @@ puts flights.arrange(R[:dep_delay].desc).head
 
 ```
 ## # A tibble: 6 × 19
-##    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##   <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
-## 1  2013     1     9      641            900      1301     1242           1530
-## 2  2013     6    15     1432           1935      1137     1607           2120
-## 3  2013     1    10     1121           1635      1126     1239           1810
-## 4  2013     9    20     1139           1845      1014     1457           2210
-## 5  2013     7    22      845           1600      1005     1044           1815
-## 6  2013     4    10     1100           1900       960     1342           2211
-## # ℹ 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
-## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
-## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+##    year month   day dep_time sched_dep_time dep_delay arr_time
+##   <int> <int> <int>    <int>          <int>     <dbl>    <int>
+## 1  2013     1     9      641            900      1301     1242
+## 2  2013     6    15     1432           1935      1137     1607
+## 3  2013     1    10     1121           1635      1126     1239
+## 4  2013     9    20     1139           1845      1014     1457
+## 5  2013     7    22      845           1600      1005     1044
+## 6  2013     4    10     1100           1900       960     1342
+## # ℹ 12 more variables: sched_arr_time <int>, arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>,
+## #   dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+## #   minute <dbl>, time_hour <dttm>
 ```
 
 ## Selecting columns
@@ -3814,17 +3904,18 @@ puts flights.select(:year, :month, :day, E.everything).head
 
 ```
 ## # A tibble: 6 × 19
-##    year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##   <int> <int> <int>    <int>          <int>     <dbl>    <int>          <int>
-## 1  2013     1     1      517            515         2      830            819
-## 2  2013     1     1      533            529         4      850            830
-## 3  2013     1     1      542            540         2      923            850
-## 4  2013     1     1      544            545        -1     1004           1022
-## 5  2013     1     1      554            600        -6      812            837
-## 6  2013     1     1      554            558        -4      740            728
-## # ℹ 11 more variables: arr_delay <dbl>, carrier <chr>, flight <int>,
-## #   tailnum <chr>, origin <chr>, dest <chr>, air_time <dbl>, distance <dbl>,
-## #   hour <dbl>, minute <dbl>, time_hour <dttm>
+##    year month   day dep_time sched_dep_time dep_delay arr_time
+##   <int> <int> <int>    <int>          <int>     <dbl>    <int>
+## 1  2013     1     1      517            515         2      830
+## 2  2013     1     1      533            529         4      850
+## 3  2013     1     1      542            540         2      923
+## 4  2013     1     1      544            545        -1     1004
+## 5  2013     1     1      554            600        -6      812
+## 6  2013     1     1      554            558        -4      740
+## # ℹ 12 more variables: sched_arr_time <int>, arr_delay <dbl>,
+## #   carrier <chr>, flight <int>, tailnum <chr>, origin <chr>,
+## #   dest <chr>, air_time <dbl>, distance <dbl>, hour <dbl>,
+## #   minute <dbl>, time_hour <dttm>
 ```
 
 ## Add variables to a dataframe with 'mutate'
@@ -3954,48 +4045,48 @@ puts R.head(flights, 12)
 
 ```
 ## [1] 336776     19
-##      year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##     <int> <int> <int>    <int>          <int>     <num>    <int>          <int>
-##  1:  2013     1     1      517            515         2      830            819
-##  2:  2013     1     1      533            529         4      850            830
-##  3:  2013     1     1      542            540         2      923            850
-##  4:  2013     1     1      544            545        -1     1004           1022
-##  5:  2013     1     1      554            600        -6      812            837
-##  6:  2013     1     1      554            558        -4      740            728
-##  7:  2013     1     1      555            600        -5      913            854
-##  8:  2013     1     1      557            600        -3      709            723
-##  9:  2013     1     1      557            600        -3      838            846
-## 10:  2013     1     1      558            600        -2      753            745
-## 11:  2013     1     1      558            600        -2      849            851
-## 12:  2013     1     1      558            600        -2      853            856
-##     arr_delay carrier flight tailnum origin   dest air_time distance  hour
-##         <num>  <char>  <int>  <char> <char> <char>    <num>    <num> <num>
-##  1:        11      UA   1545  N14228    EWR    IAH      227     1400     5
-##  2:        20      UA   1714  N24211    LGA    IAH      227     1416     5
-##  3:        33      AA   1141  N619AA    JFK    MIA      160     1089     5
-##  4:       -18      B6    725  N804JB    JFK    BQN      183     1576     5
-##  5:       -25      DL    461  N668DN    LGA    ATL      116      762     6
-##  6:        12      UA   1696  N39463    EWR    ORD      150      719     5
-##  7:        19      B6    507  N516JB    EWR    FLL      158     1065     6
-##  8:       -14      EV   5708  N829AS    LGA    IAD       53      229     6
-##  9:        -8      B6     79  N593JB    JFK    MCO      140      944     6
-## 10:         8      AA    301  N3ALAA    LGA    ORD      138      733     6
-## 11:        -2      B6     49  N793JB    JFK    PBI      149     1028     6
-## 12:        -3      B6     71  N657JB    JFK    TPA      158     1005     6
-##     minute           time_hour
-##      <num>              <POSc>
-##  1:     15 2013-01-01 05:00:00
-##  2:     29 2013-01-01 05:00:00
-##  3:     40 2013-01-01 05:00:00
-##  4:     45 2013-01-01 05:00:00
-##  5:      0 2013-01-01 06:00:00
-##  6:     58 2013-01-01 05:00:00
-##  7:      0 2013-01-01 06:00:00
-##  8:      0 2013-01-01 06:00:00
-##  9:      0 2013-01-01 06:00:00
-## 10:      0 2013-01-01 06:00:00
-## 11:      0 2013-01-01 06:00:00
-## 12:      0 2013-01-01 06:00:00
+##      year month   day dep_time sched_dep_time dep_delay arr_time
+##     <int> <int> <int>    <int>          <int>     <num>    <int>
+##  1:  2013     1     1      517            515         2      830
+##  2:  2013     1     1      533            529         4      850
+##  3:  2013     1     1      542            540         2      923
+##  4:  2013     1     1      544            545        -1     1004
+##  5:  2013     1     1      554            600        -6      812
+##  6:  2013     1     1      554            558        -4      740
+##  7:  2013     1     1      555            600        -5      913
+##  8:  2013     1     1      557            600        -3      709
+##  9:  2013     1     1      557            600        -3      838
+## 10:  2013     1     1      558            600        -2      753
+## 11:  2013     1     1      558            600        -2      849
+## 12:  2013     1     1      558            600        -2      853
+##     sched_arr_time arr_delay carrier flight tailnum origin   dest
+##              <int>     <num>  <char>  <int>  <char> <char> <char>
+##  1:            819        11      UA   1545  N14228    EWR    IAH
+##  2:            830        20      UA   1714  N24211    LGA    IAH
+##  3:            850        33      AA   1141  N619AA    JFK    MIA
+##  4:           1022       -18      B6    725  N804JB    JFK    BQN
+##  5:            837       -25      DL    461  N668DN    LGA    ATL
+##  6:            728        12      UA   1696  N39463    EWR    ORD
+##  7:            854        19      B6    507  N516JB    EWR    FLL
+##  8:            723       -14      EV   5708  N829AS    LGA    IAD
+##  9:            846        -8      B6     79  N593JB    JFK    MCO
+## 10:            745         8      AA    301  N3ALAA    LGA    ORD
+## 11:            851        -2      B6     49  N793JB    JFK    PBI
+## 12:            856        -3      B6     71  N657JB    JFK    TPA
+##     air_time distance  hour minute           time_hour
+##        <num>    <num> <num>  <num>              <POSc>
+##  1:      227     1400     5     15 2013-01-01 05:00:00
+##  2:      227     1416     5     29 2013-01-01 05:00:00
+##  3:      160     1089     5     40 2013-01-01 05:00:00
+##  4:      183     1576     5     45 2013-01-01 05:00:00
+##  5:      116      762     6      0 2013-01-01 06:00:00
+##  6:      150      719     5     58 2013-01-01 05:00:00
+##  7:      158     1065     6      0 2013-01-01 06:00:00
+##  8:       53      229     6      0 2013-01-01 06:00:00
+##  9:      140      944     6      0 2013-01-01 06:00:00
+## 10:      138      733     6      0 2013-01-01 06:00:00
+## 11:      149     1028     6      0 2013-01-01 06:00:00
+## 12:      158     1005     6      0 2013-01-01 06:00:00
 ```
 
 
@@ -4040,42 +4131,42 @@ puts ans
 ```
 
 ```
-##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##    <int> <int> <int>    <int>          <int>     <num>    <int>          <int>
-## 1:  2013     6     1        2           2359         3      341            350
-## 2:  2013     6     1      538            545        -7      925            922
-## 3:  2013     6     1      539            540        -1      832            840
-## 4:  2013     6     1      553            600        -7      700            711
-## 5:  2013     6     1      554            600        -6      851            908
-## 6:  2013     6     1      557            600        -3      934            942
-##    arr_delay carrier flight tailnum origin   dest air_time distance  hour
-##        <num>  <char>  <int>  <char> <char> <char>    <num>    <num> <num>
-## 1:        -9      B6    739  N618JB    JFK    PSE      200     1617    23
-## 2:         3      B6    725  N806JB    JFK    BQN      203     1576     5
-## 3:        -8      AA    701  N5EAAA    JFK    MIA      140     1089     5
-## 4:       -11      EV   5716  N835AS    JFK    IAD       42      228     6
-## 5:       -17      UA   1159  N33132    JFK    LAX      330     2475     6
-## 6:        -8      B6    715  N766JB    JFK    SJU      198     1598     6
-##    minute           time_hour
-##     <num>              <POSc>
-## 1:     59 2013-06-01 23:00:00
-## 2:     45 2013-06-01 05:00:00
-## 3:     40 2013-06-01 05:00:00
-## 4:      0 2013-06-01 06:00:00
-## 5:      0 2013-06-01 06:00:00
-## 6:      0 2013-06-01 06:00:00
-##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##    <int> <int> <int>    <int>          <int>     <num>    <int>          <int>
-## 1:  2013     1     1      517            515         2      830            819
-## 2:  2013     1     1      533            529         4      850            830
-##    arr_delay carrier flight tailnum origin   dest air_time distance  hour
-##        <num>  <char>  <int>  <char> <char> <char>    <num>    <num> <num>
-## 1:        11      UA   1545  N14228    EWR    IAH      227     1400     5
-## 2:        20      UA   1714  N24211    LGA    IAH      227     1416     5
-##    minute           time_hour
-##     <num>              <POSc>
-## 1:     15 2013-01-01 05:00:00
-## 2:     29 2013-01-01 05:00:00
+##     year month   day dep_time sched_dep_time dep_delay arr_time
+##    <int> <int> <int>    <int>          <int>     <num>    <int>
+## 1:  2013     6     1        2           2359         3      341
+## 2:  2013     6     1      538            545        -7      925
+## 3:  2013     6     1      539            540        -1      832
+## 4:  2013     6     1      553            600        -7      700
+## 5:  2013     6     1      554            600        -6      851
+## 6:  2013     6     1      557            600        -3      934
+##    sched_arr_time arr_delay carrier flight tailnum origin   dest
+##             <int>     <num>  <char>  <int>  <char> <char> <char>
+## 1:            350        -9      B6    739  N618JB    JFK    PSE
+## 2:            922         3      B6    725  N806JB    JFK    BQN
+## 3:            840        -8      AA    701  N5EAAA    JFK    MIA
+## 4:            711       -11      EV   5716  N835AS    JFK    IAD
+## 5:            908       -17      UA   1159  N33132    JFK    LAX
+## 6:            942        -8      B6    715  N766JB    JFK    SJU
+##    air_time distance  hour minute           time_hour
+##       <num>    <num> <num>  <num>              <POSc>
+## 1:      200     1617    23     59 2013-06-01 23:00:00
+## 2:      203     1576     5     45 2013-06-01 05:00:00
+## 3:      140     1089     5     40 2013-06-01 05:00:00
+## 4:       42      228     6      0 2013-06-01 06:00:00
+## 5:      330     2475     6      0 2013-06-01 06:00:00
+## 6:      198     1598     6      0 2013-06-01 06:00:00
+##     year month   day dep_time sched_dep_time dep_delay arr_time
+##    <int> <int> <int>    <int>          <int>     <num>    <int>
+## 1:  2013     1     1      517            515         2      830
+## 2:  2013     1     1      533            529         4      850
+##    sched_arr_time arr_delay carrier flight tailnum origin   dest
+##             <int>     <num>  <char>  <int>  <char> <char> <char>
+## 1:            819        11      UA   1545  N14228    EWR    IAH
+## 2:            830        20      UA   1714  N24211    LGA    IAH
+##    air_time distance  hour minute           time_hour
+##       <num>    <num> <num>  <num>              <POSc>
+## 1:      227     1400     5     15 2013-01-01 05:00:00
+## 2:      227     1416     5     29 2013-01-01 05:00:00
 ```
 
 
@@ -4109,83 +4200,46 @@ ans = flights[:all, E.list(R[:arr_delay], R[:dep_delay])]
 # Apache Arrow
 
 [Apache Arrow](https://arrow.apache.org/) is a **columnar** in-memory format used heavily in R
-and Python for analytics. GNU R still runs in a **separate process**. Ruby does **not** hold a
-shared Arrow C++ table with R. Stages:
+and Python for analytics. In Galaaz, **Ruby does not hold an Arrow C++ table itself**; instead you
+build ordinary Ruby structures (arrays of row hashes), and **`R::Arrow.from_ruby_batches`** creates
+a real **Arrow `Table` inside GNU R**. From there you use R’s **`arrow`** and **`dplyr`** packages
+as usual: **`group_by`** on the Arrow table, **`summarise`** for aggregates, then **`collect()`** to
+materialize a tibble when you need in-memory R rows.
 
-1. **Stage A (copy over the bridge):** Ruby row hashes → **`R::Arrow.from_ruby_batches`** builds
-   an Arrow `Table` **inside GNU R**. You get a **proxy**.
-2. **Stage B1 (Ruby → R IPC file):** **`Galaaz::ArrowIpc.write`** / **`write_batches`** writes an
-   Arrow IPC file (prefer **`/dev/shm`**); **`R::Arrow.open_ipc(path)`** opens it in R. Only the
-   **path** crosses NewBridge. This is **mmap/IPC file handoff**, not a shared heap.
-3. **Stage B2 (R → Ruby IPC file):** **`R::Arrow.write_ipc(obj)`** writes uncompressed IPC; Ruby
-   reads with **`Galaaz::ArrowIpc.read`** (column hash) or **`read_batches`** (row hashes). Call
-   **`Galaaz::ArrowIpc.release(path)`** when finished.
-4. **Stage C (not shipped):** named shared-memory bus. Do not claim 0 ms shared RAM until then.
-   See **`Documentation/ROADMAP_ARROW_RUBY_R.md`**.
+That pattern matches production use: **JRuby threads** or a **multi-process CRuby** app
+(or sequential code) assemble many rows in
+Ruby; you pay **one** bridge-heavy handoff to R; **dplyr** runs vectorised work on the Arrow table
+in R.
 
-After ingest, use R’s **`arrow`** / **`dplyr`** on the proxy (`group_by`, `summarise`, `collect`)
-and unbox only KPIs you need in Ruby.
+**Prerequisites:** install R packages **`arrow`** and **`dplyr`**. Run scripts with
+**`bin/galaaz-jruby`** (or the same JVM flags as in **`docs/testing.md`**) so the Arrow JNI stack is
+available.
 
-**Optional Ruby backends for Stage B**
+## Other `R::Arrow` helpers
 
-* **CRuby:** Apache **red-arrow** — `gem install red-arrow` pinned to the same major as
-  `pkg-config --modversion arrow-glib`, plus system **Arrow GLib** (`libarrow-glib-dev` from the
-  [Apache Arrow APT](https://arrow.apache.org/install/) repo). Do **not** install the unrelated
-  legacy Rubygems package named `arrow`. `bundle exec` still sees a user-installed `red-arrow`
-  via Galaaz’s load-path helper.
-* **JRuby:** Apache Arrow **Java** JARs — **`GALAAZ_ARROW_JARS`**, `~/arrow_jars`, or
-  `jar-dependencies`. Export **`JAVA_OPTS=--add-opens=java.base/java.nio=ALL-UNNAMED`** on the
-  **child** JVM (`bin/galaaz-jruby`, `mise.toml`). `jruby -J... -S bundle exec rspec` does **not**
-  pass `-J` to rspec.
+The Ruby module **`R::Arrow`** (see `lib/R_interface/r_arrow.rb`) also includes:
 
-**R packages:** **`arrow`** and **`dplyr`**. B2 writes IPC with **`compression: 'uncompressed'`**
-so JRuby Arrow Java can read without extra compression JARs.
-
-**Tests:** `specs/arrow_from_ruby_batches_spec.rb` (A);
-`specs/arrow_ipc_handoff_spec.rb`, `specs/arrow_ipc_export_spec.rb` (B, sync);
-`new_bridge_specs/arrow_ipc_async_spec.rb`, `new_bridge_specs/arrow_ipc_export_async_spec.rb` (B, async).
-
-## `R::Arrow` and `Galaaz::ArrowIpc`
-
-* **`R::Arrow.from_ruby_batches`** — Stage A ingest.
-* **`R::Arrow.open_ipc(path)`** — Stage B1: IPC file → R Table proxy.
-* **`R::Arrow.write_ipc(obj, path = nil)`** — Stage B2: R Table/tibble → IPC path (scratch if omitted).
-* **`Galaaz::ArrowIpc.write` / `write_batches` / `read` / `read_batches` / `allocate_path` / `release` / `available?`**
 * **`R::Arrow.table_from(df)`** — wrap an R `data.frame` / tibble as an Arrow table.
 * **`R::Arrow.read_feather` / `write_feather`**, **`read_parquet`**, **`dataset(path)`** — file and
   dataset IO on paths visible to R.
 
-## Example: Stage B round-trip (IPC file)
-
-Requires `Galaaz::ArrowIpc.available?` (red-arrow or Arrow JARs) and R **`arrow`**. Not knitted
-below so a machine without the optional backend still builds this manual.
-
-```ruby
-path = Galaaz::ArrowIpc.write(id: [1, 2, 3], grp: %w[a a b], value: [1.0, 2.0, 3.5])
-tbl  = R::Arrow.open_ipc(path)
-Galaaz::ArrowIpc.release(path)
-
-summed   = R.dplyr___summarise(R.dplyr___group_by(tbl, :grp), total: E.sum(:value))
-out_path = R::Arrow.write_ipc(summed)
-rows     = Galaaz::ArrowIpc.read_batches(out_path)
-Galaaz::ArrowIpc.release(out_path)
-# rows => [{:grp=>"a", :total=>3.0}, {:grp=>"b", :total=>3.5}]  (illustrative)
-```
-
 ## Example: many Ruby rows → Arrow in R → grouped statistics
 
 The repository test **`slow-specs/arrow_large_pipeline_spec.rb`** builds **200k rows** in parallel
-(eight threads × 25,000 rows), pushes them through **`R::Arrow.from_ruby_batches`** (Stage A), then
-checks that **dplyr** group summaries match a Ruby reference calculation. The same logic appears
-below at a **smaller scale** so this manual can knit quickly; increase `thread_count` and
-`rows_per_thread` when experimenting locally. For the same ingest **without** copying every cell
-over NewBridge, use Stage B (`write_batches` + `open_ipc`) instead of `from_ruby_batches`.
+(eight threads × 25,000 rows), pushes them through **`R::Arrow.from_ruby_batches`**, then checks that
+**dplyr** group summaries match a Ruby reference calculation. The same logic appears below at a
+**smaller scale** so this manual can knit quickly; increase `thread_count` and `rows_per_thread`
+when experimenting locally.
 
 
 ``` ruby
 # Scaled-down version of slow-specs/arrow_large_pipeline_spec.rb.
-unless R::Support.eval("requireNamespace('arrow', quietly=TRUE) && requireNamespace('dplyr', quietly=TRUE)") == true
-  puts '(Skip: need arrow + dplyr in R; use bin/galaaz-jruby outside gKnit.)'
+arrow_ok = R::Support.eval(
+  "requireNamespace('arrow', quietly=TRUE) && " +
+  "requireNamespace('dplyr', quietly=TRUE)")
+unless arrow_ok == true
+  puts '(Skip: need arrow + dplyr in R; ' +
+       'use bin/galaaz-jruby outside gKnit.)'
 else
   thread_count = 4
   rows_per_thread = 500
@@ -4228,7 +4282,9 @@ else
 
   total_n = 0
   (1..(out.nrow >> 0)).each { |i| total_n += (out[['n']][i] >> 0) }
-  puts "Sum of group counts n (should equal #{thread_count * rows_per_thread}): #{total_n}"
+  puts "Sum of group counts n " +
+       "(should equal #{thread_count * rows_per_thread}): " +
+       "#{total_n}"
 end
 ```
 
@@ -4244,11 +4300,13 @@ end
 ## Sum of group counts n (should equal 2000): 2000
 ```
 
-**What to notice:** (1) Ruby only sees **`Hash`** rows and Ruby **`Thread`** objects; (2) a single
-**`from_ruby_batches`** call **copies** those columns into an Arrow table in R; (3) **`dplyr___group_by`** /
-**`dplyr___summarise`** / **`dplyr___collect`** mirror **`dplyr::group_by`** /
-**`dplyr::summarise`** / **`dplyr::collect`** on an Arrow-backed table. For a lighter test, see
-**`specs/arrow_from_ruby_batches_spec.rb`**; for the full-size Stage A benchmark, run
+**What to notice:** (1) Ruby only sees **`Hash`** rows and Ruby **`Thread`** objects;
+(2) a single **`from_ruby_batches`** call creates the Arrow table in R;
+(3) **`dplyr___group_by`** / **`dplyr___summarise`** / **`dplyr___collect`**
+mirror **`dplyr::group_by`** / **`dplyr::summarise`** / **`dplyr::collect`**
+on an Arrow-backed table. For a lighter test, see
+**`specs/arrow_from_ruby_batches_spec.rb`**;
+for the full-size benchmark, run
 **`bin/run_slow_rspec slow-specs/arrow_large_pipeline_spec.rb`**.
 
 # Bioconductor and DESeq2
@@ -4277,8 +4335,10 @@ The script **`examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb`** is 
 version in the repository. Run it from the **Galaaz repository root** with either engine, for example:
 
 ```text
-bin/galaaz-ruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
-# or: bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+bin/galaaz-ruby \
+  examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+# or: bin/galaaz-jruby \
+#   examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
 ```
 
 The workflow in Ruby mirrors a standard DESeq2 vignette:
@@ -4306,7 +4366,8 @@ manual is knitted, because **DESeq2** is heavy and may be absent on the build ma
 
 
 ``` ruby
-# Canonical script: examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+# Canonical script:
+# examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
 # Run: bin/galaaz-ruby examples/.../deseq2_airway_galaaz.rb (repo root).
 
 require 'galaaz'
@@ -4333,7 +4394,8 @@ puts "Samples: #{R.ncol(dds)}"
 puts "Genes after prefilter: #{R.nrow(dds)}"
 puts "Result rows: #{R.nrow(res)}"
 puts "Result columns: #{R.colnames(res)}"
-puts "Significant genes (padj < 0.05): #{R.sum(res.padj < 0.05, na__rm: true)}"
+puts "Significant genes (padj < 0.05): " +
+     "#{R.sum(res.padj < 0.05, na__rm: true)}"
 
 res_ordered = res[R.order(res.padj), :all]
 puts R.head(R.as__data__frame(res_ordered), 10)
@@ -4349,8 +4411,12 @@ preview (it does **not** run **`DESeq`** so the manual knits quickly).
 
 
 ``` ruby
-unless R::Support.eval("requireNamespace('DESeq2', quietly=TRUE) && requireNamespace('airway', quietly=TRUE)")
-  puts '(Skip: install DESeq2 and airway via BiocManager in R to run the full example.)'
+deseq_ok = R::Support.eval(
+  "requireNamespace('DESeq2', quietly=TRUE) && " +
+  "requireNamespace('airway', quietly=TRUE)")
+unless deseq_ok
+  puts '(Skip: install DESeq2 and airway via ' +
+       'BiocManager in R for the full example.)'
 else
   R.library('DESeq2')
   R.library('airway')
@@ -4365,14 +4431,14 @@ end
 ```
 ## airway object (head of assay / dims via R):
 ## ncol(samples): [1] 8
-##                 SRR1039508 SRR1039509 SRR1039512 SRR1039513 SRR1039516
-## ENSG00000000003        679        448        873        408       1138
-## ENSG00000000005          0          0          0          0          0
-## ENSG00000000419        467        515        621        365        587
-##                 SRR1039517 SRR1039520 SRR1039521
-## ENSG00000000003       1047        770        572
-## ENSG00000000005          0          0          0
-## ENSG00000000419        799        417        508
+##                 SRR1039508 SRR1039509 SRR1039512 SRR1039513
+## ENSG00000000003        679        448        873        408
+## ENSG00000000005          0          0          0          0
+## ENSG00000000419        467        515        621        365
+##                 SRR1039516 SRR1039517 SRR1039520 SRR1039521
+## ENSG00000000003       1138       1047        770        572
+## ENSG00000000005          0          0          0          0
+## ENSG00000000419        587        799        417        508
 ```
 
 # Performance
@@ -4387,9 +4453,8 @@ Practical tips:
   glue.
 * **Reuse one process**: running many short scripts cold-starts Ruby, the JVM, and R each time;
   a long-lived process or repeated calls in one run amortize setup (see benchmarks below).
-* **Batch data**: merge shards in Ruby, then **`R::Arrow.from_ruby_batches`** (Stage A) or
-  **`Galaaz::ArrowIpc`** + **`R::Arrow.open_ipc`** (Stage B) instead of millions of tiny R calls.
-  When Ruby needs a bulky result table back, **`R::Arrow.write_ipc`** + **`Galaaz::ArrowIpc.read_batches`**.
+* **Batch data**: merge shards in Ruby, then call **`R::Arrow.from_ruby_batches`** (or build one
+  data frame) instead of millions of tiny R calls.
 
 For measured discussion (including DESeq2-style workloads and warm comparisons), see
 **`docs/performance.md`** and **`docs/deseq2_airway_benchmark.md`** in the Galaaz repository.
@@ -4426,20 +4491,20 @@ puts mtcars.head
 ```
 
 ```
-##                      mpg cyl disp  hp drat    wt  qsec vs am gear carb
-## Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
-## Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
-## Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
-## Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
-## Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
-## Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8
-##                                car_name mpg_z mpg_type
-## Cadillac Fleetwood   Cadillac Fleetwood -1.61    below
-## Lincoln Continental Lincoln Continental -1.61    below
-## Camaro Z28                   Camaro Z28 -1.13    below
-## Duster 360                   Duster 360 -0.96    below
-## Chrysler Imperial     Chrysler Imperial -0.89    below
-## Maserati Bora             Maserati Bora -0.84    below
+##                      mpg cyl disp  hp drat    wt  qsec vs am gear
+## Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3
+## Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3
+## Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3
+## Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3
+## Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3
+## Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5
+##                     carb            car_name mpg_z mpg_type
+## Cadillac Fleetwood     4  Cadillac Fleetwood -1.61    below
+## Lincoln Continental    4 Lincoln Continental -1.61    below
+## Camaro Z28             4          Camaro Z28 -1.13    below
+## Duster 360             4          Duster 360 -0.96    below
+## Chrysler Imperial      4   Chrysler Imperial -0.89    below
+## Maserati Bora          8       Maserati Bora -0.84    below
 ```
 Now, let's plot the diverging bar plot.  When using gKnit, you normally do **not** need to open a
 graphics device manually; gKnit arranges the figure device for chunk output. Galaaz 
@@ -4461,13 +4526,17 @@ but in this graph we want the bars to be horizontally laid so we add 'coord\_fli
 ``` ruby
 require 'ggplot'
 
-puts mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
-     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
-     R.scale_fill_manual(name: 'Mileage',
-                         labels: R.c('Above Average', 'Below Average'),
-                         values: R.c('above': '#00ba38', 'below': '#f8766d')) +
+puts mtcars.ggplot(
+       E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
+     R.geom_bar(E.aes(fill: :mpg_type),
+                stat: 'identity', width: 0.5) +
+     R.scale_fill_manual(
+       name: 'Mileage',
+       labels: R.c('Above Average', 'Below Average'),
+       values: R.c('above': '#00ba38',
+                   'below': '#f8766d')) +
      R.labs(subtitle: "Normalised mileage from 'mtcars'",
-            title: "Diverging Bars") + 
+            title: "Diverging Bars") +
      R.coord_flip
 ```
 
@@ -4590,7 +4659,8 @@ In Galaaz the method mutate_y below will work fine and will never fail silently.
 
 ``` ruby
 def mutate_y(df)
-  # Mutate column names are Ruby kwargs (y: …). Use .assign only for R `<-` expressions.
+  # Column names are Ruby kwargs (y: …).
+  # Use .assign only for R `<-` expressions.
   df.mutate(y: R[:a] + R[:x])
 end
 ```
@@ -4616,10 +4686,16 @@ definition of 'mutate\_y' above:
 
 ``` ruby
 a = 10
-mutate_y(df1)
+begin
+  mutate_y(df1)
+rescue => e
+  puts e.class.to_s
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
+## NewBridge::SessionClient::RProcessError
 ## Error: ℹ In argument: `y = a + x`.
 ## Caused by error:
 ## ! object 'a' not found
@@ -4966,16 +5042,16 @@ puts (~R[:starwars]).head
 
 ```
 ## # A tibble: 6 × 14
-##   name      height  mass hair_color skin_color eye_color birth_year sex   gender
-##   <chr>      <int> <dbl> <chr>      <chr>      <chr>          <dbl> <chr> <chr> 
-## 1 Luke Sky…    172    77 blond      fair       blue            19   male  mascu…
-## 2 C-3PO        167    75 <NA>       gold       yellow         112   none  mascu…
-## 3 R2-D2         96    32 <NA>       white, bl… red             33   none  mascu…
-## 4 Darth Va…    202   136 none       white      yellow          41.9 male  mascu…
-## 5 Leia Org…    150    49 brown      light      brown           19   fema… femin…
-## 6 Owen Lars    178   120 brown, gr… light      blue            52   male  mascu…
-## # ℹ 5 more variables: homeworld <chr>, species <chr>, films <list>,
-## #   vehicles <list>, starships <list>
+##   name   height  mass hair_color skin_color eye_color birth_year sex  
+##   <chr>   <int> <dbl> <chr>      <chr>      <chr>          <dbl> <chr>
+## 1 Luke …    172    77 blond      fair       blue            19   male 
+## 2 C-3PO     167    75 <NA>       gold       yellow         112   none 
+## 3 R2-D2      96    32 <NA>       white, bl… red             33   none 
+## 4 Darth…    202   136 none       white      yellow          41.9 male 
+## 5 Leia …    150    49 brown      light      brown           19   fema…
+## 6 Owen …    178   120 brown, gr… light      blue            52   male 
+## # ℹ 6 more variables: gender <chr>, homeworld <chr>, species <chr>,
+## #   films <list>, vehicles <list>, starships <list>
 ```
 The grouped_mean function below will receive a grouping variable and calculate summaries for
 the value\_variables given:
@@ -5004,8 +5080,8 @@ gm = starwars %>%
 ## # Auto named with `tibble::lst()`: tibble::lst(mean, median)
 ## 
 ## # Using lambdas list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))
-## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-## generated.
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning
+## was generated.
 ```
 
 ``` r
@@ -5039,11 +5115,19 @@ def grouped_mean(data, grouping_variables, value_variables)
   data.
     group_by_at(grouping_variables).
     mutate(count: E.n).
-    summarise_at(E.c(value_variables, "count"), ~R[:mean], na__rm: true).
-    rename_at(value_variables, E.funs(E.paste0("mean_", value_variables)))
+    summarise_at(
+      E.c(value_variables, "count"),
+      ~R[:mean],
+      na__rm: true).
+    rename_at(
+      value_variables,
+      E.funs(E.paste0("mean_", value_variables)))
 end
 
-puts grouped_mean((~R[:starwars]), "eye_color", E.c("mass", "birth_year"))
+puts grouped_mean(
+  (~R[:starwars]),
+  "eye_color",
+  E.c("mass", "birth_year"))
 ```
 
 ```
@@ -5077,7 +5161,7 @@ arguments.
 * Fork it
 * Create your feature branch (`git checkout -b my-new-feature`)
 * Write tests — use **`bin/run_rspec`** or **`bin/run_all_rspec`** (JRuby or CRuby via
-  **`GALAAZ_RUBY`**) so JVM flags and the load path match **`docs/testing.md`**
+  **`GALAAZ_RUBY`**) so the load path matches **`docs/testing.md`**
 * Commit your changes (`git commit -am 'Add some feature'`)
 * Push to the branch (`git push origin my-new-feature`)
 * Open a pull request

@@ -12,6 +12,7 @@ output:
   pdf_document:
     includes:
       in_header: ["../../sty/galaaz.sty"]
+    keep_tex: yes
     number_sections: yes
     toc: true
     toc_depth: 2
@@ -23,6 +24,7 @@ fontsize: 11pt
 ```{r setup, echo=FALSE, message = FALSE}
 #R.options(crayon__enabled: false)
 options(crayon.enabled = FALSE)
+options(width = 70)
 library('dplyr')
 library('tibble')
 ```
@@ -207,8 +209,13 @@ The code below creates an expression summing two symbols. Note that :a and :b ar
 are not bound to any values at the time of expression definition:
 
 ```{ruby expressions}
-exp1 = :a + :b
-puts exp1
+begin
+  exp1 = :a + :b
+  puts exp1
+rescue => e
+  # Bare Symbol#+ is not expression sugar in Galaaz 2.0; short error for PDF.
+  puts "#{e.class}: #{e.message}"
+end
 ```
 In Galaaz, we can build any complex mathematical expression such as:
 
@@ -514,7 +521,8 @@ In Galaaz the method mutate_y below will work fine and will never fail silently.
 
 ```{ruby mutate_y, warning=FALSE}
 def mutate_y(df)
-  # Mutate column names are Ruby kwargs (y: …). Use .assign only for R `<-` expressions.
+  # Column names are Ruby kwargs (y: …).
+  # Use .assign only for R `<-` expressions.
   df.mutate(y: R[:a] + R[:x])
 end
 ```
@@ -531,7 +539,12 @@ definition of 'mutate\_y' above:
 
 ```{ruby call_mutate_y, warning = FALSE}
 a = 10
-mutate_y(df1)
+begin
+  mutate_y(df1)
+rescue => e
+  # Short message only — full backtraces overflow PDF code boxes.
+  puts "#{e.class}: #{e.message}"
+end
 ```
 ## Different expressions
 
@@ -794,11 +807,19 @@ def grouped_mean(data, grouping_variables, value_variables)
   data.
     group_by_at(grouping_variables).
     mutate(count: E.n).
-    summarise_at(E.c(value_variables, "count"), R[:mean], na__rm: true).
-    rename_at(value_variables, E.funs(E.paste0("mean_", value_variables)))
+    summarise_at(
+      E.c(value_variables, "count"),
+      R[:mean],
+      na__rm: true).
+    rename_at(
+      value_variables,
+      E.funs(E.paste0("mean_", value_variables)))
 end
 
-puts grouped_mean((~R[:starwars]), "eye_color", E.c("mass", "birth_year"))
+puts grouped_mean(
+  (~R[:starwars]),
+  "eye_color",
+  E.c("mass", "birth_year"))
 ```
 
 # Further reading

@@ -221,11 +221,29 @@ blogs.each do |dir|
 end
 
 #===========================================================================================
+# Release helpers: keep version.rb and Gemfile.lock in sync (CI frozen install)
+#===========================================================================================
+
+namespace :release do
+  desc 'Fail if version.rb does not match the PATH galaaz version in Gemfile.lock'
+  task :check do
+    ruby 'bin/check_gemfile_lock_version'
+  end
+
+  desc 'Set version.rb to VERSION=x.y.z and refresh Gemfile.lock (bundle lock)'
+  task :bump do
+    new_ver = ENV['VERSION'].to_s.strip
+    abort 'Usage: rake release:bump VERSION=x.y.z' if new_ver.empty?
+    ruby 'bin/release_bump', new_ver
+  end
+end
+
+#===========================================================================================
 # Makes a gem for publishing in RubyGems
 #===========================================================================================
 
 desc 'Makes a Gem'
-task :make_gem do
+task :make_gem => 'release:check' do
   (sh %{ gem build #{$gem_name}.gemspec })
 end
 
@@ -234,7 +252,7 @@ end
 #===========================================================================================
 
 desc 'Publish gem to rubygems'
-task :publish_gem do
+task :publish_gem => 'release:check' do
   (sh %{ gem push #{$gem_name}-#{$version}.gem })
 end
 

@@ -5,15 +5,16 @@ language, with a large community, a very large set of libraries and
 great for web development. However, it lacks libraries for data science,
 statistics, scientific plotting and machine learning. On the other hand,
 R is considered one of the most powerful languages for solving all of
-the above problems. Maybe the strongest competitor to R is Python with
-libraries such as NumPy, Panda, SciPy, SciKit-Learn and a couple more.
+the above problems. **Python** is a strong competitor: NumPy, pandas,
+SciPy, and scikit-learn are widely used examples among **many
+thousands** of packages on PyPI for numerical and ML work.
 
 With Galaaz we do not intend to re-implement any of the scientific
 libraries in R; we allow for very tight coupling between the two
 languages to the point that the Ruby developer does not need to think
 about R syntax for every call. **Galaaz 2.0** does this with
-**[JRuby](https://www.jruby.org/)** or **CRuby** and **GNU R**: a **bridge**
-evaluates R from Ruby and exchanges data between processes.
+**[JRuby](https://www.jruby.org/)** or **CRuby** and **GNU R**: a
+**bridge** evaluates R from Ruby and exchanges data between processes.
 
 An **earlier** Galaaz prototype used Oracle’s **GraalVM** with
 **TruffleRuby** and **FastR** in one JVM. That stack is **historical**;
@@ -56,9 +57,9 @@ but could be installed prior to the demo if desired:
 - ggplot2
 - gridExtra
 
-Installation of R packages requires a development environment. In Linux,
-the gnu compiler and tools should be enough. I am not sure what is
-needed on the Mac.
+Installation of R packages requires a development environment. On Linux,
+a typical build toolchain (GCC, headers) is usually enough. On macOS,
+Apple’s **Xcode Command Line Tools** are commonly required.
 
 In order to run the ‘specs’ the following Ruby package is necessary:
 
@@ -70,33 +71,32 @@ In order to run the ‘specs’ the following Ruby package is necessary:
 
 ## Running the demo
 
-The ggplot for this demos was extracted from:
+The ggplot examples for this demo were adapted from:
 <http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html>.
 
-On the console do
+At the shell, from a suitable Galaaz environment:
 
-    > galaaz master_list:scatter_plot
+    galaaz master_list:scatter_plot
 
 ## Running other demos
 
-Doing on the console
+Running
 
-    > galaaz -T
+    galaaz -T
 
-will show a list with all available demos. To run any of the demos in
-the list, substitute the call to ‘rake’ to ‘galaaz’. For instance, one
-of the examples in the list is ‘rake sthda:bar’. In order to run this
-example just do ‘galaaz sthda:bar’. Doing ‘galaaz sthda:all’ will run
-all demos in the sthda cathegory. Some of the examples require ‘rspec’
-do be available. To install ‘rspec’ just do ‘gem install rspec’.
+lists available demo tasks. To run a demo, use **`galaaz`** where you
+would otherwise invoke **`rake`**. For example, if the list shows
+`rake sthda:bar`, run `galaaz sthda:bar`. To run every demo in the
+**sthda** category, use `galaaz sthda:all`. Some examples require
+**rspec**; install it with `gem install rspec`.
 
 # The demo code
 
 The following is the Ruby code and plot for the above example. There is
-a small difference between the code in the example and the code bellow.
-If the example is ran, the plot will appear on the screen, bellow, we
-generate an ‘svg’ image and then include it in this document. In order
-to generate and image, the R.svg device is used. To generate the plot on
+a small difference between the code in the example and the code below.
+If the example is **run**, the plot will appear on the screen; below, we
+generate an SVG image and then include it in this document. In order to
+generate and image, the R.svg device is used. To generate the plot on
 the screen, use the R.awt device, as commented on the code.
 
 ``` ruby
@@ -192,38 +192,43 @@ notation and the preferred color is blue.
 ``` ruby
 # corp_theme.rb
 # defines the corporate theme for all plots
-    
+
 module CorpTheme
 
-  #---------------------------------------------------------------------------------
-  # Defines the plot theme (visualization).  In this theme we remove major and minor
-  # grids, borders and background.  We also turn-off scientific notation.
-  #---------------------------------------------------------------------------------
-  
+  # ---------------------------------------------------------------
+  # Plot theme: no major/minor grids, borders, or background;
+  # turn off scientific notation.
+  # ---------------------------------------------------------------
+
   def self.global_theme
-    
+
     R.options(scipen: 999)  # turn-off scientific notation like 1e+48
-    
+
     # remove major grids
-    global_theme = R.theme(panel__grid__major: E.element_blank())
+    global_theme =
+      R.theme(panel__grid__major: E.element_blank())
     # remove minor grids
-    global_theme = global_theme + R.theme(panel__grid__minor: E.element_blank)
+    global_theme = global_theme +
+      R.theme(panel__grid__minor: E.element_blank)
     # remove border
-    global_theme = global_theme + R.theme(panel__border: E.element_blank)
+    global_theme = global_theme +
+      R.theme(panel__border: E.element_blank)
     # remove background
-    global_theme = global_theme + R.theme(panel__background: E.element_blank)
+    global_theme = global_theme +
+      R.theme(panel__background: E.element_blank)
     # Change axis font
     global_theme = global_theme +
-                   R.theme(axis__text: E.element_text(size: 8, color: "#000080"))
+      R.theme(axis__text: E.element_text(
+                size: 8, color: "#000080"))
     # change color of axis titles
     global_theme = global_theme +
-                   R.theme(axis__title: E.element_text(
-                             color: "#000080", 
-                             face: "bold",
-                             size: 8,
-                             hjust: 1))
+      R.theme(axis__title: E.element_text(
+                color: "#000080",
+                face: "bold",
+                size: 8,
+                hjust: 1))
   end
-   
+
 end
 ```
 
@@ -232,7 +237,7 @@ We now define a ScatterPlot class:
 ``` ruby
 # ScatterPlot.rb
 # creates a scatter plot and allow some configuration
-    
+
 class ScatterPlot
 
   attr_accessor :title
@@ -240,55 +245,55 @@ class ScatterPlot
   attr_accessor :caption
   attr_accessor :x_label
   attr_accessor :y_label
-  
-  #---------------------------------------------------------------------------------
+
+  # ---------------------------------------------------------------
   # Initialize the plot with the data and the x and y variables
-  #---------------------------------------------------------------------------------
+  # ---------------------------------------------------------------
 
   def initialize(data, x:, y:)
     @data = data
     @x = x
     @y = y
   end
-  
-  #---------------------------------------------------------------------------------
+
+  # ---------------------------------------------------------------
   # Define groupings by color and size
-  #---------------------------------------------------------------------------------
+  # ---------------------------------------------------------------
 
   def group_by(color:, size:)
     @color_by = color
     @size_by = size
   end
 
-  #---------------------------------------------------------------------------------
-  # Add a smoothing line, and if confidence is true the add a confidence interval, if
-  # false does not add the confidence interval
-  #---------------------------------------------------------------------------------
+  # ---------------------------------------------------------------
+  # Add a smoothing line; confidence: true draws a CI band.
+  # ---------------------------------------------------------------
 
   def add_smoothing_line(method:, confidence: true)
     @method = method
     @confidence = confidence
   end
-  
-  #---------------------------------------------------------------------------------
-  # Creates the graph title, properly formated for this theme
-  # @param title [String] The title to add to the graph
-  # @return textGrob that can be included in a graph
-  #---------------------------------------------------------------------------------
 
-  def graph_params(title: "", subtitle: "", caption: "", x_label: "", y_label: "")
+  # ---------------------------------------------------------------
+  # Graph title / labels, formatted for this theme.
+  # @param title [String] title to add to the graph
+  # @return labs() result that can be included in a graph
+  # ---------------------------------------------------------------
+
+  def graph_params(title: "", subtitle: "", caption: "",
+                   x_label: "", y_label: "")
     R.labs(
-      title: title, 
-      subtitle: subtitle, 
+      title: title,
+      subtitle: subtitle,
       caption: caption,
-      y_label: y_label, 
-      x_label: x_label, 
+      y_label: y_label,
+      x_label: x_label,
     )
   end
 
-  #---------------------------------------------------------------------------------
+  # ---------------------------------------------------------------
   # Prepare the plot's points
-  #---------------------------------------------------------------------------------
+  # ---------------------------------------------------------------
 
   def points
     params = {}
@@ -296,28 +301,27 @@ class ScatterPlot
     params[:size] = @size_by if @size_by
     R.geom_point(E.aes(params))
   end
-      
-  #---------------------------------------------------------------------------------
+
+  # ---------------------------------------------------------------
   # Plots the scatterplot
-  #---------------------------------------------------------------------------------
+  # ---------------------------------------------------------------
 
   def plot
     gg = @data.ggplot(E.aes(x: @x, y: @y)) +
-      points + 
+      points +
       R.geom_smooth(method: @method, se: @confidence) +
       R.xlim(R.c(0, 0.1)) +
-      R.ylim(R.c(0, 500000)) + 
+      R.ylim(R.c(0, 500000)) +
       graph_params(title: @title,
-                   subtitle: @subtitle, 
-                   y_label: @y_label, 
-                   x_label: @x_label, 
+                   subtitle: @subtitle,
+                   y_label: @y_label,
+                   x_label: @x_label,
                    caption: @caption) +
       CorpTheme.global_theme
 
     puts gg
-    
   end
-  
+
 end
 ```
 
@@ -334,9 +338,10 @@ sp.subtitle = "Area Vs Population"
 sp.caption = "Source: midwest"
 sp.x_label = "Area"
 sp.y_label = "Population"
-sp.group_by(color: :state, size: :popdensity)    # try sp.group_by(color: :state)
+# try: sp.group_by(color: :state)
+sp.group_by(color: :state, size: :popdensity)
 # available methods: "lm", "glm", "loess", "gam"
-sp.add_smoothing_line(method: "glm") 
+sp.add_smoothing_line(method: "glm")
 sp.plot
 ```
 
@@ -347,9 +352,10 @@ sp.plot
 R is a very powerful language for statistical analysis, data analytics,
 machine learning, plotting and many other scientific applications with a
 very large package ecosystem. However R is often considered hard to
-learn and lacking modern computer languages constructs such as object
-oriented classes, modules, lambdas, etc. For this reason, many
-developers have started or switched from R to Python.
+learn and lacking modern language features such as object-oriented
+classes, modules, and first-class functions. For that reason, many teams
+have standardized on Python (or stayed entirely inside R) rather than
+mixing ecosystems.
 
 With Galaaz, R programmers can almost transparently migrate from R to
 Ruby, since syntax is almost identical and **GNU R** remains the engine
@@ -359,6 +365,7 @@ nicely complement R packages.
 
 For the Ruby developer, Galaaz allows the immediate use of R functions
 with minimal ceremony. As shown in the second example above, class
-`ScatterPlot` hides most R call details from the Ruby developer.
-Prefer **JRuby** when you want **real parallel threads** on the Ruby side and access
-to the JVM ecosystem; **CRuby** works equally for the Galaaz bridge itself.
+`ScatterPlot` hides most R call details from the Ruby developer. Prefer
+**JRuby** when you want **real parallel threads** on the Ruby side and
+access to the JVM ecosystem; **CRuby** works equally for the Galaaz
+bridge itself.

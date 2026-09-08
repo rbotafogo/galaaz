@@ -25,10 +25,12 @@ fontsize: 11pt
 ---
 
 ```{ruby setup, echo=FALSE}
-# Bridge default is 60s; some chunks (Arrow, large dplyr pipes) need more.
+# Bridge default 60s; Arrow/dplyr pipes may need more.
 ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] ||= '300'
+# Writable jobs dir for R::Job demos when knitting (avoid Permission denied).
+ENV['GALAAZ_JOBS_DIR'] ||= File.join(Dir.tmpdir, 'galaaz_jobs_manual')
 
-R.options(crayon__enabled: false)
+R.options(crayon__enabled: false, width: 70)
 R.install_and_loads('kableExtra')
 ```
 
@@ -126,15 +128,20 @@ JRuby (`bin/galaaz_jruby_env.inc.sh` / `lib/galaaz_jruby.rb`). **`bin/galaaz-jru
 
 ```{r bin-tables-helper, echo=FALSE}
 bin_tbl <- function(df) {
-  k <- knitr::kable(df, row.names = FALSE, booktabs = TRUE, linesep = "",
-                    col.names = c("Script", "Role", "2.0?"))
+  k <- knitr::kable(
+    df, row.names = FALSE, booktabs = TRUE, linesep = "",
+    col.names = c("Script", "Role", "2.0?"))
   if (knitr::is_latex_output()) {
-    k <- kableExtra::kable_styling(k, font_size = 9, latex_options = "scale_down")
+    k <- kableExtra::kable_styling(
+      k, font_size = 9, latex_options = "scale_down")
     k <- kableExtra::column_spec(k, 1, width = "2.5cm")
     k <- kableExtra::column_spec(k, 2, width = "9.5cm")
     k <- kableExtra::column_spec(k, 3, width = "2.8cm")
   } else {
-    k <- kableExtra::kable_styling(k, bootstrap_options = c("striped", "condensed"), full_width = TRUE)
+    k <- kableExtra::kable_styling(
+      k,
+      bootstrap_options = c("striped", "condensed"),
+      full_width = TRUE)
   }
   k
 }
@@ -142,11 +149,13 @@ bin_tbl <- function(df) {
 
 ```{r bin-tables-bootstrap, echo=FALSE}
 df_boot <- data.frame(
-  Script = c("galaaz-bootstrap", "galaaz-jruby", "galaaz_jruby_env.inc.sh", "install-tinytex"),
+  Script = c(
+    "galaaz-bootstrap", "galaaz-jruby",
+    "galaaz_jruby_env.inc.sh", "install-tinytex"),
   Role = c(
-    "WSL2 helper: Docker checks; optional TinyTeX or poppler for gKnit PDF.",
-    "JRuby with repo lib/ on LOAD_PATH and required JVM flags (e.g. Arrow).",
-    "Sourced by bash wrappers; sets GALAAZ_REQUIRED_JRUBY_J_ARGS.",
+    "WSL2 helper: Docker checks; optional TinyTeX/poppler.",
+    "JRuby with repo lib/ on LOAD_PATH and JVM flags.",
+    "Sourced by bash wrappers; sets JRUBY_J_ARGS.",
     "Install TinyTeX for PDF output."
   ),
   X2 = c("Yes*", "Yes", "Yes†", "Yes"),
@@ -189,7 +198,7 @@ df_gk <- data.frame(
   Script = c("gknit", "gknit-draft", "gknit-draft.rb", "gknit_Rscript"),
   Role = c(
     "Knit .Rmd via JRuby and R Markdown render.",
-    "Drafts from rticles-style templates; wrapper still uses legacy polyglot ruby.",
+    "Drafts from rticles templates; legacy polyglot wrapper.",
     "Ruby entry: GKnit.draft (use with JRuby + LOAD_PATH).",
     "Polyglot Rscript launcher; hard-coded LOAD_PATH sample."
   ),
@@ -199,7 +208,9 @@ df_gk <- data.frame(
 bin_tbl(df_gk)
 ```
 
-**`gknit` CLI** (see `gknit -h`): `--output_format`, `--output_file`, `--output_dir`, `--bridge_timeout_sec`, `--callback_timeout_ms`. If `--output_format` is omitted, the **first** YAML `output:` target wins.
+**`gknit` CLI** (see `gknit -h`): `--output_format`, `--output_file`,
+`--output_dir`, `--bridge_timeout_sec`, `--callback_timeout_ms`.
+If `--output_format` is omitted, the **first** YAML `output:` target wins.
 
 Prefer **`galaaz-jruby`** for **`gknit-draft`** workflows until that wrapper matches the **`gknit`** stack.
 
@@ -207,10 +218,12 @@ Prefer **`galaaz-jruby`** for **`gknit-draft`** workflows until that wrapper mat
 
 ```{r bin-tables-tests, echo=FALSE}
 df_ts <- data.frame(
-  Script = c("run_rspec", "run_all_rspec", "run_slow_rspec", "run_old_rspec", "run_rspec_subset"),
+  Script = c(
+    "run_rspec", "run_all_rspec", "run_slow_rspec",
+    "run_old_rspec", "run_rspec_subset"),
   Role = c(
     "Top-level specs/*_spec.rb with spec_helper (see docs/testing.md).",
-    "Compile ext/new_bridge; run specs/ and new_bridge_specs/ together.",
+    "Compile ext/new_bridge; run specs/ and new_bridge_specs/.",
     "Suites under slow-specs/ (read script header for spec_helper).",
     "Legacy suites under old_specs/.",
     "Numbered subset 1–18 (Documentation/Spec_Subsets.md)."
@@ -227,7 +240,7 @@ bin_tbl(df_ts)
 df_ot <- data.frame(
   Script = c("grun", "gstudio_irb.rb / gstudio_pry.rb"),
   Role = c(
-    "Graal-era launcher: polyglot ruby with --jvm. Use galaaz-jruby -S instead.",
+    "Graal-era launcher: polyglot ruby --jvm; prefer galaaz-jruby.",
     "Loaded by gstudio; not meant to be run standalone."
   ),
   X2 = c("No", "Yes"),
@@ -268,8 +281,9 @@ The supported install is **`gem install` + compile the gatekeeper**. You do not 
 4. Compile the native gatekeeper from the installed gem:
 
    ```
-   gem_dir="$(ruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
-   # under JRuby: gem_dir="$(jruby -e "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+   gem_dir="$(ruby -e \
+     "puts Gem::Specification.find_by_name('galaaz').full_gem_path")"
+   # under JRuby: use jruby -e instead of ruby -e
    make -C "${gem_dir}/ext/new_bridge" all
    ```
 
@@ -283,16 +297,18 @@ A **table of all `bin/` scripts** (bootstrap, Ruby launcher, gstudio, gknit, tes
 
 1. Install **bundler** if needed, then run **`bundle install`** with your chosen Ruby
    (`jruby -S bundle install` or CRuby `bundle install`) in the repository root.
-2. Build the bridge native code: **`make -C ext/new_bridge all`** (or **`rake compile_gatekeeper`**).
+2. Build the bridge native code: **`make -C ext/new_bridge all`**
+   (or **`rake compile_gatekeeper`**).
 3. Run scripts with **`bin/galaaz-ruby`** (uses `ruby` on `PATH`; set **`GALAAZ_RUBY=jruby`** or
    **`GALAAZ_RUBY=ruby`** to force an engine). Spec runners: **`bin/run_rspec`** /
    **`bin/run_all_rspec`** (same `GALAAZ_RUBY` rule). **`bin/galaaz-jruby`** remains a thin
    wrapper that forces JRuby.
 
 A **gstudio** try image with Galaaz already installed is available for both engines:
-**JRuby** — `docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio` (or
-`./docker/try-gstudio/run.sh` from a checkout); **CRuby** —
-`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:cruby` (or `./docker/try-cruby/run.sh`).
+**JRuby** — `docker run --rm -it ghcr.io/rbotafogo/galaaz-try:gstudio`
+(or `./docker/try-gstudio/run.sh` from a checkout); **CRuby** —
+`docker run --rm -it ghcr.io/rbotafogo/galaaz-try:cruby`
+(or `./docker/try-cruby/run.sh`).
 Maintainers can prove a RubyGems install on a throwaway Ubuntu machine (no repo inside
 the container) with `./docker/cold-install/run.sh published-specs` (JRuby) or
 `./docker/cold-install-cruby/run.sh published-specs` (CRuby).
@@ -331,7 +347,8 @@ WSL integration is enabled for the distro where Galaaz is installed.
   vec = R.c(1, 2, 3, 4)
   puts vec
 
-  # R.foo(...) calls an R *function*. Datasets are objects — fetch with ~:
+  # R.foo(...) calls an R *function*. Datasets are objects — fetch with
+  # ~:
   df = ~R[:mtcars]
   puts R.summary(df)
 ```
@@ -408,8 +425,9 @@ For R work that can take a long time **on the bridge**, the bridge can avoid a R
   **`R.<rname>`**. Optional keyword **`timeout:`** applies a Ruby-side wait limit (completion receives
   **`NewBridge::SessionClient::TimeoutError`** if R is too slow).
 
-**Important:** **`R.foo(...) { |x| }`** is already used for dplyr-style scopes (`R::Support.new_scope`),
-so async R calls must use **`R::Async`** or **`R.eval_r_async`**, not a bare **`R.foo` with a block.**
+**Important:** **`R.foo(...) { |x| }`** is already used for dplyr-style
+scopes (`R::Support.new_scope`), so async R calls must use **`R::Async`**
+or **`R.eval_r_async`**, not a bare **`R.foo` with a block.**
 
 `NewBridge::EvalResult` exposes **`#ok?`**, **`#value`**, and **`#error`**. The completion block runs on a
 **background thread** (not the bridge reader thread).
@@ -425,9 +443,11 @@ completion = Queue.new
 
 R.eval_r_async('({ Sys.sleep(0.3); 42L })', timeout: nil) do |result|
   if result.ok?
-    puts "[completion] R finished; eval_r-style value: #{result.value.inspect}"
+    puts "[completion] R finished; value: " +
+         "#{result.value.inspect}"
   else
-    puts "[completion] R/bridge error: #{result.error.class}: #{result.error.message}"
+    puts "[completion] R/bridge error: " +
+         "#{result.error.class}: #{result.error.message}"
   end
   completion.push(:done)
 end
@@ -466,7 +486,8 @@ finishes** (default: no wall-clock limit). Optional limit: `GALAAZ_INSTALL_TIMEO
 Only one install runs at a time (`install.lock`).
 
 ```{ruby r_job_install_note, eval=FALSE}
-# May take a long time the first time (e.g. caret); the bridge is not used for compile.
+# May take a long time the first time (e.g. caret); the bridge is not
+# used for compile.
 R.install_and_loads 'caret'
 ```
 
@@ -476,19 +497,26 @@ Prefer the **block** form (like `File.open`): await the child, yield the job, re
 block’s value. Without a block, the methods still await by default and return the `Job`.
 
 ```{ruby r_job_eval_block}
-coef = R::Job.eval(<<~R) { |job| job.load_rds }
-  fit <- lm(mpg ~ wt, data = mtcars)
-  saveRDS(unname(coef(fit)), result_path)
-R
-puts coef
+begin
+  coef = R::Job.eval(<<~R) { |job| job.load_rds }
+    fit <- lm(mpg ~ wt, data = mtcars)
+    saveRDS(unname(coef(fit)), result_path)
+  R
+  puts coef
+rescue => e
+  puts e.class.to_s
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```{ruby r_job_eval_no_block, eval=FALSE}
-# Without a block: awaits (wait: true is the default) and returns the Job
+# Without a block: awaits (wait: true is the default) and returns the
+# Job
 job = R::Job.eval(code)
 job = R::Job.eval(code, wait: false)  # start only; call job.wait later
 
-# Script file; trailing args → commandArgs(trailingOnly=TRUE) in the child
+# Script file; trailing args → commandArgs(trailingOnly=TRUE) in the
+# child
 res = R::Job.script('train.R', '5') { |job| job.load_rds }
 ```
 
@@ -520,7 +548,8 @@ extension paths on JRuby, or deployment extras you do not need). A minimal app a
 
 ```bash
 cd /home/rbotafogo/desenv_linux
-jruby -S rails new hedi --skip-git --minimal --skip-kamal --skip-solid --skip-active-record
+jruby -S rails new hedi --skip-git --minimal \
+  --skip-kamal --skip-solid --skip-active-record
 ```
 
 Then install gems:
@@ -558,7 +587,8 @@ A direct smoke test from Rails runner:
 
 ```bash
 cd /home/rbotafogo/desenv_linux/hedi
-jruby -S bundle exec rails runner "puts R.eval('sum(c(1,2,3,4,5))').inspect"
+jruby -S bundle exec rails runner \
+  "puts R.eval('sum(c(1,2,3,4,5))').inspect"
 ```
 
 Expected output:
@@ -1028,7 +1058,9 @@ a linear regression line (method = "lm") for every manufacturer.
 library(ggplot2)
 data(mpg, package="ggplot2")
 
-mpg_select <- mpg[mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"), ]
+mpg_select <- mpg[
+  mpg$manufacturer %in% c("audi", "ford", "honda", "hyundai"),
+]
 
 # Scatterplot
 theme_set(theme_bw())  # pre-set the bw theme.
@@ -1096,7 +1128,8 @@ with the 'rb' engine.  The following chunk specification will
 create and inline Ruby text:
 
 ````
-This is some text with inline Ruby accessing variable 'b' which has value:
+This is some text with inline Ruby accessing
+variable 'b' which has value:
 ```{rb puts "```{rb puts b}\n```"}
 ```
 and is followed by some other text!
@@ -1347,14 +1380,16 @@ templates for the following journals with the respective template name:
 In order to create a document with one of those templates, use the following command:
 
 ```
-gknit-draft --filename <my_document> --template <template> --package <package>
-            --create_dir
+gknit-draft --filename <my_document> \
+  --template <template> --package <package> \
+  --create_dir
 ```
 So, in order to create a template for writing an R Journal, use:
 
 ```
-gknit-draft --filename my_r_article --template rjournal_article --package rticles
-            --create_dir
+gknit-draft --filename my_r_article \
+  --template rjournal_article --package rticles \
+  --create_dir
 ```
 
 # Accessing R variables
@@ -1411,7 +1446,10 @@ Data frames will later be more carefully described.  In R, the method used to cr
 data frame is 'data.frame', in Galaaz we use 'data\_\_frame'.
 
 ```{ruby typeof_integer}
-df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
+df = R.data__frame(
+  typeof: vec.typeof,
+  mode: vec.mode,
+  storage__mode: vec.storage__mode)
 puts df
 ```
 
@@ -1426,7 +1464,10 @@ puts vec
 ```
 
 ```{ruby typeof_float}
-df = R.data__frame(typeof: vec.typeof, mode: vec.mode, storage__mode: vec.storage__mode)
+df = R.data__frame(
+  typeof: vec.typeof,
+  mode: vec.mode,
+  storage__mode: vec.storage__mode)
 outputs df.kable.kable_styling
 ```
 
@@ -1436,7 +1477,12 @@ the first with a message explaining what went wrong and the second with the full
 of the error.
 
 ```{ruby r_exception}
-vec = R.c(1, hello, 5)
+begin
+  vec = R.c(1, hello, 5)
+rescue => e
+  puts e.class.to_s
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 Here is a vector with logical values
@@ -2120,8 +2166,12 @@ when experimenting locally.
 
 ```{ruby arrow_pipeline_example, message=FALSE, warning=FALSE}
 # Scaled-down version of slow-specs/arrow_large_pipeline_spec.rb.
-unless R::Support.eval("requireNamespace('arrow', quietly=TRUE) && requireNamespace('dplyr', quietly=TRUE)") == true
-  puts '(Skip: need arrow + dplyr in R; use bin/galaaz-jruby outside gKnit.)'
+arrow_ok = R::Support.eval(
+  "requireNamespace('arrow', quietly=TRUE) && " +
+  "requireNamespace('dplyr', quietly=TRUE)")
+unless arrow_ok == true
+  puts '(Skip: need arrow + dplyr in R; ' +
+       'use bin/galaaz-jruby outside gKnit.)'
 else
   thread_count = 4
   rows_per_thread = 500
@@ -2164,15 +2214,19 @@ else
 
   total_n = 0
   (1..(out.nrow >> 0)).each { |i| total_n += (out[['n']][i] >> 0) }
-  puts "Sum of group counts n (should equal #{thread_count * rows_per_thread}): #{total_n}"
+  puts "Sum of group counts n " +
+       "(should equal #{thread_count * rows_per_thread}): " +
+       "#{total_n}"
 end
 ```
 
-**What to notice:** (1) Ruby only sees **`Hash`** rows and Ruby **`Thread`** objects; (2) a single
-**`from_ruby_batches`** call creates the Arrow table in R; (3) **`dplyr___group_by`** /
-**`dplyr___summarise`** / **`dplyr___collect`** mirror **`dplyr::group_by`** /
-**`dplyr::summarise`** / **`dplyr::collect`** on an Arrow-backed table. For a lighter test, see
-**`specs/arrow_from_ruby_batches_spec.rb`**; for the full-size benchmark, run
+**What to notice:** (1) Ruby only sees **`Hash`** rows and Ruby **`Thread`** objects;
+(2) a single **`from_ruby_batches`** call creates the Arrow table in R;
+(3) **`dplyr___group_by`** / **`dplyr___summarise`** / **`dplyr___collect`**
+mirror **`dplyr::group_by`** / **`dplyr::summarise`** / **`dplyr::collect`**
+on an Arrow-backed table. For a lighter test, see
+**`specs/arrow_from_ruby_batches_spec.rb`**;
+for the full-size benchmark, run
 **`bin/run_slow_rspec slow-specs/arrow_large_pipeline_spec.rb`**.
 
 # Bioconductor and DESeq2
@@ -2201,8 +2255,10 @@ The script **`examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb`** is 
 version in the repository. Run it from the **Galaaz repository root** with either engine, for example:
 
 ```text
-bin/galaaz-ruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
-# or: bin/galaaz-jruby examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+bin/galaaz-ruby \
+  examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+# or: bin/galaaz-jruby \
+#   examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
 ```
 
 The workflow in Ruby mirrors a standard DESeq2 vignette:
@@ -2229,7 +2285,8 @@ Below is the full listing (same as the file in the repository). It is **not** ex
 manual is knitted, because **DESeq2** is heavy and may be absent on the build machine.
 
 ```{ruby deseq2_airway_full_listing, eval=FALSE}
-# Canonical script: examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
+# Canonical script:
+# examples/bioconductor_deseq2_airway/deseq2_airway_galaaz.rb
 # Run: bin/galaaz-ruby examples/.../deseq2_airway_galaaz.rb (repo root).
 
 require 'galaaz'
@@ -2256,7 +2313,8 @@ puts "Samples: #{R.ncol(dds)}"
 puts "Genes after prefilter: #{R.nrow(dds)}"
 puts "Result rows: #{R.nrow(res)}"
 puts "Result columns: #{R.colnames(res)}"
-puts "Significant genes (padj < 0.05): #{R.sum(res.padj < 0.05, na__rm: true)}"
+puts "Significant genes (padj < 0.05): " +
+     "#{R.sum(res.padj < 0.05, na__rm: true)}"
 
 res_ordered = res[R.order(res.padj), :all]
 puts R.head(R.as__data__frame(res_ordered), 10)
@@ -2271,8 +2329,12 @@ If **DESeq2** and **airway** are installed, the next chunk loads the data and pr
 preview (it does **not** run **`DESeq`** so the manual knits quickly).
 
 ```{ruby deseq2_airway_smoke, message=FALSE, warning=FALSE}
-unless R::Support.eval("requireNamespace('DESeq2', quietly=TRUE) && requireNamespace('airway', quietly=TRUE)")
-  puts '(Skip: install DESeq2 and airway via BiocManager in R to run the full example.)'
+deseq_ok = R::Support.eval(
+  "requireNamespace('DESeq2', quietly=TRUE) && " +
+  "requireNamespace('airway', quietly=TRUE)")
+unless deseq_ok
+  puts '(Skip: install DESeq2 and airway via ' +
+       'BiocManager in R for the full example.)'
 else
   R.library('DESeq2')
   R.library('airway')
@@ -2350,13 +2412,17 @@ but in this graph we want the bars to be horizontally laid so we add 'coord\_fli
 ```{ruby diverging_bar, fig.width = 9.1, fig.height = 6.5}
 require 'ggplot'
 
-puts mtcars.ggplot(E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
-     R.geom_bar(E.aes(fill: :mpg_type), stat: 'identity', width: 0.5) +
-     R.scale_fill_manual(name: 'Mileage',
-                         labels: R.c('Above Average', 'Below Average'),
-                         values: R.c('above': '#00ba38', 'below': '#f8766d')) +
+puts mtcars.ggplot(
+       E.aes(x: :car_name, y: :mpg_z, label: :mpg_z)) +
+     R.geom_bar(E.aes(fill: :mpg_type),
+                stat: 'identity', width: 0.5) +
+     R.scale_fill_manual(
+       name: 'Mileage',
+       labels: R.c('Above Average', 'Below Average'),
+       values: R.c('above': '#00ba38',
+                   'below': '#f8766d')) +
      R.labs(subtitle: "Normalised mileage from 'mtcars'",
-            title: "Diverging Bars") + 
+            title: "Diverging Bars") +
      R.coord_flip
 ```
 
@@ -2448,7 +2514,8 @@ In Galaaz the method mutate_y below will work fine and will never fail silently.
 
 ```{ruby mutate_y, warning=FALSE}
 def mutate_y(df)
-  # Mutate column names are Ruby kwargs (y: …). Use .assign only for R `<-` expressions.
+  # Column names are Ruby kwargs (y: …).
+  # Use .assign only for R `<-` expressions.
   df.mutate(y: R[:a] + R[:x])
 end
 ```
@@ -2465,7 +2532,12 @@ definition of 'mutate\_y' above:
 
 ```{ruby call_mutate_y, warning = FALSE}
 a = 10
-mutate_y(df1)
+begin
+  mutate_y(df1)
+rescue => e
+  puts e.class.to_s
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 ## Different expressions
 
@@ -2736,11 +2808,19 @@ def grouped_mean(data, grouping_variables, value_variables)
   data.
     group_by_at(grouping_variables).
     mutate(count: E.n).
-    summarise_at(E.c(value_variables, "count"), ~R[:mean], na__rm: true).
-    rename_at(value_variables, E.funs(E.paste0("mean_", value_variables)))
+    summarise_at(
+      E.c(value_variables, "count"),
+      ~R[:mean],
+      na__rm: true).
+    rename_at(
+      value_variables,
+      E.funs(E.paste0("mean_", value_variables)))
 end
 
-puts grouped_mean((~R[:starwars]), "eye_color", E.c("mass", "birth_year"))
+puts grouped_mean(
+  (~R[:starwars]),
+  "eye_color",
+  E.c("mass", "birth_year"))
 ```
 
 The examples above cover programmatic dplyr with string column names and `_at` helpers. The same

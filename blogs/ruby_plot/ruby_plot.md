@@ -26,16 +26,15 @@ general-purpose programming language. It was designed and developed in the mid-1
 "Matz" Matsumoto in Japan."  It reached high popularity with the development of Ruby on Rails
 (RoR) by David Heinemeier Hansson. RoR is a web application framework first released
 around 2005. It makes extensive use of Ruby's metaprogramming features.  With RoR,
-Ruby became very popular.  According to [Ruby's Tiobe index](https://www.tiobe.com/tiobe-index/ruby/)
-it peeked in popularity around 2008, then declined until 2015 when it started picking up again.
-At the time of this writing (November 2018), the Tiobe index puts Ruby in 16th position as
-most popular language.
+Ruby became very popular.  According to [Ruby’s ranking in the TIOBE index](https://www.tiobe.com/tiobe-index/ruby/)
+it **peaked** in popularity around 2008, then declined until 2015 when it started picking up again.
+As of the original publication date (November 2018), TIOBE placed Ruby around 16th among languages.
 
-Python, a language similar to Ruby, ranks 4th in the index.  Java, C and C++ take the
-first three positions.  Ruby is often criticized for its focus on web applications.
+Python, often grouped with Ruby as a high-level scripting language, ranked higher in that same snapshot.
+Ruby is often criticized for its focus on web applications.
 But Ruby can do [much more](https://github.com/markets/awesome-ruby) than just web applications.
-Yet, for scientific computing, Ruby lags way behind Python and R.  Python has
-Django framework for web, NumPy for numerical arrays, Pandas for data analysis.
+Yet, for scientific computing, Ruby lags behind Python and R.  Python combines web frameworks such as
+Django with NumPy, pandas, SciPy, and **a very large ecosystem** of domain-specific packages.
 R is a free software environment for statistical computing and graphics with thousands
 of libraries for data analysis. 
 
@@ -53,7 +52,7 @@ Ruby and R could share one JVM runtime. That stack is **no longer** what Galaaz 
 today’s Galaaz is developed and tested with **JRuby or CRuby + GNU R** (see the project manual for
 setup and command-line tools).
 
-Library wrapping is a usual way of bringing features from one language into another.
+Library wrapping is a common way to bring features from one language into another.
 To improve performance, Python often wraps more efficient C libraries. For the
 Python developer, the existence of such C libraries is hidden.  The problem with
 library wrapping is that for any new library, there is the need to handcraft a new
@@ -64,7 +63,7 @@ in Ruby.  Doing so, all thousands of R libraries are available immediately
 to Ruby developers without any new wrapping effort.
 
 To show the power of Galaaz, we show in this article how Ruby can use R's ggplot2
-library tranparantly bringing to Ruby the power of high quality scientific plotting.
+library **transparently**, bringing to Ruby the power of high-quality scientific plotting.
 We also show that migrating from R to Ruby with Galaaz is a matter of small
 syntactic changes. By using Ruby, the R developer can use all of Ruby's powerful
 object-oriented features. Also, with Ruby, it becomes much easier to move code
@@ -86,8 +85,8 @@ language and don't need special knowledge.
 
 _Knitr_ is an application that converts text written in rmarkdown to many
 different output formats.  For instance, a writer can convert an rmarkdown  document
-to HTML, $LaTex$, docx and many other formats. Rmarkdown documents can contain
-text and _code chunks_. Knitr formats code chunks in a grayed box in the output document.
+to HTML, LaTeX, Word, and many other formats. R Markdown documents can contain
+text and _code chunks_. knitr formats code chunks in a shaded box in the output document.
 It also executes the code chunks and formats the output in a white box.  Every line of
 output from the execution code is preceded by '##'.
 
@@ -101,7 +100,7 @@ With _gKnit_ Ruby code chunks can share data.
 # Exploring the Dataset
 
 Let's start by exploring our selected dataset.  ToothGrowth is an R dataset.  A dataset
-is like a simple excel spreadsheet, in which each column has only one type of data.
+is like a simple Excel spreadsheet, in which each column has only one type of data.
 For instance one column can have float, the other integer, and a third strings.
 This dataset analyzes the length of odontoblasts (cells responsible for tooth growth)
 in 60 guinea pigs, where each animal received one of three dose levels of Vitamin C
@@ -110,7 +109,7 @@ in 60 guinea pigs, where each animal received one of three dose levels of Vitami
 
 The ToothGrowth dataset contains three columns: 'len', 'supp' and 'dose'.  Let's
 take a look at a few rows of this dataset. In Galaaz, R variables are accessed
-by using the corresponding Ruby symbol preceeded by the tilda ('~') function. Note in the
+by using the corresponding Ruby symbol with the tilde (`~`) operator. Note in the
 following chunk that 'ToothGrowth' is the R  variable and Ruby's 'tooth_growth' is
 assigned the value of '~R[:ToothGrowth]'.
 
@@ -152,7 +151,7 @@ puts tooth_growth.len.head
  
 The 'dose' column contains a numeric value with either, 0.5, 1 or 2, although the
 first 6 rows as seen above only contain the 0.5 values.  Even though those are
-number, they are better interpreted as a [factor or cathegory](https://swcarpentry.github.io/r-novice-inflammation/12-supp-factors/).  So, let's convert our 'dose' column from numeric to 'factor'.
+number, they are better interpreted as a [factor or category](https://swcarpentry.github.io/r-novice-inflammation/12-supp-factors/).  So, let's convert our 'dose' column from numeric to 'factor'.
 In R, the function 'as.factor' is used to convert data in a vector to factors.  To use this
 function from Galaaz the dot ('.') in the function name is substituted by '__' (double underline).
 The function 'as.factor' becomes 'R.as__factor' or just 'as__factor' when chaining.
@@ -225,7 +224,7 @@ to form the final graphics.
 In order to make a plot, we use the 'ggplot' function to the dataset.  In R, this would be
 written as ```ggplot(<dataset>, ...)```. Galaaz gives you the flexibility to use
 either ```R.ggplot(<dataset>, ...)``` or ```<dataset>.ggplot(...)```.  In the graph 
-specification bellow, we use the second notation that looks more like Ruby.  
+specification below, we use the second notation that looks more like Ruby.  
 ggplot uses the ‘aes’ method to specify
 x and y axes; in this case, the 'dose' on the $x$ axis and the 'length' on
 the $y$ axis: 'E.aes(x: :dose, y: :len)'.  To specify the type of plot add a geom to
@@ -405,8 +404,9 @@ matches with the actual order of the colors in the plot.
 
 ``` ruby
 bp = bp +
-     R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
-                          breaks: R.c("2","1","0.5"))
+     R.scale_fill_manual(
+       values: R.c("cyan", "deepskyblue", "deepskyblue4"),
+       breaks: R.c("2", "1", "0.5"))
 
 puts bp
 ```
@@ -433,11 +433,13 @@ a boxplot known as a _violin plot_ with jittered data.
 
 
 ``` ruby
-violin = base_tooth + R.geom_violin(E.aes(fill: :dose)) + 
+violin = base_tooth +
+   R.geom_violin(E.aes(fill: :dose)) +
    R.facet_grid(R[:all].til :supp) +
    R.geom_jitter(shape: 23, color: "cyan3", size: 1) +
-   R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
-                       breaks: R.c("2","1","0.5"))
+   R.scale_fill_manual(
+     values: R.c("cyan", "deepskyblue", "deepskyblue4"),
+     breaks: R.c("2", "1", "0.5"))
 
 puts violin
 ```
@@ -502,42 +504,43 @@ written in 'bold'.
 module CorpTheme
 
   R.install_and_loads 'RColorBrewer'
-  
-  #---------------------------------------------------------------------------------
-  # face can be  (1=plain, 2=bold, 3=italic, 4=bold-italic)
-  #---------------------------------------------------------------------------------
-  
+
+  # ---------------------------------------------------------------
+  # face: 1=plain, 2=bold, 3=italic, 4=bold-italic
+  # ---------------------------------------------------------------
+
   def self.text_element(size, face: "plain", hjust: nil)
-    E.element_text(color: "#000080", 
+    E.element_text(color: "#000080",
                    face: face,
                    size: size,
-		   hjust: hjust)
+                   hjust: hjust)
   end
-  
-  #---------------------------------------------------------------------------------
-  # Defines the plot theme (visualization).  In this theme we remove major and minor
-  # grids, borders and background.  We also turn-off scientific notation.
-  #---------------------------------------------------------------------------------
-  
+
+  # ---------------------------------------------------------------
+  # Plot theme: no major/minor grids or borders; optional
+  # background for facets; turn off scientific notation.
+  # ---------------------------------------------------------------
+
   def self.global_theme(faceted = false)
-    
+
     R.options(scipen: 999)  # turn-off scientific notation like 1e+48
-    #    R.theme_set(R.theme_bw)
-    
+    # R.theme_set(R.theme_bw)
+
     # remove major grids
     gb = R.theme(panel__grid__major: E.element_blank())
     # remove minor grids
     gb = gb + R.theme(panel__grid__minor: E.element_blank)
-    # gb = R.theme(panel__grid__minor: E.element_blank)
     # remove border
     gb = gb + R.theme(panel__border: E.element_blank)
-    # remove background. When working with faceted graphs, the background makes
-    # it easier to see each facet, so leave it
-    gb = gb + R.theme(panel__background: E.element_blank) if !faceted
+    # Keep background on faceted plots (helps separate facets)
+    if !faceted
+      gb = gb + R.theme(panel__background: E.element_blank)
+    end
     # Change axis font
     gb = gb + R.theme(axis__text: text_element(8))
     # change axis title font
-    gb = gb + R.theme(axis__title: text_element(10, face: "bold", hjust: 1))
+    gb = gb + R.theme(
+      axis__title: text_element(10, face: "bold", hjust: 1))
     # change font of title
     gb = gb + R.theme(title: text_element(12, face: "bold"))
     # change font of subtitle
@@ -546,7 +549,7 @@ module CorpTheme
     gb = gb + R.theme(plot__caption: text_element(8))
 
   end
-   
+
 end
 ```
 
@@ -593,9 +596,12 @@ Length of odontoblasts in 60 guinea pigs.
 Each animal received one of three dose levels of vitamin C.
 EOT
 
-bp = tooth_growth.ggplot(E.aes(x: :supp, y: :len, group: :supp)) + 
-     R.geom_boxplot(E.aes(fill: :supp)) + R.facet_grid(R[:all].til :dose) +
-     R.scale_fill_manual(values: R.c("cyan", "deepskyblue4")) +
+bp = tooth_growth.ggplot(
+       E.aes(x: :supp, y: :len, group: :supp)) +
+     R.geom_boxplot(E.aes(fill: :supp)) +
+     R.facet_grid(R[:all].til :dose) +
+     R.scale_fill_manual(
+       values: R.c("cyan", "deepskyblue4")) +
      R.labs(title: "Tooth Growth:  Length by Dose",
             subtitle: "Faceted by dose",
             x: "Delivery method", y: "Teeth length",

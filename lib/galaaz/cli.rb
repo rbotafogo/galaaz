@@ -8,7 +8,9 @@ require 'tmpdir'
 
 module Galaaz
   module CLI
-    BLOG_NAMES = %w[oh_my gknit galaaz_ggplot manual nse_dplyr ruby_plot].freeze
+    BLOG_NAMES = %w[
+      oh_my gknit galaaz_ggplot galaaz_2_0 r_on_rails_ledger manual nse_dplyr ruby_plot
+    ].freeze
     PROFILES = %w[knit arrow tex bio examples ledger demo].freeze
     CONFIG_DIR = File.join(Dir.home, '.config', 'galaaz')
     PROFILES_DIR = File.join(CONFIG_DIR, 'profiles')
@@ -606,6 +608,13 @@ module Galaaz
         abort_unless(
           ledger_bundle_env({ 'SEED_PROFILE' => 'fast' }, 'exec', 'rails', 'db:seed'),
           'rails db:seed failed'
+        )
+        # builds/tailwind.css is gitignored — Propshaft needs a one-shot build for rails s
+        # (bin/dev runs tailwindcss:watch and would also create it).
+        puts 'galaaz add ledger: rails tailwindcss:build'
+        abort_unless(
+          ledger_bundle('exec', 'rails', 'tailwindcss:build'),
+          'rails tailwindcss:build failed (tailwind.css missing for Propshaft)'
         )
       end
 

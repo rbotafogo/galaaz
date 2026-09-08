@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Fail if version.rb and the PATH galaaz entry in Gemfile.lock disagree.
+# CI runs this before frozen bundle install so the failure is obvious
+# (instead of Bundler exit 16 from ruby/setup-ruby).
+
+root = File.expand_path('..', __dir__)
+version_rb = File.join(root, 'version.rb')
+lock_path = File.join(root, 'Gemfile.lock')
+
+abort "missing #{version_rb}" unless File.file?(version_rb)
+abort "missing #{lock_path}" unless File.file?(lock_path)
+
+version_src = File.read(version_rb)
+declared = version_src[/\$version\s*=\s*["']([^"']+)["']/, 1]
+abort "could not parse $version from version.rb" if declared.nil? || declared.empty?
+
+lock = File.read(lock_path)
+# Prefer the PATH gemspec block (first galaaz version under PATH … specs:).
+path_block = lock[/\APATH\n.*?^GEM\n/m]
+locked =
+  if path_block
+    path_block[/^\s+galaaz \(([^)]+)\)/, 1]
+  end
+locked ||= lock[/^\s+galaaz \(([^)]+)\)/, 1]
+abort 'could not parse galaaz version from Gemfile.lock PATH specs' if locked.nil? || locked.empty?
+
+if declared == locked
+  puts "OK: version.rb (#{declared}) matches Gemfile.lock path gem (#{locked})"
+  exit 0
+end
+
+warn <<~MSG
+  version.rb and Gemfile.lock disagree.
+
+    version.rb  $version = #{declared}
+    Gemfile.lock PATH galaaz (#{locked})
+
+  After bumping the gem version, refresh the lockfile in the same commit:
+
+    rake release:bump VERSION=#{declared}
+
+  Or: bundle lock && git add Gemfile.lock
+MSG
+exit 1

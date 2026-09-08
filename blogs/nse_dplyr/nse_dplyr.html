@@ -573,18 +573,14 @@ text (PDF). Every output line from the code execution is preceded by
 <p>The code below creates an expression summing two symbols. Note that
 :a and :b are Ruby symbols and are not bound to any values at the time
 of expression definition:</p>
-<pre class="ruby"><code>exp1 = :a + :b
-puts exp1</code></pre>
-<pre><code>## undefined method &#39;+&#39; for an instance of Symbol</code></pre>
-<pre><code>## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:170:in &#39;exec_ruby&#39;
-## org/jruby/RubyKernel.java:1268:in &#39;eval&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/util/exec_ruby.rb:169:in &#39;exec_ruby&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:777:in &#39;block in initialize&#39;
-## org/jruby/RubyBasicObject.java:2695:in &#39;instance_eval&#39;
-## org/jruby/RubyBasicObject.java:2723:in &#39;instance_eval&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/gknit/knitr_engine.rb:748:in &#39;block in initialize&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/R_interface/new_bridge_adapter.rb:358:in &#39;block in register_callback_proc_stub&#39;
-## /home/rbotafogo/desenv_linux/galaaz/lib/new_bridge/session_client.rb:413:in &#39;block in handle_call&#39;</code></pre>
+<pre class="ruby"><code>begin
+  exp1 = :a + :b
+  puts exp1
+rescue =&gt; e
+  # Bare Symbol#+ is not expression sugar in Galaaz 2.0; short error for PDF.
+  puts &quot;#{e.class}: #{e.message}&quot;
+end</code></pre>
+<pre><code>## NoMethodError: undefined method &#39;+&#39; for an instance of Symbol</code></pre>
 <p>In Galaaz, we can build any complex mathematical expression such
 as:</p>
 <pre class="ruby"><code>exp2 = (R[:a] + R[:b]) * 2.0 + R[:c] ** 2 / R[:z]
@@ -749,7 +745,7 @@ puts ~R[:flights].dim
 # and the structure
 ~R[:flights].str</code></pre>
 <pre><code>## ~(dim(flights))
-## &lt;environment: 0x5f0b6a5b7790&gt;</code></pre>
+## &lt;environment: 0x57d8ad019298&gt;</code></pre>
 <p>Now, let’s use a first verb of <em>dplyr</em>: ‘filter’. This verb,
 obviously, will filter the data by the given expression. In the next
 block, we filter by columns ‘month’ and ‘day’. The first argument to the
@@ -761,22 +757,23 @@ the filter function to filter by columns, looking for entries in which
 the month and day are equal to 1.</p>
 <pre class="ruby"><code>puts R.filter(:flights, (R[:month].eq 1), (R[:day].eq 1))</code></pre>
 <pre><code>## # A tibble: 842 × 19
-##     year month   day dep_time sched_dep_time dep_delay arr_time sched_arr_time
-##    &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;          &lt;int&gt;
-##  1  2013     1     1      517            515         2      830            819
-##  2  2013     1     1      533            529         4      850            830
-##  3  2013     1     1      542            540         2      923            850
-##  4  2013     1     1      544            545        -1     1004           1022
-##  5  2013     1     1      554            600        -6      812            837
-##  6  2013     1     1      554            558        -4      740            728
-##  7  2013     1     1      555            600        -5      913            854
-##  8  2013     1     1      557            600        -3      709            723
-##  9  2013     1     1      557            600        -3      838            846
-## 10  2013     1     1      558            600        -2      753            745
+##     year month   day dep_time sched_dep_time dep_delay arr_time
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;
+##  1  2013     1     1      517            515         2      830
+##  2  2013     1     1      533            529         4      850
+##  3  2013     1     1      542            540         2      923
+##  4  2013     1     1      544            545        -1     1004
+##  5  2013     1     1      554            600        -6      812
+##  6  2013     1     1      554            558        -4      740
+##  7  2013     1     1      555            600        -5      913
+##  8  2013     1     1      557            600        -3      709
+##  9  2013     1     1      557            600        -3      838
+## 10  2013     1     1      558            600        -2      753
 ## # ℹ 832 more rows
-## # ℹ 11 more variables: arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;,
-## #   tailnum &lt;chr&gt;, origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;,
-## #   hour &lt;dbl&gt;, minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</code></pre>
+## # ℹ 12 more variables: sched_arr_time &lt;int&gt;, arr_delay &lt;dbl&gt;,
+## #   carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;, origin &lt;chr&gt;,
+## #   dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,
+## #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</code></pre>
 <div id="programming-with-dplyr-problems-and-how-to-solve-them-in-galaaz" class="section level2">
 <h2>Programming with <em>dplyr</em>: problems and how to solve them in
 Galaaz</h2>
@@ -886,7 +883,8 @@ R.</p>
 <p>In Galaaz the method mutate_y below will work fine and will never
 fail silently.</p>
 <pre class="ruby"><code>def mutate_y(df)
-  # Mutate column names are Ruby kwargs (y: …). Use .assign only for R `&lt;-` expressions.
+  # Column names are Ruby kwargs (y: …).
+  # Use .assign only for R `&lt;-` expressions.
   df.mutate(y: R[:a] + R[:x])
 end</code></pre>
 <p>Here we create a data frame that has only one column named ‘x’:</p>
@@ -901,8 +899,13 @@ variable ‘a’ is defined and in the scope of the method. Variable ‘a’ has
 no relationship with the symbol <code>R[:a]</code> used in the
 definition of ‘mutate_y’ above:</p>
 <pre class="ruby"><code>a = 10
-mutate_y(df1)</code></pre>
-<pre><code>## Error: ℹ In argument: `y = a + x`.
+begin
+  mutate_y(df1)
+rescue =&gt; e
+  # Short message only — full backtraces overflow PDF code boxes.
+  puts &quot;#{e.class}: #{e.message}&quot;
+end</code></pre>
+<pre><code>## NewBridge::SessionClient::RProcessError: Error: ℹ In argument: `y = a + x`.
 ## Caused by error:
 ## ! object &#39;a&#39; not found</code></pre>
 </div>
@@ -1177,16 +1180,16 @@ argument. The data frame used in ‘starwars’ that describes features of
 characters in the Starwars movies:</p>
 <pre class="ruby"><code>puts (~R[:starwars]).head</code></pre>
 <pre><code>## # A tibble: 6 × 14
-##   name      height  mass hair_color skin_color eye_color birth_year sex   gender
-##   &lt;chr&gt;      &lt;int&gt; &lt;dbl&gt; &lt;chr&gt;      &lt;chr&gt;      &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt; 
-## 1 Luke Sky…    172    77 blond      fair       blue            19   male  mascu…
-## 2 C-3PO        167    75 &lt;NA&gt;       gold       yellow         112   none  mascu…
-## 3 R2-D2         96    32 &lt;NA&gt;       white, bl… red             33   none  mascu…
-## 4 Darth Va…    202   136 none       white      yellow          41.9 male  mascu…
-## 5 Leia Org…    150    49 brown      light      brown           19   fema… femin…
-## 6 Owen Lars    178   120 brown, gr… light      blue            52   male  mascu…
-## # ℹ 5 more variables: homeworld &lt;chr&gt;, species &lt;chr&gt;, films &lt;list&gt;,
-## #   vehicles &lt;list&gt;, starships &lt;list&gt;</code></pre>
+##   name   height  mass hair_color skin_color eye_color birth_year sex  
+##   &lt;chr&gt;   &lt;int&gt; &lt;dbl&gt; &lt;chr&gt;      &lt;chr&gt;      &lt;chr&gt;          &lt;dbl&gt; &lt;chr&gt;
+## 1 Luke …    172    77 blond      fair       blue            19   male 
+## 2 C-3PO     167    75 &lt;NA&gt;       gold       yellow         112   none 
+## 3 R2-D2      96    32 &lt;NA&gt;       white, bl… red             33   none 
+## 4 Darth…    202   136 none       white      yellow          41.9 male 
+## 5 Leia …    150    49 brown      light      brown           19   fema…
+## 6 Owen …    178   120 brown, gr… light      blue            52   male 
+## # ℹ 6 more variables: gender &lt;chr&gt;, homeworld &lt;chr&gt;, species &lt;chr&gt;,
+## #   films &lt;list&gt;, vehicles &lt;list&gt;, starships &lt;list&gt;</code></pre>
 <p>The grouped_mean function below will receive a grouping variable and
 calculate summaries for the value_variables given:</p>
 <pre class="r"><code>grouped_mean &lt;- function(data, grouping_variables, value_variables) {
@@ -1207,8 +1210,8 @@ gm = starwars %&gt;%
 ## # Auto named with `tibble::lst()`: tibble::lst(mean, median)
 ## 
 ## # Using lambdas list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))
-## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-## generated.</code></pre>
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning
+## was generated.</code></pre>
 <pre class="r"><code>as.data.frame(gm)   </code></pre>
 <pre><code>##        eye_color mean_mass mean_birth_year count
 ## 1          black  76.28571        33.00000    10
@@ -1231,11 +1234,19 @@ gm = starwars %&gt;%
   data.
     group_by_at(grouping_variables).
     mutate(count: E.n).
-    summarise_at(E.c(value_variables, &quot;count&quot;), R[:mean], na__rm: true).
-    rename_at(value_variables, E.funs(E.paste0(&quot;mean_&quot;, value_variables)))
+    summarise_at(
+      E.c(value_variables, &quot;count&quot;),
+      R[:mean],
+      na__rm: true).
+    rename_at(
+      value_variables,
+      E.funs(E.paste0(&quot;mean_&quot;, value_variables)))
 end
 
-puts grouped_mean((~R[:starwars]), &quot;eye_color&quot;, E.c(&quot;mass&quot;, &quot;birth_year&quot;))</code></pre>
+puts grouped_mean(
+  (~R[:starwars]),
+  &quot;eye_color&quot;,
+  E.c(&quot;mass&quot;, &quot;birth_year&quot;))</code></pre>
 <pre><code>## # A tibble: 15 × 4
 ##    eye_color     mean_mass mean_birth_year count
 ##    &lt;chr&gt;             &lt;dbl&gt;           &lt;dbl&gt; &lt;dbl&gt;

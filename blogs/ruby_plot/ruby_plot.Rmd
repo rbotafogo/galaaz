@@ -20,10 +20,11 @@ fontsize: 11pt
 ---
 
 ```{r setup, echo=FALSE}
-# set global chunk options.  We want all figures to be 'svg'
-# out.width will control the width of the ouput figure, in this case, we want it
-# to be 50% of the width
-# knitr::opts_chunk$set(fig.width=1, fig.height=7, dev="svg", out.width = '50%')
+# Narrower console width so printed output fits PDF code boxes.
+options(width = 70)
+# Example (unused): force svg figures at half page width
+# knitr::opts_chunk$set(
+#   fig.width = 1, fig.height = 7, dev = "svg", out.width = "50%")
 ```
 
 According to Wikipedia "Ruby is a dynamic, interpreted, reflective, object-oriented, 
@@ -356,8 +357,9 @@ matches with the actual order of the colors in the plot.
 
 ```{ruby facets_by_delivery_color2, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
 bp = bp +
-     R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
-                          breaks: R.c("2","1","0.5"))
+     R.scale_fill_manual(
+       values: R.c("cyan", "deepskyblue", "deepskyblue4"),
+       breaks: R.c("2", "1", "0.5"))
 
 puts bp
 ```
@@ -380,11 +382,13 @@ a boxplot known as a _violin plot_ with jittered data.
 > The central dot represents the median average value. 
 
 ```{ruby violin_with_jitter, dev = "png", fig.width = 540, fig.height = 560, units = "px"}
-violin = base_tooth + R.geom_violin(E.aes(fill: :dose)) + 
+violin = base_tooth +
+   R.geom_violin(E.aes(fill: :dose)) +
    R.facet_grid(R[:all].til :supp) +
    R.geom_jitter(shape: 23, color: "cyan3", size: 1) +
-   R.scale_fill_manual(values: R.c("cyan", "deepskyblue", "deepskyblue4"),
-                       breaks: R.c("2","1","0.5"))
+   R.scale_fill_manual(
+     values: R.c("cyan", "deepskyblue", "deepskyblue4"),
+     breaks: R.c("2", "1", "0.5"))
 
 puts violin
 ```
@@ -441,42 +445,43 @@ written in 'bold'.
 module CorpTheme
 
   R.install_and_loads 'RColorBrewer'
-  
-  #---------------------------------------------------------------------------------
-  # face can be  (1=plain, 2=bold, 3=italic, 4=bold-italic)
-  #---------------------------------------------------------------------------------
-  
+
+  # ---------------------------------------------------------------
+  # face: 1=plain, 2=bold, 3=italic, 4=bold-italic
+  # ---------------------------------------------------------------
+
   def self.text_element(size, face: "plain", hjust: nil)
-    E.element_text(color: "#000080", 
+    E.element_text(color: "#000080",
                    face: face,
                    size: size,
-		   hjust: hjust)
+                   hjust: hjust)
   end
-  
-  #---------------------------------------------------------------------------------
-  # Defines the plot theme (visualization).  In this theme we remove major and minor
-  # grids, borders and background.  We also turn-off scientific notation.
-  #---------------------------------------------------------------------------------
-  
+
+  # ---------------------------------------------------------------
+  # Plot theme: no major/minor grids or borders; optional
+  # background for facets; turn off scientific notation.
+  # ---------------------------------------------------------------
+
   def self.global_theme(faceted = false)
-    
+
     R.options(scipen: 999)  # turn-off scientific notation like 1e+48
-    #    R.theme_set(R.theme_bw)
-    
+    # R.theme_set(R.theme_bw)
+
     # remove major grids
     gb = R.theme(panel__grid__major: E.element_blank())
     # remove minor grids
     gb = gb + R.theme(panel__grid__minor: E.element_blank)
-    # gb = R.theme(panel__grid__minor: E.element_blank)
     # remove border
     gb = gb + R.theme(panel__border: E.element_blank)
-    # remove background. When working with faceted graphs, the background makes
-    # it easier to see each facet, so leave it
-    gb = gb + R.theme(panel__background: E.element_blank) if !faceted
+    # Keep background on faceted plots (helps separate facets)
+    if !faceted
+      gb = gb + R.theme(panel__background: E.element_blank)
+    end
     # Change axis font
     gb = gb + R.theme(axis__text: text_element(8))
     # change axis title font
-    gb = gb + R.theme(axis__title: text_element(10, face: "bold", hjust: 1))
+    gb = gb + R.theme(
+      axis__title: text_element(10, face: "bold", hjust: 1))
     # change font of title
     gb = gb + R.theme(title: text_element(12, face: "bold"))
     # change font of subtitle
@@ -485,7 +490,7 @@ module CorpTheme
     gb = gb + R.theme(plot__caption: text_element(8))
 
   end
-   
+
 end
 ```
 
@@ -523,9 +528,12 @@ Length of odontoblasts in 60 guinea pigs.
 Each animal received one of three dose levels of vitamin C.
 EOT
 
-bp = tooth_growth.ggplot(E.aes(x: :supp, y: :len, group: :supp)) + 
-     R.geom_boxplot(E.aes(fill: :supp)) + R.facet_grid(R[:all].til :dose) +
-     R.scale_fill_manual(values: R.c("cyan", "deepskyblue4")) +
+bp = tooth_growth.ggplot(
+       E.aes(x: :supp, y: :len, group: :supp)) +
+     R.geom_boxplot(E.aes(fill: :supp)) +
+     R.facet_grid(R[:all].til :dose) +
+     R.scale_fill_manual(
+       values: R.c("cyan", "deepskyblue4")) +
      R.labs(title: "Tooth Growth:  Length by Dose",
             subtitle: "Faceted by dose",
             x: "Delivery method", y: "Teeth length",

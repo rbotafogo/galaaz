@@ -77,6 +77,8 @@ keyword 'attr_reader' and a colom before the variables name:
 
 
 
+
+
 ``` ruby
 class Trajectories
   attr_reader :times
@@ -102,7 +104,7 @@ puts @traj
 ```
 
 ```
-## #<RC::Trajectories:0x1e6bdce4>
+## #<RC::Trajectories:0x58ea712d>
 ```
 
 To see the contents of an object, one needs to access its components using the '.' operator:
@@ -161,7 +163,8 @@ one uses the ':' operator after parameter's name as we can see below:
 @traj = Trajectories.new(times: R.c(1, 2, 3, 4))
 
 # Create a Trajectories with times and matrix
-@traj2 = Trajectories.new(times: R.c(1, 3), matrix: R.matrix((1..4), ncol: 2))
+@traj2 = Trajectories.new(times: R.c(1, 3), matrix: R.matrix((1..4),
+  ncol: 2))
 ```
 
 # Access to Instance Variables (to reach a slot)
@@ -222,7 +225,8 @@ Cochin and Saint-Anne.  We first show the code in R and the corresponding Galaaz
 +     times=c(1: 10, (6: 16) *2),
 +     traj=rbind(
 +         matrix (seq (16,19, length=21), ncol=21, nrow=50, byrow=TRUE),
-+         matrix (seq (15.8, 18, length=21), ncol=21, nrow=30, byrow=TRUE)
++         matrix (seq (15.8, 18, length=21), ncol=21, nrow=30,
+  byrow=TRUE)
 +     )+rnorm (21*80,0,0.2)
 + )
 ```
@@ -241,12 +245,16 @@ This same code in Galaaz becomes:
                                R.c(15.7, 15.6, 15.8, 16)))
 
 @trajStAnne =
-  Trajectories.new(times: R.c((1..10), R.c(6..16) * 2),
-                   matrix: (R.rbind(
-                             R.matrix(R.seq(16, 19, length: 21), ncol: 21,
-                                      nrow: 50, byrow: true),
-                             R.matrix(R.seq(15.8, 18, length: 21), ncol: 21,
-                                      nrow: 30, byrow: true)) + R.rnorm(21*80, 0, 0.2)))
+  Trajectories.new(
+    times: R.c((1..10), R.c(6..16) * 2),
+    matrix: (
+      R.rbind(
+        R.matrix(R.seq(16, 19, length: 21),
+                 ncol: 21, nrow: 50, byrow: true),
+        R.matrix(R.seq(15.8, 18, length: 21),
+                 ncol: 21, nrow: 30, byrow: true)
+      ) + R.rnorm(21 * 80, 0, 0.2)
+    ))
 ```
 
 Let's check that the 'times' and 'matrix' instance variables were correctly set:
@@ -264,10 +272,10 @@ puts @trajStAnne.times
 ## [1] 1 3 4 5
 ## 
 ##         [,1] [,2] [,3] [,4]
-## g2_v662 15.0 15.1 15.2 15.2
-## g2_v663 16.0 15.9 16.0 16.4
-## g2_v664 15.2   NA 15.3 15.3
-## g2_v665 15.7 15.6 15.8 16.0
+## g2_v729 15.0 15.1 15.2 15.2
+## g2_v730 16.0 15.9 16.0 16.4
+## g2_v731 15.2   NA 15.3 15.3
+## g2_v732 15.7 15.6 15.8 16.0
 ## 
 ##  [1]  1  2  3  4  5  6  7  8  9 10 12 14 16 18 20 22 24 26 28 30 32
 ```
@@ -466,10 +474,10 @@ end
 ## 5
 ## traj =
 ##         [,1] [,2] [,3] [,4]
-## g2_v662 15.0 15.1 15.2 15.2
-## g2_v663 16.0 15.9 16.0 16.4
-## g2_v664 15.2   NA 15.3 15.3
-## g2_v665 15.7 15.6 15.8 16.0
+## g2_v729 15.0 15.1 15.2 15.2
+## g2_v730 16.0 15.9 16.0 16.4
+## g2_v731 15.2   NA 15.3 15.3
+## g2_v732 15.7 15.6 15.8 16.0
 ## ******* End Print (trajectories) *******
 ```
 
@@ -541,7 +549,8 @@ class Trajectories
     nrow_show = [10, @matrix.nrow >> 0].min
     ncol_show = R.min(10, @matrix.ncol) >> 0
     puts("* Traj (limited to a matrix 10x10) = ")
-    puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
+    puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2,
+      nsmall: 2)
     puts("******* End Show (trajectories) ******* ")
   end
   
@@ -577,28 +586,28 @@ end
 ## 30
 ## 32
 ## * Traj (limited to a matrix 10x10) = 
-##       [,1]    [,2]    [,3]    [,4]    [,5]    [,6]    [,7]    [,8]    [,9]   
-##  [1,] "15.95" "16.15" "16.25" "16.62" "16.86" "16.77" "16.80" "16.94" "17.26"
-##  [2,] "16.20" "16.11" "16.37" "16.50" "16.70" "16.71" "17.12" "16.89" "17.37"
-##  [3,] "15.94" "16.20" "16.51" "16.41" "16.86" "16.83" "16.99" "16.86" "17.22"
-##  [4,] "15.64" "16.25" "16.31" "16.36" "16.69" "16.47" "17.06" "16.86" "17.22"
-##  [5,] "16.44" "16.01" "16.08" "16.48" "16.39" "16.43" "17.06" "17.28" "17.40"
-##  [6,] "16.10" "15.78" "16.26" "16.31" "16.71" "16.81" "16.81" "16.84" "17.04"
-##  [7,] "15.98" "15.94" "16.44" "16.96" "16.40" "17.10" "17.06" "17.45" "16.89"
-##  [8,] "16.29" "16.00" "16.28" "16.29" "16.49" "16.73" "16.72" "17.26" "17.48"
-##  [9,] "16.12" "16.36" "16.53" "16.52" "16.68" "16.75" "16.89" "17.05" "16.98"
-## [10,] "15.92" "16.32" "16.39" "16.28" "16.61" "17.05" "17.09" "17.39" "17.33"
-##       [,10]  
-##  [1,] "17.80"
-##  [2,] "17.37"
-##  [3,] "17.54"
-##  [4,] "17.79"
-##  [5,] "17.75"
-##  [6,] "17.62"
-##  [7,] "16.97"
-##  [8,] "17.33"
-##  [9,] "17.50"
-## [10,] "17.33"
+##       [,1]    [,2]    [,3]    [,4]    [,5]    [,6]    [,7]    [,8]   
+##  [1,] "16.11" "16.22" "16.57" "16.54" "16.06" "16.73" "16.52" "17.07"
+##  [2,] "16.22" "15.78" "16.51" "16.27" "16.78" "17.07" "16.89" "17.03"
+##  [3,] "16.11" "16.32" "16.17" "16.56" "16.63" "16.83" "16.76" "17.17"
+##  [4,] "16.28" "16.11" "16.42" "16.40" "16.54" "16.22" "16.48" "17.14"
+##  [5,] "16.11" "16.30" "16.12" "16.47" "16.49" "16.66" "16.98" "17.17"
+##  [6,] "15.63" "16.22" "16.53" "16.52" "16.50" "16.63" "17.07" "17.04"
+##  [7,] "16.18" "16.16" "15.89" "16.22" "16.82" "16.97" "17.16" "17.22"
+##  [8,] "15.53" "15.93" "16.36" "16.86" "16.26" "16.92" "16.96" "16.97"
+##  [9,] "15.92" "16.22" "16.22" "16.13" "16.52" "16.77" "17.14" "16.76"
+## [10,] "16.45" "15.91" "16.14" "16.62" "16.53" "17.11" "16.96" "17.00"
+##       [,9]    [,10]  
+##  [1,] "17.24" "17.34"
+##  [2,] "17.60" "17.19"
+##  [3,] "17.63" "17.24"
+##  [4,] "17.18" "17.55"
+##  [5,] "17.25" "17.49"
+##  [6,] "17.19" "17.06"
+##  [7,] "16.90" "17.34"
+##  [8,] "17.32" "17.01"
+##  [9,] "17.46" "17.31"
+## [10,] "17.29" "17.21"
 ## ******* End Show (trajectories) *******
 ```
 
@@ -612,10 +621,20 @@ we try to 'show' it, it will generate an error.  Let's see it:
 
 
 ``` ruby
-@empty_traj.show
+begin
+  @empty_traj.show
+rescue => e
+  # Short message only — full backtraces overflow PDF boxes.
+  puts e.class.to_s
+  # Wrap long messages for PDF code-box width.
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
+## *** Class Trajectories, method Show *** 
+## times = 
+## NoMethodError
 ## undefined method 'nrow' for nil
 ```
 
@@ -644,7 +663,8 @@ class Trajectories
     nrow_show = [10, @matrix.nrow >> 0].min
     ncol_show = R.min(10, @matrix.ncol) >> 0
     puts("* Traj (limited to a matrix 10x10) = ")
-    puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2, nsmall: 2)
+    puts @matrix[(1..nrow_show), (1..ncol_show)].format(digits: 2,
+      nsmall: 2)
     puts("******* End Show (trajectories) ******* ")
   end
 
@@ -769,7 +789,8 @@ Here we show the R code for this validation:
 + validity=function(object){
 + cat("~~~ Trajectories: inspector ~~~ \\n")
 + if(length(object@times)!=ncol(object@traj)){
-+ stop ("[Trajectories: validation] the number of temporal measurements does not correspond
++ stop ("[Trajectories: validation] the number of temporal
++ measurements does not correspond
 + }else{}
 + return(TRUE)
 + }
@@ -786,10 +807,14 @@ class Trajectories
     @times = times
     @matrix = matrix
 
-    # validate the input, to make sure that size of @times and the number of columns in
-    # @matrix are the same
+    # Validate: length(@times) must equal ncol(@matrix)
     puts ("~~~ Trajectories: inspector ~~~ ")
-    raise "[Trajectories: validation] the number of temporal measurements does not correspond with the number of columns in the matrix" if ((@times.length >> 0) != (@matrix.ncol >> 0))
+    if ((@times.length >> 0) != (@matrix.ncol >> 0))
+      raise(
+        "[Trajectories: validation] the number of temporal " +
+        "measurements does not correspond with the number of " +
+        "columns in the matrix")
+    end
 
     # show the object just created
     show
@@ -805,7 +830,8 @@ validation was done and then print the object.
 
 
 ``` ruby
-ok = Trajectories.new(times: R.c(1..2), matrix: R.matrix((1..2), ncol: 2))
+ok = Trajectories.new(times: R.c(1..2), matrix: R.matrix((1..2),
+  ncol: 2))
 ```
 
 ```
@@ -827,11 +853,22 @@ on exceptions on the web.
 
 
 ``` ruby
-error = Trajectories.new(times: R.c(1..3), matrix: R.matrix((1..2), ncol: 2))
+begin
+  error = Trajectories.new(times: R.c(1..3), matrix: R.matrix((1..2),
+    ncol: 2))
+rescue => e
+  # Short message only — full backtraces overflow PDF boxes.
+  puts e.class.to_s
+  # Wrap long messages for PDF code-box width.
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
-## [Trajectories: validation] the number of temporal measurements does not correspond with the number of columns in the matrix
+## ~~~ Trajectories: inspector ~~~ 
+## RuntimeError
+## [Trajectories: validation] the number of temporal measurements does 
+## not correspond with the number of columns in the matrix
 ```
 
 The validation above does not consider the case when an empty object is created.  Here we will
@@ -863,12 +900,18 @@ class Trajectories
   def validate
 
     # Let's first check that we do not have an empty object
-    raise "Neither times nor matrix can be an empty object" if (@times.nil? || @matrix.nil?)
+    if (@times.nil? || @matrix.nil?)
+      raise "Neither times nor matrix can be an empty object"
+    end
 
-    # validate the input, to make sure that size of @times and the number of columns in
-    # @matrix are the same
+    # Validate: length(@times) must equal ncol(@matrix)
     puts ("~~~ Trajectories: inspector ~~~ ")
-    raise "[Trajectories: validation] the number of temporal measurements does not correspond with the number of columns in the matrix" if ((@times.length >> 0) != (@matrix.ncol >> 0))
+    if ((@times.length >> 0) != (@matrix.ncol >> 0))
+      raise(
+        "[Trajectories: validation] the number of temporal " +
+        "measurements does not correspond with the number of " +
+        "columns in the matrix")
+    end
 
   end
 
@@ -885,10 +928,18 @@ Let's try then creating an empty object:
 
 
 ``` ruby
-error = Trajectories.new
+begin
+  error = Trajectories.new
+rescue => e
+  # Short message only — full backtraces overflow PDF boxes.
+  puts e.class.to_s
+  # Wrap long messages for PDF code-box width.
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
+## RuntimeError
 ## Neither times nor matrix can be an empty object
 ```
 
@@ -896,10 +947,18 @@ Another example:
 
 
 ``` ruby
-error = Trajectories.new(times: 1)
+begin
+  error = Trajectories.new(times: 1)
+rescue => e
+  # Short message only — full backtraces overflow PDF boxes.
+  puts e.class.to_s
+  # Wrap long messages for PDF code-box width.
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
+## RuntimeError
 ## Neither times nor matrix can be an empty object
 ```
 
@@ -908,7 +967,8 @@ input:
 
 
 ``` ruby
-ok = Trajectories.new(times: R.c(1, 2), matrix: R.matrix((1..2), ncol: 2))
+ok = Trajectories.new(times: R.c(1, 2), matrix: R.matrix((1..2),
+  ncol: 2))
 ```
 
 ```
@@ -962,13 +1022,19 @@ class Trajectories
   def validate
 
     # Let's first check that we do not have an empty object
-    raise "Neither times nor matrix can be an empty object" if (@times.nil? || @matrix.nil?)
+    if (@times.nil? || @matrix.nil?)
+      raise "Neither times nor matrix can be an empty object"
+    end
 
-    # validate the input, to make sure that size of @times and the number of columns in
-    # @matrix are the same
+    # Validate: length(@times) must equal ncol(@matrix)
     puts ("~~~ Trajectories: inspector ~~~ ")
     tl = @times.length >> 0; mc = @matrix.ncol >> 0
-    raise "[Trajectories: validation] the number of temporal measurements #{tl} does not correspond with the number of columns in the matrix #{mc}" if (tl != mc)
+    if (tl != mc)
+      raise(
+        "[Trajectories: validation] the number of temporal " +
+        "measurements #{tl} does not correspond with the number " +
+        "of columns in the matrix #{mc}")
+    end
 
   end
 
@@ -1062,7 +1128,8 @@ end
 
 
 ``` ruby
-@traj = Trajectories.new(times: R.c(1,2,4,8), matrix: R.matrix((1..8), nrow: 2))
+@traj = Trajectories.new(times: R.c(1,2,4,8), matrix: R.matrix((1..8),
+  nrow: 2))
 ```
 
 ```
@@ -1085,11 +1152,22 @@ Trajectories or one in which the sizes are wrong:
 
 
 ``` ruby
-error = Trajectories.new(times: R.c(1, 2, 48), matrix: R.matrix((1..8), nrow: 2))
+begin
+  error = Trajectories.new(times: R.c(1, 2, 48), matrix: R.matrix((1..8),
+    nrow: 2))
+rescue => e
+  # Short message only — full backtraces overflow PDF boxes.
+  puts e.class.to_s
+  # Wrap long messages for PDF code-box width.
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
-## [Trajectories: validation] the number of temporal measurements 3 does not correspond with the number of columns in the matrix 4
+## ~~~ Trajectories: inspector ~~~ 
+## RuntimeError
+## [Trajectories: validation] the number of temporal measurements 3 doe
+## s not correspond with the number of columns in the matrix 4
 ```
 
 A constructor does not necessarily take the instance variable of the object as argument. For
@@ -1104,7 +1182,8 @@ First the code in R, we skip the definition of class TrajectoriesBis:
 > setMethod ("initialize",
 + "TrajectoriesBis",
 + function(.Object,nbWeek,BMIinit){
-+ traj <- outer(BMIinit,1:nbWeek,function(init,week){return(init+0.1*week)})
++ traj <- outer(BMIinit, 1:nbWeek,
++   function(init, week) { return(init + 0.1 * week) })
 + colnames(traj) <- paste("T",1:nbWeek,sep="")
 + rownames(traj) <- paste("I",1:nrow(traj),sep="")
 + .Object@times <- 1:nbWeek
@@ -1137,7 +1216,8 @@ class TrajectoriesBis
 
   def initialize(number_weeks, bmi_init)
     @matrix = bmi_init.outer((1..number_weeks),
-                             R.eval("function(init, week) {return(init + 0.1 * week)}"))
+                             R.eval("function(init,
+                               week) {return(init + 0.1 * week)}"))
     @times = R.c((1..number_weeks))
   end
 
@@ -1170,7 +1250,9 @@ class TrajectoriesBis
 
   def initialize(number_weeks, bmi_init, increment)
     @matrix = bmi_init.outer((1..number_weeks),
-                             R.eval("function(init, week) {return(init + #{increment} * week)}"))
+                             R.eval("function(init,
+                               week) {return(init +
+                                 #{increment} * week)}"))
     @times = R.c((1..number_weeks))
   end
 
@@ -1206,7 +1288,8 @@ week, let's define a regular trajectory without having to define a TrajectoriesB
 
 ```
 > regularTrajectories <- function(nbWeek,BMIinit) {
-+ traj <- outer(BMIinit,1:nbWeek,function(init,week){return(init+0.1*week)})
++ traj <- outer(BMIinit, 1:nbWeek,
++   function(init, week) { return(init + 0.1 * week) })
 + times <- 1: nbWeek
 + return(new(Class="Trajectories",times=times,traj=traj))
 + }
@@ -1226,7 +1309,8 @@ class Trajectories
 
   def self.regular(number_weeks: nil, bmi_init: nil)
     matrix = bmi_init.outer((1..number_weeks),
-                            R.eval("function(init, week) {return(init + 0.1 * week)}"))
+                            R.eval("function(init,
+                              week) {return(init + 0.1 * week)}"))
     times = R.c((1..number_weeks))
     Trajectories.new(times: times, matrix: matrix)
   end
@@ -1236,7 +1320,8 @@ end
 
 
 ``` ruby
-@regular = Trajectories.regular(bmi_init: R.c(14, 15, 16), number_weeks: 3)
+@regular = Trajectories.regular(bmi_init: R.c(14, 15, 16),
+  number_weeks: 3)
 ```
 
 ```
@@ -1425,7 +1510,12 @@ class Trajectories
   def times=(times)
     times = as_r(times)
     tl = times.length >> 0; mc = @matrix.ncol >> 0
-    raise "[Trajectories: validation] the number of temporal measurements #{tl} does not correspond with the number of columns in the matrix #{mc}" if (tl != mc)
+    if (tl != mc)
+      raise(
+        "[Trajectories: validation] the number of temporal " +
+        "measurements #{tl} does not correspond with the number " +
+        "of columns in the matrix #{mc}")
+    end
     @times = times
   end
 
@@ -1434,11 +1524,20 @@ end
 
 
 ``` ruby
-@trajCochin.times = (1..5)
+begin
+  @trajCochin.times = (1..5)
+rescue => e
+  # Short message only — full backtraces overflow PDF boxes.
+  puts e.class.to_s
+  # Wrap long messages for PDF code-box width.
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
-## [Trajectories: validation] the number of temporal measurements 5 does not correspond with the number of columns in the matrix 4
+## RuntimeError
+## [Trajectories: validation] the number of temporal measurements 5 doe
+## s not correspond with the number of columns in the matrix 4
 ```
 
 We now set the value appropriately and will not get any errors:
@@ -1587,9 +1686,9 @@ puts @partStAnne.part
 ```
 
 ```
-##  [1] A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
-## [39] A A A A A A A A A A A A B B B B B B B B B B B B B B B B B B B B B B B B B B
-## [77] B B B B
+##  [1] A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A
+## [34] A A A A A A A A A A A A A A A A A B B B B B B B B B B B B B B B B
+## [67] B B B B B B B B B B B B B B
 ## Levels: A B
 ```
 
@@ -1627,10 +1726,18 @@ both times and matrix to be non null.
 
 
 ``` ruby
-@tdPitie = TrajPartitioned.new
+begin
+  @tdPitie = TrajPartitioned.new
+rescue => e
+  # Short message only — full backtraces overflow PDF boxes.
+  puts e.class.to_s
+  # Wrap long messages for PDF code-box width.
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
+## RuntimeError
 ## Neither times nor matrix can be an empty object
 ```
 
@@ -1646,11 +1753,21 @@ And now let's create the TrajPartitioned:
 
 
 ``` ruby
-@tdCochin = TrajPartitioned.new(times: R.c(1,3,4,5), matrix: @trajCochin.matrix,
-                               list_partitions: R.list(@partCochin, @partCochin2))
+begin
+  @tdCochin = TrajPartitioned.new(times: R.c(1,3,4,5),
+    matrix: @trajCochin.matrix,
+                                 list_partitions: R.list(@partCochin,
+                                   @partCochin2))
+rescue => e
+  # Short message only — full backtraces overflow PDF boxes.
+  puts e.class.to_s
+  # Wrap long messages for PDF code-box width.
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
+## ArgumentError
 ## unknown keyword: :list_partitions
 ```
 
@@ -1662,11 +1779,21 @@ solution:
 
 
 ``` ruby
-@tdCochin = TrajPartitioned.new(times: R.c(1,3,4,5), matrix: @trajCochin.matrix,
-                               list_partitions: [@partCochin, @partCochin2])
+begin
+  @tdCochin = TrajPartitioned.new(times: R.c(1,3,4,5),
+    matrix: @trajCochin.matrix,
+                                 list_partitions: [@partCochin,
+                                   @partCochin2])
+rescue => e
+  # Short message only — full backtraces overflow PDF boxes.
+  puts e.class.to_s
+  # Wrap long messages for PDF code-box width.
+  e.message.to_s.scan(/.{1,68}/).each { |line| puts line }
+end
 ```
 
 ```
+## ArgumentError
 ## unknown keyword: :list_partitions
 ```
 
@@ -1701,8 +1828,10 @@ Let's try our example again:
 
 
 ``` ruby
-@tdCochin = TrajPartitioned.new(times: R.c(1,3,4,5), matrix: @trajCochin.matrix,
-                               list_partitions: [@partCochin, @partCochin2])
+@tdCochin = TrajPartitioned.new(times: R.c(1,3,4,5),
+  matrix: @trajCochin.matrix,
+                               list_partitions: [@partCochin,
+                                 @partCochin2])
 ```
 
 ```
@@ -1739,7 +1868,9 @@ class TrajPartitioned
 
   def print
     super
-    puts ("the object also contains #{@list_partitions.length} partition")
+    puts(
+      "the object also contains " +
+      "#{@list_partitions.length} partition")
     puts ("***** Fine of print (TrajPartitioned) *****")
   end
 
@@ -1906,15 +2037,18 @@ However, we will implement those classes in order to show Ruby's inheritance:
 
 
 ``` ruby
-# Parent class.  Differently from SS4, both 'nb_groups' and 'part' are defined in the
+# Parent class.  Differently from SS4, both 'nb_groups' and 'part' are
+# defined in the
 # parent class.
 class PartitionFather
 
   attr_reader :nb_groups
   attr_reader :part
 
-  # initialize class PartitionFather with the number of groups and parts.  Note that we
-  # use R.c for nb_groups in order to convert the number of groups into an R vector.
+  # initialize class PartitionFather with the number of groups and
+  # parts.  Note that we
+  # use R.c for nb_groups in order to convert the number of groups into
+  # an R vector.
   def initialize(nb_groups: 0, part: nil)
     @nb_groups = R.c(nb_groups)
     @part = part
@@ -1925,7 +2059,8 @@ class PartitionFather
     @nb_groups * 2
   end
 
-  # method 'to_s' is called whenever we try to print a Ruby object.  This method emulates
+  # method 'to_s' is called whenever we try to print a Ruby object.
+  # This method emulates
   # R 'print' method that prints all the slots.
   def to_s
     puts ("Variable 'nb_groups':")
@@ -1938,8 +2073,10 @@ class PartitionFather
 
 end
 
-# Class PartitionSimple is a subclass of PartitionFather.  To make a subclass of a
-# class we use the operator '<'.  Since the whole logic is in the parent class
+# Class PartitionSimple is a subclass of PartitionFather.  To make a
+# subclass of a
+# class we use the operator '<'.  Since the whole logic is in the parent
+# class
 # PartitionSimple is just an empty class
 class PartitionSimple < PartitionFather
 
@@ -1953,7 +2090,9 @@ end
 
 
 ``` ruby
-@a = PartitionSimple.new(nb_groups: 3, part: ((~R[:LETTERS])[R.c(1, 2, 3, 2, 2, 1)].factor))
+@a = PartitionSimple.new(
+  nb_groups: 3,
+  part: ((~R[:LETTERS])[R.c(1, 2, 3, 2, 2, 1)].factor))
 puts @a
 ```
 
@@ -1965,7 +2104,7 @@ puts @a
 ## [1] A B C B B A
 ## Levels: A B C
 ## 
-## #<RC::PartitionSimple:0x27371ac4>
+## #<RC::PartitionSimple:0x666d3927>
 ```
 
 
@@ -1979,7 +2118,9 @@ puts @a.nb_mult_two
 
 
 ``` ruby
-@b = PartitionEval.new(nb_groups: 5, part: (~R[:LETTERS])[R.c(1, 5, 3, 4, 2, 4)].ordered)
+@b = PartitionEval.new(
+  nb_groups: 5,
+  part: (~R[:LETTERS])[R.c(1, 5, 3, 4, 2, 4)].ordered)
 puts @b
 ```
 
@@ -1991,7 +2132,7 @@ puts @b
 ## [1] A E C D B D
 ## Levels: A < B < C < D < E
 ## 
-## #<RC::PartitionEval:0xe36882f>
+## #<RC::PartitionEval:0x22d4f3a8>
 ```
 
 
@@ -2033,7 +2174,7 @@ puts @a
 ## [1] A B C B B A
 ## Levels: A B C
 ## 
-## #<RC::PartitionSimple:0x27371ac4>
+## #<RC::PartitionSimple:0x666d3927>
 ```
 
 As can be seen, 'puts @a' now calls method 'to_s' defined in class PartitionSimple.  This
@@ -2056,7 +2197,7 @@ puts @b
 ## [1] A E C D B D
 ## Levels: A < B < C < D < E
 ## 
-## #<RC::PartitionEval:0xe36882f>
+## #<RC::PartitionEval:0x22d4f3a8>
 ```
 
 # Internal Modification of an Object
