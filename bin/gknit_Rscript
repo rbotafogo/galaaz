@@ -30,9 +30,6 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-# Sets the directory
-dir = Dir.pwd
-
 #=========================================================================================
 # Check if the name of the file to gKnit was given and that it exists. If not,
 # issue error.
@@ -41,7 +38,8 @@ dir = Dir.pwd
 options[:input_file] = ARGV[0] if !ARGV[0].nil?
 raise "Input file name is required for gKnitting. Add -f FILE or --input_file FILE. For help, type gknit -h" if
   options[:input_file].nil?
-options[:input_file] = "#{dir}/#{options[:input_file]}"
+# File.expand_path keeps absolute paths intact (do not prefix Dir.pwd).
+options[:input_file] = File.expand_path(options[:input_file])
 raise "File #{options[:input_file]} does not exist!" if !File.exist?(options[:input_file])
 
 #=========================================================================================

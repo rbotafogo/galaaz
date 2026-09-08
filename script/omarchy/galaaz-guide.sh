@@ -13,7 +13,12 @@ GALAAZ_BIN="${HOME}/.local/bin/galaaz"
 
 open_url() {
   local url="$1"
-  if command -v omarchy-launch-web >/dev/null 2>&1; then
+  # Omarchy Learn menu uses launch-webapp; try browser helpers before xdg-open.
+  if command -v omarchy-launch-webapp >/dev/null 2>&1; then
+    omarchy-launch-webapp "${url}"
+  elif command -v omarchy-launch-browser >/dev/null 2>&1; then
+    omarchy-launch-browser "${url}"
+  elif command -v omarchy-launch-web >/dev/null 2>&1; then
     omarchy-launch-web "${url}"
   elif command -v xdg-open >/dev/null 2>&1; then
     xdg-open "${url}" >/dev/null 2>&1 &
@@ -21,6 +26,7 @@ open_url() {
     open "${url}"
   else
     echo "Open in a browser: ${url}"
+    return 1
   fi
 }
 
@@ -59,7 +65,7 @@ Other add-ons
 Check:  galaaz doctor
 Menu:   Super+Space → Install → Development → Galaaz
 
-Heavy CRAN installs / long R (gem 2.1.4+): R::Job keeps the bridge free.
+Heavy CRAN installs / long R (gem 2.1.5+): R::Job keeps the bridge free.
   See README → “Background R jobs (R::Job)” (${DOCS_README})
 
 EOF

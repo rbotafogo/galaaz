@@ -20,7 +20,7 @@ Docs: https://rbotafogo.github.io/galaaz/ · https://github.com/rbotafogo/galaaz
 
 Heavy CRAN installs (`R.install_and_loads`) and long R (`R::Job.eval` / `script`) run in a
 child `Rscript` so the bridge stays free — see **Background R jobs (`R::Job`)** in the
-README / manual (gem **2.1.4+**).
+README / manual (gem **2.1.5+**).
 
 ## TryOmarchy steps
 
@@ -54,6 +54,11 @@ If you already `gem install`ed but never ran setup, open the menu and click **Ga
 
    Refresh the gem (or reinstall core) so `galaaz add arrow` includes this
    behaviour; also re-copy `galaaz-add.sh` → `~/.local/bin/omarchy-galaaz-add`.
+
+   **Knit / TeX pandoc:** the add wrapper does **not** install Arch `pandoc` /
+   `pandoc-cli` (Haskell mega-deps; often fails on TryOmarchy). It uses
+   `pandoc-bin` when available, else the latest official GitHub linux tarball
+   into `~/.local/bin` (override with `PANDOC_RELEASE_VER=…`).
 
    Pass when:
 

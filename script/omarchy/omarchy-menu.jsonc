@@ -27,15 +27,15 @@
   "install.development.galaaz.docs": {
     "icon": "󰂺",
     "label": "Documentation (website)",
-    "description": "rbotafogo.github.io/galaaz",
-    "action": "omarchy-galaaz-guide docs",
+    "description": "Open rbotafogo.github.io/galaaz",
+    "action": "omarchy-launch-webapp https://rbotafogo.github.io/galaaz/",
     "when": "test -f ~/.config/galaaz/profiles/core"
   },
   "install.development.galaaz.github": {
     "icon": "󰊤",
     "label": "GitHub repository",
-    "description": "github.com/rbotafogo/galaaz",
-    "action": "omarchy-galaaz-guide github",
+    "description": "Open github.com/rbotafogo/galaaz",
+    "action": "omarchy-launch-webapp https://github.com/rbotafogo/galaaz",
     "when": "test -f ~/.config/galaaz/profiles/core"
   },
   "install.development.galaaz.knit": {

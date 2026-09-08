@@ -16,14 +16,96 @@ fi
 GALAAZ="${HOME}/.local/bin/galaaz"
 [[ -x "${GALAAZ}" ]] || GALAAZ="galaaz"
 
-pkg_add() {
-  if command -v omarchy-pkg-add >/dev/null 2>&1; then
-    omarchy-pkg-add "$@"
-  elif command -v pacman >/dev/null 2>&1; then
-    sudo pacman -S --noconfirm --needed "$@"
-  else
-    echo "WARN: cannot install packages ($*); install them yourself" >&2
+# Prefer user-local bin (installer / static pandoc land here).
+export PATH="${HOME}/.local/bin:${PATH}"
+
+# Official static release — avoid Arch extra/pandoc|pandoc-cli (pulls ~200 Haskell pkgs
+# and often fails on TryOmarchy nested VMs).
+# Default: latest GitHub release. Pin with PANDOC_RELEASE_VER=3.6.4 if needed.
+latest_pandoc_ver() {
+  if [[ -n "${PANDOC_RELEASE_VER:-}" ]]; then
+    echo "${PANDOC_RELEASE_VER}"
+    return 0
   fi
+  local ver
+  ver="$(
+    curl -fsSL https://api.github.com/repos/jgm/pandoc/releases/latest \
+      | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+      | head -1
+  )"
+  if [[ -z "${ver}" ]]; then
+    echo "ERROR: could not resolve latest pandoc release from GitHub API" >&2
+    return 1
+  fi
+  echo "${ver}"
+}
+
+# Install pandoc without Arch's Haskell stack. Order:
+# 1) already on PATH  2) AUR pandoc-bin  3) GitHub linux tarball → ~/.local/bin
+ensure_pandoc() {
+  if command -v pandoc >/dev/null 2>&1; then
+    echo "pandoc: $(pandoc --version | head -1) (already installed)"
+    return 0
+  fi
+
+  echo "==> pandoc missing — installing (not Arch pandoc / pandoc-cli)"
+
+  if command -v omarchy-pkg-add >/dev/null 2>&1; then
+    echo "==> try: omarchy-pkg-add pandoc-bin"
+    if omarchy-pkg-add pandoc-bin && command -v pandoc >/dev/null 2>&1; then
+      echo "pandoc: $(pandoc --version | head -1) (pandoc-bin)"
+      return 0
+    fi
+    echo "WARN: pandoc-bin via omarchy-pkg-add failed; trying GitHub binary" >&2
+  elif command -v yay >/dev/null 2>&1; then
+    echo "==> try: yay -S pandoc-bin"
+    if yay -S --noconfirm --needed pandoc-bin && command -v pandoc >/dev/null 2>&1; then
+      echo "pandoc: $(pandoc --version | head -1) (pandoc-bin)"
+      return 0
+    fi
+    echo "WARN: yay pandoc-bin failed; trying GitHub binary" >&2
+  fi
+
+  local arch asset url tmp ver
+  case "$(uname -m)" in
+    x86_64|amd64) arch="amd64" ;;
+    aarch64|arm64) arch="arm64" ;;
+    *)
+      echo "ERROR: unsupported arch $(uname -m) for pandoc binary; install pandoc yourself" >&2
+      return 1
+      ;;
+  esac
+
+  if ! ver="$(latest_pandoc_ver)"; then
+    return 1
+  fi
+  echo "==> pandoc release: ${ver}"
+
+  asset="pandoc-${ver}-linux-${arch}.tar.gz"
+  url="https://github.com/jgm/pandoc/releases/download/${ver}/${asset}"
+  tmp="$(mktemp -d)"
+  echo "==> download: ${url}"
+  if ! curl -fsSL -o "${tmp}/${asset}" "${url}"; then
+    echo "ERROR: failed to download pandoc ${ver}" >&2
+    rm -rf "${tmp}"
+    return 1
+  fi
+  tar -xzf "${tmp}/${asset}" -C "${tmp}"
+  mkdir -p "${HOME}/.local/bin"
+  if ! cp "${tmp}/pandoc-${ver}/bin/pandoc" "${HOME}/.local/bin/pandoc"; then
+    echo "ERROR: pandoc binary missing from tarball" >&2
+    rm -rf "${tmp}"
+    return 1
+  fi
+  chmod +x "${HOME}/.local/bin/pandoc"
+  rm -rf "${tmp}"
+
+  if ! command -v pandoc >/dev/null 2>&1; then
+    echo "ERROR: pandoc still not on PATH after install to ~/.local/bin" >&2
+    return 1
+  fi
+  echo "pandoc: $(pandoc --version | head -1) (~/.local/bin, static)"
+  return 0
 }
 
 pause() {
@@ -45,16 +127,15 @@ case "${PROFILE}" in
   knit)
     # rmarkdown/gknit need system pandoc >= 2.8 — not shipped by CRAN packages alone.
     echo "==> system: pandoc"
-    pkg_add pandoc
-    if ! command -v pandoc >/dev/null 2>&1; then
-      echo "ERROR: pandoc still missing after package install" >&2
+    if ! ensure_pandoc; then
       pause 1
     fi
-    echo "pandoc: $(pandoc --version | head -1)"
     ;;
   tex)
     echo "==> system: pandoc (TinyTeX is installed by galaaz add tex)"
-    pkg_add pandoc
+    if ! ensure_pandoc; then
+      pause 1
+    fi
     ;;
   arrow|ledger|demo)
     # R package arrow: do NOT rely on pacman "arrow" for linking — Arch libarrow

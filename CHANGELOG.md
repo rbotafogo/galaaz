@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.1.5
+
+### Fixed
+
+- `gknit` / `gknit_Rscript`: resolve input with `File.expand_path` so absolute paths
+  (e.g. `~/galaaz-blogs/...`) are not prefixed with `Dir.pwd` (broke when run from
+  `~/.local/bin`).
+- `galaaz add ledger`: do not strip app Ruby version pins; keep engine-agnostic
+  RubyGems `gem "galaaz"` rewrites only.
+
+### Changed
+
+- Omarchy `omarchy-galaaz-add`: install pandoc via `pandoc-bin` or the latest GitHub
+  linux binary into `~/.local/bin` — not Arch `pandoc` / `pandoc-cli` (Haskell deps).
+- Omarchy menu Docs / GitHub rows use `omarchy-launch-webapp` (same as Omarchy Learn).
+- `galaaz add arrow` / ledger path: prefer Apache `LIBARROW_BINARY` prebuilt libarrow
+  (avoid Arch pacman arrow version skew on Omarchy).
+
 ## 2.1.4
 
 ### Added
