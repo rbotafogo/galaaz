@@ -45,9 +45,9 @@ jobs:
           tags: ghcr.io/rbotafogo/galaaz-try:cruby
           labels: |
             org.opencontainers.image.source=https://github.com/rbotafogo/galaaz
-            org.opencontainers.image.description=Galaaz 2.1.8 try image (CRuby + GNU R)
+            org.opencontainers.image.description=Galaaz 2.1.9 try image (CRuby + GNU R)
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
           build-args: |
             RUBY_VERSION=3.3.12
-            GALAAZ_VERSION=2.1.8
+            GALAAZ_VERSION=2.1.9

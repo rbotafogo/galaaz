@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.1.9
+
 ### Added
 
 - `rake release:bump VERSION=x.y.z` (or `bin/release_bump x.y.z`) — rewrite
@@ -25,7 +27,8 @@
 
 - `galaaz add ledger`: run `rails tailwindcss:build` after seed so Propshaft finds
   `tailwind.css` (builds dir is gitignored).
-- Sync `Gemfile.lock` path gem to 2.1.8 (CI frozen install).
+- Sync `Gemfile.lock` path gem with `version.rb` on every release bump (CI frozen
+  install).
 
 ## 2.1.8
 
