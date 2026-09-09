@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 2.1.10.pre.8
+
+### Fixed
+
+- Omarchy `galaaz-add` arrow: on pacman mirror 404s (stale DB), refresh with
+  `pacman -Sy` and retry install before failing.
+- Omarchy arrow-glib build: auto-install `glib2-devel` + `cmake` (and other
+  build deps) via the add wrapper — no manual `pacman`; default `-j1`, add
+  build swap when RAM is low, compile in a systemd user scope with heartbeats
+  so OOM kills the build instead of the TUI. Stage B (red-arrow) stays on the
+  menu Arrow / ledger / demo path.
+
 ## 2.1.10.pre.7
 
 ### Added

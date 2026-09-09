@@ -119,24 +119,57 @@ pkg_add() {
   fi
 }
 
-# red-arrow needs pkg-config "arrow" + "arrow-glib" at the same version.
+# Stale pacman DBs request old pkg builds that mirrors already deleted (HTTP 404).
+# Sync once, then install. Prefer this for heavy deps like arrow.
+pkg_add_synced() {
+  if pkg_add "$@"; then
+    return 0
+  fi
+  echo "WARN: install failed for: $* — refreshing pacman DBs and retrying (common with mirror 404s)" >&2
+  if ! command -v pacman >/dev/null 2>&1; then
+    return 1
+  fi
+  if ! sudo pacman -Sy --noconfirm; then
+    echo "ERROR: pacman -Sy failed. On Omarchy run Update → Omarchy, then retry." >&2
+    return 1
+  fi
+  # Bypass omarchy-pkg-add here so we use the freshly synced DB.
+  if ! sudo pacman -S --noconfirm --needed "$@"; then
+    echo "ERROR: still failed to install: $*" >&2
+    echo "  On Omarchy: Super+Space → Update → Omarchy, then re-run this add-on." >&2
+    return 1
+  fi
+  return 0
+}
+
+# red-arrow (Stage B) needs pkg-config "arrow" + "arrow-glib" at the same version.
 # Arch ships C++ Arrow (extra/arrow) but not Arrow GLib — build GLib from the
 # matching Apache tarball. Keep ARROW_USE_PKG_CONFIG=false for CRAN R arrow
 # (LIBARROW_BINARY); pacman arrow is only for the Ruby gem.
+#
+# Small Omarchy/TryOmarchy VMs OOM and kill the TUI during unlimited ninja builds.
+# We: default -j1, optional build swap, compile in a systemd user scope, heartbeat.
 ensure_arrow_for_red_arrow() {
-  local major ver tmp tarball url build_dir
+  local major ver tmp tarball url build_dir jobs cache log swapfile avail_mb swap_mb
+  local compile_st=0
   major=25
+  jobs="${GALAAZ_ARROW_GLIB_JOBS:-1}"
+  cache="${HOME}/.cache/galaaz"
+  log="${HOME}/.local/share/galaaz/arrow-glib-build.log"
+  swapfile="${cache}/arrow-glib.swap"
+  mkdir -p "${cache}" "$(dirname "${log}")"
 
-  echo "==> system: Apache Arrow C++ + GLib (for red-arrow)"
+  echo "==> system: Apache Arrow C++ + GLib (Stage B / red-arrow)"
+  echo "    build log: ${log}"
   export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
 
   if ! command -v pkg-config >/dev/null 2>&1; then
-    pkg_add pkgconf || return 1
+    pkg_add_synced pkgconf || return 1
   fi
 
   if ! pkg-config --exists "arrow >= ${major}" 2>/dev/null; then
     echo "==> install Arch package: arrow"
-    if ! pkg_add arrow; then
+    if ! pkg_add_synced arrow; then
       echo "ERROR: failed to install Arch arrow (Apache Arrow C++)" >&2
       return 1
     fi
@@ -155,55 +188,125 @@ ensure_arrow_for_red_arrow() {
     return 0
   fi
 
-  echo "==> Arrow GLib ${ver} missing — building from Apache source (Arch has no matching package)"
-  pkg_add meson ninja gobject-introspection glib2 || return 1
+  echo "==> Arrow GLib ${ver} missing — building from Apache source (required for Stage B)"
+  echo "    ninja jobs: ${jobs} (override with GALAAZ_ARROW_GLIB_JOBS)"
+  # glib2-devel provides glib-mkenums (split from glib2 on Arch); without it meson fails.
+  pkg_add_synced meson ninja gobject-introspection glib2 glib2-devel cmake || return 1
+
+  avail_mb="$(awk '/MemAvailable:/ {print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 0)"
+  swap_mb="$(awk '/SwapFree:/ {print int($2/1024)}' /proc/meminfo 2>/dev/null || echo 0)"
+  echo "    memory: MemAvailable=${avail_mb}MiB SwapFree=${swap_mb}MiB"
+  if (( avail_mb + swap_mb < 3500 )); then
+    echo "==> low RAM — enabling 4GiB build swap at ${swapfile}"
+    if [[ ! -f "${swapfile}" ]]; then
+      if ! dd if=/dev/zero of="${swapfile}" bs=1M count=4096 status=none; then
+        echo "ERROR: could not create build swap file (need ~4GiB free disk)" >&2
+        return 1
+      fi
+      chmod 600 "${swapfile}"
+      mkswap "${swapfile}" >/dev/null
+    fi
+    if ! sudo swapon "${swapfile}"; then
+      echo "ERROR: swapon ${swapfile} failed" >&2
+      return 1
+    fi
+  fi
 
   tarball="apache-arrow-${ver}.tar.gz"
   url="https://dlcdn.apache.org/arrow/arrow-${ver}/${tarball}"
-  tmp="$(mktemp -d)"
+  # Prefer ~/.cache over /tmp — /tmp is often tmpfs and competes with the compile for RAM.
+  tmp="${cache}/arrow-${ver}-src"
+  rm -rf "${tmp}"
+  mkdir -p "${tmp}"
   build_dir="${tmp}/apache-arrow-${ver}"
+  : >"${log}"
   echo "==> download: ${url}"
   if ! curl -fsSL -o "${tmp}/${tarball}" "${url}"; then
     url="https://archive.apache.org/dist/arrow/arrow-${ver}/${tarball}"
     echo "==> fallback: ${url}"
     if ! curl -fsSL -o "${tmp}/${tarball}" "${url}"; then
       echo "ERROR: failed to download Apache Arrow ${ver} sources" >&2
+      sudo swapoff "${swapfile}" 2>/dev/null || true
       rm -rf "${tmp}"
       return 1
     fi
   fi
-  tar -xzf "${tmp}/${tarball}" -C "${tmp}"
+  if ! tar -xzf "${tmp}/${tarball}" -C "${tmp}"; then
+    echo "ERROR: failed to extract ${tarball}" >&2
+    sudo swapoff "${swapfile}" 2>/dev/null || true
+    rm -rf "${tmp}"
+    return 1
+  fi
   if [[ ! -d "${build_dir}/c_glib" ]]; then
     echo "ERROR: c_glib missing from ${tarball}" >&2
+    sudo swapoff "${swapfile}" 2>/dev/null || true
     rm -rf "${tmp}"
     return 1
   fi
 
-  echo "==> meson setup / compile / install arrow-glib ${ver}"
+  echo "==> meson setup arrow-glib ${ver}"
   if ! meson setup "${build_dir}/c_glib.build" "${build_dir}/c_glib" \
       --buildtype=release \
       --prefix=/usr/local \
-      -Dgtk_doc=false; then
+      -Dgtk_doc=false \
+      -Ddoc=false \
+      -Dvapi=false >>"${log}" 2>&1; then
     echo "ERROR: meson setup for arrow-glib failed" >&2
+    tail -n 40 "${log}" || true
+    sudo swapoff "${swapfile}" 2>/dev/null || true
     rm -rf "${tmp}"
     return 1
   fi
-  if ! meson compile -C "${build_dir}/c_glib.build"; then
-    echo "ERROR: meson compile for arrow-glib failed" >&2
+
+  echo "==> meson compile arrow-glib ${ver} (-j${jobs}) — can take several minutes"
+  echo "    leave this window open; progress also in ${log}"
+  # Isolate from the TUI cgroup when possible so an OOM kills the build, not the terminal.
+  set +e
+  if command -v systemd-run >/dev/null 2>&1; then
+    systemd-run --user --scope --quiet \
+      -p MemoryMax=8G \
+      -E "PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-}" \
+      -E "PATH=${PATH}" \
+      meson compile -C "${build_dir}/c_glib.build" -j "${jobs}" >>"${log}" 2>&1 &
+  else
+    meson compile -C "${build_dir}/c_glib.build" -j "${jobs}" >>"${log}" 2>&1 &
+  fi
+  local compile_pid=$!
+  while kill -0 "${compile_pid}" 2>/dev/null; do
+    echo "    … still compiling arrow-glib ($(date +%H:%M:%S))"
+    sleep 20
+  done
+  wait "${compile_pid}"
+  compile_st=$?
+  set -e
+
+  if [[ "${compile_st}" -ne 0 ]]; then
+    echo "ERROR: meson compile for arrow-glib failed (exit ${compile_st}) — often OOM" >&2
+    echo "  log: ${log}" >&2
+    tail -n 40 "${log}" || true
+    echo "  Retry with more swap free disk, close other apps, or GALAAZ_ARROW_GLIB_JOBS=1" >&2
+    sudo swapoff "${swapfile}" 2>/dev/null || true
     rm -rf "${tmp}"
     return 1
   fi
-  if ! sudo meson install -C "${build_dir}/c_glib.build"; then
+
+  echo "==> meson install arrow-glib ${ver}"
+  if ! sudo meson install -C "${build_dir}/c_glib.build" >>"${log}" 2>&1; then
     echo "ERROR: meson install for arrow-glib failed" >&2
+    tail -n 40 "${log}" || true
+    sudo swapoff "${swapfile}" 2>/dev/null || true
     rm -rf "${tmp}"
     return 1
   fi
+
   sudo ldconfig 2>/dev/null || true
+  sudo swapoff "${swapfile}" 2>/dev/null || true
   rm -rf "${tmp}"
 
   if ! pkg-config --exists "arrow-glib = ${ver}" 2>/dev/null; then
     echo "ERROR: arrow-glib ${ver} still missing after build" >&2
     echo "  pkg-config --modversion arrow-glib: $(pkg-config --modversion arrow-glib 2>/dev/null || echo none)" >&2
+    echo "  log: ${log}" >&2
     return 1
   fi
   echo "arrow-glib: $(pkg-config --modversion arrow-glib) (built from Apache ${ver})"

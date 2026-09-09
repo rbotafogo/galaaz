@@ -647,9 +647,24 @@ module Galaaz
       pkgs = read_pkg_list('arrow.txt')
       install_cran!(pkgs)
       if RUBY_ENGINE == 'ruby'
-        puts 'galaaz add arrow: gem install red-arrow (CRuby Stage B writer)'
-        unless system('gem', 'install', 'red-arrow', '--no-document')
-          warn 'galaaz add arrow: red-arrow gem install failed (need Apache Arrow GLib / libarrow-glib). R arrow is installed; Ruby IPC writer may be unavailable.'
+        ENV['PKG_CONFIG_PATH'] = [
+          '/usr/local/lib/pkgconfig',
+          '/usr/local/lib64/pkgconfig',
+          ENV['PKG_CONFIG_PATH']
+        ].compact.reject(&:empty?).join(File::PATH_SEPARATOR)
+        glib_ok = system('pkg-config', '--exists', 'arrow-glib')
+        if glib_ok
+          puts 'galaaz add arrow: gem install red-arrow (CRuby Stage B writer; MAKEFLAGS=-j1)'
+          # Parallel native builds often OOM small Omarchy/TryOmarchy VMs.
+          ok = system({ 'MAKEFLAGS' => '-j1', 'PKG_CONFIG_PATH' => ENV['PKG_CONFIG_PATH'] },
+                      'gem', 'install', 'red-arrow', '--no-document')
+          unless ok
+            warn 'galaaz add arrow: red-arrow gem install failed. R arrow is installed; ' \
+                 'Ruby IPC writer may be unavailable.'
+          end
+        else
+          warn 'galaaz add arrow: arrow-glib not found (pkg-config); skipping red-arrow. ' \
+               'On Omarchy use omarchy-galaaz-add arrow so Stage B GLib is built first.'
         end
       else
         warn 'galaaz add arrow: on JRuby, set GALAAZ_ARROW_JARS (or ~/arrow_jars) and JAVA_OPTS nio opens for Arrow Java'
