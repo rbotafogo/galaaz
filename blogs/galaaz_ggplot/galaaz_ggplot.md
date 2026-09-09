@@ -1,37 +1,65 @@
+---
+title: "Ruby Plotting with Galaaz"
+subtitle: "An example of tightly coupling Ruby and R (JRuby or CRuby + GNU R, Galaaz 2.0)"
+author: "Rodrigo Botafogo"
+tags: [Galaaz, Ruby, R, JRuby, CRuby, "GNU R", ggplot2]
+date: "16 October 2018 (narrative updated for Galaaz 2.0, 2026)"
+output:
+  html_document:
+    self_contained: true
+    keep_md: true
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    number_sections: true
+    includes:
+      before_body: _logo_before_body.html
+  pdf_document:
+    includes:
+      in_header:
+        - "../../sty/galaaz.sty"
+        - "../../sty/galaaz-headers-from-p3.tex"
+    keep_tex: yes
+    number_sections: yes
+    toc: true
+    toc_depth: 2
+  md_document:
+    variant: markdown_github
+fontsize: 11pt
+---
+
+
+
+
+
 # Introduction
 
-Galaaz is a system for tightly coupling Ruby and R. Ruby is a powerful
-language, with a large community, a very large set of libraries and
-great for web development. However, it lacks libraries for data science,
-statistics, scientific plotting and machine learning. On the other hand,
-R is considered one of the most powerful languages for solving all of
-the above problems. **Python** is a strong competitor: NumPy, pandas,
-SciPy, and scikit-learn are widely used examples among **many
-thousands** of packages on PyPI for numerical and ML work.
+Galaaz is a system for tightly coupling Ruby and R.  Ruby is a powerful language, with
+a large community, a very large set of libraries and great for web development.  However,
+it lacks libraries for data science, statistics, scientific plotting and machine learning.
+On the other hand, R is considered one of the most powerful languages for solving all of the
+above problems.  **Python** is a strong competitor: NumPy, pandas, SciPy, and scikit-learn are
+widely used examples among **many thousands** of packages on PyPI for numerical and ML work.
 
-With Galaaz we do not intend to re-implement any of the scientific
-libraries in R; we allow for very tight coupling between the two
-languages to the point that the Ruby developer does not need to think
-about R syntax for every call. **Galaaz 2.0** does this with
-**[JRuby](https://www.jruby.org/)** or **CRuby** and **GNU R**: a
-**bridge** evaluates R from Ruby and exchanges data between processes.
+With Galaaz we do not intend to re-implement any of the scientific libraries in R; we allow
+for very tight coupling between the two languages to the point that the Ruby developer does
+not need to think about R syntax for every call. **Galaaz 2.0** does this with **[JRuby](https://www.jruby.org/)**
+or **CRuby** and **GNU R**: a **bridge** evaluates R from Ruby and exchanges data between processes.
 
-An **earlier** Galaaz prototype used Oracle’s **GraalVM** with
-**TruffleRuby** and **FastR** in one JVM. That stack is **historical**;
-today’s documentation and tooling assume **NewBridge on JRuby or CRuby**
+An **earlier** Galaaz prototype used Oracle’s **GraalVM** with **TruffleRuby** and **FastR** in one JVM.
+That stack is **historical**; today’s documentation and tooling assume **NewBridge on JRuby or CRuby**
 (see the project manual and **`bin/galaaz-ruby`** / **`bin/gknit`**).
 
 For background on the old stack:
 
-- [GraalVM Home](https://www.graalvm.org/)
-- [TruffleRuby](https://github.com/oracle/truffleruby)
-- [FastR](https://github.com/oracle/fastr)
-- [Faster R with
-  FastR](https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb)
+* [GraalVM Home](https://www.graalvm.org/)
+* [TruffleRuby](https://github.com/oracle/truffleruby)
+* [FastR](https://github.com/oracle/fastr)
+* [Faster R with FastR](https://medium.com/graalvm/faster-r-with-fastr-4b8db0e0dceb)
 
 ## What does Galaaz mean
 
-Galaaz is the Portuguese name for “Galahad”. From Wikipedia:
+Galaaz is the Portuguese name for "Galahad".  From Wikipedia:
 
     Sir Galahad (sometimes referred to as Galeas or Galath),
     in Arthurian legend, is a knight of King Arthur's Round Table and one
@@ -48,31 +76,29 @@ Galaaz is the Portuguese name for “Galahad”. From Wikipedia:
 
 ## Prerequisites (Galaaz 2.0)
 
-- **JRuby** and a compatible **JDK**, *or* **CRuby 3.3+**
-- **GNU R** on your `PATH`
+* **JRuby** and a compatible **JDK**, *or* **CRuby 3.3+**
+* **GNU R** on your `PATH`
 
-The following R packages will be automatically installed when necessary,
-but could be installed prior to the demo if desired:
+The following R packages will be automatically installed when necessary, but could be installed prior
+to the demo if desired:
 
-- ggplot2
-- gridExtra
+* ggplot2
+* gridExtra
 
-Installation of R packages requires a development environment. On Linux,
-a typical build toolchain (GCC, headers) is usually enough. On macOS,
-Apple’s **Xcode Command Line Tools** are commonly required.
+Installation of R packages requires a development environment.  On Linux, a typical build toolchain
+(GCC, headers) is usually enough.  On macOS, Apple’s **Xcode Command Line Tools** are commonly required.
 
-In order to run the ‘specs’ the following Ruby package is necessary:
+In order to run the 'specs' the following Ruby package is necessary:
 
-- gem install rspec
+* gem install rspec
 
 ## Preparation
 
-- gem install galaaz
+* gem install galaaz
 
 ## Running the demo
 
-The ggplot examples for this demo were adapted from:
-<http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html>.
+The ggplot examples for this demo were adapted from: http://r-statistics.co/Top50-Ggplot2-Visualizations-MasterList-R-Code.html.
 
 At the shell, from a suitable Galaaz environment:
 
@@ -84,20 +110,19 @@ Running
 
     galaaz -T
 
-lists available demo tasks. To run a demo, use **`galaaz`** where you
-would otherwise invoke **`rake`**. For example, if the list shows
-`rake sthda:bar`, run `galaaz sthda:bar`. To run every demo in the
-**sthda** category, use `galaaz sthda:all`. Some examples require
-**rspec**; install it with `gem install rspec`.
+lists available demo tasks.  To run a demo, use **`galaaz`** where you would otherwise invoke **`rake`**.
+For example, if the list shows `rake sthda:bar`, run `galaaz sthda:bar`.  To run every demo in the **sthda**
+category, use `galaaz sthda:all`.  Some examples require **rspec**; install it with `gem install rspec`.
 
 # The demo code
 
-The following is the Ruby code and plot for the above example. There is
-a small difference between the code in the example and the code below.
-If the example is **run**, the plot will appear on the screen; below, we
-generate an SVG image and then include it in this document. In order to
-generate and image, the R.svg device is used. To generate the plot on
-the screen, use the R.awt device, as commented on the code.
+
+The following is the Ruby code and plot for the above example.  There is a small difference between
+the code in the example and the code below.  If the example is **run**, the plot will appear on the
+screen; below, we generate an SVG image and then include it in this document.  In order to
+generate and image, the R.svg device is used.  To generate the plot on the screen, use the R.awt
+device, as commented on the code.
+
 
 ``` ruby
 require 'galaaz'
@@ -124,9 +149,12 @@ gg = midwest.ggplot(E.aes(x: :area, y: :poptotal)) +
 puts gg
 ```
 
-![](galaaz_ggplot_files/figure-markdown_github/midwest_rb.png)
+
+![](galaaz_ggplot_files/figure-html/midwest_rb.png)
+
 
 In R, the code to generate this plot is the following
+
 
 ``` r
 # install.packages("ggplot2")
@@ -152,42 +180,37 @@ gg <- ggplot(midwest, aes(x=area, y=poptotal)) +
 plot(gg)
 ```
 
-Note that both codes are very similar. The Ruby code requires the use of
-“R.” before calling any functions, for instance R function ‘geom_point’
-becomes ‘R.geom_point’ in Ruby. R named parameters such as (col = state,
-size = popdensity), become in Ruby (col: :state, size: :popdensity).
+Note that both codes are very similar.  The Ruby code requires the use of "R." before calling
+any functions,
+for instance R function 'geom_point' becomes 'R.geom_point' in Ruby.  R named parameters such as
+(col = state, size = popdensity), become in Ruby (col: :state, size: :popdensity).
 
-One last point that needs to be observed is the call to the ‘aes’
-function. In Ruby instead of doing ‘R.aes’, we use ‘E.aes’. The
-explanation of why E.aes is needed is an advanced topic in R and depends
-on what is know as Non-standard Evaluation (NSE) in R. In short,
-function ‘aes’ is lazily evaluated in R, i.e., in R when calling
-geom_point(aes(col=state, size=popdensity)), function geom_point
-receives as argument something similar to a string containing
-‘aes(col=state, size=popdensity)’, and the aes function will be
-evaluated inside the geom_point function. In Ruby, there is no Lazy
-evaluation and doing R.aes would try to evaluate aes immediately. In
-order to delay the evaluation of function aes we need to use E.aes. The
-interested reader on NSE in R is directed to
-<http://adv-r.had.co.nz/Computing-on-the-language.html>.
+One last
+point that needs to be observed is the call to the 'aes' function.  In Ruby instead of doing
+'R.aes', we use 'E.aes'.  The explanation of why E.aes is needed is an advanced topic in R and
+depends on what is know as Non-standard Evaluation (NSE) in R.  In short, function 'aes' is lazily
+evaluated in R, i.e., in R when calling geom_point(aes(col=state, size=popdensity)), function
+geom_point receives as argument something similar to a string containing
+'aes(col=state, size=popdensity)', and the aes function will be evaluated inside the geom_point
+function.  In Ruby, there is no Lazy evaluation and doing R.aes would try to evaluate aes
+immediately.  In order to delay the evaluation of function aes we need to use E.aes.  The
+interested reader on NSE in R is directed to http://adv-r.had.co.nz/Computing-on-the-language.html.
 
 # An extension to the example
 
-If both codes are so similar, then why would one use Ruby instead of R
-and what good is galaaz after all?
+If both codes are so similar, then why would one use Ruby instead of R and what good is galaaz
+after all?
 
-Ruby is a modern OO language with numerous very useful constructs such
-as classes, modules, blocks, procs, etc. The example above focus on the
-coupling of both languages, and does not show the use of other Ruby
-constructs. In the following example, we will show a more complex
-example using other Ruby constructs. This is certainly not a very well
-written and robust Ruby code, but it give the idea of how Ruby and R are
-strongly coupled.
+Ruby is a modern OO language with numerous very useful constructs such as classes, modules, blocks,
+procs, etc.  The example above focus on the coupling of both languages, and does not show the
+use of other Ruby constructs.  In the following example, we will show a more complex example using
+other Ruby constructs.  This is certainly not a very well written and robust Ruby code, but
+it give the idea of how Ruby and R are strongly coupled.
 
-Let’s imagine that we work in a corporation that has its plot themes.
-So, it has defined a ‘CorpTheme’ module. Plots in this corporation
-should not have grids, numbers in labels should not use scientific
-notation and the preferred color is blue.
+Let's imagine that we work in a corporation that has its plot themes.  So, it has defined a
+'CorpTheme' module.  Plots in this corporation should not have grids, numbers in labels should
+not use scientific notation and the preferred color is blue.
+
 
 ``` ruby
 # corp_theme.rb
@@ -233,6 +256,7 @@ end
 ```
 
 We now define a ScatterPlot class:
+
 
 ``` ruby
 # ScatterPlot.rb
@@ -325,8 +349,8 @@ class ScatterPlot
 end
 ```
 
-And this is the final code for making the scatter plot with the midwest
-data
+And this is the final code for making the scatter plot with the midwest data
+
 
 ``` ruby
 require 'galaaz'
@@ -345,27 +369,23 @@ sp.add_smoothing_line(method: "glm")
 sp.plot
 ```
 
-![](galaaz_ggplot_files/figure-markdown_github/scatter_plot_rb.png)
+
+![](galaaz_ggplot_files/figure-html/scatter_plot_rb.png)
 
 # Conclusion
 
-R is a very powerful language for statistical analysis, data analytics,
-machine learning, plotting and many other scientific applications with a
-very large package ecosystem. However R is often considered hard to
-learn and lacking modern language features such as object-oriented
-classes, modules, and first-class functions. For that reason, many teams
-have standardized on Python (or stayed entirely inside R) rather than
-mixing ecosystems.
+R is a very powerful language for statistical analysis, data analytics, machine learning, plotting
+and many other scientific applications with a very large package ecosystem.  However R is often
+considered hard to learn and lacking modern language features such as object-oriented
+classes, modules, and first-class functions.  For that reason, many teams have standardized on
+Python (or stayed entirely inside R) rather than mixing ecosystems.
 
-With Galaaz, R programmers can almost transparently migrate from R to
-Ruby, since syntax is almost identical and **GNU R** remains the engine
-for statistics and **ggplot2**. Further, by using Galaaz the R developer
-can start (slowly if needed) using Ruby’s constructs and libraries that
+With Galaaz, R programmers can almost transparently migrate from R to Ruby, since syntax is
+almost identical and **GNU R** remains the engine for statistics and **ggplot2**. Further, by using
+Galaaz the R developer can start (slowly if needed) using Ruby’s constructs and libraries that
 nicely complement R packages.
 
-For the Ruby developer, Galaaz allows the immediate use of R functions
-with minimal ceremony. As shown in the second example above, class
-`ScatterPlot` hides most R call details from the Ruby developer. Prefer
-**JRuby** when you want **real parallel threads** on the Ruby side and
-access to the JVM ecosystem; **CRuby** works equally for the Galaaz
-bridge itself.
+For the Ruby developer, Galaaz allows the immediate use of R functions with minimal ceremony. As
+shown in the second example above, class `ScatterPlot` hides most R call details from the Ruby
+developer. Prefer **JRuby** when you want **real parallel threads** on the Ruby side and access to
+the JVM ecosystem; **CRuby** works equally for the Galaaz bridge itself.

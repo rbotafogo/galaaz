@@ -11,6 +11,12 @@
   on `release:check`.
 - Blogs: `galaaz_2_0` and `r_on_rails_ledger` (sources + rendered outputs); listed
   in `galaaz blogs init` / `BLOG_NAMES`.
+- Brand kit under `logos/` (incl. transparent masters). PDF headers via
+  `sty/galaaz.sty`: small logo left, upright page number + italic uppercase
+  section title right; optional `\galaazheaderfrompage` (shared
+  `sty/galaaz-headers-from-p3.tex` for title/TOC + splash). Main blogs share
+  HTML `before_body` lockup + PDF splash; `galaaz blogs init` / `add tex`
+  install sty header PNG and the from-p3 override.
 
 ### Fixed
 

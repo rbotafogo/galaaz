@@ -9,17 +9,24 @@ output:
     self_contained: true
     keep_md: true
     toc: true
+    toc_float: true
     toc_depth: 2
     number_sections: true
+    includes:
+      before_body: _logo_before_body.html
   pdf_document:
     includes:
-      in_header: "../../sty/galaaz.sty"
+      in_header:
+        - "../../sty/galaaz.sty"
+        - "../../sty/galaaz-headers-from-p3.tex"
     keep_tex: yes
     number_sections: yes
     toc: true
     toc_depth: 2
 fontsize: 11pt
 ---
+
+
 
 
 
@@ -279,8 +286,8 @@ end
 
 ```
 ## R class: Table
-## IPC in: galaaz_ipc_11039_c8a87440ccbf66ea.arrow
-## IPC out: galaaz_ipc_11039_ec90f58abedbafc7.arrow
+## IPC in: galaaz_ipc_35027_0eb039500ea01e8a.arrow
+## IPC out: galaaz_ipc_35027_2e528c6c1bf2152d.arrow
 ## g0 n=100 total=897 wsum=448.5
 ## g1 n=100 total=895 wsum=895.0
 ## g2 n=100 total=893 wsum=1339.5

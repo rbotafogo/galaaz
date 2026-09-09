@@ -3,7 +3,7 @@
 \usepackage[utf8]{inputenc}
 
 \usepackage{geometry}
-\geometry{a4paper, top=1in}
+\geometry{a4paper, top=1.05in, headheight=30pt, headsep=14pt}
 
 % needed for kableExtra
 \usepackage{longtable}
@@ -24,29 +24,60 @@
 \usepackage{graphicx}
 
 \usepackage{fancyhdr}
-% set the header and foot style
-% style 'fancy' adds the section name on the header
-% and the page number on the footer
+% Header: small Galaaz mark (left); page number + section title (right),
+% matching classic LaTeX style: "4  AN EXTENSION TO THE EXAMPLE"
+% (upright page number, uppercase italic section name).
+% Logo paths cover repo blogs (../../sty/), installed ~/sty/, and local images/.
+% Blogs may delay headers with \renewcommand{\galaazheaderfrompage}{3} after this sty
+% (e.g. skip title/TOC and a logo splash page).
+\newcommand{\galaazheaderfrompage}{1}
+\newcommand{\galaazheaderlogo}{%
+  \raisebox{-0.12\height}{%
+    \IfFileExists{../../sty/galaaz-header.png}{%
+      \includegraphics[height=0.32in]{../../sty/galaaz-header.png}%
+    }{%
+      \IfFileExists{galaaz-header.png}{%
+        \includegraphics[height=0.32in]{galaaz-header.png}%
+      }{%
+        \IfFileExists{images/galaaz-header.png}{%
+          \includegraphics[height=0.32in]{images/galaaz-header.png}%
+        }{}%
+      }%
+    }%
+  }%
+}
+% Section title only in marks (no \thesection); page number is separate.
+\renewcommand{\sectionmark}[1]{\markboth{#1}{}}
+\renewcommand{\subsectionmark}[1]{}% keep the current section in the header
+\newcommand{\galaazmaybeheaderlogo}{%
+  \ifnum\value{page}<\galaazheaderfrompage\relax\else\galaazheaderlogo\fi}
+\newcommand{\galaazmayberighthead}{%
+  \ifnum\value{page}<\galaazheaderfrompage\relax
+  \else
+    \textup{\thepage}\hspace{1em}\textit{\MakeUppercase{\leftmark}}%
+  \fi
+}
 \pagestyle{fancy}
-
-% style 'fancyhf' leaves header and footer empty
-%\fancyhf{}
-
-% sets the left head element to \rightmark, which contains the
-% current section (\leftmark is the current chapter)
-%\fancyhead[L]{\rightmark} .
-
-% sets the right head element to the page number.
-% \fancyhead[R]{\thepage}
-
-% lets the head rule disappear.
-% \renewcommand{\headrulewidth}{0pt}
-% Possible selectors for the optional argument of \fancyhead/\fancyfoot
-% are L (left), C (center) or R (right) for the position of the element
-% and E (even) or O (odd) to distinguish even and odd pages. If you omit
-% E/O the element is set for all pages.
-
-% \usepackage{lipsum}
+\fancyhf{}
+\fancyhead[L]{\galaazmaybeheaderlogo}
+\fancyhead[R]{\galaazmayberighthead}
+\renewcommand{\headrulewidth}{0.3pt}
+\makeatletter
+\renewcommand{\headrule}{%
+  \ifnum\value{page}<\galaazheaderfrompage\relax
+  \else
+    \hrule\@height\headrulewidth\@width\headwidth
+    \vskip-\headrulewidth
+  \fi
+}
+\makeatother
+% First page often uses plain; same conditional header logic.
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyhead[L]{\galaazmaybeheaderlogo}%
+  \fancyhead[R]{\galaazmayberighthead}%
+  \renewcommand{\headrulewidth}{0.3pt}%
+}
 
 % make available command lastpage
 \usepackage{lastpage}

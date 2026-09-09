@@ -9,9 +9,17 @@ output:
   html_document:
     self_contained: true
     keep_md: true
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    number_sections: true
+    includes:
+      before_body: _logo_before_body.html
   pdf_document:
     includes:
-      in_header: ["../../sty/galaaz.sty"]
+      in_header:
+        - "../../sty/galaaz.sty"
+        - "../../sty/galaaz-headers-from-p3.tex"
     keep_tex: yes
     number_sections: yes
     toc: true
@@ -27,6 +35,11 @@ options(crayon.enabled = FALSE)
 options(width = 70)
 library('dplyr')
 library('tibble')
+```
+
+```{r brand_logo, echo=FALSE, fig.align='center', out.width='45%', eval=knitr::is_latex_output()}
+# PDF only — HTML uses _logo_before_body.html (above the TOC).
+knitr::include_graphics("images/galaaz-lockup-stacked.png")
 ```
 
 # Introduction

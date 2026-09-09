@@ -9,15 +9,25 @@ output:
   html_document:
     self_contained: true
     keep_md: true
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    number_sections: true
+    includes:
+      before_body: _logo_before_body.html
   pdf_document:
     includes:
-      in_header: "../../sty/galaaz.sty"
+      in_header:
+        - "../../sty/galaaz.sty"
+        - "../../sty/galaaz-headers-from-p3.tex"
     keep_tex: yes
     number_sections: yes
     toc: true
     toc_depth: 2
 fontsize: 11pt
 ---
+
+
 
 
 

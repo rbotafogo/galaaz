@@ -9,11 +9,16 @@ output:
     self_contained: true
     keep_md: true
     toc: true
+    toc_float: true
     toc_depth: 2
     number_sections: true
+    includes:
+      before_body: _logo_before_body.html
   pdf_document:
     includes:
-      in_header: "../../sty/galaaz.sty"
+      in_header:
+        - "../../sty/galaaz.sty"
+        - "../../sty/galaaz-headers-from-p3.tex"
     keep_tex: yes
     number_sections: yes
     toc: true
@@ -30,6 +35,11 @@ ENV['GALAAZ_BRIDGE_TIMEOUT_SEC'] ||= '300'
 ENV['GALAAZ_JOBS_DIR'] ||=
   File.join(Dir.tmpdir, 'galaaz_jobs_galaaz_2_0')
 R.options(crayon__enabled: false, width: 70)
+```
+
+```{r brand_logo, echo=FALSE, fig.align='center', out.width='45%', eval=knitr::is_latex_output()}
+# PDF only — HTML uses _logo_before_body.html (above the TOC).
+knitr::include_graphics("images/galaaz-lockup-stacked.png")
 ```
 
 # Introduction

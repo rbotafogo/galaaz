@@ -822,6 +822,16 @@ module Galaaz
       dest = File.join(sty_dir, 'galaaz.sty')
       FileUtils.cp(src, dest)
       puts "galaaz sty: #{dest}"
+      header = File.join(root, 'sty', 'galaaz-header.png')
+      if File.file?(header)
+        FileUtils.cp(header, File.join(sty_dir, 'galaaz-header.png'))
+        puts "galaaz sty header: #{File.join(sty_dir, 'galaaz-header.png')}"
+      end
+      from_p3 = File.join(root, 'sty', 'galaaz-headers-from-p3.tex')
+      if File.file?(from_p3)
+        FileUtils.cp(from_p3, File.join(sty_dir, 'galaaz-headers-from-p3.tex'))
+        puts "galaaz sty headers: #{File.join(sty_dir, 'galaaz-headers-from-p3.tex')}"
+      end
       dest
     end
 
