@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.1.10.pre.7
+
 ### Added
 
 - Omarchy: Nautilus Scripts under **Scripts → Galaaz** (Gknit HTML / PDF /
