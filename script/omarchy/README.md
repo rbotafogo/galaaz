@@ -31,6 +31,10 @@ Then Super+Space → Install → Development → **Galaaz**.
 | `debug-galaaz.sh` | Snapshot doctor/PATH/gem/bridge |
 | `remove-galaaz.sh` | Uninstall gem + marked blogs; leave R |
 | `omarchy-menu.jsonc` | Menu overlay submenu under Install → Development |
+| `fonts/galaaz.ttf` | Monochrome brand mark (`iconFont: galaaz`, U+E900) |
+
+Menu rows use the Galaaz icon font (not the Ruby-on-Rails Nerd Font gem). Source SVG
+and rebuild script live under `logos/icon-font/`.
 
 After core, the menu includes **Guide (what's next)**, **Documentation (website)**, and **GitHub repository**. After Knit, **Knit demo (oh_my)** runs an example blog.
 
@@ -53,8 +57,11 @@ cp galaaz-guide.sh ~/.local/bin/omarchy-galaaz-guide
 cp galaaz-gknit.sh ~/.local/bin/omarchy-galaaz-gknit
 cp debug-galaaz.sh ~/.local/bin/omarchy-galaaz-debug
 cp omarchy-menu.jsonc ~/.config/omarchy/extensions/omarchy-menu.jsonc
+mkdir -p ~/.local/share/fonts/galaaz
+cp fonts/galaaz.ttf ~/.local/share/fonts/galaaz/
+fc-cache -f ~/.local/share/fonts/galaaz
 chmod +x ~/.local/bin/omarchy-*
-```
+# Restart the Omarchy shell so the galaaz font is visible in the menu.```
 
 ## TryOmarchy steps
 

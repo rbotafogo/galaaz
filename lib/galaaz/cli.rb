@@ -30,6 +30,8 @@ module Galaaz
       ['debug-galaaz.sh', 'omarchy-galaaz-debug', true]
     ].freeze
     OMARCHY_MENU_FILE = 'omarchy-menu.jsonc'
+    OMARCHY_FONT_REL = File.join('fonts', 'galaaz.ttf')
+    OMARCHY_FONT_FAMILY = 'galaaz'
     BLOGS_MARKER = '.galaaz-blogs'
     EXAMPLES_MARKER = '.galaaz-examples'
     CRAN = 'https://cloud.r-project.org'
@@ -150,6 +152,7 @@ module Galaaz
         Writes:
           ~/.local/bin/omarchy-install-galaaz (and add/remove/guide/gknit/debug)
           ~/.config/omarchy/extensions/omarchy-menu.jsonc
+          ~/.local/share/fonts/galaaz/galaaz.ttf (menu brand mark)
 
         Then: Super+Space → Install → Development → Galaaz
       HELP
@@ -195,6 +198,8 @@ module Galaaz
         puts "  #{dest}: #{File.file?(path) ? path : 'MISSING'}"
       end
       puts "  menu: #{File.file?(menu) ? menu : 'MISSING'}"
+      font = File.expand_path('~/.local/share/fonts/galaaz/galaaz.ttf')
+      puts "  font: #{File.file?(font) ? font : 'MISSING'}"
       bundled = File.join(root, 'script', 'omarchy')
       puts "  gem overlay: #{File.directory?(bundled) ? bundled : 'MISSING (reinstall gem)'}"
       0
@@ -204,7 +209,9 @@ module Galaaz
       d = File.join(root, 'script', 'omarchy')
       abort_unless(File.directory?(d), "Omarchy overlay missing from gem (#{d}). Reinstall galaaz.")
       abort_unless(
-        File.file?(File.join(d, 'install-galaaz.sh')) && File.file?(File.join(d, OMARCHY_MENU_FILE)),
+        File.file?(File.join(d, 'install-galaaz.sh')) &&
+          File.file?(File.join(d, OMARCHY_MENU_FILE)) &&
+          File.file?(File.join(d, OMARCHY_FONT_REL)),
         "incomplete Omarchy overlay in gem (#{d})"
       )
       d
@@ -215,10 +222,11 @@ module Galaaz
       tmp = Dir.mktmpdir('galaaz-omarchy-')
       base = "https://raw.githubusercontent.com/#{OMARCHY_GITHUB_REPO}/#{ref}/script/omarchy"
       puts "galaaz omarchy: fetching #{base}/…"
-      names = OMARCHY_BIN_FILES.map(&:first) + [OMARCHY_MENU_FILE]
+      names = OMARCHY_BIN_FILES.map(&:first) + [OMARCHY_MENU_FILE, OMARCHY_FONT_REL]
       names.uniq.each do |name|
         url = "#{base}/#{name}"
         dest = File.join(tmp, name)
+        FileUtils.mkdir_p(File.dirname(dest))
         ok = system('curl', '-fsSL', '-o', dest, url)
         unless ok && File.file?(dest) && File.size(dest).positive?
           FileUtils.rm_rf(tmp)
@@ -249,6 +257,23 @@ module Galaaz
       menu_dest = File.join(ext, OMARCHY_MENU_FILE)
       FileUtils.cp(menu_src, menu_dest)
       puts "galaaz omarchy: #{menu_dest}"
+
+      install_omarchy_font_from!(src_dir)
+    end
+
+    def install_omarchy_font_from!(src_dir)
+      src = File.join(src_dir, OMARCHY_FONT_REL)
+      abort_unless(File.file?(src), "missing #{src} (rebuild with logos/icon-font/build_font.py)")
+      fonts = File.expand_path('~/.local/share/fonts/galaaz')
+      FileUtils.mkdir_p(fonts)
+      dest = File.join(fonts, 'galaaz.ttf')
+      FileUtils.cp(src, dest)
+      puts "galaaz omarchy: #{dest} (family #{OMARCHY_FONT_FAMILY}, U+E900)"
+      if command_present?('fc-cache')
+        system('fc-cache', '-f', fonts)
+      end
+      warn 'galaaz omarchy: restart the Omarchy shell so Qt picks up the galaaz font' \
+        if ENV['OMARCHY_PATH'] || File.directory?(File.expand_path('~/.config/omarchy'))
     end
 
     # ---- blogs ----

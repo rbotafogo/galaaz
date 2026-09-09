@@ -271,9 +271,16 @@ fi
 "${HOME}/.local/bin/galaaz" doctor 2>&1 | tee -a "${LOG}" || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-mkdir -p "${HOME}/.config/omarchy/extensions" "${HOME}/.local/bin"
+mkdir -p "${HOME}/.config/omarchy/extensions" "${HOME}/.local/bin" "${HOME}/.local/share/fonts/galaaz"
 if [[ -f "${SCRIPT_DIR}/omarchy-menu.jsonc" ]]; then
   cp "${SCRIPT_DIR}/omarchy-menu.jsonc" "${HOME}/.config/omarchy/extensions/omarchy-menu.jsonc"
+fi
+if [[ -f "${SCRIPT_DIR}/fonts/galaaz.ttf" ]]; then
+  cp "${SCRIPT_DIR}/fonts/galaaz.ttf" "${HOME}/.local/share/fonts/galaaz/galaaz.ttf"
+  if command -v fc-cache >/dev/null 2>&1; then
+    fc-cache -f "${HOME}/.local/share/fonts/galaaz" >/dev/null 2>&1 || true
+  fi
+  log "menu font: ${HOME}/.local/share/fonts/galaaz/galaaz.ttf"
 fi
 cp "${BASH_SOURCE[0]}" "${HOME}/.local/bin/omarchy-install-galaaz"
 chmod +x "${HOME}/.local/bin/omarchy-install-galaaz"

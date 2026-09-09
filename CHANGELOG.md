@@ -17,6 +17,9 @@
   `sty/galaaz-headers-from-p3.tex` for title/TOC + splash). Main blogs share
   HTML `before_body` lockup + PDF splash; `galaaz blogs init` / `add tex`
   install sty header PNG and the from-p3 override.
+- Omarchy menu brand mark: monochrome icon font `galaaz` (`U+E900`, source
+  `logos/icon-font/`) installed to `~/.local/share/fonts/galaaz/` by
+  `galaaz omarchy` / core installer — replaces the Ruby-on-Rails Nerd Font gem.
 
 ### Fixed
 
