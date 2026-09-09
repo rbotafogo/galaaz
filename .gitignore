@@ -47,3 +47,10 @@ tmp/gknit_phase3_dbg_*/
 tmp/gknit_phase3_graphics_*/
 tmp/phase3dbg.*/
 tmp/phase3dbg*/
+
+# Accidental doubled knitr figure trees (fig.path nested under *_files/)
+blogs/**/*_files/*_files/
+
+# Malformed knitr leftovers (dirs whose names start with literal $fig.path,
+# sometimes with a newline and "[1] ..." glued on)
+blogs/**/\$fig.path*/
