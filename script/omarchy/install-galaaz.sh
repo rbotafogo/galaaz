@@ -1,15 +1,17 @@
 #!/bin/bash
 # Omarchy-shaped core installer for Galaaz (R-on-Rails).
-# omarchy:summary=Install Galaaz (R-on-Rails)
+# omarchy:summary=Configure Galaaz (R-on-Rails)
 # omarchy:name=galaaz
+#
+# Prerequisite (do this yourself first — this script does NOT gem install):
+#   gem install galaaz          # or: gem install galaaz -v x.y.z / .pre.N
+#   galaaz omarchy install      # menu overlay + helpers
+# Then: Super+Space → Install → Development → Galaaz → Galaaz (core)
 #
 # Debug log (always written, even if TUI tee fails):
 #   ~/.local/share/galaaz/install-core.log
 set -euo pipefail
 
-# Optional pin: GALAAZ_GEM_VERSION=2.1.2 omarchy-install-galaaz
-# Default: latest from RubyGems (Omarchy/Rails shape).
-GALAAZ_GEM_VERSION="${GALAAZ_GEM_VERSION:-}"
 LOG_DIR="${HOME}/.local/share/galaaz"
 LOG="${LOG_DIR}/install-core.log"
 mkdir -p "${LOG_DIR}"
@@ -45,13 +47,13 @@ on_err() {
 }
 trap on_err ERR
 
-log "=== galaaz core install $(date -Iseconds) ==="
+log "=== galaaz core configure $(date -Iseconds) ==="
 log "log file: ${LOG}"
 log "script: ${BASH_SOURCE[0]}"
 log "pwd: $(pwd)"
 log "user: $(id -un) home=${HOME}"
 log "PATH: ${PATH}"
-log "GALAAZ_GEM_VERSION=${GALAAZ_GEM_VERSION:-latest}"
+log "(uses already-installed galaaz gem — does not gem install)"
 log ""
 
 pkg_add() {
@@ -167,35 +169,21 @@ WRAP
   log "wrapper: ${HOME}/.local/bin/galaaz"
 }
 
-run_ruby gem uninstall galaaz -x -a --ignore-dependencies >>"${LOG}" 2>&1 || true
-if [[ -n "${GALAAZ_GEM_VERSION}" ]]; then
-  log "==> gem install galaaz -v ${GALAAZ_GEM_VERSION}"
-  set +e
-  run_ruby gem install galaaz -v "${GALAAZ_GEM_VERSION}" --no-document --source https://rubygems.org 2>&1 | tee -a "${LOG}"
-  st=${PIPESTATUS[0]}
-  set -e
-  [[ ${st} -eq 0 ]] || exit "${st}"
-else
-  LATEST="$(curl -fsSL https://rubygems.org/api/v1/versions/galaaz/latest.json 2>/dev/null \
-    | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' || true)"
-  if [[ -n "${LATEST}" ]]; then
-    log "==> gem install galaaz ${LATEST} (latest on RubyGems)"
-  else
-    log "==> gem install galaaz (latest on RubyGems)"
-  fi
-  set +e
-  run_ruby gem install galaaz --no-document --source https://rubygems.org 2>&1 | tee -a "${LOG}"
-  st=${PIPESTATUS[0]}
-  set -e
-  [[ ${st} -eq 0 ]] || exit "${st}"
+# Gem must already be installed (user: gem install galaaz [ -v … ]).
+# Do NOT gem install/uninstall here — that pulled stable latest over prereleases.
+log "==> require installed galaaz gem"
+if ! ROOT="$(gem_root 2>/dev/null)" || [[ -z "${ROOT}" || ! -d "${ROOT}" ]]; then
+  log "ERROR: galaaz gem not found under this Ruby."
+  log "Install first, then re-run core configure:"
+  log "  gem install galaaz    # or gem install galaaz -v <version>"
+  log "  galaaz omarchy install"
+  exit 1
 fi
-
 INSTALLED="$(run_ruby ruby -e "puts Gem::Specification.find_by_name('galaaz').version")"
-log "installed galaaz ${INSTALLED}"
-
-ROOT="$(gem_root)"
-BRIDGE="${ROOT}/ext/new_bridge"
+log "using galaaz ${INSTALLED}"
 log "gem root: ${ROOT}"
+
+BRIDGE="${ROOT}/ext/new_bridge"
 log "bridge: ${BRIDGE}"
 ls -la "${BRIDGE}" >>"${LOG}" 2>&1 || true
 if [[ ! -f "${BRIDGE}/Makefile" ]]; then
@@ -254,8 +242,14 @@ log "gatekeeper OK: ${SO}"
 log "==> galaaz setup (CLI)"
 galaaz_cli setup >>"${LOG}" 2>&1 || log "WARN: galaaz setup non-zero (so exists; continuing)"
 
-log "==> galaaz blogs init"
-galaaz_cli blogs init "${HOME}/galaaz-blogs" >>"${LOG}" 2>&1
+log "==> galaaz blogs init/sync"
+# Fresh machine: init. Upgrade / re-run: sync brand assets without wiping blogs
+# (older gems omitted _logo_before_body.html → pandoc error 99).
+if [[ -f "${HOME}/galaaz-blogs/.galaaz-blogs" ]]; then
+  galaaz_cli blogs sync "${HOME}/galaaz-blogs" >>"${LOG}" 2>&1 || log "WARN: blogs sync non-zero"
+else
+  galaaz_cli blogs init "${HOME}/galaaz-blogs" >>"${LOG}" 2>&1 || log "WARN: blogs init non-zero"
+fi
 
 install_wrapper
 
@@ -276,11 +270,30 @@ if [[ -f "${SCRIPT_DIR}/omarchy-menu.jsonc" ]]; then
   cp "${SCRIPT_DIR}/omarchy-menu.jsonc" "${HOME}/.config/omarchy/extensions/omarchy-menu.jsonc"
 fi
 if [[ -f "${SCRIPT_DIR}/fonts/galaaz.ttf" ]]; then
+  mkdir -p "${HOME}/.local/share/fonts/galaaz"
   cp "${SCRIPT_DIR}/fonts/galaaz.ttf" "${HOME}/.local/share/fonts/galaaz/galaaz.ttf"
-  if command -v fc-cache >/dev/null 2>&1; then
-    fc-cache -f "${HOME}/.local/share/fonts/galaaz" >/dev/null 2>&1 || true
-  fi
-  log "menu font: ${HOME}/.local/share/fonts/galaaz/galaaz.ttf"
+  log "menu font (debug family galaaz): ${HOME}/.local/share/fonts/galaaz/galaaz.ttf"
+fi
+if [[ -f "${SCRIPT_DIR}/fonts/omarchy-with-galaaz.ttf" ]]; then
+  mkdir -p "${HOME}/.local/share/fonts" "${HOME}/.config/fontconfig/conf.d"
+  cp "${SCRIPT_DIR}/fonts/omarchy-with-galaaz.ttf" "${HOME}/.local/share/fonts/omarchy-with-galaaz.ttf"
+  cat >"${HOME}/.config/fontconfig/conf.d/99-galaaz-omarchy-brand.conf" <<'XML'
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<fontconfig>
+  <!-- Prefer Galaaz-extended Omarchy brand font (adds U+E90E). -->
+  <selectfont>
+    <rejectfont>
+      <glob>*/omarchy/omarchy.ttf</glob>
+    </rejectfont>
+  </selectfont>
+</fontconfig>
+XML
+  log "menu font (family omarchy + U+E90E): ${HOME}/.local/share/fonts/omarchy-with-galaaz.ttf"
+fi
+if command -v fc-cache >/dev/null 2>&1; then
+  fc-cache -r >/dev/null 2>&1 || true
+  fc-cache -f "${HOME}/.local/share/fonts" >/dev/null 2>&1 || true
 fi
 cp "${BASH_SOURCE[0]}" "${HOME}/.local/bin/omarchy-install-galaaz"
 chmod +x "${HOME}/.local/bin/omarchy-install-galaaz"
@@ -304,11 +317,31 @@ if [[ -f "${SCRIPT_DIR}/galaaz-gknit.sh" ]]; then
   log "gknit helper: ${HOME}/.local/bin/omarchy-galaaz-gknit"
 fi
 
+# Nautilus right-click → Scripts → Galaaz → gknit
+NAUTILUS_SCRIPTS_SRC="${SCRIPT_DIR}/nautilus-scripts"
+NAUTILUS_SCRIPTS_DEST="${HOME}/.local/share/nautilus/scripts/Galaaz"
+if [[ -d "${NAUTILUS_SCRIPTS_SRC}" ]]; then
+  mkdir -p "${NAUTILUS_SCRIPTS_DEST}"
+  if [[ -f "${NAUTILUS_SCRIPTS_SRC}/gknit-html" ]]; then
+    cp "${NAUTILUS_SCRIPTS_SRC}/gknit-html" "${NAUTILUS_SCRIPTS_DEST}/Gknit HTML"
+    chmod +x "${NAUTILUS_SCRIPTS_DEST}/Gknit HTML"
+  fi
+  if [[ -f "${NAUTILUS_SCRIPTS_SRC}/gknit-pdf" ]]; then
+    cp "${NAUTILUS_SCRIPTS_SRC}/gknit-pdf" "${NAUTILUS_SCRIPTS_DEST}/Gknit PDF"
+    chmod +x "${NAUTILUS_SCRIPTS_DEST}/Gknit PDF"
+  fi
+  if [[ -f "${NAUTILUS_SCRIPTS_SRC}/gknit-choose-format" ]]; then
+    cp "${NAUTILUS_SCRIPTS_SRC}/gknit-choose-format" "${NAUTILUS_SCRIPTS_DEST}/Gknit Choose Format"
+    chmod +x "${NAUTILUS_SCRIPTS_DEST}/Gknit Choose Format"
+  fi
+  log "nautilus Scripts/Galaaz: ${NAUTILUS_SCRIPTS_DEST}"
+fi
+
 mkdir -p "${HOME}/.config/galaaz/profiles"
 date -Iseconds >"${HOME}/.config/galaaz/profiles/core"
 
 log ""
-log "Core install complete."
+log "Core configure complete."
 log "Next: Super+Space → Install → Development → Galaaz → Guide (what's next)"
 log "Docs: https://rbotafogo.github.io/galaaz/"
 log "FULL LOG: ${LOG}"

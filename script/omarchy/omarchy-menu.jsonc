@@ -5,20 +5,23 @@
   // Use ~/.local/bin/galaaz (installer wrapper). Do not quote the whole
   // "galaaz add …" as one word — omarchy-launch-tui then does nothing useful.
   //
-  // Brand mark: private-use U+E900 in family "galaaz"
-  // (script/omarchy/fonts/galaaz.ttf → ~/.local/share/fonts/galaaz/).
+  // Brand mark: U+E90E in family "omarchy" (same iconFont Cursor/Grok use).
+  // Omarchy's stock font owns E900–E90D; we ship omarchy-with-galaaz.ttf which
+  // is that font plus our R+gem at E90E, installed to
+  // ~/.local/share/fonts/omarchy-with-galaaz.ttf. A separate family "galaaz"
+  // alone shows missing-glyph tofu in Qt — do not use iconFont "galaaz" here.
 
   "install.development.galaaz": {
-    "icon": "",
-    "iconFont": "galaaz",
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
     "label": "Galaaz",
     "description": "R on Rails"
   },
   "install.development.galaaz.core": {
-    "icon": "",
-    "iconFont": "galaaz",
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
     "label": "Galaaz (core)",
-    "description": "gem + setup + blogs (not just gem install)",
+    "description": "setup + blogs (gem already installed)",
     "action": "omarchy-launch-tui omarchy-install-galaaz",
     "disabled": "test -f ~/.config/galaaz/profiles/core"
   },
@@ -44,59 +47,45 @@
     "when": "test -f ~/.config/galaaz/profiles/core"
   },
   "install.development.galaaz.knit": {
-    "icon": "",
-    "iconFont": "galaaz",
-    "label": "Knit (HTML blogs)",
-    "description": "pandoc + knitr/rmarkdown",
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
+    "label": "Knit (HTML + PDF blogs)",
+    "description": "pandoc + knitr/rmarkdown + TinyTeX",
     "action": "omarchy-launch-tui omarchy-galaaz-add knit",
     "disabled": "test -f ~/.config/galaaz/profiles/knit"
   },
-  "install.development.galaaz.knit-demo": {
-    "icon": "󰐊",
-    "label": "Knit demo (oh_my)",
-    "description": "gknit ~/galaaz-blogs/oh_my/oh_my.Rmd",
-    "action": "omarchy-launch-tui omarchy-galaaz-guide knit-demo",
-    "when": "test -f ~/.config/galaaz/profiles/knit"
-  },
   "install.development.galaaz.arrow": {
-    "icon": "",
-    "iconFont": "galaaz",
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
     "label": "Arrow",
     "action": "omarchy-launch-tui omarchy-galaaz-add arrow",
     "disabled": "test -f ~/.config/galaaz/profiles/arrow"
   },
-  "install.development.galaaz.tex": {
-    "icon": "",
-    "iconFont": "galaaz",
-    "label": "TeX (PDF blogs)",
-    "action": "omarchy-launch-tui omarchy-galaaz-add tex",
-    "disabled": "test -f ~/.config/galaaz/profiles/tex"
-  },
   "install.development.galaaz.bio": {
-    "icon": "",
-    "iconFont": "galaaz",
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
     "label": "Bioconductor (DESeq2)",
     "action": "omarchy-launch-tui omarchy-galaaz-add bio",
     "disabled": "test -f ~/.config/galaaz/profiles/bio"
   },
   "install.development.galaaz.examples": {
-    "icon": "",
-    "iconFont": "galaaz",
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
     "label": "Examples",
     "action": "omarchy-launch-tui omarchy-galaaz-add examples",
     "disabled": "test -f ~/.config/galaaz/profiles/examples"
   },
   "install.development.galaaz.ledger": {
-    "icon": "",
-    "iconFont": "galaaz",
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
     "label": "Ledger (R-on-Rails demo)",
     "description": "Clone app, seed, bin/dev",
     "action": "omarchy-launch-tui omarchy-galaaz-add ledger",
     "disabled": "test -f ~/.config/galaaz/profiles/ledger"
   },
   "remove.development.galaaz": {
-    "icon": "",
-    "iconFont": "galaaz",
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
     "label": "Galaaz",
     "description": "Core gem (add-on R packages stay)",
     "action": "omarchy-launch-tui omarchy-remove-galaaz"

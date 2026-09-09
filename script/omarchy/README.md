@@ -6,16 +6,15 @@ or a real Omarchy install. Works **with or without** an upstream Omarchy PR.
 ## Recommended: `galaaz omarchy` (gem-bundled)
 
 ```bash
-gem install galaaz
-galaaz setup
-galaaz omarchy              # A: copy overlay from this gem
+gem install galaaz            # choose version yourself (stable or .pre.N)
+galaaz omarchy install        # menu overlay + helpers (no second gem install)
 # optional, newer overlay than the gem:
 # galaaz omarchy install --from-git
-# galaaz omarchy install --from-git --ref galaaz2_0
 galaaz omarchy status
 ```
 
-Then Super+Space → Install → Development → **Galaaz**.
+Then Super+Space → Install → Development → **Galaaz** → **Galaaz (core)**  
+(core configures R/gatekeeper/blogs using the **already-installed** gem).
 
 **Important:** `gem install galaaz` alone does **not** add an Omarchy menu until you run
 `galaaz omarchy` (or an upstream catalog row exists).
@@ -24,14 +23,15 @@ Then Super+Space → Install → Development → **Galaaz**.
 
 | File | Role |
 |------|------|
-| `install-galaaz.sh` | Core install; always writes `~/.local/share/galaaz/install-core.log` |
+| `install-galaaz.sh` | Core configure (R/setup/blogs); uses installed gem; log `~/.local/share/galaaz/install-core.log` |
 | `galaaz-guide.sh` | Guide / docs / knit-demo helper (`omarchy-galaaz-guide`) |
 | `galaaz-add.sh` | Add-on wrapper (`omarchy-galaaz-add`) — pandoc without Arch Haskell stack |
 | `galaaz-gknit.sh` | Safe HTML gknit helper |
 | `debug-galaaz.sh` | Snapshot doctor/PATH/gem/bridge |
 | `remove-galaaz.sh` | Uninstall gem + marked blogs; leave R |
 | `omarchy-menu.jsonc` | Menu overlay submenu under Install → Development |
-| `fonts/galaaz.ttf` | Monochrome brand mark (`iconFont: galaaz`, U+E900) |
+| `fonts/galaaz.ttf` | Standalone family `galaaz` (debug/previews) |
+| `fonts/omarchy-with-galaaz.ttf` | Omarchy brand font + Galaaz at U+E90E (`iconFont: omarchy`) |
 
 Menu rows use the Galaaz icon font (not the Ruby-on-Rails Nerd Font gem). Source SVG
 and rebuild script live under `logos/icon-font/`.
@@ -66,10 +66,12 @@ chmod +x ~/.local/bin/omarchy-*
 ## TryOmarchy steps
 
 1. Install → Development → Ruby on Rails (mise Ruby).
-2. `gem install galaaz && galaaz setup && galaaz omarchy`
-3. Super+Space → search **Galaaz**, or Install → Development → **Galaaz** → **Galaaz (core)**.
+2. `gem install galaaz && galaaz omarchy install`
+3. Super+Space → Install → Development → **Galaaz** → **Galaaz (core)**.
 
-That action must finish **gem + setup + blogs + doctor**. It fails if the gatekeeper `.so` is missing — “gem installed” alone is not success.
+Core configures **setup + blogs + doctor** using the gem you already installed
+(it does **not** run `gem install` again). It fails if the gatekeeper `.so` is
+missing — “gem installed” alone is not success.
 
 4. After core finishes, the same submenu shows Knit / Arrow / TeX / Bio / Examples / Ledger.
 

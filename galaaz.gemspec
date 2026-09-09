@@ -49,13 +49,22 @@ EOF
   # Rendered docs (PDF/HTML) and prebuilt native objects are published on GitHub Pages
   # and built locally (make -C ext/new_bridge), not packed into the gem.
   exclude_exts = %w[.pdf .html .htm .so .o]
+  # Blog assets that MUST ship despite extension exclusions above:
+  #   _logo_before_body.html  — pandoc before_body include (HTML knit)
+  #   images/galaaz-lockup-stacked.png — brand splash (PDF + HTML)
+  blog_asset_whitelist = ->(f) {
+    f.end_with?('_logo_before_body.html') ||
+      f.include?('/images/galaaz-lockup-stacked.png')
+  }
   fls = Dir['Rakefile', 'version.rb', 'README*', 'LICENSE*', 'CHANGELOG*',
             'lib/**/*[!~]', 'specs/**/*[!~]', 'new_bridge_specs/**/*[!~]',
             'ext/**/*[!~]', 'examples/**/*[!~]',
             'r_requires/**/*[!~]', 'bin/**/*[!~]',
             'blogs/**/*[!~]', 'sty/**/*[!~]',
             'script/omarchy/**/*[!~]', 'logos/icon-font/**/*[!~]']
-  gem.files = fls.reject { |f| exclude_exts.include?(File.extname(f).downcase) }
+  gem.files = fls.reject { |f|
+    exclude_exts.include?(File.extname(f).downcase) && !blog_asset_whitelist.call(f)
+  }
 
   gem.metadata["homepage_uri"] = gem.homepage
   gem.metadata["source_code_uri"] = 'https://github.com/rbotafogo/galaaz'

@@ -108,6 +108,108 @@ ensure_pandoc() {
   return 0
 }
 
+pkg_add() {
+  if command -v omarchy-pkg-add >/dev/null 2>&1; then
+    omarchy-pkg-add "$@"
+  elif command -v pacman >/dev/null 2>&1; then
+    sudo pacman -S --noconfirm --needed "$@"
+  else
+    echo "ERROR: need omarchy-pkg-add or pacman to install: $*" >&2
+    return 1
+  fi
+}
+
+# red-arrow needs pkg-config "arrow" + "arrow-glib" at the same version.
+# Arch ships C++ Arrow (extra/arrow) but not Arrow GLib — build GLib from the
+# matching Apache tarball. Keep ARROW_USE_PKG_CONFIG=false for CRAN R arrow
+# (LIBARROW_BINARY); pacman arrow is only for the Ruby gem.
+ensure_arrow_for_red_arrow() {
+  local major ver tmp tarball url build_dir
+  major=25
+
+  echo "==> system: Apache Arrow C++ + GLib (for red-arrow)"
+  export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/lib64/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
+
+  if ! command -v pkg-config >/dev/null 2>&1; then
+    pkg_add pkgconf || return 1
+  fi
+
+  if ! pkg-config --exists "arrow >= ${major}" 2>/dev/null; then
+    echo "==> install Arch package: arrow"
+    if ! pkg_add arrow; then
+      echo "ERROR: failed to install Arch arrow (Apache Arrow C++)" >&2
+      return 1
+    fi
+  fi
+
+  if ! pkg-config --exists "arrow >= ${major}" 2>/dev/null; then
+    echo "ERROR: Apache Arrow C++ >= ${major} still missing after pacman install" >&2
+    echo "  pkg-config --modversion arrow: $(pkg-config --modversion arrow 2>/dev/null || echo none)" >&2
+    return 1
+  fi
+  ver="$(pkg-config --modversion arrow)"
+  echo "arrow (C++): ${ver}"
+
+  if pkg-config --exists "arrow-glib = ${ver}" 2>/dev/null; then
+    echo "arrow-glib: $(pkg-config --modversion arrow-glib) (already installed)"
+    return 0
+  fi
+
+  echo "==> Arrow GLib ${ver} missing — building from Apache source (Arch has no matching package)"
+  pkg_add meson ninja gobject-introspection glib2 || return 1
+
+  tarball="apache-arrow-${ver}.tar.gz"
+  url="https://dlcdn.apache.org/arrow/arrow-${ver}/${tarball}"
+  tmp="$(mktemp -d)"
+  build_dir="${tmp}/apache-arrow-${ver}"
+  echo "==> download: ${url}"
+  if ! curl -fsSL -o "${tmp}/${tarball}" "${url}"; then
+    url="https://archive.apache.org/dist/arrow/arrow-${ver}/${tarball}"
+    echo "==> fallback: ${url}"
+    if ! curl -fsSL -o "${tmp}/${tarball}" "${url}"; then
+      echo "ERROR: failed to download Apache Arrow ${ver} sources" >&2
+      rm -rf "${tmp}"
+      return 1
+    fi
+  fi
+  tar -xzf "${tmp}/${tarball}" -C "${tmp}"
+  if [[ ! -d "${build_dir}/c_glib" ]]; then
+    echo "ERROR: c_glib missing from ${tarball}" >&2
+    rm -rf "${tmp}"
+    return 1
+  fi
+
+  echo "==> meson setup / compile / install arrow-glib ${ver}"
+  if ! meson setup "${build_dir}/c_glib.build" "${build_dir}/c_glib" \
+      --buildtype=release \
+      --prefix=/usr/local \
+      -Dgtk_doc=false; then
+    echo "ERROR: meson setup for arrow-glib failed" >&2
+    rm -rf "${tmp}"
+    return 1
+  fi
+  if ! meson compile -C "${build_dir}/c_glib.build"; then
+    echo "ERROR: meson compile for arrow-glib failed" >&2
+    rm -rf "${tmp}"
+    return 1
+  fi
+  if ! sudo meson install -C "${build_dir}/c_glib.build"; then
+    echo "ERROR: meson install for arrow-glib failed" >&2
+    rm -rf "${tmp}"
+    return 1
+  fi
+  sudo ldconfig 2>/dev/null || true
+  rm -rf "${tmp}"
+
+  if ! pkg-config --exists "arrow-glib = ${ver}" 2>/dev/null; then
+    echo "ERROR: arrow-glib ${ver} still missing after build" >&2
+    echo "  pkg-config --modversion arrow-glib: $(pkg-config --modversion arrow-glib 2>/dev/null || echo none)" >&2
+    return 1
+  fi
+  echo "arrow-glib: $(pkg-config --modversion arrow-glib) (built from Apache ${ver})"
+  return 0
+}
+
 pause() {
   local st=$1
   echo
@@ -138,15 +240,17 @@ case "${PROFILE}" in
     fi
     ;;
   arrow|ledger|demo)
-    # R package arrow: do NOT rely on pacman "arrow" for linking — Arch libarrow
-    # often lags CRAN and breaks configure. galaaz add arrow sets LIBARROW_BINARY
-    # (Apache version-matched prebuilt). Export here too so a stale gem still works
-    # if the user only refreshed this wrapper.
+    # R package arrow: do NOT link pacman arrow (version skew vs CRAN) —
+    # LIBARROW_BINARY uses Apache's version-matched prebuilt. pacman arrow +
+    # built arrow-glib are only for CRuby red-arrow (Stage B).
     export LIBARROW_BINARY=true
     export NOT_CRAN=true
     export LIBARROW_BUILD=false
     export ARROW_USE_PKG_CONFIG=false
     echo "==> arrow env: LIBARROW_BINARY=true LIBARROW_BUILD=false ARROW_USE_PKG_CONFIG=false"
+    if ! ensure_arrow_for_red_arrow; then
+      pause 1
+    fi
     ;;
   bio|examples) ;;
   *)
@@ -157,8 +261,19 @@ esac
 
 echo "==> ${GALAAZ} add ${PROFILE}"
 set +e
-"${GALAAZ}" add "${PROFILE}"
-st=$?
+if [[ "${PROFILE}" == "knit" ]]; then
+  "${GALAAZ}" add knit
+  st=$?
+  if [[ "${st}" -eq 0 ]]; then
+    echo
+    echo "==> ${GALAAZ} add tex (bundled with knit in Omarchy menu)"
+    "${GALAAZ}" add tex
+    st=$?
+  fi
+else
+  "${GALAAZ}" add "${PROFILE}"
+  st=$?
+fi
 set -e
 
 if [[ "${PROFILE}" == "knit" && "${st}" -eq 0 ]]; then

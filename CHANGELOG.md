@@ -2,6 +2,66 @@
 
 ## Unreleased
 
+### Added
+
+- Omarchy: Nautilus Scripts under **Scripts → Galaaz** (Gknit HTML / PDF /
+  Choose Format) installed by `galaaz omarchy` and core configure.
+- Omarchy `galaaz-add` for arrow/ledger/demo: install Arch `arrow` and build
+  matching Arrow GLib into `/usr/local` so `red-arrow` can compile.
+
+## 2.1.10.pre.6
+
+### Changed
+
+- Omarchy **Galaaz (core)** no longer runs `gem install` / uninstall. Flow is:
+  `gem install galaaz` → `galaaz omarchy install` → menu core (setup + blogs).
+- `galaaz --version` / `-v` / `version` prints the installed gem version;
+  `galaaz doctor` shows `version:`.
+- `galaaz blogs sync` refreshes sty + logo includes without wiping blogs;
+  core installer syncs on re-run; `galaaz add knit` refreshes brand assets.
+
+## 2.1.10.pre.5
+
+### Fixed
+
+- Omarchy menu icons: use `"iconFont": "omarchy"` + **U+E90E** via shipped
+  `omarchy-with-galaaz.ttf` (Omarchy brand font + Galaaz R/gem). A custom
+  family `galaaz` alone rendered as missing-glyph tofu (`//'`) because Qt
+  does not load that family for the menu.
+
+## 2.1.10.pre.4
+
+### Fixed
+
+- Omarchy brand icon moved from **U+E900 → U+E920**. E900–E90D belong to
+  Omarchy’s own private font (waybar `\ue900`); using E900 made the menu show
+  Omarchy’s mark whenever `iconFont: galaaz` failed to win.
+
+## 2.1.10.pre.3
+
+### Fixed
+
+- Omarchy brand icon: hand-drawn R + oversized ruby cutout (no PNG auto-trace);
+  build fails if gem hole is too small; preview PNGs at 16/24/48px.
+- Omarchy menu: brand icons use `\uE900` + `iconFont: galaaz`; remove separate
+  TeX menu row (Knit installs TinyTeX); remove Knit demo (oh_my).
+
+## 2.1.10.pre.2
+
+### Fixed
+
+- **gemspec**: `_logo_before_body.html` and `images/galaaz-lockup-stacked.png`
+  were excluded by the `.html`/`.png` filter — pandoc error 99 on Omarchy
+  after `gem install`. Blog asset whitelist now ensures these ship with the gem.
+- **doctor**: checks sty assets (`galaaz-header.png`, `galaaz-headers-from-p3.tex`)
+  and per-blog knit assets (`_logo_before_body.html`, lockup PNG).
+- Omarchy menu: install Knit also runs TeX (TinyTeX); removed Knit demo (oh_my)
+  entry; font install now runs `fc-cache -r` before refreshing `galaaz.ttf`.
+
+## 2.1.10.pre.1
+
+Prerelease of blog-asset / doctor fixes (superseded by 2.1.10.pre.2).
+
 ## 2.1.9
 
 ### Added

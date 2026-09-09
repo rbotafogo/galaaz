@@ -29,9 +29,19 @@ module Galaaz
       ['galaaz-gknit.sh', 'omarchy-galaaz-gknit', true],
       ['debug-galaaz.sh', 'omarchy-galaaz-debug', true]
     ].freeze
+    # Installed under ~/.local/share/nautilus/scripts/Galaaz/ (Scripts → Galaaz).
+    OMARCHY_NAUTILUS_SCRIPTS = [
+      ['gknit-html', 'Gknit HTML'],
+      ['gknit-pdf', 'Gknit PDF'],
+      ['gknit-choose-format', 'Gknit Choose Format']
+    ].freeze
     OMARCHY_MENU_FILE = 'omarchy-menu.jsonc'
+    # Standalone family "galaaz" (debug). Menu uses the merged Omarchy brand font.
     OMARCHY_FONT_REL = File.join('fonts', 'galaaz.ttf')
-    OMARCHY_FONT_FAMILY = 'galaaz'
+    OMARCHY_MERGED_FONT_REL = File.join('fonts', 'omarchy-with-galaaz.ttf')
+    # Menu rows use iconFont "omarchy" + U+E90E (Qt already loads family omarchy).
+    OMARCHY_MENU_FONT_FAMILY = 'omarchy'
+    OMARCHY_MENU_CODEPOINT = 0xE90E
     BLOGS_MARKER = '.galaaz-blogs'
     EXAMPLES_MARKER = '.galaaz-examples'
     CRAN = 'https://cloud.r-project.org'
@@ -44,11 +54,33 @@ module Galaaz
       File.expand_path('../..', __dir__)
     end
 
+    def gem_version
+      spec = Gem.loaded_specs['galaaz']
+      return spec.version.to_s if spec
+
+      begin
+        return Gem::Specification.find_by_name('galaaz').version.to_s
+      rescue LoadError, Gem::LoadError, NameError
+        # fall through to version.rb
+      end
+
+      version_rb = File.join(root, 'version.rb')
+      if File.file?(version_rb)
+        load version_rb
+        return $version.to_s if defined?($version) && $version
+      end
+
+      'unknown'
+    end
+
     def run(argv)
       cmd = argv[0]
       case cmd
       when nil, '-h', '--help', 'help'
         print_help
+        0
+      when '-v', '--version', 'version'
+        puts "galaaz #{gem_version}"
         0
       when 'setup'
         cmd_setup
@@ -78,18 +110,21 @@ module Galaaz
     def print_help
       puts <<~HELP
         Usage: galaaz <command> [args]
+               galaaz --version
 
         Commands:
           setup                 Build the NewBridge gatekeeper; ensure Rcpp
           blogs init [DIR]      Copy blog sources (default: ~/galaaz-blogs)
                                 and sty/galaaz.sty for PDF headers
                                 Options: --force
+          blogs sync [DIR]      Refresh sty + logo includes without wiping blogs
           doctor                Report Ruby, R, gatekeeper, Rcpp, sty, profiles
           add PROFILE           Install an add-on (idempotent)
                                 Profiles: #{PROFILES.join(', ')}
           omarchy [install]     Install Omarchy menu overlay (bundled in gem)
                                 Options: --from-git [--ref REF]
           omarchy status        Show whether overlay helpers are installed
+          --version, -v         Print installed gem version (#{gem_version})
 
         Legacy: any other argument is passed to rake in the Galaaz root
         (e.g. galaaz master_list:scatter_plot).
@@ -152,7 +187,9 @@ module Galaaz
         Writes:
           ~/.local/bin/omarchy-install-galaaz (and add/remove/guide/gknit/debug)
           ~/.config/omarchy/extensions/omarchy-menu.jsonc
-          ~/.local/share/fonts/galaaz/galaaz.ttf (menu brand mark)
+          ~/.local/share/nautilus/scripts/Galaaz/  (right-click → Scripts → Galaaz)
+          ~/.local/share/fonts/galaaz/galaaz.ttf
+          ~/.local/share/fonts/omarchy-with-galaaz.ttf (family omarchy + U+E90E)
 
         Then: Super+Space → Install → Development → Galaaz
       HELP
@@ -199,7 +236,16 @@ module Galaaz
       end
       puts "  menu: #{File.file?(menu) ? menu : 'MISSING'}"
       font = File.expand_path('~/.local/share/fonts/galaaz/galaaz.ttf')
-      puts "  font: #{File.file?(font) ? font : 'MISSING'}"
+      puts "  font galaaz: #{File.file?(font) ? font : 'MISSING'}"
+      merged = File.expand_path('~/.local/share/fonts/omarchy-with-galaaz.ttf')
+      puts "  font omarchy+galaaz: #{File.file?(merged) ? merged : 'MISSING'}"
+      nautilus = File.expand_path('~/.local/share/nautilus/scripts/Galaaz')
+      if Dir.exist?(nautilus)
+        entries = Dir.children(nautilus).reject { |n| n.start_with?('.') }.sort
+        puts "  nautilus Scripts/Galaaz: #{entries.empty? ? 'empty' : entries.join(', ')}"
+      else
+        puts '  nautilus Scripts/Galaaz: MISSING'
+      end
       bundled = File.join(root, 'script', 'omarchy')
       puts "  gem overlay: #{File.directory?(bundled) ? bundled : 'MISSING (reinstall gem)'}"
       0
@@ -211,7 +257,8 @@ module Galaaz
       abort_unless(
         File.file?(File.join(d, 'install-galaaz.sh')) &&
           File.file?(File.join(d, OMARCHY_MENU_FILE)) &&
-          File.file?(File.join(d, OMARCHY_FONT_REL)),
+          File.file?(File.join(d, OMARCHY_FONT_REL)) &&
+          File.file?(File.join(d, OMARCHY_MERGED_FONT_REL)),
         "incomplete Omarchy overlay in gem (#{d})"
       )
       d
@@ -222,7 +269,8 @@ module Galaaz
       tmp = Dir.mktmpdir('galaaz-omarchy-')
       base = "https://raw.githubusercontent.com/#{OMARCHY_GITHUB_REPO}/#{ref}/script/omarchy"
       puts "galaaz omarchy: fetching #{base}/…"
-      names = OMARCHY_BIN_FILES.map(&:first) + [OMARCHY_MENU_FILE, OMARCHY_FONT_REL]
+      names = OMARCHY_BIN_FILES.map(&:first) + [OMARCHY_MENU_FILE, OMARCHY_FONT_REL, OMARCHY_MERGED_FONT_REL]
+      names += OMARCHY_NAUTILUS_SCRIPTS.map { |src, _| File.join('nautilus-scripts', src) }
       names.uniq.each do |name|
         url = "#{base}/#{name}"
         dest = File.join(tmp, name)
@@ -258,21 +306,73 @@ module Galaaz
       FileUtils.cp(menu_src, menu_dest)
       puts "galaaz omarchy: #{menu_dest}"
 
+      install_omarchy_nautilus_scripts_from!(src_dir)
       install_omarchy_font_from!(src_dir)
     end
 
+    def install_omarchy_nautilus_scripts_from!(src_dir)
+      src_root = File.join(src_dir, 'nautilus-scripts')
+      dest_root = File.expand_path('~/.local/share/nautilus/scripts/Galaaz')
+      FileUtils.mkdir_p(dest_root)
+      OMARCHY_NAUTILUS_SCRIPTS.each do |src_name, dest_name|
+        src = File.join(src_root, src_name)
+        abort_unless(File.file?(src), "missing #{src}")
+        dest = File.join(dest_root, dest_name)
+        FileUtils.cp(src, dest)
+        FileUtils.chmod(0o755, dest)
+        puts "galaaz omarchy: #{dest}"
+      end
+      puts 'galaaz omarchy: Nautilus → right-click .Rmd → Scripts → Galaaz'
+    end
+
     def install_omarchy_font_from!(src_dir)
+      # 1) Standalone galaaz.ttf (family galaaz) — debugging / fc-list checks.
       src = File.join(src_dir, OMARCHY_FONT_REL)
       abort_unless(File.file?(src), "missing #{src} (rebuild with logos/icon-font/build_font.py)")
       fonts = File.expand_path('~/.local/share/fonts/galaaz')
       FileUtils.mkdir_p(fonts)
       dest = File.join(fonts, 'galaaz.ttf')
       FileUtils.cp(src, dest)
-      puts "galaaz omarchy: #{dest} (family #{OMARCHY_FONT_FAMILY}, U+E900)"
+      puts "galaaz omarchy: #{dest} (family galaaz, debug)"
+
+      # 2) Merged Omarchy brand font with Galaaz at U+E90E. Menu uses
+      #    iconFont "omarchy" — the same family Cursor/Grok icons use, which Qt
+      #    already loads. A custom family "galaaz" alone shows missing-glyph tofu.
+      merged_src = File.join(src_dir, OMARCHY_MERGED_FONT_REL)
+      abort_unless(
+        File.file?(merged_src),
+        "missing #{merged_src} (rebuild with logos/icon-font/build_font.py)"
+      )
+      # Prefer user font over /usr/share/fonts/**/omarchy.ttf
+      user_fonts = File.expand_path('~/.local/share/fonts')
+      FileUtils.mkdir_p(user_fonts)
+      merged_dest = File.join(user_fonts, 'omarchy-with-galaaz.ttf')
+      FileUtils.cp(merged_src, merged_dest)
+      puts "galaaz omarchy: #{merged_dest} (family #{OMARCHY_MENU_FONT_FAMILY}, U+#{OMARCHY_MENU_CODEPOINT.to_s(16).upcase})"
+
+      conf_dir = File.expand_path('~/.config/fontconfig/conf.d')
+      FileUtils.mkdir_p(conf_dir)
+      conf = File.join(conf_dir, '99-galaaz-omarchy-brand.conf')
+      File.write(conf, <<~XML)
+        <?xml version="1.0"?>
+        <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+        <fontconfig>
+          <!-- Prefer Galaaz-extended Omarchy brand font (adds U+E90E). -->
+          <selectfont>
+            <rejectfont>
+              <glob>*/omarchy/omarchy.ttf</glob>
+            </rejectfont>
+          </selectfont>
+        </fontconfig>
+      XML
+      puts "galaaz omarchy: #{conf}"
+
       if command_present?('fc-cache')
+        system('fc-cache', '-r')
         system('fc-cache', '-f', fonts)
+        system('fc-cache', '-f', user_fonts)
       end
-      warn 'galaaz omarchy: restart the Omarchy shell so Qt picks up the galaaz font' \
+      warn 'galaaz omarchy: logout/reboot required for Qt to reload brand fonts (killall omarchy-shell is often not enough)' \
         if ENV['OMARCHY_PATH'] || File.directory?(File.expand_path('~/.config/omarchy'))
     end
 
@@ -283,11 +383,14 @@ module Galaaz
       case sub
       when 'init'
         blogs_init(argv[1..])
+      when 'sync'
+        blogs_sync(argv[1..])
       when nil, '-h', '--help'
         puts 'Usage: galaaz blogs init [DIR] [--force]'
+        puts '       galaaz blogs sync [DIR]   # refresh sty + logo includes (no wipe)'
         0
       else
-        raise CliError, "unknown blogs subcommand: #{sub.inspect} (try: init)"
+        raise CliError, "unknown blogs subcommand: #{sub.inspect} (try: init|sync)"
       end
     end
 
@@ -300,7 +403,7 @@ module Galaaz
       if File.exist?(dest)
         entries = Dir.children(dest).reject { |n| n.start_with?('.') }
         if !entries.empty? && !force
-          raise CliError, "#{dest} exists and is not empty (use --force to replace)"
+          raise CliError, "#{dest} exists and is not empty (use --force to replace, or: galaaz blogs sync)"
         end
         FileUtils.rm_rf(dest) if force
       end
@@ -315,9 +418,20 @@ module Galaaz
       end
 
       File.write(File.join(dest, BLOGS_MARKER), "galaaz blogs init\n")
-      install_galaaz_sty_for_blogs!(dest)
+      ensure_blog_knit_assets!(dest)
       puts "galaaz blogs init: #{dest}"
       puts "You can now knit with gknit (after: galaaz add knit)"
+      0
+    end
+
+    # Refresh sty + per-blog logo includes without wiping ~/galaaz-blogs.
+    # Needed after gem upgrades that ship new branding assets (pandoc error 99
+    # when _logo_before_body.html / lockup PNG / sty were missing from an older init).
+    def blogs_sync(argv)
+      dest = File.expand_path(argv[0] || detect_blogs_dir || DEFAULT_BLOGS_DIR)
+      abort_unless(File.directory?(dest), "blogs dir missing: #{dest} (run: galaaz blogs init)")
+      n = ensure_blog_knit_assets!(dest)
+      puts "galaaz blogs sync: #{dest} (#{n} brand files refreshed)"
       0
     end
 
@@ -325,6 +439,7 @@ module Galaaz
 
     def cmd_doctor
       puts "galaaz doctor"
+      puts "  version:  #{gem_version}"
       puts "  root:     #{root}"
       print_ruby_engines
 
@@ -342,8 +457,21 @@ module Galaaz
       blogs = detect_blogs_dir
       puts "  blogs:    #{blogs || '(not initialized)'}"
       if blogs
-        sty = File.join(File.dirname(blogs), 'sty', 'galaaz.sty')
+        sty_dir = File.join(File.dirname(blogs), 'sty')
+        sty = File.join(sty_dir, 'galaaz.sty')
         puts "  sty:      #{File.file?(sty) ? sty : "MISSING (expected #{sty} for PDF blogs)"}"
+        %w[galaaz-header.png galaaz-headers-from-p3.tex].each do |name|
+          f = File.join(sty_dir, name)
+          puts "  sty/#{name}: #{File.file?(f) ? 'OK' : 'MISSING (galaaz blogs init --force)'}"
+        end
+        # Check first blog for required knit assets
+        sample = File.join(blogs, BLOG_NAMES.first)
+        if File.directory?(sample)
+          logo_html = File.join(sample, '_logo_before_body.html')
+          logo_png = File.join(sample, 'images', 'galaaz-lockup-stacked.png')
+          puts "  before_body: #{File.file?(logo_html) ? 'OK' : 'MISSING (galaaz blogs init --force)'}"
+          puts "  lockup PNG:  #{File.file?(logo_png) ? 'OK' : 'MISSING (galaaz blogs init --force)'}"
+        end
       end
 
       profiles = listed_profiles
@@ -494,6 +622,11 @@ module Galaaz
       end
       mark_profile!('knit')
       puts 'galaaz add knit: OK'
+      blogs = detect_blogs_dir
+      if blogs
+        ensure_blog_knit_assets!(blogs)
+        puts 'galaaz add knit: refreshed blog brand assets (sty + logos)'
+      end
       puts 'Example knits (after blogs init → ~/galaaz-blogs):'
       puts '  gknit ~/galaaz-blogs/oh_my/oh_my.Rmd'
       puts '  gknit ~/galaaz-blogs/galaaz_ggplot/galaaz_ggplot.Rmd'
@@ -858,6 +991,35 @@ module Galaaz
         puts "galaaz sty headers: #{File.join(sty_dir, 'galaaz-headers-from-p3.tex')}"
       end
       dest
+    end
+
+    # Copy/overwrite brand includes required by blog YAML (pandoc before_body + PDF splash).
+    # Returns number of files written.
+    def ensure_blog_knit_assets!(blogs_dest)
+      blogs_dest = File.expand_path(blogs_dest)
+      install_galaaz_sty_for_blogs!(blogs_dest)
+      written = 0
+      BLOG_NAMES.each do |name|
+        src_blog = File.join(root, 'blogs', name)
+        dest_blog = File.join(blogs_dest, name)
+        next unless File.directory?(src_blog) && File.directory?(dest_blog)
+
+        logo_html = '_logo_before_body.html'
+        src_html = File.join(src_blog, logo_html)
+        if File.file?(src_html)
+          FileUtils.cp(src_html, File.join(dest_blog, logo_html))
+          written += 1
+        end
+
+        lockup = File.join('images', 'galaaz-lockup-stacked.png')
+        src_png = File.join(src_blog, lockup)
+        if File.file?(src_png)
+          FileUtils.mkdir_p(File.join(dest_blog, 'images'))
+          FileUtils.cp(src_png, File.join(dest_blog, lockup))
+          written += 1
+        end
+      end
+      written
     end
 
     # TinyTeX installs to ~/.TinyTeX and often ~/bin; Omarchy PATH prefers ~/.local/bin.

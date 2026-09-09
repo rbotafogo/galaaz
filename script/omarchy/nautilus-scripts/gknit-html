@@ -1,0 +1,39 @@
+#!/bin/bash
+# Nautilus Scripts → Galaaz → Gknit HTML
+# Uses NAUTILUS_SCRIPT_SELECTED_FILE_PATHS (newline-separated).
+set -euo pipefail
+
+GK="${HOME}/.local/bin/omarchy-galaaz-gknit"
+FMT="html_document"
+FILES=()
+
+while IFS= read -r f; do
+  [[ -z "${f}" ]] && continue
+  case "${f,,}" in
+    *.rmd|*.rmarkdown) FILES+=("${f}") ;;
+  esac
+done <<< "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS:-}"
+
+if [[ ${#FILES[@]} -eq 0 ]]; then
+  notify-send "Galaaz" "Select one or more .Rmd files to gknit (HTML)." 2>/dev/null || true
+  exit 1
+fi
+
+if [[ ! -x "${GK}" ]]; then
+  notify-send "Galaaz" "Missing ${GK}. Run: galaaz omarchy install" 2>/dev/null || true
+  exit 1
+fi
+
+launch() {
+  if command -v omarchy-launch-tui >/dev/null 2>&1; then
+    omarchy-launch-tui "${GK}" --output_format "${FMT}" -- "${FILES[@]}"
+  elif command -v xdg-terminal-exec >/dev/null 2>&1; then
+    xdg-terminal-exec "${GK}" --output_format "${FMT}" -- "${FILES[@]}"
+  elif command -v alacritty >/dev/null 2>&1; then
+    alacritty -e "${GK}" --output_format "${FMT}" -- "${FILES[@]}"
+  else
+    "${GK}" --output_format "${FMT}" -- "${FILES[@]}"
+  fi
+}
+
+launch

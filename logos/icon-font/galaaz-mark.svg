@@ -1,34 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Monochrome Galaaz mark for the Omarchy menu icon font (menu-size silhouette).
-  Solid R with left top spur + diamond gem cutout (minimum-size spirit).
-  Straight segments only. Optical box ~150..880 in a 1000 viewBox.
+  Monochrome Galaaz mark for Omarchy menu (family galaaz, U+E900).
+  Hand-drawn for ~16–24px: bold R + oversized hexagonal ruby cutout.
+  Do NOT auto-trace the PNG — stair-step traces collapse into "COBOL" blobs.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" fill="#000">
   <path fill-rule="evenodd" d="
-    M 160 150
-    H 500
-    L 620 150
-    L 700 230
-    L 720 340
-    L 700 450
-    L 620 520
-    L 530 545
-    L 760 880
-    H 580
-    L 400 560
+    M 180 120
+    H 560
+    L 700 120
+    L 800 230
+    L 820 380
+    L 740 530
+    L 580 590
+    L 840 880
+    H 620
+    L 400 610
     H 320
     V 880
-    H 200
-    V 280
-    H 160
-    V 150
+    H 180
+    V 120
     Z
 
-    M 460 280
-    L 380 350
-    L 460 420
-    L 540 350
+    M 340 250
+    L 580 250
+    L 660 360
+    L 460 530
+    L 260 360
     Z
   "/>
 </svg>

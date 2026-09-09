@@ -1,0 +1,61 @@
+#!/bin/bash
+# Nautilus Scripts → Galaaz → Gknit Choose Format
+# Uses NAUTILUS_SCRIPT_SELECTED_FILE_PATHS (newline-separated).
+set -euo pipefail
+
+GK="${HOME}/.local/bin/omarchy-galaaz-gknit"
+FILES=()
+
+while IFS= read -r f; do
+  [[ -z "${f}" ]] && continue
+  case "${f,,}" in
+    *.rmd|*.rmarkdown) FILES+=("${f}") ;;
+  esac
+done <<< "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS:-}"
+
+if [[ ${#FILES[@]} -eq 0 ]]; then
+  notify-send "Galaaz" "Select one or more .Rmd files to gknit." 2>/dev/null || true
+  exit 1
+fi
+
+if [[ ! -x "${GK}" ]]; then
+  notify-send "Galaaz" "Missing ${GK}. Run: galaaz omarchy install" 2>/dev/null || true
+  exit 1
+fi
+
+FMT=""
+if command -v zenity >/dev/null 2>&1; then
+  FMT="$(
+    zenity --list \
+      --title="Galaaz gknit" \
+      --text="Output format for ${#FILES[@]} Rmd file(s):" \
+      --column="Format" \
+      html_document \
+      pdf_document \
+      all \
+      --height=280 \
+      --width=360 \
+      2>/dev/null || true
+  )"
+elif command -v kdialog >/dev/null 2>&1; then
+  FMT="$(
+    kdialog --title "Galaaz gknit" --combobox "Output format:" \
+      html_document pdf_document all \
+      --default html_document 2>/dev/null || true
+  )"
+fi
+
+if [[ -z "${FMT}" ]]; then
+  notify-send "Galaaz" "Format picker cancelled (or install zenity)." 2>/dev/null || true
+  exit 0
+fi
+
+if command -v omarchy-launch-tui >/dev/null 2>&1; then
+  omarchy-launch-tui "${GK}" --output_format "${FMT}" -- "${FILES[@]}"
+elif command -v xdg-terminal-exec >/dev/null 2>&1; then
+  xdg-terminal-exec "${GK}" --output_format "${FMT}" -- "${FILES[@]}"
+elif command -v alacritty >/dev/null 2>&1; then
+  alacritty -e "${GK}" --output_format "${FMT}" -- "${FILES[@]}"
+else
+  "${GK}" --output_format "${FMT}" -- "${FILES[@]}"
+fi
