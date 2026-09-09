@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 2.1.10.pre.9
+
+### Fixed
+
+- Omarchy Arrow Stage B: slim arrow-glib build (hide flight/dataset/parquet from
+  pkg-config) to avoid TUI OOM; traced install log; doctor reports arrow C++ /
+  arrow-glib / R arrow / red-arrow; do not mark `profiles/arrow` until Stage B
+  succeeds; menu **Arrow debug** helper; persist `GI_TYPELIB_PATH` /
+  `LD_LIBRARY_PATH` in `~/.config/galaaz/arrow-env.sh` so `require "arrow"` works
+  without manual exports.
+
 ## 2.1.10.pre.8
 
 ### Fixed

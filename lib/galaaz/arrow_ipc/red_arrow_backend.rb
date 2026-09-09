@@ -44,6 +44,7 @@ module Galaaz
       def load!
         return if defined?(@loaded) && @loaded
 
+        ensure_arrow_glib_runtime_env!
         begin
           require 'arrow'
         rescue LoadError
@@ -59,6 +60,29 @@ module Galaaz
         @loaded = true
       end
       private_class_method :load!
+
+      # Omarchy / --prefix=/usr/local installs put typelibs and .so under /usr/local,
+      # which gobject-introspection and the dynamic linker do not search by default.
+      def ensure_arrow_glib_runtime_env!
+        gir = '/usr/local/lib/girepository-1.0'
+        if File.directory?(gir)
+          cur = ENV['GI_TYPELIB_PATH'].to_s.split(File::PATH_SEPARATOR)
+          ENV['GI_TYPELIB_PATH'] = ([gir] + cur).uniq.join(File::PATH_SEPARATOR)
+        end
+        %w[/usr/local/lib /usr/local/lib64].each do |lib|
+          next unless File.directory?(lib)
+
+          cur = ENV['LD_LIBRARY_PATH'].to_s.split(File::PATH_SEPARATOR)
+          ENV['LD_LIBRARY_PATH'] = ([lib] + cur).uniq.join(File::PATH_SEPARATOR)
+        end
+        %w[/usr/local/lib/pkgconfig /usr/local/lib64/pkgconfig].each do |pc|
+          next unless File.directory?(pc)
+
+          cur = ENV['PKG_CONFIG_PATH'].to_s.split(File::PATH_SEPARATOR)
+          ENV['PKG_CONFIG_PATH'] = ([pc] + cur).uniq.join(File::PATH_SEPARATOR)
+        end
+      end
+      private_class_method :ensure_arrow_glib_runtime_env!
 
       # bundle exec only exposes Gemfile gems; red-arrow is optional and often
       # user-installed. Put its lib + native extension on $LOAD_PATH.

@@ -316,6 +316,11 @@ if [[ -f "${SCRIPT_DIR}/galaaz-gknit.sh" ]]; then
   chmod +x "${HOME}/.local/bin/omarchy-galaaz-gknit"
   log "gknit helper: ${HOME}/.local/bin/omarchy-galaaz-gknit"
 fi
+if [[ -f "${SCRIPT_DIR}/galaaz-arrow-debug.sh" ]]; then
+  cp "${SCRIPT_DIR}/galaaz-arrow-debug.sh" "${HOME}/.local/bin/omarchy-galaaz-arrow-debug"
+  chmod +x "${HOME}/.local/bin/omarchy-galaaz-arrow-debug"
+  log "arrow debug: ${HOME}/.local/bin/omarchy-galaaz-arrow-debug"
+fi
 
 # Nautilus right-click → Scripts → Galaaz → gknit
 NAUTILUS_SCRIPTS_SRC="${SCRIPT_DIR}/nautilus-scripts"

@@ -58,8 +58,16 @@
     "icon": "\uE90E",
     "iconFont": "omarchy",
     "label": "Arrow",
+    "description": "R arrow + Stage B (arrow-glib / red-arrow)",
     "action": "omarchy-launch-tui omarchy-galaaz-add arrow",
     "disabled": "test -f ~/.config/galaaz/profiles/arrow"
+  },
+  "install.development.galaaz.arrow-debug": {
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
+    "label": "Arrow debug",
+    "description": "Diagnose Stage A/B; show logs if install crashed",
+    "action": "omarchy-launch-tui omarchy-galaaz-arrow-debug status"
   },
   "install.development.galaaz.bio": {
     "icon": "\uE90E",

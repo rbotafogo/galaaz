@@ -27,6 +27,7 @@ module Galaaz
       ['galaaz-add.sh', 'omarchy-galaaz-add', true],
       ['galaaz-guide.sh', 'omarchy-galaaz-guide', true],
       ['galaaz-gknit.sh', 'omarchy-galaaz-gknit', true],
+      ['galaaz-arrow-debug.sh', 'omarchy-galaaz-arrow-debug', true],
       ['debug-galaaz.sh', 'omarchy-galaaz-debug', true]
     ].freeze
     # Installed under ~/.local/share/nautilus/scripts/Galaaz/ (Scripts → Galaaz).
@@ -477,12 +478,45 @@ module Galaaz
       profiles = listed_profiles
       puts "  profiles: #{profiles.empty? ? '(none)' : profiles.join(', ')}"
 
+      print_arrow_doctor_lines
+
       pdf = command_present?('pdflatex')
       puts "  pdflatex: #{pdf ? `pdflatex --version 2>/dev/null`.lines.first.to_s.strip : 'MISSING (galaaz add tex)'}"
 
       setup_ok = r_ok && rs_ok && File.file?(so) && rcpp
       puts setup_ok ? 'galaaz doctor: setup OK' : 'galaaz doctor: setup INCOMPLETE'
       setup_ok ? 0 : 1
+    end
+
+    def print_arrow_doctor_lines
+      ENV['PKG_CONFIG_PATH'] = [
+        '/usr/local/lib/pkgconfig',
+        '/usr/local/lib64/pkgconfig',
+        ENV['PKG_CONFIG_PATH']
+      ].compact.reject(&:empty?).join(File::PATH_SEPARATOR)
+
+      arrow_cpp = system('pkg-config', '--exists', 'arrow')
+      arrow_cpp_ver = arrow_cpp ? `pkg-config --modversion arrow 2>/dev/null`.strip : nil
+      arrow_glib = system('pkg-config', '--exists', 'arrow-glib')
+      arrow_glib_ver = arrow_glib ? `pkg-config --modversion arrow-glib 2>/dev/null`.strip : nil
+      r_arrow = command_present?('Rscript') && r_namespace?('arrow')
+      red =
+        begin
+          Gem::Specification.find_by_name('red-arrow')
+          true
+        rescue LoadError, Gem::LoadError
+          false
+        end
+
+      puts "  arrow C++:  #{arrow_cpp ? "OK (#{arrow_cpp_ver})" : 'MISSING (Omarchy: menu Arrow installs Arch arrow)'}"
+      puts "  arrow-glib: #{arrow_glib ? "OK (#{arrow_glib_ver})" : 'MISSING (needed for Stage B / red-arrow)'}"
+      puts "  R arrow:    #{r_arrow ? 'OK' : 'MISSING (Stage A)'}"
+      puts "  red-arrow:  #{red ? 'OK' : 'MISSING (Stage B CRuby writer)'}"
+      if listed_profiles.include?('arrow') && !(arrow_glib && (RUBY_ENGINE != 'ruby' || red))
+        puts '  arrow tip:  profiles/arrow is set but Stage B incomplete — menu Arrow is disabled.'
+        puts '              rm ~/.config/galaaz/profiles/arrow then re-run menu Arrow,'
+        puts '              or: omarchy-galaaz-arrow-debug status'
+      end
     end
 
     def print_ruby_engines
@@ -647,24 +681,38 @@ module Galaaz
       pkgs = read_pkg_list('arrow.txt')
       install_cran!(pkgs)
       if RUBY_ENGINE == 'ruby'
+        ENV['GI_TYPELIB_PATH'] = [
+          '/usr/local/lib/girepository-1.0',
+          ENV['GI_TYPELIB_PATH']
+        ].compact.reject(&:empty?).join(File::PATH_SEPARATOR)
+        ENV['LD_LIBRARY_PATH'] = [
+          '/usr/local/lib',
+          '/usr/local/lib64',
+          ENV['LD_LIBRARY_PATH']
+        ].compact.reject(&:empty?).join(File::PATH_SEPARATOR)
         ENV['PKG_CONFIG_PATH'] = [
           '/usr/local/lib/pkgconfig',
           '/usr/local/lib64/pkgconfig',
+          '/usr/lib/pkgconfig',
           ENV['PKG_CONFIG_PATH']
         ].compact.reject(&:empty?).join(File::PATH_SEPARATOR)
         glib_ok = system('pkg-config', '--exists', 'arrow-glib')
         if glib_ok
           puts 'galaaz add arrow: gem install red-arrow (CRuby Stage B writer; MAKEFLAGS=-j1)'
-          # Parallel native builds often OOM small Omarchy/TryOmarchy VMs.
           ok = system({ 'MAKEFLAGS' => '-j1', 'PKG_CONFIG_PATH' => ENV['PKG_CONFIG_PATH'] },
                       'gem', 'install', 'red-arrow', '--no-document')
           unless ok
             warn 'galaaz add arrow: red-arrow gem install failed. R arrow is installed; ' \
                  'Ruby IPC writer may be unavailable.'
+            warn 'galaaz add arrow: profile NOT marked — fix Stage B then re-run ' \
+                 '(omarchy-galaaz-arrow-debug status)'
+            return 1
           end
         else
           warn 'galaaz add arrow: arrow-glib not found (pkg-config); skipping red-arrow. ' \
                'On Omarchy use omarchy-galaaz-add arrow so Stage B GLib is built first.'
+          warn 'galaaz add arrow: profile NOT marked (Stage B incomplete)'
+          return 1
         end
       else
         warn 'galaaz add arrow: on JRuby, set GALAAZ_ARROW_JARS (or ~/arrow_jars) and JAVA_OPTS nio opens for Arrow Java'
