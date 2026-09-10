@@ -45,8 +45,8 @@ Omarchy has no `CONTRIBUTING.md`. Merges are typically **DHH** (see Scala: [omar
 |------|-------------------|
 | Tiny PR | Only `omarchy-install-dev-env`, `omarchy-remove-dev-env`, and menu JSONC rows |
 | Helpers | `omarchy-pkg-add`, `omarchy-cmd-present` / `omarchy-cmd-missing`; `#!/bin/bash`; two spaces |
-| Install rows | `disabled:` presence check, **not** `when:` (`docs/menu.md` / `menu-test.sh`) |
-| Remove rows | `when:` so the row hides if Galaaz is absent |
+| Install rows | `when:` with a **negated** presence check so the row **hides** after install (same as Omarchy Rails). Prefer `test ! -f ~/.config/galaaz/profiles/…`. Older docs said `disabled:`; Omarchy now hides Install options instead of dimming them. |
+| Remove rows | `when:` so the row hides if Galaaz core is absent |
 | Omakase | “You can now run: …” one command, like `rails new myproject` |
 | No clone | Cold machine: **no** `git clone` of Galaaz |
 | Fast first run | Reuse `mise` Ruby binaries (`ruby.compile false` as Omarchy already sets for Rails) |
@@ -484,7 +484,7 @@ If `omarchy-cmd-present` is not on PATH in guard evaluation, use `command -v gal
 | D-T3 | `galaaz doctor` in a new terminal | setup OK |
 | D-T4 | Repeat `docker/cold-install-cruby/smoke.rb` logic in guest: `ruby -e "require 'galaaz'; abort unless R.c(1,2,3).to_s.include?('1')"` | exit 0 |
 | D-T5 | `ls ~/galaaz-blogs/*/ *.Rmd` | six blogs’ `.Rmd` files |
-| D-T6 | Re-open Install → Development → Galaaz → core | row **disabled**, ✓ |
+| D-T6 | Re-open Install → Development → Galaaz → core | row **hidden** (`when:` failed — same as Rails) |
 | D-T7 | Remove → Development → Galaaz | `galaaz` gone; `ruby` and `rails` still work |
 | D-T8 | Remove row **hidden** after uninstall (`when:` failed) | no Remove Galaaz |
 | D-T9 | Re-install via menu (re-run `galaaz omarchy` if helpers were removed) | D-T3–D-T6 pass again |

@@ -347,7 +347,7 @@ date -Iseconds >"${HOME}/.config/galaaz/profiles/core"
 
 log ""
 log "Core configure complete."
-log "Next: Super+Space → Install → Development → Galaaz → Guide (what's next)"
+log "Next: Super+Space → Learn → Galaaz → Guide (what's next)"
 log "Docs: https://rbotafogo.github.io/galaaz/"
 log "FULL LOG: ${LOG}"
 log "Done!"

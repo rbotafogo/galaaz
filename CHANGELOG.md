@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 2.1.10.pre.11
+
+### Changed
+
+- Omarchy menu: Install rows **hide** after install (`when:` negated profile
+  checks, same as Rails) instead of dimming with `disabled:`.
+- Omarchy menu: Guide / Documentation / GitHub move to **Learn → Galaaz**;
+  Install → Development → Galaaz keeps core, add-ons, and Arrow debug only.
+  Remove → Galaaz shows only while core is present.
+
 ## 2.1.10.pre.10
 
 ### Changed

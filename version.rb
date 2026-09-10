@@ -1,2 +1,2 @@
 $gem_name = "galaaz"
-$version="2.1.10.pre.10"
+$version="2.1.10.pre.11"

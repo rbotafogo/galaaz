@@ -36,7 +36,8 @@ Then Super+Space → Install → Development → **Galaaz** → **Galaaz (core)*
 Menu rows use the Galaaz icon font (not the Ruby-on-Rails Nerd Font gem). Source SVG
 and rebuild script live under `logos/icon-font/`.
 
-After core, the menu includes **Guide (what's next)**, **Documentation (website)**, and **GitHub repository**. After Knit, **Knit demo (oh_my)** runs an example blog.
+After core, use **Learn → Galaaz** for Guide / Documentation / GitHub. After Knit,
+**Knit demo (oh_my)** runs an example blog (Install still has add-ons).
 
 Docs: https://rbotafogo.github.io/galaaz/ · https://github.com/rbotafogo/galaaz
 

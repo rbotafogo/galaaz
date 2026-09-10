@@ -673,7 +673,7 @@ module Galaaz
       puts '  gknit ~/galaaz-blogs/gknit/gknit.Rmd'
       puts 'Docs: https://rbotafogo.github.io/galaaz/'
       puts '      https://github.com/rbotafogo/galaaz'
-      puts 'Omarchy menu: Guide (what\'s next) · Knit demo (oh_my)'
+      puts 'Omarchy: Learn → Galaaz → Guide · Install → Galaaz → Knit (then knit demo)'
       0
     end
 

@@ -66,7 +66,8 @@ Other add-ons
   galaaz add bio          # Bioconductor DESeq2 (large)
 
 Check:  galaaz doctor
-Menu:   Super+Space → Install → Development → Galaaz
+Menu:   Super+Space → Learn → Galaaz (Guide / Docs / GitHub)
+        Super+Space → Install → Development → Galaaz (add-ons)
 
 Heavy CRAN installs / long R (gem 2.1.8+): R::Job keeps the bridge free.
   See README → “Background R jobs (R::Job)” (${DOCS_README})
