@@ -276,13 +276,13 @@ if [[ -f "${SCRIPT_DIR}/fonts/galaaz.ttf" ]]; then
 fi
 if [[ -f "${SCRIPT_DIR}/fonts/omarchy-with-galaaz.ttf" ]]; then
   mkdir -p "${HOME}/.local/share/fonts" "${HOME}/.config/fontconfig/conf.d"
-  cp "${SCRIPT_DIR}/fonts/omarchy-with-galaaz.ttf" "${HOME}/.local/share/fonts/omarchy-with-galaaz.ttf"
-  cat >"${HOME}/.config/fontconfig/conf.d/99-galaaz-omarchy-brand.conf" <<XML
+  cp -f "${SCRIPT_DIR}/fonts/omarchy-with-galaaz.ttf" "${HOME}/.local/share/fonts/omarchy-with-galaaz.ttf"
+  # Same conf as the known-good pre.6 dogfood — prefer our TTF over stock omarchy.ttf.
+  cat >"${HOME}/.config/fontconfig/conf.d/99-galaaz-omarchy-brand.conf" <<'XML'
 <?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
 <fontconfig>
   <!-- Prefer Galaaz-extended Omarchy brand font (adds U+E90E). -->
-  <dir>${HOME}/.local/share/fonts</dir>
   <selectfont>
     <rejectfont>
       <glob>*/omarchy/omarchy.ttf</glob>
@@ -291,14 +291,6 @@ if [[ -f "${SCRIPT_DIR}/fonts/omarchy-with-galaaz.ttf" ]]; then
 </fontconfig>
 XML
   log "menu font (family omarchy + U+E90E): ${HOME}/.local/share/fonts/omarchy-with-galaaz.ttf"
-  if command -v fc-list >/dev/null 2>&1; then
-    fc-cache -f "${HOME}/.local/share/fonts" >/dev/null 2>&1 || true
-    if fc-list : file family 2>/dev/null | grep -q 'omarchy-with-galaaz.ttf'; then
-      log "fontconfig sees omarchy-with-galaaz.ttf"
-    else
-      log "WARN: omarchy-with-galaaz.ttf not listed by fc-list yet (logout/restart shell if icon missing)"
-    fi
-  fi
 fi
 if command -v fc-cache >/dev/null 2>&1; then
   fc-cache -r >/dev/null 2>&1 || true

@@ -6,15 +6,12 @@
   // "galaaz add …" as one word — omarchy-launch-tui then does nothing useful.
   //
   // Brand mark: U+E90E in family "omarchy" (same iconFont Cursor/Grok use).
-  // Omarchy's stock font owns E900–E90D; we ship omarchy-with-galaaz.ttf which
-  // is that font plus our R+gem at E90E, installed to
-  // ~/.local/share/fonts/omarchy-with-galaaz.ttf. A separate family "galaaz"
-  // alone shows missing-glyph tofu in Qt — do not use iconFont "galaaz" here.
+  // Font file: ~/.local/share/fonts/omarchy-with-galaaz.ttf (installed by core).
   //
-  // Install: when: hides a row after that profile is installed (full catalog
-  // stays visible until each item is done). Use $HOME + [[ ]] like stock Omarchy
-  // — bare ~ in test -f is unreliable in the menu guard batcher.
-  // Guide / Docs / GitHub: Learn → Galaaz. Remove: only while core present.
+  // Install rows: disabled: (dim + ✓ when installed) — same as Omarchy Rails.
+  // Do not use when: to hide Install rows; Omarchy search will still list nested
+  // children under a divider when you type a letter (that is search, not a
+  // broken tree). Guide/Docs/GitHub: Learn → Galaaz.
 
   "learn.galaaz": {
     "icon": "\uE90E",
@@ -53,7 +50,7 @@
     "label": "Galaaz (core)",
     "description": "setup + blogs (gem already installed)",
     "action": "omarchy-launch-tui omarchy-install-galaaz",
-    "when": "[[ ! -f $HOME/.config/galaaz/profiles/core ]]"
+    "disabled": "[[ -f $HOME/.config/galaaz/profiles/core ]]"
   },
   "install.development.galaaz.knit": {
     "icon": "\uE90E",
@@ -61,7 +58,7 @@
     "label": "Knit (HTML + PDF blogs)",
     "description": "pandoc + knitr/rmarkdown + TinyTeX",
     "action": "omarchy-launch-tui omarchy-galaaz-add knit",
-    "when": "[[ ! -f $HOME/.config/galaaz/profiles/knit ]]"
+    "disabled": "[[ -f $HOME/.config/galaaz/profiles/knit ]]"
   },
   "install.development.galaaz.arrow-r": {
     "icon": "\uE90E",
@@ -69,7 +66,7 @@
     "label": "Arrow (R only)",
     "description": "CRAN arrow via Apache prebuilt libarrow",
     "action": "omarchy-launch-tui omarchy-galaaz-add arrow-r",
-    "when": "[[ ! -f $HOME/.config/galaaz/profiles/arrow-r && ! -f $HOME/.config/galaaz/profiles/arrow ]]"
+    "disabled": "[[ -f $HOME/.config/galaaz/profiles/arrow-r || -f $HOME/.config/galaaz/profiles/arrow ]]"
   },
   "install.development.galaaz.arrow-ruby": {
     "icon": "\uE90E",
@@ -77,7 +74,7 @@
     "label": "Arrow (Ruby)",
     "description": "R arrow + arrow-glib / red-arrow (installs R only first)",
     "action": "omarchy-launch-tui omarchy-galaaz-add arrow-ruby",
-    "when": "[[ ! -f $HOME/.config/galaaz/profiles/arrow-ruby && ! -f $HOME/.config/galaaz/profiles/arrow ]]"
+    "disabled": "[[ -f $HOME/.config/galaaz/profiles/arrow-ruby || -f $HOME/.config/galaaz/profiles/arrow ]]"
   },
   "install.development.galaaz.arrow-debug": {
     "icon": "\uE90E",
@@ -91,14 +88,14 @@
     "iconFont": "omarchy",
     "label": "Bioconductor (DESeq2)",
     "action": "omarchy-launch-tui omarchy-galaaz-add bio",
-    "when": "[[ ! -f $HOME/.config/galaaz/profiles/bio ]]"
+    "disabled": "[[ -f $HOME/.config/galaaz/profiles/bio ]]"
   },
   "install.development.galaaz.examples": {
     "icon": "\uE90E",
     "iconFont": "omarchy",
     "label": "Examples",
     "action": "omarchy-launch-tui omarchy-galaaz-add examples",
-    "when": "[[ ! -f $HOME/.config/galaaz/profiles/examples ]]"
+    "disabled": "[[ -f $HOME/.config/galaaz/profiles/examples ]]"
   },
   "install.development.galaaz.ledger": {
     "icon": "\uE90E",
@@ -106,7 +103,7 @@
     "label": "Ledger (R-on-Rails demo)",
     "description": "Clone app, seed, bin/dev",
     "action": "omarchy-launch-tui omarchy-galaaz-add ledger",
-    "when": "[[ ! -f $HOME/.config/galaaz/profiles/ledger ]]"
+    "disabled": "[[ -f $HOME/.config/galaaz/profiles/ledger ]]"
   },
   "remove.development.galaaz": {
     "icon": "\uE90E",

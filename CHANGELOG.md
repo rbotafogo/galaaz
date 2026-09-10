@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 2.1.10.pre.13
+
+### Fixed
+
+- Omarchy Install rows back to **`disabled:`** (dim + ✓), matching Rails / the
+  last known-good Galaaz overlay — not `when:` hide. Nested Knit/Arrow/Ledger
+  are still under **Install → Development → Galaaz**; typing a letter in the
+  menu search lists them as flat hits with a Galaaz breadcrumb (Omarchy search
+  UX, not a broken tree).
+- Font install: restore the pre.6 fontconfig snippet; always `cp -f`
+  `omarchy-with-galaaz.ttf`. After upgrade run `galaaz omarchy install` and
+  restart the Omarchy shell so Qt reloads family `omarchy` / U+E90E.
+
 ## 2.1.10.pre.12
 
 ### Fixed
