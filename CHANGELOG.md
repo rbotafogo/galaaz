@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 2.1.10.pre.12
+
+### Fixed
+
+- Omarchy menu guards: use `$HOME` + `[[ ]]` (stock Omarchy style). Prior
+  `test -f ~/.config/...` checks failed in the menu guard batcher, so only
+  **Galaaz (core)** appeared and add-ons never showed; brand glyph path also
+  refreshed on core/omarchy install (`omarchy-with-galaaz.ttf` + fc-cache).
+- Install catalog: add-on rows are visible before core (each hides when its
+  own profile exists); `galaaz add` still requires core.
+
 ## 2.1.10.pre.11
 
 ### Changed
