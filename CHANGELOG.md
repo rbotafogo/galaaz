@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 2.1.10.pre.14
+
+### Fixed
+
+- Omarchy font install ends with **`omarchy restart shell`** (fallbacks:
+  `omarchy-restart-shell`, then `killall omarchy-shell` + relaunch) so the
+  Galaaz R glyph appears without logout. Menu JSON already hot-reloads; Qt
+  does not reload family `omarchy` until the shell restarts.
+
 ## 2.1.10.pre.13
 
 ### Fixed

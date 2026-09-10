@@ -373,8 +373,32 @@ module Galaaz
         system('fc-cache', '-f', fonts)
         system('fc-cache', '-f', user_fonts)
       end
-      warn 'galaaz omarchy: logout/reboot required for Qt to reload brand fonts (killall omarchy-shell is often not enough)' \
-        if ENV['OMARCHY_PATH'] || File.directory?(File.expand_path('~/.config/omarchy'))
+      restart_omarchy_shell_for_fonts!
+    end
+
+    # Menu JSON hot-reloads; Qt keeps family "omarchy" until omarchy-shell restarts.
+    def restart_omarchy_shell_for_fonts!
+      return unless ENV['OMARCHY_PATH'] || File.directory?(File.expand_path('~/.config/omarchy'))
+
+      if command_present?('omarchy') && system('omarchy', 'restart', 'shell')
+        puts 'galaaz omarchy: restarted Omarchy shell (brand font reload)'
+        return
+      end
+      if command_present?('omarchy-restart-shell') && system('omarchy-restart-shell')
+        puts 'galaaz omarchy: restarted Omarchy shell via omarchy-restart-shell'
+        return
+      end
+      if system('pgrep', '-x', 'omarchy-shell', out: File::NULL, err: File::NULL)
+        system('killall', 'omarchy-shell', out: File::NULL, err: File::NULL)
+        if command_present?('omarchy-launch-shell')
+          system('omarchy-launch-shell', out: File::NULL, err: File::NULL)
+        elsif command_present?('hyprctl')
+          system('hyprctl', 'dispatch', 'exec', 'omarchy-launch-shell', out: File::NULL, err: File::NULL)
+        end
+        puts 'galaaz omarchy: restarted omarchy-shell (fallback)'
+        return
+      end
+      warn 'galaaz omarchy: run `omarchy restart shell` so Qt reloads the brand font'
     end
 
     # ---- blogs ----

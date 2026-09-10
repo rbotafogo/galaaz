@@ -296,6 +296,22 @@ if command -v fc-cache >/dev/null 2>&1; then
   fc-cache -r >/dev/null 2>&1 || true
   fc-cache -f "${HOME}/.local/share/fonts" >/dev/null 2>&1 || true
 fi
+# Menu JSON hot-reloads; Qt keeps family "omarchy" until omarchy-shell restarts.
+if command -v omarchy >/dev/null 2>&1 && omarchy restart shell; then
+  log "restarted Omarchy shell (brand font reload)"
+elif command -v omarchy-restart-shell >/dev/null 2>&1 && omarchy-restart-shell; then
+  log "restarted Omarchy shell via omarchy-restart-shell"
+elif pgrep -x omarchy-shell >/dev/null 2>&1; then
+  killall omarchy-shell 2>/dev/null || true
+  if command -v omarchy-launch-shell >/dev/null 2>&1; then
+    omarchy-launch-shell >/dev/null 2>&1 || true
+  elif command -v hyprctl >/dev/null 2>&1; then
+    hyprctl dispatch exec omarchy-launch-shell >/dev/null 2>&1 || true
+  fi
+  log "restarted omarchy-shell (fallback)"
+else
+  log "Omarchy shell not restarted; run: omarchy restart shell"
+fi
 cp "${BASH_SOURCE[0]}" "${HOME}/.local/bin/omarchy-install-galaaz"
 chmod +x "${HOME}/.local/bin/omarchy-install-galaaz"
 if [[ -f "${SCRIPT_DIR}/remove-galaaz.sh" ]]; then
