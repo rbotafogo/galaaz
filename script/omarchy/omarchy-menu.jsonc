@@ -54,19 +54,27 @@
     "action": "omarchy-launch-tui omarchy-galaaz-add knit",
     "disabled": "test -f ~/.config/galaaz/profiles/knit"
   },
-  "install.development.galaaz.arrow": {
+  "install.development.galaaz.arrow-r": {
     "icon": "\uE90E",
     "iconFont": "omarchy",
-    "label": "Arrow",
-    "description": "R arrow + Stage B (arrow-glib / red-arrow)",
-    "action": "omarchy-launch-tui omarchy-galaaz-add arrow",
-    "disabled": "test -f ~/.config/galaaz/profiles/arrow"
+    "label": "Arrow (R only)",
+    "description": "CRAN arrow via Apache prebuilt libarrow",
+    "action": "omarchy-launch-tui omarchy-galaaz-add arrow-r",
+    "disabled": "test -f ~/.config/galaaz/profiles/arrow-r -o -f ~/.config/galaaz/profiles/arrow"
+  },
+  "install.development.galaaz.arrow-ruby": {
+    "icon": "\uE90E",
+    "iconFont": "omarchy",
+    "label": "Arrow (Ruby)",
+    "description": "R arrow + arrow-glib / red-arrow (installs R only first)",
+    "action": "omarchy-launch-tui omarchy-galaaz-add arrow-ruby",
+    "disabled": "test -f ~/.config/galaaz/profiles/arrow-ruby -o -f ~/.config/galaaz/profiles/arrow"
   },
   "install.development.galaaz.arrow-debug": {
     "icon": "\uE90E",
     "iconFont": "omarchy",
     "label": "Arrow debug",
-    "description": "Diagnose Stage A/B; show logs if install crashed",
+    "description": "Diagnose R-only / Ruby Arrow; show logs if install crashed",
     "action": "omarchy-launch-tui omarchy-galaaz-arrow-debug status"
   },
   "install.development.galaaz.bio": {

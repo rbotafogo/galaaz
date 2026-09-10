@@ -3,13 +3,13 @@
 # - Installs system deps the gem cannot (e.g. pandoc for knit)
 # - Keeps the TUI open on success/failure so errors are readable
 #
-# Usage: omarchy-galaaz-add knit|arrow|tex|bio|examples|ledger|demo
+# Usage: omarchy-galaaz-add knit|arrow-r|arrow-ruby|arrow|tex|bio|examples|ledger|demo
 set -euo pipefail
 
 PROFILE="${1:-}"
 if [[ -z "${PROFILE}" ]]; then
   echo "Usage: omarchy-galaaz-add <profile>"
-  echo "Profiles: knit arrow tex bio examples ledger demo"
+  echo "Profiles: knit arrow-r arrow-ruby arrow tex bio examples ledger demo"
   exit 1
 fi
 
@@ -157,7 +157,7 @@ EOF
   echo "arrow runtime env: ${dest}"
 }
 
-# red-arrow (Stage B) needs pkg-config "arrow" + "arrow-glib" at the same version.
+# red-arrow (Arrow Ruby) needs pkg-config "arrow" + "arrow-glib" at the same version.
 # Arch ships C++ Arrow but not Arrow GLib. We build only c_glib from the Apache
 # tarball against pacman arrow — with a *slim* PKG_CONFIG_PATH so meson does not
 # also link flight/dataset/parquet (those explode RAM on TryOmarchy and kill the TUI).
@@ -180,7 +180,7 @@ ensure_arrow_for_red_arrow() {
 
   : >"${trace_log}"
   atracel "ensure_arrow_for_red_arrow start"
-  echo "==> system: Apache Arrow C++ + GLib (Stage B / red-arrow)"
+  echo "==> system: Apache Arrow C++ + GLib (Arrow Ruby / red-arrow)"
   echo "    build log:  ${log}"
   echo "    trace log:  ${trace_log}"
 
@@ -389,10 +389,17 @@ case "${PROFILE}" in
       pause 1
     fi
     ;;
-  arrow|ledger|demo)
-    # R package arrow: do NOT link pacman arrow (version skew vs CRAN) —
-    # LIBARROW_BINARY uses Apache's version-matched prebuilt. pacman arrow +
-    # built arrow-glib are only for CRuby red-arrow (Stage B).
+  arrow-r)
+    # R package arrow only — Apache prebuilt libarrow (no system GLib / red-arrow).
+    export LIBARROW_BINARY=true
+    export NOT_CRAN=true
+    export LIBARROW_BUILD=false
+    export ARROW_USE_PKG_CONFIG=false
+    echo "==> arrow env: LIBARROW_BINARY=true LIBARROW_BUILD=false ARROW_USE_PKG_CONFIG=false"
+    ;;
+  arrow-ruby|arrow|ledger|demo)
+    # Arrow (Ruby) needs R arrow first, then pacman arrow + arrow-glib + red-arrow.
+    # LIBARROW_* is for CRAN R arrow; pacman arrow + glib are for the Ruby gem only.
     export LIBARROW_BINARY=true
     export NOT_CRAN=true
     export LIBARROW_BUILD=false

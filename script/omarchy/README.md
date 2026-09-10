@@ -73,14 +73,16 @@ Core configures **setup + blogs + doctor** using the gem you already installed
 (it does **not** run `gem install` again). It fails if the gatekeeper `.so` is
 missing — “gem installed” alone is not success.
 
-4. After core finishes, the same submenu shows Knit / Arrow / TeX / Bio / Examples / Ledger.
+4. After core finishes, the same submenu shows Knit / Arrow (R only) / Arrow (Ruby) /
+   TeX / Bio / Examples / Ledger.
 
 5. **Ledger (required dogfood / pitch):** Install → Development → **Galaaz → Ledger**
-   (or `omarchy-galaaz-add ledger` / `galaaz add ledger`). That pulls **arrow** if
-   needed using Apache’s **LIBARROW_BINARY** prebuilt libarrow (no manual steps;
-   Arch `pacman` arrow is not used for the R package — version skew breaks
-   configure), clones `~/r_on_rails_ledger`, rewrites any `path:` gem to RubyGems
-   galaaz, then `bundle install` + fast seed.
+   (or `omarchy-galaaz-add ledger` / `galaaz add ledger`). That pulls **arrow-ruby**
+   if needed (Arrow R only first, then arrow-glib / red-arrow). R’s CRAN arrow uses
+   Apache’s **LIBARROW_BINARY** prebuilt libarrow (no manual steps; Arch `pacman`
+   arrow is not used for the R package — version skew breaks configure), clones
+   `~/r_on_rails_ledger`, rewrites any `path:` gem to RubyGems galaaz, then
+   `bundle install` + fast seed.
 
    **Knit / TeX pandoc:** the add wrapper does **not** install Arch `pandoc` /
    `pandoc-cli` (Haskell mega-deps; often fails on TryOmarchy). It uses

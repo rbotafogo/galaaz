@@ -56,11 +56,14 @@ After: galaaz add knit   (Install → Development → Galaaz → Knit)
   Or from the menu:  Knit demo (oh_my)
 
 Other add-ons
-  galaaz add arrow     # Apache Arrow
-  galaaz add ledger    # R-on-Rails demo app → ~/r_on_rails_ledger && bin/dev
-  galaaz add examples  # Ruby examples → ~/galaaz-examples
-  galaaz add tex       # TinyTeX / PDF (large)
-  galaaz add bio       # Bioconductor DESeq2 (large)
+  galaaz add arrow-r      # Arrow (R only) — CRAN arrow / Apache prebuilt
+  galaaz add arrow-ruby   # Arrow (Ruby) — installs R only first, then red-arrow
+  galaaz add ledger       # R-on-Rails demo app → ~/r_on_rails_ledger && bin/dev
+  galaaz add examples     # Ruby examples → ~/galaaz-examples
+                          #   ruby ~/galaaz-examples/misc/ggplot.rb
+                          #   less ~/galaaz-examples/README.md
+  galaaz add tex          # TinyTeX / PDF (large)
+  galaaz add bio          # Bioconductor DESeq2 (large)
 
 Check:  galaaz doctor
 Menu:   Super+Space → Install → Development → Galaaz

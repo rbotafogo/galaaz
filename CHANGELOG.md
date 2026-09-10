@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 2.1.10.pre.10
+
+### Changed
+
+- Omarchy: split Arrow menu into **Arrow (R only)** (`galaaz add arrow-r`) and
+  **Arrow (Ruby)** (`galaaz add arrow-ruby`). Ruby install always ensures R only
+  first; no Stage A/B labels in the UI. Legacy `galaaz add arrow` aliases to
+  `arrow-ruby`. Ledger/demo pull `arrow-ruby`. Guide, doctor, and Arrow debug
+  use the same wording. Examples tree ships `examples/README.md` with run hints.
+
 ## 2.1.10.pre.9
 
 ### Fixed

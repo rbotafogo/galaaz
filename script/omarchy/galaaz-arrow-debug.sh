@@ -7,7 +7,7 @@
 #   omarchy-galaaz-arrow-debug status
 #   omarchy-galaaz-arrow-debug probe     # light checks + write report
 #   omarchy-galaaz-arrow-debug last-log  # show build log tails + dmesg OOM
-#   omarchy-galaaz-arrow-debug install   # run omarchy-galaaz-add arrow with tracing
+#   omarchy-galaaz-arrow-debug install   # run omarchy-galaaz-add arrow-ruby with tracing
 #
 # Report: ~/.local/share/galaaz/arrow-debug.log
 set -uo pipefail
@@ -71,7 +71,7 @@ run_status() {
     if pkg-config --exists arrow-glib; then
       trace "OK  arrow-glib: $(pkg-config --modversion arrow-glib)"
     else
-      trace "MISS arrow-glib (Stage B GLib — required for red-arrow)"
+      trace "MISS arrow-glib (needed for Arrow (Ruby) / red-arrow)"
     fi
   fi
 
@@ -89,10 +89,18 @@ run_status() {
 
   section "galaaz profile markers"
   ls -la "${HOME}/.config/galaaz/profiles/" 2>/dev/null | tee -a "${REPORT}" || trace "no profiles dir"
+  if [[ -f "${HOME}/.config/galaaz/profiles/arrow-r" ]]; then
+    trace "OK   profiles/arrow-r (Arrow R only) — menu row disabled"
+  else
+    trace "MISS profiles/arrow-r"
+  fi
+  if [[ -f "${HOME}/.config/galaaz/profiles/arrow-ruby" ]]; then
+    trace "OK   profiles/arrow-ruby (Arrow Ruby) — menu row disabled"
+  else
+    trace "MISS profiles/arrow-ruby"
+  fi
   if [[ -f "${HOME}/.config/galaaz/profiles/arrow" ]]; then
-    trace "NOTE: profiles/arrow exists → Omarchy menu Arrow row is DISABLED"
-    trace "      If Stage B is incomplete, remove it to re-enable the menu:"
-    trace "      rm ~/.config/galaaz/profiles/arrow"
+    trace "NOTE: legacy profiles/arrow also present"
   fi
 
   section "prior build / install logs"
@@ -114,16 +122,16 @@ run_status() {
   elif have ruby; then
     ruby -e 'gem "red-arrow"; puts' 2>/dev/null && ra=1 || true
   fi
-  trace "Stage A (R arrow):     $([[ ${r} -eq 1 ]] && echo OK || echo MISSING)"
+  trace "Arrow (R only):        $([[ ${r} -eq 1 ]] && echo OK || echo MISSING)"
   trace "Arrow C++ (pkg-config): $([[ ${a} -eq 1 ]] && echo OK || echo MISSING)"
   trace "Arrow GLib:            $([[ ${g} -eq 1 ]] && echo OK || echo MISSING)"
-  trace "Stage B (red-arrow):   $([[ ${ra} -eq 1 ]] && echo OK || echo MISSING)"
+  trace "Arrow (Ruby)/red-arrow:$([[ ${ra} -eq 1 ]] && echo OK || echo MISSING)"
   if [[ ${r} -eq 1 && ${g} -eq 1 && ${ra} -eq 1 ]]; then
-    trace "RESULT: Arrow Stage A+B look OK"
+    trace "RESULT: Arrow (R only) + Arrow (Ruby) look OK"
   elif [[ ${r} -eq 1 ]]; then
-    trace "RESULT: Stage A OK; Stage B incomplete — menu install still needed for GLib/red-arrow"
+    trace "RESULT: Arrow (R only) OK; Arrow (Ruby) incomplete — menu: Arrow (Ruby)"
   else
-    trace "RESULT: Arrow not fully installed"
+    trace "RESULT: Arrow not fully installed — start with menu: Arrow (R only)"
   fi
   trace "Full report: ${REPORT}"
 }
@@ -149,7 +157,7 @@ run_last_log() {
 }
 
 run_install() {
-  section "traced install via omarchy-galaaz-add arrow"
+  section "traced install via omarchy-galaaz-add arrow-ruby"
   trace "If the terminal dies, re-open a terminal and run:"
   trace "  omarchy-galaaz-arrow-debug last-log"
   trace "  omarchy-galaaz-arrow-debug status"
@@ -161,16 +169,18 @@ run_install() {
     trace "ERROR: omarchy-galaaz-add missing — run: galaaz omarchy install"
     return 1
   fi
-  # Clear stale profile so menu/add can redo Stage B.
-  if [[ -f "${HOME}/.config/galaaz/profiles/arrow" ]]; then
-    trace "removing incomplete/stale profiles/arrow so install can run cleanly"
-    rm -f "${HOME}/.config/galaaz/profiles/arrow"
-  fi
+  # Clear stale markers so menu/add can redo Arrow (Ruby).
+  for m in arrow arrow-ruby; do
+    if [[ -f "${HOME}/.config/galaaz/profiles/${m}" ]]; then
+      trace "removing incomplete/stale profiles/${m}"
+      rm -f "${HOME}/.config/galaaz/profiles/${m}"
+    fi
+  done
   export GALAAZ_ARROW_TRACE=1
   export GALAAZ_ARROW_GLIB_JOBS="${GALAAZ_ARROW_GLIB_JOBS:-1}"
-  trace "exec: GALAAZ_ARROW_TRACE=1 GALAAZ_ARROW_GLIB_JOBS=${GALAAZ_ARROW_GLIB_JOBS} ${add} arrow"
+  trace "exec: GALAAZ_ARROW_TRACE=1 GALAAZ_ARROW_GLIB_JOBS=${GALAAZ_ARROW_GLIB_JOBS} ${add} arrow-ruby"
   sync
-  "${add}" arrow
+  "${add}" arrow-ruby
 }
 
 pause_end() {

@@ -11,7 +11,7 @@ module Galaaz
     BLOG_NAMES = %w[
       oh_my gknit galaaz_ggplot galaaz_2_0 r_on_rails_ledger manual nse_dplyr ruby_plot
     ].freeze
-    PROFILES = %w[knit arrow tex bio examples ledger demo].freeze
+    PROFILES = %w[knit arrow-r arrow-ruby arrow tex bio examples ledger demo].freeze
     CONFIG_DIR = File.join(Dir.home, '.config', 'galaaz')
     PROFILES_DIR = File.join(CONFIG_DIR, 'profiles')
     DEFAULT_BLOGS_DIR = File.join(Dir.home, 'galaaz-blogs')
@@ -508,14 +508,18 @@ module Galaaz
           false
         end
 
-      puts "  arrow C++:  #{arrow_cpp ? "OK (#{arrow_cpp_ver})" : 'MISSING (Omarchy: menu Arrow installs Arch arrow)'}"
-      puts "  arrow-glib: #{arrow_glib ? "OK (#{arrow_glib_ver})" : 'MISSING (needed for Stage B / red-arrow)'}"
-      puts "  R arrow:    #{r_arrow ? 'OK' : 'MISSING (Stage A)'}"
-      puts "  red-arrow:  #{red ? 'OK' : 'MISSING (Stage B CRuby writer)'}"
+      puts "  arrow C++:  #{arrow_cpp ? "OK (#{arrow_cpp_ver})" : 'MISSING (Omarchy: menu Arrow (Ruby) installs Arch arrow)'}"
+      puts "  arrow-glib: #{arrow_glib ? "OK (#{arrow_glib_ver})" : 'MISSING (needed for Arrow (Ruby) / red-arrow)'}"
+      puts "  R arrow:    #{r_arrow ? 'OK' : 'MISSING (menu: Arrow (R only))'}"
+      puts "  red-arrow:  #{red ? 'OK' : 'MISSING (menu: Arrow (Ruby))'}"
       if listed_profiles.include?('arrow') && !(arrow_glib && (RUBY_ENGINE != 'ruby' || red))
-        puts '  arrow tip:  profiles/arrow is set but Stage B incomplete — menu Arrow is disabled.'
-        puts '              rm ~/.config/galaaz/profiles/arrow then re-run menu Arrow,'
+        puts '  arrow tip:  legacy profiles/arrow set but Ruby bridge incomplete —'
+        puts '              rm ~/.config/galaaz/profiles/arrow ~/.config/galaaz/profiles/arrow-ruby'
+        puts '              then: omarchy-galaaz-add arrow-ruby'
         puts '              or: omarchy-galaaz-arrow-debug status'
+      elsif listed_profiles.include?('arrow-ruby') && !(arrow_glib && (RUBY_ENGINE != 'ruby' || red))
+        puts '  arrow tip:  profiles/arrow-ruby set but bridge incomplete —'
+        puts '              rm ~/.config/galaaz/profiles/arrow-ruby && omarchy-galaaz-add arrow-ruby'
       end
     end
 
@@ -618,7 +622,9 @@ module Galaaz
 
       case profile
       when 'knit' then add_knit
-      when 'arrow' then add_arrow
+      when 'arrow-r' then add_arrow_r
+      when 'arrow-ruby' then add_arrow_ruby
+      when 'arrow' then add_arrow_ruby # alias: full Ruby bridge (includes R)
       when 'tex' then add_tex
       when 'bio' then add_bio
       when 'examples' then add_examples
@@ -627,7 +633,7 @@ module Galaaz
     end
 
     def add_demo
-      %w[knit arrow ledger].each do |p|
+      %w[knit arrow-ruby ledger].each do |p|
         code = cmd_add([p])
         return code unless code.zero?
       end
@@ -671,15 +677,36 @@ module Galaaz
       0
     end
 
-    def add_arrow
-      # R 'arrow' needs a matching libarrow. Compiling Arrow C++ + Boost from the
-      # CRAN source tarball is fragile (especially Arch/Omarchy). Distro libarrow
-      # (e.g. Arch extra/arrow) often mismatches the CRAN package major and then
-      # pkg-config configure fails. Apache's version-matched prebuilt libarrow is
-      # the reliable automated path — HTTPS from Apache, no interactive steps.
+    # Arrow (R only): CRAN arrow via Apache prebuilt libarrow.
+    def add_arrow_r
+      if profile_marked?('arrow-r') && r_namespace?('arrow')
+        puts 'galaaz add arrow-r: already installed'
+        return 0
+      end
       prepare_arrow_cran_env!
       pkgs = read_pkg_list('arrow.txt')
       install_cran!(pkgs)
+      mark_profile!('arrow-r')
+      puts 'galaaz add arrow-r: OK (R only)'
+      0
+    end
+
+    # Arrow (Ruby): R arrow first, then arrow-glib + red-arrow (CRuby) / JARs tip (JRuby).
+    def add_arrow_ruby
+      if profile_marked?('arrow-ruby') &&
+         (RUBY_ENGINE != 'ruby' || begin
+           Gem::Specification.find_by_name('red-arrow')
+           true
+         rescue Gem::LoadError
+           false
+         end)
+        puts 'galaaz add arrow-ruby: already installed'
+        return 0
+      end
+
+      code = add_arrow_r
+      return code unless code.zero?
+
       if RUBY_ENGINE == 'ruby'
         ENV['GI_TYPELIB_PATH'] = [
           '/usr/local/lib/girepository-1.0',
@@ -698,27 +725,29 @@ module Galaaz
         ].compact.reject(&:empty?).join(File::PATH_SEPARATOR)
         glib_ok = system('pkg-config', '--exists', 'arrow-glib')
         if glib_ok
-          puts 'galaaz add arrow: gem install red-arrow (CRuby Stage B writer; MAKEFLAGS=-j1)'
+          puts 'galaaz add arrow-ruby: gem install red-arrow (MAKEFLAGS=-j1)'
           ok = system({ 'MAKEFLAGS' => '-j1', 'PKG_CONFIG_PATH' => ENV['PKG_CONFIG_PATH'] },
                       'gem', 'install', 'red-arrow', '--no-document')
           unless ok
-            warn 'galaaz add arrow: red-arrow gem install failed. R arrow is installed; ' \
+            warn 'galaaz add arrow-ruby: red-arrow gem install failed. R arrow is installed; ' \
                  'Ruby IPC writer may be unavailable.'
-            warn 'galaaz add arrow: profile NOT marked — fix Stage B then re-run ' \
+            warn 'galaaz add arrow-ruby: profile NOT marked — fix then re-run ' \
                  '(omarchy-galaaz-arrow-debug status)'
             return 1
           end
         else
-          warn 'galaaz add arrow: arrow-glib not found (pkg-config); skipping red-arrow. ' \
-               'On Omarchy use omarchy-galaaz-add arrow so Stage B GLib is built first.'
-          warn 'galaaz add arrow: profile NOT marked (Stage B incomplete)'
+          warn 'galaaz add arrow-ruby: arrow-glib not found (pkg-config); skipping red-arrow. ' \
+               'On Omarchy use: omarchy-galaaz-add arrow-ruby (builds GLib first).'
+          warn 'galaaz add arrow-ruby: profile NOT marked'
           return 1
         end
       else
-        warn 'galaaz add arrow: on JRuby, set GALAAZ_ARROW_JARS (or ~/arrow_jars) and JAVA_OPTS nio opens for Arrow Java'
+        warn 'galaaz add arrow-ruby: on JRuby, set GALAAZ_ARROW_JARS (or ~/arrow_jars) ' \
+             'and JAVA_OPTS nio opens for Arrow Java'
       end
-      mark_profile!('arrow')
-      puts 'galaaz add arrow: OK'
+      mark_profile!('arrow-ruby')
+      mark_profile!('arrow') # legacy marker (older menus / scripts)
+      puts 'galaaz add arrow-ruby: OK'
       0
     end
 
@@ -730,7 +759,7 @@ module Galaaz
       ENV['LIBARROW_BUILD'] = 'false'
       # Avoid linking against a mismatched system libarrow (e.g. pacman 24.x vs CRAN 25.x).
       ENV['ARROW_USE_PKG_CONFIG'] = 'false'
-      puts 'galaaz add arrow: LIBARROW_BINARY=true (Apache prebuilt libarrow; no source build)'
+      puts 'galaaz add arrow-r: LIBARROW_BINARY=true (Apache prebuilt libarrow; no source build)'
     end
 
     def add_tex
@@ -784,13 +813,17 @@ module Galaaz
       File.write(File.join(dest, EXAMPLES_MARKER), "galaaz add examples\n")
       mark_profile!('examples')
       puts "galaaz add examples: #{dest}"
+      puts 'Try:'
+      puts "  ruby #{File.join(dest, 'misc', 'ggplot.rb')}"
+      puts "  ruby #{File.join(dest, 'sthda_ggplot', 'one_variable_continuous', 'geom_density.rb')}"
+      puts "  less #{File.join(dest, 'README.md')}"
       0
     end
 
     def add_ledger
-      unless profile_marked?('arrow') || r_namespace?('arrow')
-        puts 'galaaz add ledger: installing arrow profile first'
-        code = add_arrow
+      unless profile_marked?('arrow-ruby') || profile_marked?('arrow')
+        puts 'galaaz add ledger: installing arrow-ruby first (includes Arrow R only)'
+        code = add_arrow_ruby
         return code unless code.zero?
       end
 
