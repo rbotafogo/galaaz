@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    galaaz (2.1.10.pre.14)
+    galaaz (2.1.10)
       msgpack (~> 1.0)
 
 GEM
@@ -69,7 +69,7 @@ CHECKSUMS
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   erb (6.0.2) sha256=9fe6264d44f79422c87490a1558479bd0e7dad4dd0e317656e67ea3077b5242b
   erb (6.0.2-java) sha256=38f0e2e15453963fda1754d6b555b26650631cad72567304d59e6c3d847cd1be
-  galaaz (2.1.10.pre.14)
+  galaaz (2.1.10)
   jar-dependencies (0.5.6) sha256=fa184e27cc820880ccafad49116ff9776652996f907121f78bd06c58ad5290f8
   msgpack (1.8.4) sha256=4411c22d350dd1c20250f7eada3cca2695438c2f769cf0782f0cd065d90a3e7b
   msgpack (1.8.4-java) sha256=31857df9939139fc33d352a4a51d376d9cecbb67cef9f506156c2505f69f42cf

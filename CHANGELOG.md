@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## 2.1.10
+
+Omarchy integration release (stabilizes `2.1.10.pre.*`).
+
+### Added
+
+- Omarchy overlay: **Install → Development → Galaaz** (core, Knit, Arrow R/Ruby,
+  Ledger, demo, Arrow debug) and **Learn → Galaaz** (guide, docs, GitHub).
+- Brand mark in family `omarchy` at **U+E90E** via `omarchy-with-galaaz.ttf`;
+  install runs **`omarchy restart shell`** so the R glyph appears without logout.
+- Nautilus Scripts → Galaaz gknit helpers; Arrow debug menu helper.
+- `galaaz add arrow-r` / `arrow-ruby` (Ruby always ensures R first); legacy
+  `arrow` → `arrow-ruby`.
+
+### Changed
+
+- Install rows use Rails-style **`disabled:`** (dim + ✓), not `when:` hide.
+- Guide/docs live under Learn; Install keeps install/debug actions only.
+
+### Fixed
+
+- Menu `when:` guards use `$HOME` + `[[ ]]` so add-ons show correctly.
+- Arrow Stage B (arrow-glib / red-arrow) hardened for menu TUI / low-RAM guests.
+- Fontconfig prefer path for the merged brand font; force-refresh on reinstall.
+
 ## 2.1.10.pre.14
 
 ### Fixed
